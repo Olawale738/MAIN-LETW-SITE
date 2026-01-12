@@ -148,14 +148,14 @@ export default function Navbar() {
                                                 {sub.isModal ? (
                                                     <button
                                                         onClick={() => openModal(sub.name)}
-                                                        className="block w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-50 hover:text-primary transition-colors"
+                                                        className="block w-full text-left px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 hover:text-primary transition-colors"
                                                     >
                                                         {sub.name}
                                                     </button>
                                                 ) : (
                                                     <Link
                                                         href={sub.href}
-                                                        className="block px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-50 hover:text-primary transition-colors"
+                                                        className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 hover:text-primary transition-colors"
                                                     >
                                                         {sub.name}
                                                     </Link>
