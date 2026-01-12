@@ -15,10 +15,10 @@ export default function Home() {
       <Hero />
       <Ticker />
       <AboutSection />
+      <SermonsGrid />
       <WorshipSchedule />
       <StatsBar />
       <MinistriesGrid />
-      <SermonsGrid />
       <VerseOfTheDay />
       <FloatingActionButton />
     </PageLayout>
