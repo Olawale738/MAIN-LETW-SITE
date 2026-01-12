@@ -171,12 +171,15 @@ export default function Navbar() {
 
                 {/* Action Buttons */}
                 <div className="hidden lg:flex items-center">
-                    <Link
-                        href="/auth"
-                        className="px-4 py-1.5 rounded-full font-small transition-all hover:scale-105 active:scale-95 bg-gradient-to-b from-[#e8d57e] to-[#9d6e30] text-[#061a40] text-[12px] shadow-[0_10px_10px_rgba(0,0,0,0.2)]"
-                    >
-                        Join Us
-                    </Link>
+                      <Link
+                                                 href="/auth"
+                                                 className="inline-flex items-center gap-2 bg-[#a57b00] hover:bg-[#fabb00] text-white font-semibold px-1 py-1 pl-5 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl group"
+                                             >
+                                                 Join Us
+                                                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                                                       <ArrowRight className="w-5 h-5 text-[#a57b00] -rotate-45 transition-transform group-hover:translate-x-0.5" />
+                                                     </div>
+                                             </Link>
 
                 </div>
 
@@ -253,13 +256,15 @@ export default function Navbar() {
                             ))}
                         </div>
                         <div className="p-6 border-t space-y-4">
-                            <Link
-                                href="/auth"
-                                className="px-5 py-2 rounded-full font-small transition-all hover:scale-105 active:scale-95 bg-gradient-to-b from-[#e8d57e] to-[#9d6e30] text-[#061a40] text-[12px] shadow-[0_10px_10px_rgba(0,0,0,0.2)]"
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Join Us
-                            </Link>
+                             <Link
+                                                        href="/auth"
+                                                        className="inline-flex items-center gap-2 bg-[#a57b00] hover:bg-[#fabb00] text-white font-semibold px-1 py-1 pl-5 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl group"
+                                                    >
+                                                        Join Us
+                                                         <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                                                              <ArrowRight className="w-5 h-5 text-[#a57b00] -rotate-45 transition-transform group-hover:translate-x-0.5" />
+                                                            </div>
+                                                    </Link>
 
                         </div>
                     </motion.div>

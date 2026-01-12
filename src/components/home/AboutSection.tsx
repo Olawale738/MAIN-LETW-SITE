@@ -3,10 +3,10 @@
 import { ArrowRight, Heart, TrendingUp, Users, Building } from "lucide-react";
 
 const features = [
-  { icon: Heart, text: "Share God's Love", color: "bg-red-50 text-red-500" },
-  { icon: TrendingUp, text: "Foster Spiritual Growth", color: "bg-orange-50 text-orange-500" },
-  { icon: Users, text: "Serve Our Community", color: "bg-rose-50 text-rose-500" },
-  { icon: Building, text: "Build Strong Relationships", color: "bg-amber-50 text-amber-500" },
+  { icon: Heart, text: "Share God's Love", color: "bg-red-50 text-[#a57b00]" },
+  { icon: TrendingUp, text: "Foster Spiritual Growth", color: "bg-orange-50 text-[#a57b00]" },
+  { icon: Users, text: "Serve Our Community", color: "bg-rose-50 text-[#fabb00]" },
+  { icon: Building, text: "Build Strong Relationships", color: "bg-amber-50 text-[#fabb00]" },
 ];
 
 export default function AboutSection() {
@@ -51,15 +51,15 @@ export default function AboutSection() {
           {/* Content - Right Side */}
           <div className="space-y-6">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 text-orange-500 font-semibold tracking-wider text-xs uppercase">
+            <div className="inline-flex items-center gap-2 text-[#fabb00] font-semibold tracking-wider text-s uppercase">
               <div className="w-2 h-2 rotate-45 bg-orange-500" />
               About Us
             </div>
 
             {/* Heading */}
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
               Faith, Hope, and Love in{" "}
-              <span className="text-orange-500">Action Every Day</span>
+              <span className="text-[#a57b00]">Action Every Day</span>
             </h2>
 
             {/* Description Paragraphs */}
@@ -95,10 +95,10 @@ export default function AboutSection() {
 
             {/* Button */}
             <div className="pt-4">
-              <button className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-3 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl group">
+              <button className="inline-flex items-center gap-2 bg-[#a57b00] hover:bg-[#fabb00] text-white font-semibold px-1 py-1 pl-5 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl group">
                 Read More About Us
-                <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                  <ArrowRight className="w-4 h-4 text-orange-500 transition-transform group-hover:translate-x-0.5" />
+                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                  <ArrowRight className="w-5 h-5 text-[#a57b00] -rotate-45 transition-transform group-hover:translate-x-0.5" />
                 </div>
               </button>
             </div>
