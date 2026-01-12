@@ -1,78 +1,107 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
-import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
-const ministries = [
-    {
-        title: "Children's",
-        image: "https://images.unsplash.com/photo-1543706062-2f3b972d317b?q=80&w=2070&auto=format&fit=crop",
-        href: "/ministries#children",
-    },
-    {
-        title: "Youth Ministry",
-        image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2070&auto=format&fit=crop",
-        href: "/ministries#youth",
-    },
-    {
-        title: "Mission Ministry",
-        image: "https://images.unsplash.com/photo-1490730141103-6cac27aaab94?q=80&w=2070&auto=format&fit=crop",
-        href: "/ministries#mission",
-    },
+const worshipServices = [
+  {
+    title: "Children's Worship",
+    description: "Fun, faith-filled worship for kids ages 4-12.",
+    image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop",
+  },
+  {
+    title: "Sunday School Worship",
+    description: "Learning and worship for all ages.",
+    image: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?q=80&w=2070&auto=format&fit=crop",
+  },
+  {
+    title: "Children's Worship",
+    description: "Fun, faith-filled worship for kids ages 4-12.",
+    image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop",
+  },
 ];
 
-export default function MinistriesGrid() {
-    return (
-        <section className="py-24 bg-white">
-            <div className="section-container">
-                <div className="text-center space-y-4 mb-16">
-                    <div className="flex items-center justify-center gap-2 text-primary font-bold tracking-widest text-sm uppercase">
-                        <div className="w-2 h-2 rotate-45 bg-primary" />
-                        Our Ministries
-                    </div>
-                    <h2 className="text-4xl md:text-5xl font-heading font-black text-zinc-900 uppercase">
-                        Our Latest <span className="text-primary italic">Ministries</span>
-                    </h2>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {ministries.map((item, i) => (
-                        <motion.div
-                            key={i}
-                            whileHover={{ y: -10 }}
-                            className="relative group h-[500px] overflow-hidden rounded-t-[2.5rem] rounded-br-[5rem] rounded-bl-[2.5rem]"
-                        >
-                            <img
-                                src={item.image}
-                                alt={item.title}
-                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                            <div className="absolute top-6 left-6">
-                                <h3 className="text-2xl font-bold text-white font-heading">{item.title}</h3>
-                            </div>
-
-                            <div className="absolute bottom-8 right-8">
-                                <Link
-                                    href={item.href}
-                                    className="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center shadow-lg transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300"
-                                >
-                                    <ArrowUpRight className="w-6 h-6" />
-                                </Link>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-
-                <div className="mt-16 text-center">
-                    <p className="text-zinc-500 max-w-2xl mx-auto mb-8 font-medium">
-                        Explore the exciting new ways we are serving our community and growing together in faith with our latest ministry initiatives.
-                        <Link href="/ministries" className="text-primary hover:underline ml-2">View All Ministries</Link>
-                    </p>
-                </div>
+export default function WorshipSchedule() {
+  return (
+    <section className="py-16 px-4 md:px-8 lg:px-16 bg-stone-50">
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Left Side - Main Image */}
+          <div className="relative">
+            {/* Main church image card */}
+            <div className="relative bg-white rounded-3xl rounded-br-[120px] overflow-hidden shadow-2xl">
+              <img
+                src="https://images.unsplash.com/photo-1548625361-1250009617bc?q=80&w=2070&auto=format&fit=crop"
+                alt="Church Interior"
+                className="w-full h-[500px] object-cover"
+              />
+              
+              {/* Overlay card at bottom */}
+              <div className="absolute bottom-8 left-8 bg-white rounded-2xl rounded-br-[50px] p-6 shadow-xl max-w-xs">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  Youth Worship
+                </h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  Engaging teens in faith, fellowship, growth.
+                </p>
+                <button className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white hover:bg-orange-600 transition-colors">
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-        </section>
-    );
+          </div>
+
+          {/* Right Side - Content */}
+          <div className="space-y-8">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 text-orange-500 font-semibold tracking-wider text-xs uppercase">
+              <div className="w-2 h-2 rotate-45 bg-orange-500" />
+              Worship With Us
+            </div>
+
+            {/* Heading */}
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
+              Join Us On Sunday At{" "}
+              <span className="text-orange-500">8:00 & 9:00 AM</span>
+            </h2>
+
+            {/* Worship Services List */}
+            <div className="space-y-4">
+              {worshipServices.map((service, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl rounded-br-[40px] overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+                >
+                  <div className="flex items-center gap-4 p-4">
+                    {/* Service Image */}
+                    <div className="w-40 h-24 rounded-xl rounded-br-[30px] overflow-hidden flex-shrink-0">
+                      <img
+                        src={service.image}
+                        alt={service.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* Service Info */}
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">
+                        {service.title}
+                      </h3>
+                      <p className="text-gray-600 text-sm">
+                        {service.description}
+                      </p>
+                    </div>
+
+                    {/* Arrow Button */}
+                    <button className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white hover:bg-orange-600 transition-colors flex-shrink-0">
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }

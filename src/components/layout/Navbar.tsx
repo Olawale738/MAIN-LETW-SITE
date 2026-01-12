@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ComingSoonModal from "../shared/ComingSoonModal";
 
 const navLinks = [
-    { name: "Home", href: "/" },
+
     {
         name: "About",
         href: "/about",
@@ -32,6 +32,7 @@ const navLinks = [
             { name: "Leadership Development", href: "/ministries#leadership" },
             { name: "Career Guidance", href: "/ministries#career" },
             { name: "Skill Development", href: "/ministries#skill" },
+            { name: "Counseling & Support", href: "/counselling" }
         ],
     },
     {
@@ -66,20 +67,7 @@ const navLinks = [
             { name: "Testimonies", href: "/media-resources#testimonies" },
             { name: "Prayer Requests", href: "/media-resources#prayer" },
         ],
-    },
-    {
-        name: "Connect",
-        href: "/connect",
-        dropdown: [
-            { name: "Become a Member", href: "/connect#member" },
-            { name: "New Believers", href: "/connect#new-believers" },
-            { name: "Serve / Volunteer", href: "/connect#volunteer" },
-            { name: "Fellowship Groups", href: "/connect#groups" },
-            { name: "Give (Tithes, Offerings)", href: "/connect#give" },
-            { name: "Contact Us", href: "/connect#contact" },
-            { name: "Counseling & Support", href: "/counselling" },
-        ],
-    },
+    }
 ];
 
 export default function Navbar() {
@@ -105,22 +93,22 @@ export default function Navbar() {
 
     return (
         <header
-            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? "bg-white/80 backdrop-blur-lg shadow-sm py-4" : "bg-transparent py-6"
+            className={`absolute top-0 left-0 right-0 z-50 transition-all duration-300 bg-[#140152] ${isScrolled ? "py-2 shadow-xl" : "py-4"
                 }`}
         >
             <div className="section-container flex items-center justify-between">
                 {/* Logo */}
-                <Link href="/" className="flex items-center gap-2">
-                    <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xl">
-                        L
+                <Link href="/" className="flex items-center gap-1 group">
+                    <img src="/LETWlogo.png" alt="LETW Logo" className="w-12 h-12 md:w-14 md:h-14 object-contain transition-transform group-hover:scale-105" />
+                    <div className="flex flex-col leading-none border-l border-white/20">
+                        <span className="text-[9px] md:text-[11px] text-white tracking-wider uppercase">Light</span>
+                        <span className="text-[9px] md:text-[11px] text-white tracking-wider uppercase">Encounter</span>
+                        <span className="text-[9px] md:text-[11px] text-white tracking-wider uppercase">Tabernacle</span>
                     </div>
-                    <span className={`font-heading font-bold text-2xl tracking-tight ${isScrolled ? "text-zinc-900" : "text-white"}`}>
-                        AVENIX
-                    </span>
                 </Link>
 
                 {/* Desktop Nav */}
-                <nav className="hidden lg:flex items-center gap-8">
+                <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
                     {navLinks.map((link) => (
                         <div
                             key={link.name}
@@ -131,20 +119,18 @@ export default function Navbar() {
                             {link.isModal ? (
                                 <button
                                     onClick={() => openModal(link.name)}
-                                    className={`flex items-center gap-1 font-medium transition-colors ${isScrolled ? "text-zinc-600 hover:text-primary" : "text-white/90 hover:text-white"
-                                        }`}
+                                    className="flex items-center gap-1 font-heading text-[13px] font-bold tracking-wide transition-colors text-white/80 hover:text-white"
                                 >
                                     {link.name}
-                                    {link.dropdown && <ChevronDown className="w-4 h-4" />}
+                                    {link.dropdown && <ChevronDown className="w-3 h-3 opacity-50" />}
                                 </button>
                             ) : (
                                 <Link
                                     href={link.href}
-                                    className={`flex items-center gap-1 font-medium transition-colors ${isScrolled ? "text-zinc-600 hover:text-primary" : "text-white/90 hover:text-white"
-                                        }`}
+                                    className="flex items-center gap-1 font-heading text-[13px] font-bold tracking-wide transition-colors text-white/80 hover:text-white"
                                 >
                                     {link.name}
-                                    {link.dropdown && <ChevronDown className="w-4 h-4" />}
+                                    {link.dropdown && <ChevronDown className="w-3 h-3 opacity-50" />}
                                 </Link>
                             )}
 
@@ -162,14 +148,14 @@ export default function Navbar() {
                                                 {sub.isModal ? (
                                                     <button
                                                         onClick={() => openModal(sub.name)}
-                                                        className="block w-full text-left px-4 py-2.5 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-primary transition-colors"
+                                                        className="block w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-50 hover:text-primary transition-colors"
                                                     >
                                                         {sub.name}
                                                     </button>
                                                 ) : (
                                                     <Link
                                                         href={sub.href}
-                                                        className="block px-4 py-2.5 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-primary transition-colors"
+                                                        className="block px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-50 hover:text-primary transition-colors"
                                                     >
                                                         {sub.name}
                                                     </Link>
@@ -184,19 +170,14 @@ export default function Navbar() {
                 </nav>
 
                 {/* Action Buttons */}
-                <div className="hidden lg:flex items-center gap-4">
+                <div className="hidden lg:flex items-center">
                     <Link
                         href="/auth"
-                        className="px-6 py-2.5 rounded-full font-medium transition-all hover:scale-105 active:scale-95 bg-white text-primary border border-primary/20 hover:border-primary shadow-sm"
+                        className="px-4 py-1.5 rounded-full font-small transition-all hover:scale-105 active:scale-95 bg-gradient-to-b from-[#e8d57e] to-[#9d6e30] text-[#061a40] text-[12px] shadow-[0_10px_10px_rgba(0,0,0,0.2)]"
                     >
                         Join Us
                     </Link>
-                    <Link
-                        href="/connect#give"
-                        className="px-6 py-2.5 rounded-full font-medium transition-all hover:scale-105 active:scale-95 bg-primary text-white flex items-center gap-2 shadow-lg shadow-primary/20"
-                    >
-                        Donate Now <ArrowRight className="w-4 h-4" />
-                    </Link>
+
                 </div>
 
                 {/* Mobile Menu Trigger */}
@@ -218,11 +199,8 @@ export default function Navbar() {
                         className="fixed inset-0 bg-white z-40 lg:hidden flex flex-col"
                     >
                         <div className="flex items-center justify-between p-6 border-b">
-                            <Link href="/" className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                                    L
-                                </div>
-                                <span className="font-heading font-bold text-xl text-zinc-900">AVENIX</span>
+                            <Link href="/" className="flex items-center">
+                                <img src="public/LETWlogo.png" alt="LETW Logo" className="w-6 h-6" />
                             </Link>
                             <button onClick={() => setMobileMenuOpen(false)}>
                                 <X className="text-zinc-900" />
@@ -234,14 +212,14 @@ export default function Navbar() {
                                     {link.isModal ? (
                                         <button
                                             onClick={() => openModal(link.name)}
-                                            className="text-2xl font-bold text-zinc-900 text-left w-full"
+                                            className="text-l font-bold text-zinc-900 text-left w-full"
                                         >
                                             {link.name}
                                         </button>
                                     ) : (
                                         <Link
                                             href={link.href}
-                                            className="text-2xl font-bold text-zinc-900"
+                                            className="text-l font-bold text-zinc-900"
                                             onClick={() => setMobileMenuOpen(false)}
                                         >
                                             {link.name}
@@ -277,18 +255,12 @@ export default function Navbar() {
                         <div className="p-6 border-t space-y-4">
                             <Link
                                 href="/auth"
-                                className="block w-full text-center py-4 rounded-xl font-bold bg-zinc-100 text-zinc-900"
+                                className="px-5 py-2 rounded-full font-small transition-all hover:scale-105 active:scale-95 bg-gradient-to-b from-[#e8d57e] to-[#9d6e30] text-[#061a40] text-[12px] shadow-[0_10px_10px_rgba(0,0,0,0.2)]"
                                 onClick={() => setMobileMenuOpen(false)}
                             >
                                 Join Us
                             </Link>
-                            <Link
-                                href="/connect#give"
-                                className="block w-full text-center py-4 rounded-xl font-bold bg-primary text-white"
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Donate Now
-                            </Link>
+
                         </div>
                     </motion.div>
                 )}

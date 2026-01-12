@@ -1,75 +1,110 @@
 "use client";
 
-import Image from "next/image";
-import { CheckCircle2, ArrowRight } from "lucide-react";
-import { Button } from "../ui/Button";
+import { ArrowRight, Heart, TrendingUp, Users, Building } from "lucide-react";
 
 const features = [
-    "Share God's Love",
-    "Foster Spiritual Growth",
-    "Serve Our Community",
-    "Build Strong Relationships",
+  { icon: Heart, text: "Share God's Love", color: "bg-red-50 text-red-500" },
+  { icon: TrendingUp, text: "Foster Spiritual Growth", color: "bg-orange-50 text-orange-500" },
+  { icon: Users, text: "Serve Our Community", color: "bg-rose-50 text-rose-500" },
+  { icon: Building, text: "Build Strong Relationships", color: "bg-amber-50 text-amber-500" },
 ];
 
 export default function AboutSection() {
-    return (
-        <section className="py-24 bg-surface relative overflow-hidden">
-            <div className="section-container grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-                {/* Image Collage */}
-                <div className="relative">
-                    <div className="relative z-10 rounded-[3rem] overflow-hidden shadow-2xl skew-y-1 group">
-                        <img
-                            src="https://images.unsplash.com/photo-1548625361-1250009617bc?q=80&w=2070&auto=format&fit=crop"
-                            alt="Church Interior"
-                            className="w-full h-[600px] object-cover transition-transform duration-700 group-hover:scale-110"
-                        />
-                    </div>
-
-                    <div className="absolute -bottom-10 -left-10 z-20 w-72 h-72 rounded-[2rem] overflow-hidden border-[12px] border-surface shadow-xl hidden md:block group/small">
-                        <img
-                            src="https://images.unsplash.com/photo-1444333523264-70d30fe99923?q=80&w=2071&auto=format&fit=crop"
-                            alt="Church Detail"
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover/small:scale-110"
-                        />
-                    </div>
-
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl" />
-                </div>
-
-                {/* Content */}
-                <div className="space-y-8">
-                    <div className="inline-flex items-center gap-2 text-primary font-bold tracking-widest text-sm bg-primary/5 px-4 py-1 rounded-full uppercase">
-                        <div className="w-2 h-2 rotate-45 bg-primary" />
-                        About Us
-                    </div>
-
-                    <h2 className="text-4xl md:text-6xl font-heading font-black text-zinc-900 leading-tight">
-                        Faith, Hope, and Love in <br />
-                        <span className="text-primary italic">Action</span> every day
-                    </h2>
-
-                    <p className="text-zinc-600 text-lg leading-relaxed max-w-xl">
-                        We are a vibrant community of believers dedicated to worship, fellowship, and service. Our mission is to share God's love, grow in faith, and make a positive impact in the world through compassionate outreach and meaningful connections.
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                        {features.map((feature, i) => (
-                            <div key={i} className="flex items-center gap-4 group">
-                                <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                                    <CheckCircle2 className="w-6 h-6" />
-                                </div>
-                                <span className="font-bold text-zinc-800">{feature}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="pt-8">
-                        <Button size="lg" className="group">
-                            Read More About Us <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
-                        </Button>
-                    </div>
-                </div>
+  return (
+    <section className="py-16 px-4 md:px-8 lg:px-16 bg-white">
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          {/* Image Collage - Left Side */}
+          <div className="relative h-[500px] lg:h-[600px]">
+            {/* Main large image with curved top-left */}
+            <div className="absolute top-0 right-0 w-[65%] h-[75%] overflow-hidden shadow-2xl">
+              <div className="w-full h-full bg-gradient-to-br from-amber-900 to-amber-700 rounded-tl-[100px]">
+                <img
+                  src="https://images.unsplash.com/photo-1548625361-1250009617bc?q=80&w=2070&auto=format&fit=crop"
+                  alt="Church Interior"
+                  className="w-full h-full object-cover opacity-90"
+                />
+              </div>
             </div>
-        </section>
-    );
+
+            {/* Bottom left image with curved bottom-right */}
+            <div className="absolute bottom-0 left-0 w-[55%] h-[60%] overflow-hidden shadow-xl z-10">
+              <div className="w-full h-full bg-white rounded-br-[80px]">
+                <img
+                  src="https://images.unsplash.com/photo-1444333523264-70d30fe99923?q=80&w=2071&auto=format&fit=crop"
+                  alt="Church Altar"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+
+            {/* Small decorative image - top left */}
+            <div className="absolute top-4 left-0 w-[35%] h-[25%] overflow-hidden shadow-lg rounded-tl-[40px] rounded-br-[40px]">
+              <img
+                src="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?q=80&w=2073&auto=format&fit=crop"
+                alt="Church Ceiling"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+
+          {/* Content - Right Side */}
+          <div className="space-y-6">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 text-orange-500 font-semibold tracking-wider text-xs uppercase">
+              <div className="w-2 h-2 rotate-45 bg-orange-500" />
+              About Us
+            </div>
+
+            {/* Heading */}
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+              Faith, Hope, and Love in{" "}
+              <span className="text-orange-500">Action Every Day</span>
+            </h2>
+
+            {/* Description Paragraphs */}
+            <div className="space-y-4">
+              <p className="text-gray-600 text-base leading-relaxed">
+                We are a vibrant community of believers dedicated to worship, fellowship, and service. 
+                Our mission is to share God's love, grow in faith, and make a positive impact in the 
+                world through compassionate outreach and meaningful connections.
+              </p>
+              
+              <p className="text-gray-600 text-base leading-relaxed">
+                Our church is a welcoming place where everyone can find support, inspiration, and a 
+                sense of belonging. Together, we strive to live out our faith and make a difference.
+              </p>
+            </div>
+
+            {/* Features Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+              {features.map((feature, i) => {
+                const Icon = feature.icon;
+                return (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className={`w-11 h-11 rounded-lg ${feature.color} flex items-center justify-center flex-shrink-0`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className="font-semibold text-gray-800 text-sm">
+                      {feature.text}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Button */}
+            <div className="pt-4">
+              <button className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-3 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl group">
+                Read More About Us
+                <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                  <ArrowRight className="w-4 h-4 text-orange-500 transition-transform group-hover:translate-x-0.5" />
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
