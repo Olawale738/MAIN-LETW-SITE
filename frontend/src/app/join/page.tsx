@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { BookOpen, Users, Heart, Star, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 import { useState } from 'react'
 
 export default function JoinPage() {
@@ -183,6 +184,11 @@ export default function JoinPage() {
                     </div>
                   </div>
                 </Button>
+                <div className="mt-4 text-center">
+                  <p className="text-gray-500 text-sm">
+                    Already a member? <Link href="/auth/login" className="text-[#140152] hover:underline font-semibold">Click here to login</Link>
+                  </p>
+                </div>
               </form>
             </CardContent>
           </Card>
