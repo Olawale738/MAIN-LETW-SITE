@@ -232,6 +232,11 @@ export default function Navbar() {
                 <PremiumButton href="/join" className="w-full py-4 text-center justify-center text-lg">
                   Join The Family
                 </PremiumButton>
+                <div className="mt-4 text-center">
+                  <p className="text-gray-500 text-sm">
+                    Already a member? <Link href="/auth/login" className="text-[#140152] hover:underline font-semibold">Click here to login</Link>
+                  </p>
+                </div>
               </motion.div>
             </div>
           </motion.div>

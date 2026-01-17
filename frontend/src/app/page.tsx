@@ -31,9 +31,11 @@ export default function HomePage() {
           <div className="mt-4 font-normal text-white/90 max-w-lg text-center mx-auto">
             <TextGenerateEffect words="Engage. Empower. Uplift. Experience the divine presence in a sanctuary of faith and love." className="text-center text-White/90" />
           </div>
-          <div className="mt-8 flex justify-center gap-4">
+          <div className="mt-8 flex flex-col items-center gap-4">
             <PremiumButton href="/join">Join Our Family</PremiumButton>
-
+            <p className="text-white/80 text-sm">
+              Already a member? <Link href="/auth/login" className="text-[#f5bb00] hover:underline font-semibold">Click here to login</Link>
+            </p>
           </div>
         </div>
       </div>

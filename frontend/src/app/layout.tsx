@@ -18,14 +18,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  modal
 }: Readonly<{
   children: React.ReactNode;
+  modal: React.ReactNode;
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="scroll-smooth">
       <body className={`${poppins.variable} font-sans antialiased`} suppressHydrationWarning>
         <Navbar />
         <main>{children}</main>
+        {modal}
         <Footer />
       </body>
     </html>
