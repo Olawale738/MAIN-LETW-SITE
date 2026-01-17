@@ -55,7 +55,7 @@ export default function LoginForm() {
             </form>
 
             <p className="text-center text-sm text-gray-400 mt-6">
-                Don&apos;t have an account? <Link href="/auth/register" className="text-blue-500 hover:underline">Register</Link>
+                Don&apos;t have an account? <Link href="/auth/register" className="text-[#140152] font-semibold hover:text-[#f5bb00] transition-colors">Register</Link>
             </p>
         </div>
     )

@@ -184,7 +184,7 @@ export default function JoinPage() {
                     </div>
                   </div>
                 </Button>
-                <div className="mt-4 text-center">
+                <div className="mt-4 text-center relative z-10">
                   <p className="text-gray-500 text-sm">
                     Already a member? <Link href="/auth/login" className="text-[#140152] hover:underline font-semibold">Click here to login</Link>
                   </p>
