@@ -70,9 +70,10 @@ export default function AboutPage() {
             <div className="aspect-[4/3] rounded-[3rem] overflow-hidden shadow-2xl">
               <img src="/Founder.png" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Founder" />
             </div>
-            <div className="absolute -bottom-8 -right-8 w-48 h-48 bg-[#f5bb00] rounded-[2rem] p-8 flex flex-col justify-end shadow-xl group-hover:-translate-y-2 transition-transform duration-300">
-              <span className="text-4xl font-black text-[#140152]">Est.</span>
-              <span className="text-[#140152]/60 font-bold uppercase tracking-widest text-xs">2004</span>
+            <div className="absolute -bottom-8 -right-8 h-28 bg-[#f5bb00] rounded-[2rem] p-8 flex flex-col justify-end shadow-xl group-hover:-translate-y-2 transition-transform duration-300">
+              <span className="text-lg font-black text-[#140152]">Apostle. Olawale N Sanni</span>
+              <span className="text-[#140152]/60 font-bold uppercase tracking-widest text-xs">Founder/President</span>
+              <span className="text-[#140152]/60 font-bold tracking-widest text-xs">president@letw.org</span>
             </div>
           </div>
           <div className="space-y-8">

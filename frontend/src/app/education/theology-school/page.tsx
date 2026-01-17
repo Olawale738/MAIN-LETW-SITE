@@ -2,6 +2,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import PremiumButton from '@/components/ui/PremiumButton'
 import { ArrowLeft, BookOpen, Scroll, Users, Globe, Award } from 'lucide-react'
 import Link from 'next/link'
 
@@ -9,7 +10,7 @@ export default function TheologySchoolPage() {
     return (
         <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
             {/* Hero Section – School of Theology & Ministry Formation */}
-            <div className="relative h-[80vh] md:h-[60vh] w-full overflow-hidden flex items-center justify-center bg-[#2c1a0f]">
+            <div className="relative h-[80vh] md:h-[60vh] w-full overflow-hidden flex items-center justify-center bg-[#2c1a0f] pt-24">
                 <img
                     src="https://images.unsplash.com/photo-1544928147-79a2dbc1f389?q=80&w=2574&auto=format&fit=crop"
                     alt="Theology School"
@@ -29,8 +30,8 @@ export default function TheologySchoolPage() {
                         Training Sound Minds. Forming Faithful Ministers. Shaping Kingdom Leaders.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Button size="lg" className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold">Apply for Theology School</Button>
-                        <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-[#140152]">View Programme Structure</Button>
+                        <PremiumButton className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold">Apply for Theology School</PremiumButton>
+                        <PremiumButton className="border-white text-white hover:bg-white hover:text-[#140152] border bg-transparent">View Programme Structure</PremiumButton>
                     </div>
                 </motion.div>
             </div>
@@ -117,9 +118,9 @@ export default function TheologySchoolPage() {
                             <p className="text-blue-200 mb-6 leading-relaxed">
                                 Join a structured programme that forms sound ministers and kingdom leaders.
                             </p>
-                            <Button size="lg" className="w-full bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6">
+                            <PremiumButton className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6">
                                 Apply Now
-                            </Button>
+                            </PremiumButton>
                         </div>
 
                         {/* Study Options */}

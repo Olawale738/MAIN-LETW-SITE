@@ -176,10 +176,10 @@ export default function JoinPage() {
                   </RadioGroup>
                 </div>
 
-                <Button type="submit" variant="primary" className="w-full h-14 rounded-full py-0.5 px-1 pl-5 shadow-[0_0_20px_rgba(245,187,0,0.5)] hover:shadow-[0_0_30px_rgba(245,187,0,0.6)] transition-shadow duration-300">
-                  <div className="flex items-center justify-between w-full px-4">
+                <Button type="submit" variant="primary" className=" h-14 rounded-full py-0.5 px-1 pl-5 shadow-[0_0_20px_rgba(245,187,0,0.5)] hover:shadow-[0_0_30px_rgba(245,187,0,0.6)] transition-shadow duration-300">
+                  <div className="flex items-center justify-between px-1">
                     <p>Join Now</p>
-                    <div className="p-2 bg-white fill-current rounded-full transition-transform group-hover:translate-x-1 text-black">
+                    <div className="p-2 ml-2 bg-white fill-current rounded-full transition-transform group-hover:translate-x-1 text-black">
                       <ArrowRight className="w-4 h-4 text-[#140152] -rotate-45" />
                     </div>
                   </div>

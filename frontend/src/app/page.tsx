@@ -24,7 +24,7 @@ export default function HomePage() {
           className="-top-40 left-0 md:left-60 md:-top-20"
           fill="white"
         />
-        <div className="p-4 max-w-7xl  mx-auto relative z-10  w-full pt-30 md:pt-0">
+        <div className="p-4 max-w-7xl  mx-auto relative z-10  w-full pt-48 md:pt-0">
           <h1 className="text-4xl md:text-7xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400 bg-opacity-50">
             Light Encounter <br /> Tabernacle
           </h1>
@@ -33,9 +33,6 @@ export default function HomePage() {
           </div>
           <div className="mt-8 flex flex-col items-center gap-4">
             <PremiumButton href="/join">Join Our Family</PremiumButton>
-            <p className="text-white/80 text-sm">
-              Already a member? <Link href="/auth/login" className="text-[#f5bb00] hover:underline font-semibold">Click here to login</Link>
-            </p>
           </div>
         </div>
       </div>
@@ -50,7 +47,8 @@ export default function HomePage() {
               </div>
               <div className="absolute -bottom-6 -right-6 bg-[#f5bb00] text-[#140152] p-6 rounded-xl shadow-xl max-w-xs hidden md:block">
                 <p className="font-bold text-lg leading-tight">Apostle. Olawale N. Sanni</p>
-                <p className="text-sm font-semibold mt-2 text-right">Founder/President</p>
+                <p className="text-sm font-semibold text-right">Founder/President</p>
+                <p className="text-sm font-semibold text-right">president@letw.org</p>
               </div>
             </div>
 
@@ -133,16 +131,16 @@ export default function HomePage() {
               >
                 <Card className="overflow-hidden border-none shadow-xl hover:shadow-2xl transition-shadow bg-white h-full flex flex-col">
                   <div className="relative aspect-video">
-                    <img
-                      src={`https://images.unsplash.com/photo-1478147427282-58a87a120781?w=800&q=80&v=${i}`}
-                      className="w-full h-full object-cover"
-                      alt="Sermon Thumbnail"
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      src={`https://www.youtube.com/embed/S0Q4gqBUs7c?si=Testing${i}`}
+                      title="Sermon Video"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
-                      <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
-                        <Youtube className="w-8 h-8 text-white" />
-                      </div>
-                    </div>
                   </div>
                   <CardContent className="p-6 flex-grow flex flex-col justify-between">
                     <div>

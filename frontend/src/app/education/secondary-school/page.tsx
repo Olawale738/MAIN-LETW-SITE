@@ -2,6 +2,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import PremiumButton from '@/components/ui/PremiumButton'
 import { ArrowLeft, BookOpen, Users, Star, Trophy, Globe } from 'lucide-react'
 import Link from 'next/link'
 
@@ -9,7 +10,7 @@ export default function SecondarySchoolPage() {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
       {/* Hero Section – Secondary School */}
-      <div className="relative h-[80vh] md:h-[60vh] w-full overflow-hidden flex items-center justify-center bg-[#1e293b]">
+      <div className="relative h-[80vh] md:h-[60vh] w-full overflow-hidden flex items-center justify-center bg-[#1e293b] pt-24">
         <img
           src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2670&auto=format&fit=crop"
           alt="Secondary School"
@@ -29,7 +30,7 @@ export default function SecondarySchoolPage() {
             Preparing futures with knowledge, discipline, and leadership excellence.
           </p>
           <div className="flex justify-center">
-            <Button size="lg" className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold">Apply Now</Button>
+            <PremiumButton className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold">Apply Now</PremiumButton>
           </div>
         </motion.div>
       </div>
@@ -143,9 +144,9 @@ export default function SecondarySchoolPage() {
                 <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[#140152] rounded-full" />Parent & Student Interview</li>
                 <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[#140152] rounded-full" />Review of Past Reports</li>
               </ul>
-              <Button size="lg" className="w-full bg-[#140152] text-white hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6 border border-[#140152]">
+              <PremiumButton className="bg-[#140152] text-white hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6 border border-[#140152]">
                 Visit Secondary School Website
-              </Button>
+              </PremiumButton>
             </div>
 
             <div className="bg-white p-8 rounded-[2rem] shadow-lg border border-gray-100">

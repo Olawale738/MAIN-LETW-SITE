@@ -193,7 +193,7 @@ export default function Navbar() {
             animate="open"
             exit="closed"
             variants={menuVariants}
-            className="fixed inset-0 z-40 bg-white/95 backdrop-blur-3xl md:hidden flex flex-col pt-32 px-6 pb-8"
+            className="fixed inset-0 z-40 bg-white/95 backdrop-blur-3xl md:hidden flex flex-col pt-32 px-6 pb-8 overflow-y-auto"
           >
             <div className="flex flex-col gap-6">
               {navLinks.map((link, i) => (

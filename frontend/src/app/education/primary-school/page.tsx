@@ -2,6 +2,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import PremiumButton from '@/components/ui/PremiumButton'
 import { ArrowLeft, BookOpen, Heart, Shield, Star, Users } from 'lucide-react'
 import Link from 'next/link'
 
@@ -9,7 +10,7 @@ export default function PrimarySchoolPage() {
     return (
         <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
             {/* Hero */}
-            <div className="relative h-[80vh] md:h-[60vh] w-full overflow-hidden flex items-center justify-center bg-[#3d0f0f]">
+            <div className="relative h-[80vh] md:h-[60vh] w-full overflow-hidden flex items-center justify-center bg-[#3d0f0f] pt-24">
                 <img
                     src="https://images.unsplash.com/photo-1544928147-79a2dbc1f389?q=80&w=2574&auto=format&fit=crop"
                     alt="Primary School" // Updated alt text
@@ -140,9 +141,9 @@ export default function PrimarySchoolPage() {
                                     <span>Documentation</span>
                                 </div>
                             </div>
-                            <Button size="lg" className="w-full bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6">
+                            <PremiumButton className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6">
                                 Apply Now
-                            </Button>
+                            </PremiumButton>
                             <p className="text-center text-xs text-blue-300 mt-4">Limited spaces available.</p>
                         </div>
 

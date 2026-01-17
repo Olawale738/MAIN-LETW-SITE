@@ -2,13 +2,14 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import PremiumButton from '@/components/ui/PremiumButton'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export default function UniversityPage() {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
-      <div className="relative h-[60vh] bg-emerald-900 overflow-hidden flex items-center justify-center">
+      <div className="relative h-[60vh] bg-emerald-900 overflow-hidden flex items-center justify-center pt-24">
         <div className="absolute inset-0 bg-black/40 z-10" />
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -50,9 +51,9 @@ export default function UniversityPage() {
 
         <div className="mt-20 text-center">
           <h2 className="text-3xl font-bold text-[#140152] mb-8">Ready to higher heights?</h2>
-          <Button size="lg" className="bg-[#140152] text-white hover:bg-[#140152]/90 rounded-full px-10 py-7 text-lg">
+          <PremiumButton className="bg-[#140152] text-white hover:bg-[#140152]/90 rounded-full px-10 py-7 text-lg">
             Visit University Website
-          </Button>
+          </PremiumButton>
         </div>
       </div>
     </div>
