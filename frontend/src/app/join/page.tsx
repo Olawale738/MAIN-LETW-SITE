@@ -7,24 +7,45 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { BookOpen, Users, Heart, Star, ArrowRight } from 'lucide-react'
+import { BookOpen, Users, Heart, Star, ArrowRight, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { authApi } from '@/lib/api'
 
 export default function JoinPage() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     membershipType: 'new'
   })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Membership application submitted:', formData)
-    alert('Thank you for your interest in joining our family! We will contact you soon.')
-    // Reset form
-    setFormData({ name: '', email: '', phone: '', membershipType: 'new' })
+    setLoading(true)
+    setError('')
+
+    try {
+      await authApi.register({
+        name: formData.name,
+        email: formData.email
+      })
+
+      // Redirect to verify email page
+      const params = new URLSearchParams()
+      params.set('email', formData.email)
+      params.set('name', formData.name)
+      router.push(`/auth/verify-email?${params.toString()}`)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Registration failed. Please try again.'
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,15 +197,30 @@ export default function JoinPage() {
                   </RadioGroup>
                 </div>
 
-                <Button type="submit" variant="primary" className=" h-14 rounded-full py-0.5 px-1 pl-5 shadow-[0_0_20px_rgba(245,187,0,0.5)] hover:shadow-[0_0_30px_rgba(245,187,0,0.6)] transition-shadow duration-300">
-                  <div className="flex items-center justify-between px-1">
-                    <p>Join Now</p>
-                    <div className="p-2 ml-2 bg-white fill-current rounded-full transition-transform group-hover:translate-x-1 text-black">
-                      <ArrowRight className="w-4 h-4 text-[#140152] -rotate-45" />
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  variant="primary"
+                  className="w-full h-14 rounded-full py-0.5 px-1 pl-5 shadow-[0_0_20px_rgba(245,187,0,0.5)] hover:shadow-[0_0_30px_rgba(245,187,0,0.6)] transition-shadow duration-300"
+                >
+                  <div className="flex items-center justify-between w-full px-4">
+                    <p>{loading ? 'Joining...' : 'Join Now'}</p>
+                    <div className="p-2 bg-white fill-current rounded-full transition-transform group-hover:translate-x-1 text-black">
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 text-[#140152] animate-spin" />
+                      ) : (
+                        <ArrowRight className="w-4 h-4 text-[#140152] -rotate-45" />
+                      )}
                     </div>
                   </div>
                 </Button>
-                <div className="mt-4 text-center">
+                <div className="mt-4 text-center relative z-10">
                   <p className="text-gray-500 text-sm">
                     Already a member? <Link href="/auth/login" className="text-[#140152] hover:underline font-semibold">Click here to login</Link>
                   </p>

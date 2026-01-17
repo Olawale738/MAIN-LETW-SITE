@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import ConditionalLayout from "@/components/layout/ConditionalLayout";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -26,10 +25,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="scroll-smooth">
       <body className={`${poppins.variable} font-sans antialiased`} suppressHydrationWarning>
-        <Navbar />
-        <main>{children}</main>
+        <ConditionalLayout>
+          {children}
+        </ConditionalLayout>
         {modal}
-        <Footer />
       </body>
     </html>
   );

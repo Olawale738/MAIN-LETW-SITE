@@ -30,10 +30,16 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isEducationHovered, setIsEducationHovered] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handleScroll)
+
+    // Check login status
+    const loggedIn = localStorage.getItem('isLoggedIn') === 'true'
+    setIsLoggedIn(loggedIn)
+
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
@@ -163,7 +169,13 @@ export default function Navbar() {
           {/* ACTIONS & MOBILE TOGGLE */}
           <div className="flex items-center gap-4">
             <div className="hidden md:block">
-              <PremiumButton href="/join" className="py-2 text-sm">Join Us</PremiumButton>
+              {isLoggedIn ? (
+                <PremiumButton href="/dashboard" className="py-2 text-sm">
+                  My Dashboard
+                </PremiumButton>
+              ) : (
+                <PremiumButton href="/join" className="py-2 text-sm">Join Us</PremiumButton>
+              )}
             </div>
 
             <button
@@ -229,14 +241,22 @@ export default function Navbar() {
               </motion.div>
 
               <motion.div custom={navLinks.length + 1} variants={linkVariants} className="mt-auto">
-                <PremiumButton href="/join" className="w-full py-4 text-center justify-center text-lg">
-                  Join The Family
-                </PremiumButton>
-                <div className="mt-4 text-center">
-                  <p className="text-gray-500 text-sm">
-                    Already a member? <Link href="/auth/login" className="text-[#140152] hover:underline font-semibold">Click here to login</Link>
-                  </p>
-                </div>
+                {isLoggedIn ? (
+                  <PremiumButton href="/dashboard" className="w-full py-4 text-center justify-center text-lg mb-4">
+                    My Dashboard
+                  </PremiumButton>
+                ) : (
+                  <>
+                    <PremiumButton href="/join" className="w-full py-4 text-center justify-center text-lg">
+                      Join The Family
+                    </PremiumButton>
+                    <div className="mt-4 text-center">
+                      <p className="text-gray-500 text-sm">
+                        Already a member? <Link href="/auth/login" className="text-[#140152] hover:underline font-semibold">Click here to login</Link>
+                      </p>
+                    </div>
+                  </>
+                )}
               </motion.div>
             </div>
           </motion.div>

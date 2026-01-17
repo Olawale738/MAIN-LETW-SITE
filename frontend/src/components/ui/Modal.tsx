@@ -42,7 +42,7 @@ export default function Modal({ children }: { children: React.ReactNode }) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 ref={overlay}
-                className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-black/60 backdrop-blur-sm p-4"
+                className="fixed inset-0 z-[9999] grid place-items-center overflow-y-auto bg-black/60 backdrop-blur-sm p-4"
                 onClick={onClick}
             >
                 <motion.div
@@ -54,9 +54,9 @@ export default function Modal({ children }: { children: React.ReactNode }) {
                 >
                     <button
                         onClick={onDismiss}
-                        className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white transition-colors"
+                        className="absolute top-4 right-4 z-50 p-2 text-gray-400 hover:text-[#140152] hover:bg-gray-100 rounded-full transition-all duration-300"
                     >
-                        <X className="w-8 h-8" />
+                        <X className="w-5 h-5" />
                         <span className="sr-only">Close</span>
                     </button>
 
