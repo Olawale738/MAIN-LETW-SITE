@@ -1,0 +1,184 @@
+"""
+Email service for sending verification and notification emails.
+Supports console logging for development and SMTP for production.
+"""
+
+import aiosmtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+from config import settings
+
+
+async def send_email(to_email: str, subject: str, html_content: str) -> bool:
+    """
+    Send an email to the specified address.
+    In development mode (EMAIL_ENABLED=False), logs to console instead.
+    
+    Returns True if email was sent/logged successfully.
+    """
+    if not settings.EMAIL_ENABLED:
+        # Development mode: log to console
+        print("\n" + "=" * 60)
+        print("📧 EMAIL (Development Mode - Not Actually Sent)")
+        print("=" * 60)
+        print(f"TO: {to_email}")
+        print(f"SUBJECT: {subject}")
+        print("-" * 60)
+        print(html_content)
+        print("=" * 60 + "\n")
+        return True
+    
+    # Production mode: send via SMTP
+    try:
+        message = MIMEMultipart("alternative")
+        message["From"] = f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM_ADDRESS}>"
+        message["To"] = to_email
+        message["Subject"] = subject
+        
+        html_part = MIMEText(html_content, "html")
+        message.attach(html_part)
+        
+        await aiosmtplib.send(
+            message,
+            hostname=settings.SMTP_HOST,
+            port=settings.SMTP_PORT,
+            username=settings.SMTP_USER,
+            password=settings.SMTP_PASSWORD,
+            start_tls=True
+        )
+        
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send email to {to_email}: {e}")
+        return False
+
+
+async def send_verification_email(to_email: str, name: str, token: str) -> bool:
+    """
+    Send email verification link to new user.
+    """
+    verification_url = f"{settings.FRONTEND_URL}/auth/setup-password?token={token}"
+    
+    subject = f"Welcome to Light Encounter Tabernacle, {name}! 🌟"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <div style="background: linear-gradient(135deg, #140152 0%, #1d0175 100%); padding: 40px; border-radius: 20px 20px 0 0; text-align: center;">
+                <h1 style="color: #f5bb00; margin: 0; font-size: 28px;">Welcome HOME, {name}! 🌟</h1>
+            </div>
+            
+            <div style="background: white; padding: 40px; border-radius: 0 0 20px 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
+                <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                    Grace and Peace be multiplied unto you!
+                </p>
+                
+                <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                    We are absolutely thrilled to welcome you to the <strong>Light Encounter Tabernacle</strong> family! 
+                    You haven't just joined a platform; you've connected with a destiny-moulding community where God's presence changes everything.
+                </p>
+                
+                <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                    <strong>Here is what awaits you:</strong>
+                </p>
+                
+                <ul style="color: #333; font-size: 16px; line-height: 2;">
+                    <li>🚀 <strong>Career & Skills:</strong> Unlock your potential with our mentorship tracks.</li>
+                    <li>🔥 <strong>Spiritual Growth:</strong> Dive deep into our discipleship and theology resources.</li>
+                    <li>🤝 <strong>Community:</strong> You are never alone. We are here to walk with you.</li>
+                </ul>
+                
+                <div style="text-align: center; margin: 40px 0;">
+                    <a href="{verification_url}" 
+                       style="display: inline-block; background: #f5bb00; color: #140152; text-decoration: none; 
+                              padding: 16px 40px; border-radius: 50px; font-weight: bold; font-size: 16px;
+                              box-shadow: 0 4px 20px rgba(245, 187, 0, 0.4);">
+                        Complete Your Registration →
+                    </a>
+                </div>
+                
+                <p style="color: #666; font-size: 14px; text-align: center;">
+                    This link will expire in 24 hours.
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                
+                <p style="color: #999; font-size: 12px; text-align: center;">
+                    If you didn't create an account, please ignore this email.
+                </p>
+                
+                <p style="color: #140152; font-size: 14px; text-align: center; font-weight: bold;">
+                    With Love,<br>
+                    The LETW Team
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return await send_email(to_email, subject, html_content)
+
+
+async def send_password_reset_email(to_email: str, name: str, token: str) -> bool:
+    """
+    Send password reset link to user.
+    """
+    reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={token}"
+    
+    subject = "Reset Your Password - Light Encounter Tabernacle"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <div style="background: linear-gradient(135deg, #140152 0%, #1d0175 100%); padding: 40px; border-radius: 20px 20px 0 0; text-align: center;">
+                <h1 style="color: #f5bb00; margin: 0; font-size: 28px;">Password Reset Request</h1>
+            </div>
+            
+            <div style="background: white; padding: 40px; border-radius: 0 0 20px 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
+                <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                    Hi {name},
+                </p>
+                
+                <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                    We received a request to reset your password. Click the button below to create a new password:
+                </p>
+                
+                <div style="text-align: center; margin: 40px 0;">
+                    <a href="{reset_url}" 
+                       style="display: inline-block; background: #f5bb00; color: #140152; text-decoration: none; 
+                              padding: 16px 40px; border-radius: 50px; font-weight: bold; font-size: 16px;
+                              box-shadow: 0 4px 20px rgba(245, 187, 0, 0.4);">
+                        Reset Password →
+                    </a>
+                </div>
+                
+                <p style="color: #666; font-size: 14px; text-align: center;">
+                    This link will expire in 1 hour.
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                
+                <p style="color: #999; font-size: 12px; text-align: center;">
+                    If you didn't request a password reset, please ignore this email. Your password will remain unchanged.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return await send_email(to_email, subject, html_content)

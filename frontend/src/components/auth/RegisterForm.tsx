@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { authApi } from '@/lib/api'
 
 export default function RegisterForm() {
     const router = useRouter()
@@ -10,80 +11,79 @@ export default function RegisterForm() {
     const redirectPath = searchParams.get('redirect') || '/dashboard'
 
     const [formData, setFormData] = useState({ name: '', email: '' })
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setLoading(true)
+        setError('')
 
-        // WELCOME EMAIL SIMULATION
-        const welcomeSubject = "Welcome HOME, " + formData.name + "! 🌟"
-        const welcomeBody = `
-          Dear ${formData.name},
+        try {
+            await authApi.register({
+                name: formData.name,
+                email: formData.email
+            })
 
-          Grace and Peace be multiplied unto you!
-
-          We are absolutely thrilled to welcome you to the Light Encounter Tabernacle family! You haven't just joined a platform; you've connected with a destiny-moulding community where God's presence changes everything.
-
-          Here is what awaits you:
-          1. 🚀 Career & Skills: Unlock your potential with our mentorship tracks.
-          2. 🔥 Spiritual Growth: Dive deep into our discipleship and theology resources.
-          3. 🤝 Community: You are never alone. We are here to walk with you.
-
-          CLICK BELOW TO CONFIRM YOUR ACCOUNT AND SET YOUR PASSWORD:
-          [ Verification Link ]
-
-          We can't wait to see you shine.
-
-          With Love,
-          The LETW Team
-        `
-        console.log("--- SIMULATED EMAIL SENT ---")
-        console.log("TO:", formData.email)
-        console.log("SUBJECT:", welcomeSubject)
-        console.log("BODY:", welcomeBody)
-        console.log("----------------------------")
-
-        // Simulate sending email
-        const params = new URLSearchParams()
-        params.set('email', formData.email)
-        params.set('redirect', redirectPath)
-        router.push(`/auth/verify-email?${params.toString()}`)
+            // Redirect to verify email page
+            const params = new URLSearchParams()
+            params.set('email', formData.email)
+            params.set('name', formData.name)
+            params.set('redirect', redirectPath)
+            router.push(`/auth/verify-email?${params.toString()}`)
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Registration failed. Please try again.'
+            setError(errorMessage)
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
-        <div className="w-full bg-white dark:bg-neutral-800 p-8 rounded-2xl shadow-xl">
+        <div className="w-full bg-white p-8 rounded-2xl shadow-xl">
             <h1 className="text-3xl font-bold text-center text-[#140152] mb-2">Join The Community</h1>
             <p className="text-center text-gray-500 mb-8">Enter your details to get started.</p>
 
+            {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">
+                    {error}
+                </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1 dark:text-gray-300">Full Name</label>
+                    <label className="block text-sm font-medium mb-1 text-gray-700">Full Name</label>
                     <input
                         required
                         type="text"
-                        className="w-full p-3 border rounded-lg dark:bg-neutral-700 dark:border-neutral-600"
+                        className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#140152] focus:border-transparent"
                         placeholder="Min. Wale"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1 dark:text-gray-300">Email Address</label>
+                    <label className="block text-sm font-medium mb-1 text-gray-700">Email Address</label>
                     <input
                         required
                         type="email"
-                        className="w-full p-3 border rounded-lg dark:bg-neutral-700 dark:border-neutral-600"
+                        className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#140152] focus:border-transparent"
                         placeholder="you@example.com"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     />
                 </div>
 
-                <Button type="submit" className="w-full py-6 text-lg bg-[#140152] hover:bg-blue-900 text-white mt-2">
-                    Register
+                <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-6 text-lg bg-[#140152] hover:bg-[#1d0175] text-white mt-2"
+                >
+                    {loading ? 'Creating Account...' : 'Register'}
                 </Button>
             </form>
 
-            <p className="text-center text-sm text-gray-400 mt-6">
+            <p className="text-center text-sm text-gray-500 mt-6">
                 Already have an account? <Link href="/auth/login" className="text-[#140152] font-semibold hover:text-[#f5bb00] transition-colors">Sign In</Link>
             </p>
         </div>
