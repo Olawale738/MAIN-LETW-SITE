@@ -6,7 +6,66 @@ import SectionWrapper from '@/components/shared/SectionWrapper'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { Briefcase, TrendingUp, Users, LogOut, Loader2, CheckCircle, Clock, Bell, X } from 'lucide-react'
+import { Briefcase, TrendingUp, Users, LogOut, Loader2, Clock, Bell, X, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone } from 'lucide-react'
+import ServiceCard from '@/components/shared/ServiceCard'
+
+// Service configuration for cards - these only appear after user is approved for each service
+const SERVICE_CONFIG: Record<string, { icon: React.ReactNode; description: string; buttonText: string; buttonLink: string }> = {
+    "Bible study": {
+        icon: <BookOpen className="w-6 h-6" />,
+        description: "Deepen your understanding of Scripture through our comprehensive Bible study programs.",
+        buttonText: "Join Bible Study",
+        buttonLink: "/bible-reading"
+    },
+    "Prayer meeting": {
+        icon: <Heart className="w-6 h-6" />,
+        description: "Connect with fellow believers in powerful prayer sessions and intercession.",
+        buttonText: "Join Prayer",
+        buttonLink: "/prayer"
+    },
+    "Evangelism": {
+        icon: <Megaphone className="w-6 h-6" />,
+        description: "Be part of our outreach team spreading the Gospel in communities.",
+        buttonText: "Go Evangelism",
+        buttonLink: "/evangelism"
+    },
+    "Choir": {
+        icon: <Music className="w-6 h-6" />,
+        description: "Join our worship team and use your musical gifts to glorify God.",
+        buttonText: "View Choir",
+        buttonLink: "/services/sound-altar"
+    },
+    "Theology school (paid)": {
+        icon: <GraduationCap className="w-6 h-6" />,
+        description: "Advance your theological knowledge through our accredited courses.",
+        buttonText: "Access School",
+        buttonLink: "/education"
+    },
+    "Counselling": {
+        icon: <MessageCircle className="w-6 h-6" />,
+        description: "Access spiritual and pastoral counselling support services.",
+        buttonText: "Get Counselling",
+        buttonLink: "/services/counselling"
+    },
+    "Skill Development": {
+        icon: <TrendingUp className="w-6 h-6" />,
+        description: "Track your courses, workshops, and skill acquisition progress.",
+        buttonText: "Go to Skills Hub",
+        buttonLink: "/skill-development"
+    },
+    "Leadership Training": {
+        icon: <Users className="w-6 h-6" />,
+        description: "View your leadership modules and ministry training status.",
+        buttonText: "View Leadership",
+        buttonLink: "/leadership"
+    },
+    "Career Guidance": {
+        icon: <Briefcase className="w-6 h-6" />,
+        description: "Access your mentorship dashboard using our Mentorship Code feature.",
+        buttonText: "Access Career Track",
+        buttonLink: "/career-guidance"
+    }
+}
 import { userApi, serviceRequestApi, notificationApi, tokenManager, Notification } from '@/lib/api'
 
 export default function UserDashboard() {
@@ -135,102 +194,13 @@ export default function UserDashboard() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            <header className="bg-white shadow-sm py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 z-30">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-[#140152] flex items-center justify-center text-white font-bold">
-                        {userName.charAt(0)}
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold text-[#140152]">Welcome, {userName}</h1>
-                        <p className="text-sm text-gray-500">Member • Light Encounter Tabernacle</p>
-                    </div>
+            {/* Welcome Section */}
+            <div className="bg-white border-b border-gray-100 py-6 px-4 md:px-12">
+                <div className="max-w-6xl mx-auto">
+                    <h1 className="text-2xl md:text-3xl font-bold text-[#140152]">Welcome back, {userName}!</h1>
+                    <p className="text-gray-500 mt-1">Here's what's happening with your ministries.</p>
                 </div>
-                <div className="flex items-center gap-4">
-                    {/* Notification Bell */}
-                    <div className="relative">
-                        <button
-                            onClick={toggleNotifications}
-                            className="relative p-2 text-gray-500 hover:text-[#140152] transition-colors"
-                        >
-                            <Bell className="w-6 h-6" />
-                            {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                                    {unreadCount > 9 ? '9+' : unreadCount}
-                                </span>
-                            )}
-                        </button>
-
-                        {/* Notifications Dropdown */}
-                        {showNotifications && (
-                            <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50">
-                                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                                    <h3 className="font-bold text-[#140152]">Notifications</h3>
-                                    <div className="flex items-center gap-2">
-                                        {unreadCount > 0 && (
-                                            <button
-                                                onClick={markAllAsRead}
-                                                className="text-xs text-[#140152] hover:underline"
-                                            >
-                                                Mark all read
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => setShowNotifications(false)}
-                                            className="text-gray-400 hover:text-gray-600"
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="max-h-80 overflow-y-auto">
-                                    {notificationsLoading ? (
-                                        <div className="p-8 text-center">
-                                            <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
-                                        </div>
-                                    ) : notifications.length === 0 ? (
-                                        <div className="p-8 text-center text-gray-500 text-sm">
-                                            No notifications yet
-                                        </div>
-                                    ) : (
-                                        notifications.map((notification) => (
-                                            <div
-                                                key={notification.id}
-                                                onClick={() => !notification.is_read && markAsRead(notification.id)}
-                                                className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${!notification.is_read ? 'bg-blue-50/50' : ''
-                                                    }`}
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${notification.type === 'service_approved' ? 'bg-green-500' :
-                                                            notification.type === 'service_rejected' ? 'bg-red-500' :
-                                                                'bg-blue-500'
-                                                        }`} />
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-medium text-sm text-[#140152]">
-                                                            {notification.title}
-                                                        </p>
-                                                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                                                            {notification.message}
-                                                        </p>
-                                                        <p className="text-xs text-gray-400 mt-1">
-                                                            {formatTimeAgo(notification.created_at)}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <button onClick={handleLogout} className="flex items-center gap-2 text-gray-500 hover:text-red-500 transition-colors">
-                        <LogOut className="w-5 h-5" />
-                        <span className="hidden md:block">Logout</span>
-                    </button>
-                </div>
-            </header>
+            </div>
 
             <main className="flex-grow py-12 px-4 md:px-12">
                 <div className="max-w-6xl mx-auto space-y-8">
@@ -309,14 +279,32 @@ export default function UserDashboard() {
                                     <div>
                                         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Active</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                            {approvedServices.map((service) => (
-                                                <div key={service} className="bg-green-50 p-4 rounded-xl border border-green-100 flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white">
-                                                        <CheckCircle className="w-5 h-5" />
-                                                    </div>
-                                                    <span className="font-medium text-green-800">{service}</span>
-                                                </div>
-                                            ))}
+                                            {approvedServices.map((service) => {
+                                                const config = SERVICE_CONFIG[service]
+                                                if (config) {
+                                                    return (
+                                                        <ServiceCard
+                                                            key={service}
+                                                            title={service}
+                                                            description={config.description}
+                                                            buttonText={config.buttonText}
+                                                            buttonLink={config.buttonLink}
+                                                            icon={config.icon}
+                                                        />
+                                                    )
+                                                }
+                                                // Fallback for unknown services
+                                                return (
+                                                    <ServiceCard
+                                                        key={service}
+                                                        title={service}
+                                                        description="Access your enrolled service and start participating."
+                                                        buttonText="Access Service"
+                                                        buttonLink="/services"
+                                                        icon={<Briefcase className="w-6 h-6" />}
+                                                    />
+                                                )
+                                            })}
                                         </div>
                                     </div>
                                 )}
@@ -355,49 +343,7 @@ export default function UserDashboard() {
                         )}
                     </div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {/* Career Track Card */}
-                        <Card className="hover:shadow-xl transition-all duration-300 border-none group cursor-pointer" onClick={() => router.push('/career-guidance/dashboard')}>
-                            <CardHeader>
-                                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 mb-4 group-hover:scale-110 transition-transform">
-                                    <Briefcase className="w-6 h-6" />
-                                </div>
-                                <CardTitle className="text-[#140152]">Career Guidance (Mentorship)</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-gray-500 mb-6">Access your mentorship dashboard using our Mentorship Code feature.</p>
-                                <PremiumButton href="/career-guidance/dashboard?code=MENTOR123">Access Career Track</PremiumButton>
-                            </CardContent>
-                        </Card>
 
-                        {/* Skill Development Card */}
-                        <Card className="hover:shadow-xl transition-all duration-300 border-none group cursor-pointer" onClick={() => router.push('/skill-development/dashboard')}>
-                            <CardHeader>
-                                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 mb-4 group-hover:scale-110 transition-transform">
-                                    <TrendingUp className="w-6 h-6" />
-                                </div>
-                                <CardTitle className="text-[#140152]">Skill Development</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-gray-500 mb-6">Track your courses, workshops, and skill acquisition progress.</p>
-                                <PremiumButton href="/skill-development/dashboard">Go to Skills Hub</PremiumButton>
-                            </CardContent>
-                        </Card>
-
-                        {/* Leadership Track Card */}
-                        <Card className="hover:shadow-xl transition-all duration-300 border-none group cursor-pointer" onClick={() => router.push('/leadership/dashboard')}>
-                            <CardHeader>
-                                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600 mb-4 group-hover:scale-110 transition-transform">
-                                    <Users className="w-6 h-6" />
-                                </div>
-                                <CardTitle className="text-[#140152]">Leadership Track</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-gray-500 mb-6">View your leadership modules and ministry training status.</p>
-                                <PremiumButton href="/leadership/dashboard">View Leadership</PremiumButton>
-                            </CardContent>
-                        </Card>
-                    </div>
 
                     {/* Attendance History */}
                     {attendance.length > 0 && (

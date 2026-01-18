@@ -3,10 +3,11 @@
 import { usePathname } from 'next/navigation'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import DashboardNavbar from '@/components/layout/DashboardNavbar'
 
 /**
  * Conditionally renders Navbar and Footer based on the current route.
- * Excludes navbar/footer from dashboard and other app-specific routes.
+ * Uses DashboardNavbar for internal routes and public Navbar for landing pages.
  */
 export default function ConditionalLayout({
     children
@@ -15,25 +16,47 @@ export default function ConditionalLayout({
 }) {
     const pathname = usePathname()
 
-    // Routes that should NOT show the main navbar and footer
-    const excludedRoutes = [
+    // Routes that should show the DashboardNavbar (logged-in user pages)
+    const dashboardRoutes = [
         '/dashboard',
         '/career-guidance/dashboard',
         '/skill-development/dashboard',
         '/leadership/dashboard',
+        '/bible-reading',
+        '/prayer',
+        '/evangelism',
+        '/services/counselling',
+        '/services/sound-altar',
+    ]
+
+    // Routes that should NOT show any navbar/footer
+    const excludedRoutes = [
         '/admin',
         '/auth',
     ]
 
-    // Check if current path starts with any excluded route
-    const isExcluded = excludedRoutes.some(route => pathname.startsWith(route))
+    // Check if current path matches dashboard routes
+    const isDashboardRoute = dashboardRoutes.some(route => pathname?.startsWith(route))
+
+    // Check if current path matches excluded routes
+    const isExcluded = excludedRoutes.some(route => pathname?.startsWith(route))
 
     if (isExcluded) {
-        // Dashboard routes - no navbar/footer
+        // Auth/Admin routes - no navbar/footer
         return <main>{children}</main>
     }
 
-    // Landing/public routes - include navbar and footer
+    if (isDashboardRoute) {
+        // Dashboard routes - use DashboardNavbar, no footer
+        return (
+            <>
+                <DashboardNavbar />
+                <main>{children}</main>
+            </>
+        )
+    }
+
+    // Landing/public routes - include public navbar and footer
     return (
         <>
             <Navbar />
