@@ -19,9 +19,9 @@ export default function ConditionalLayout({
     // Routes that should show the DashboardNavbar (logged-in user pages)
     const dashboardRoutes = [
         '/dashboard',
-        '/career-guidance/dashboard',
-        '/skill-development/dashboard',
-        '/leadership/dashboard',
+        '/career-guidance',
+        '/skill-development',
+        '/leadership',
         '/bible-reading',
         '/prayer',
         '/evangelism',

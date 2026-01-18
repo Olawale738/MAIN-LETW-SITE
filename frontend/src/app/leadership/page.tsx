@@ -1,80 +1,83 @@
-import Hero from '@/components/shared/Hero'
-import SectionWrapper from '@/components/shared/SectionWrapper'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+'use client'
+import React, { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import PremiumButton from '@/components/ui/PremiumButton'
-import Link from 'next/link'
+import { Crown, Book, Users } from 'lucide-react'
 
 export default function LeadershipPage() {
+  const router = useRouter()
+  const [user, setUser] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Simulate Auth Check
+    const isLoggedIn = localStorage.getItem('isLoggedIn')
+    const userName = localStorage.getItem('userName')
+
+    if (!isLoggedIn) {
+      router.push('/auth/register?redirect=/leadership')
+    } else {
+      setUser(userName || 'User')
+    }
+  }, [router])
+
+  if (!user) return null
+
   return (
-    <>
-      <Hero
-        title="Leadership Training"
-        subtitle="Empowering Future Leaders"
-        height="medium"
-      />
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar Placeholder */}
+      <div className="w-64 bg-[#2b1049] text-white hidden md:block p-6">
+        <h1 className="text-xl font-bold mb-8">Leadership<span className="text-purple-400">Track</span></h1>
+        <nav className="space-y-4">
+          <a className="block py-2 px-4 bg-white/10 rounded-lg">Overview</a>
+          <a className="block py-2 px-4 hover:bg-white/5 rounded-lg opacity-70">Modules</a>
+          <a className="block py-2 px-4 hover:bg-white/5 rounded-lg opacity-70">Mentors</a>
+        </nav>
+      </div>
 
-      <SectionWrapper>
-        <div className="max-w-4xl mx-auto">
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-3xl text-[#140152]">Empowering Future Leaders</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <p className="text-lg text-gray-700 leading-relaxed">
-                Our Leadership Training program is dedicated to nurturing the next generation of leaders. Through Biblical teachings and practical workshops, we aim to instill the qualities of servant leadership, vision, and integrity.
-              </p>
-
-              <div className="bg-[#140152] text-white p-6 rounded-lg">
-                <h3 className="text-xl font-bold mb-3">Scripture Foundation</h3>
-                <p className="italic leading-relaxed">
-                  "Where there is no vision, the people perish: but he that keepeth the law, happy is he." - Proverbs 29:18
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-[#140152]">What We Offer</h3>
-                <ul className="space-y-3 text-gray-700">
-                  <li className="flex items-start">
-                    <span className="text-[#140152] font-bold mr-3">•</span>
-                    <span>Biblical foundations of leadership and servant-heartedness</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-[#140152] font-bold mr-3">•</span>
-                    <span>Practical workshops on vision casting and strategic planning</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-[#140152] font-bold mr-3">•</span>
-                    <span>Character development and integrity in leadership</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-[#140152] font-bold mr-3">•</span>
-                    <span>Mentorship opportunities with experienced leaders</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-[#140152] font-bold mr-3">•</span>
-                    <span>Team building and communication skills training</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="text-center pt-6">
-                <PremiumButton href="/join">Join Now</PremiumButton>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Main Content */}
+      <div className="flex-1 p-8 overflow-y-auto">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-800">Servant Leadership, {user}</h2>
+            <p className="text-gray-500">Equipping you to serve with integrity and purpose.</p>
+          </div>
         </div>
-      </SectionWrapper>
 
-      <SectionWrapper background="gray">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-[#140152] mb-6">Program Schedule</h2>
-          <p className="text-lg text-gray-700 mb-8">
-            Leadership Training sessions are held monthly. Contact us for the next session date and registration details.
-          </p>
-          <PremiumButton href="/contact">Contact Us</PremiumButton>
+        {/* Status */}
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-purple-500">
+            <Crown className="w-8 h-8 text-purple-500 mb-3" />
+            <div className="text-gray-500 text-sm">Current Level</div>
+            <div className="text-xl font-bold">Emerging Leader</div>
+          </div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-blue-500">
+            <Book className="w-8 h-8 text-blue-500 mb-3" />
+            <div className="text-gray-500 text-sm">Modules Completed</div>
+            <div className="text-xl font-bold">2 / 8</div>
+          </div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-orange-500">
+            <Users className="w-8 h-8 text-orange-500 mb-3" />
+            <div className="text-gray-500 text-sm">Next Mentorship</div>
+            <div className="text-xl font-bold">Pending Schedule</div>
+          </div>
         </div>
-      </SectionWrapper>
-    </>
+
+        {/* Modules List */}
+        <h3 className="text-xl font-bold text-gray-800 mb-6">Core Modules</h3>
+        <div className="space-y-4">
+          {[
+            { title: "The Heart of a Servant", status: "Completed", color: "text-green-600" },
+            { title: "Biblical Stewardship", status: "In Progress", color: "text-blue-600" },
+            { title: "Conflict Resolution", status: "Locked", color: "text-gray-400" },
+            { title: "Vision Casting", status: "Locked", color: "text-gray-400" },
+          ].map((mod, i) => (
+            <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+              <span className="font-bold text-lg text-gray-800">{mod.title}</span>
+              <span className={`text-sm font-medium ${mod.color}`}>{mod.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
