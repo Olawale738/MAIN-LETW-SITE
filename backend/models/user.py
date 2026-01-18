@@ -5,7 +5,7 @@ User database model.
 import uuid
 import enum
 from datetime import datetime
-from sqlalchemy import String, DateTime, Enum as SQLEnum
+from sqlalchemy import String, DateTime, Enum as SQLEnum, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -17,6 +17,12 @@ class UserStatus(str, enum.Enum):
     PENDING = "pending"      # Email not verified
     ACTIVE = "active"        # Email verified, password set
     SUSPENDED = "suspended"  # Account suspended
+
+
+class UserRole(str, enum.Enum):
+    """User role."""
+    USER = "user"
+    ADMIN = "admin"
 
 
 class User(Base):
@@ -47,9 +53,21 @@ class User(Base):
         nullable=True  # Null until user sets password after email verification
     )
     
+    role: Mapped[UserRole] = mapped_column(
+        SQLEnum(UserRole),
+        default=UserRole.USER,
+        nullable=False
+    )
+    
     status: Mapped[UserStatus] = mapped_column(
         SQLEnum(UserStatus),
         default=UserStatus.PENDING,
+        nullable=False
+    )
+
+    services: Mapped[list[str]] = mapped_column(
+        JSON,
+        default=list,
         nullable=False
     )
     
@@ -67,4 +85,4 @@ class User(Base):
     )
     
     def __repr__(self) -> str:
-        return f"<User {self.email}>"
+        return f"<User {self.email} ({self.role})>"

@@ -1,4 +1,4 @@
-'use client'
+// ... imports kept same ...
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -29,16 +29,21 @@ export default function LoginForm() {
             // Save tokens
             tokenManager.saveTokens(response)
 
-            // Fetch and save user details
+            // Fetch user details and determine redirect
+            let finalRedirect = redirectPath
             try {
                 const user = await authApi.getCurrentUser()
                 localStorage.setItem('userName', user.name)
+
+                // Redirect admins to admin dashboard
+                if (user.role === 'admin') {
+                    finalRedirect = '/admin'
+                }
             } catch (error) {
                 console.error('Failed to fetch user details', error)
             }
 
-            // Hard navigation to close modal and go to dashboard
-            window.location.href = redirectPath
+            window.location.href = finalRedirect
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.'
             setError(errorMessage)
@@ -48,10 +53,7 @@ export default function LoginForm() {
     }
 
     return (
-        <div className="w-full bg-white p-8 rounded-2xl shadow-xl">
-            <h1 className="text-3xl font-bold text-center text-[#140152] mb-2">Welcome Back</h1>
-            <p className="text-center text-gray-500 mb-8">Please enter your details to sign in.</p>
-
+        <div className="w-full">
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">
                     {error}
@@ -64,7 +66,7 @@ export default function LoginForm() {
                     <input
                         required
                         type="email"
-                        className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#140152] focus:border-transparent"
+                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#140152] focus:border-transparent transition-all"
                         placeholder="you@example.com"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -75,7 +77,7 @@ export default function LoginForm() {
                     <input
                         required
                         type="password"
-                        className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#140152] focus:border-transparent"
+                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#140152] focus:border-transparent transition-all"
                         placeholder="••••••••"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -94,7 +96,7 @@ export default function LoginForm() {
                 <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-6 text-lg bg-[#140152] hover:bg-[#1d0175] text-white mt-2"
+                    className="w-full py-6 text-lg bg-[#140152] hover:bg-[#1d0175] text-white mt-2 shadow-lg shadow-indigo-900/20"
                 >
                     {loading ? (
                         <>
@@ -107,7 +109,7 @@ export default function LoginForm() {
                 </Button>
             </form>
 
-            <p className="text-center text-sm text-gray-500 mt-6">
+            <p className="text-center text-sm text-gray-500 mt-8">
                 Don&apos;t have an account? <Link href="/auth/register" className="text-[#140152] font-semibold hover:text-[#f5bb00] transition-colors">Register</Link>
             </p>
         </div>

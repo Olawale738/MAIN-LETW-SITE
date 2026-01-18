@@ -6,7 +6,7 @@ from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from typing import Optional
 
-from models.user import UserStatus
+from models.user import UserStatus, UserRole
 
 
 # ============= Request Schemas =============
@@ -50,6 +50,11 @@ class ResetPasswordRequest(BaseModel):
     password: str = Field(..., min_length=8, max_length=128, description="New password")
 
 
+class UpdateServicesRequest(BaseModel):
+    """Request schema for updating user services."""
+    services: list[str] = Field(..., description="List of selected services")
+
+
 # ============= Response Schemas =============
 
 class UserResponse(BaseModel):
@@ -58,6 +63,8 @@ class UserResponse(BaseModel):
     name: str
     email: str
     status: UserStatus
+    role: UserRole
+    services: list[str] = []
     created_at: datetime
 
     class Config:

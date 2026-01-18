@@ -25,3 +25,5 @@ venv/
 .venv/
 env/
 .env/
+
+*.db

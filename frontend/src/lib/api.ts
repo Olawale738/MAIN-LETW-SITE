@@ -50,12 +50,18 @@ export interface User {
     name: string;
     email: string;
     status: 'pending' | 'active' | 'suspended';
+    services: string[];
     created_at: string;
+    role?: 'user' | 'admin';
 }
 
 export interface MessageResponse {
     message: string;
     success: boolean;
+}
+
+export interface UpdateServicesRequest {
+    services: string[];
 }
 
 // ============= API Client =============
@@ -73,9 +79,9 @@ async function fetchApi<T>(
 ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...(options.headers as Record<string, string>),
     };
 
     // Add auth token if available
@@ -170,6 +176,173 @@ export const authApi = {
     },
 };
 
+// ============= User API =============
+
+export const userApi = {
+    /**
+     * Get available services list
+     */
+    getAvailableServices: async (): Promise<string[]> => {
+        return fetchApi<string[]>('/users/services');
+    },
+
+    /**
+     * Update user services
+     */
+    updateServices: async (services: string[]): Promise<User> => {
+        return fetchApi<User>('/users/me/services', {
+            method: 'PUT',
+            body: JSON.stringify({ services }),
+        });
+    },
+
+    /**
+     * Get my profile (from users endpoint)
+     */
+    getProfile: async (): Promise<User> => {
+        return fetchApi<User>('/users/me');
+    }
+};
+
+// ============= Service Request Types =============
+
+export type ServiceRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface ServiceRequest {
+    id: string;
+    user_id: string;
+    user_name?: string;
+    user_email?: string;
+    service_name: string;
+    status: ServiceRequestStatus;
+    reviewed_by?: string;
+    reviewed_at?: string;
+    admin_note?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface MyServiceRequestsResponse {
+    pending: ServiceRequest[];
+    approved: ServiceRequest[];
+    rejected: ServiceRequest[];
+}
+
+export interface ServiceRequestListResponse {
+    requests: ServiceRequest[];
+    total: number;
+}
+
+// ============= Notification Types =============
+
+export type NotificationType = 'service_approved' | 'service_rejected' | 'new_service_request' | 'general';
+
+export interface Notification {
+    id: string;
+    title: string;
+    message: string;
+    type: NotificationType;
+    is_read: boolean;
+    reference_id?: string;
+    created_at: string;
+}
+
+export interface NotificationListResponse {
+    notifications: Notification[];
+    total: number;
+    unread_count: number;
+}
+
+// ============= Service Request API =============
+
+export const serviceRequestApi = {
+    /**
+     * Submit service requests (creates pending requests)
+     */
+    submitRequests: async (services: string[]): Promise<MessageResponse> => {
+        return fetchApi<MessageResponse>('/service-requests', {
+            method: 'POST',
+            body: JSON.stringify({ services }),
+        });
+    },
+
+    /**
+     * Get my service requests grouped by status
+     */
+    getMyRequests: async (): Promise<MyServiceRequestsResponse> => {
+        return fetchApi<MyServiceRequestsResponse>('/service-requests/my');
+    },
+
+    /**
+     * Get all service requests (admin only)
+     */
+    getAllRequests: async (status?: ServiceRequestStatus): Promise<ServiceRequestListResponse> => {
+        const params = status ? `?status_filter=${status}` : '';
+        return fetchApi<ServiceRequestListResponse>(`/service-requests${params}`);
+    },
+
+    /**
+     * Approve a service request (admin only)
+     */
+    approve: async (requestId: string, note?: string): Promise<ServiceRequest> => {
+        return fetchApi<ServiceRequest>(`/service-requests/${requestId}/approve`, {
+            method: 'PUT',
+            body: JSON.stringify({ note }),
+        });
+    },
+
+    /**
+     * Reject a service request (admin only)
+     */
+    reject: async (requestId: string, note?: string): Promise<ServiceRequest> => {
+        return fetchApi<ServiceRequest>(`/service-requests/${requestId}/reject`, {
+            method: 'PUT',
+            body: JSON.stringify({ note }),
+        });
+    },
+};
+
+// ============= Notification API =============
+
+export const notificationApi = {
+    /**
+     * Get notifications
+     */
+    getNotifications: async (limit = 20, offset = 0, unreadOnly = false): Promise<NotificationListResponse> => {
+        const params = new URLSearchParams({
+            limit: limit.toString(),
+            offset: offset.toString(),
+            unread_only: unreadOnly.toString(),
+        });
+        return fetchApi<NotificationListResponse>(`/notifications?${params}`);
+    },
+
+    /**
+     * Get unread count
+     */
+    getUnreadCount: async (): Promise<{ unread_count: number }> => {
+        return fetchApi<{ unread_count: number }>('/notifications/unread-count');
+    },
+
+    /**
+     * Mark a notification as read
+     */
+    markAsRead: async (notificationId: string): Promise<Notification> => {
+        return fetchApi<Notification>(`/notifications/${notificationId}/read`, {
+            method: 'PUT',
+        });
+    },
+
+    /**
+     * Mark all notifications as read
+     */
+    markAllAsRead: async (): Promise<MessageResponse> => {
+        return fetchApi<MessageResponse>('/notifications/mark-all-read', {
+            method: 'PUT',
+        });
+    },
+};
+
 // ============= Token Management =============
 
 export const tokenManager = {
@@ -208,3 +381,4 @@ export const tokenManager = {
         return !!tokenManager.getAccessToken();
     },
 };
+

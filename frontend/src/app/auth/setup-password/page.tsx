@@ -11,7 +11,7 @@ export default function SetupPasswordPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const token = searchParams.get('token') || ''
-    const redirectPath = searchParams.get('redirect') || '/dashboard'
+    const redirectPath = searchParams.get('redirect') || '/onboarding/services'
 
     const [pageState, setPageState] = useState<PageState>('loading')
     const [userName, setUserName] = useState('')

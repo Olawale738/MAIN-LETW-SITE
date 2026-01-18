@@ -21,6 +21,8 @@ export default function ConditionalLayout({
         '/career-guidance/dashboard',
         '/skill-development/dashboard',
         '/leadership/dashboard',
+        '/admin',
+        '/auth',
     ]
 
     // Check if current path starts with any excluded route

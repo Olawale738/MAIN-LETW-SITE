@@ -10,6 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from database import init_db
 
+# Import all models to register them with SQLAlchemy Base BEFORE init_db
+import models  # noqa: F401
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -62,5 +65,9 @@ async def health_check():
 
 
 # Import and register routers after app creation to avoid circular imports
-from routers import auth
+from routers import auth, users, service_requests, notifications
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(users.router, prefix="/api/users", tags=["Users"])
+app.include_router(service_requests.router, prefix="/api/service-requests", tags=["Service Requests"])
+app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
+

@@ -75,3 +75,21 @@ async def get_current_active_user(
             detail="Account is not active. Please complete email verification."
         )
     return current_user
+
+
+async def get_admin_user(
+    current_user: User = Depends(get_current_active_user)
+) -> User:
+    """
+    Dependency to ensure the current user is an admin.
+    Raises HTTPException if user is not an admin.
+    """
+    from models.user import UserRole
+    
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    return current_user
+

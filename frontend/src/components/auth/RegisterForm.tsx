@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { authApi } from '@/lib/api'
+import { Loader2 } from 'lucide-react'
 
 export default function RegisterForm() {
     const router = useRouter()
@@ -40,10 +41,7 @@ export default function RegisterForm() {
     }
 
     return (
-        <div className="w-full bg-white p-8 rounded-2xl shadow-xl">
-            <h1 className="text-3xl font-bold text-center text-[#140152] mb-2">Join The Community</h1>
-            <p className="text-center text-gray-500 mb-8">Enter your details to get started.</p>
-
+        <div className="w-full">
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">
                     {error}
@@ -56,8 +54,8 @@ export default function RegisterForm() {
                     <input
                         required
                         type="text"
-                        className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#140152] focus:border-transparent"
-                        placeholder="Min. Wale"
+                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#140152] focus:border-transparent transition-all"
+                        placeholder="John Doe"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     />
@@ -67,7 +65,7 @@ export default function RegisterForm() {
                     <input
                         required
                         type="email"
-                        className="w-full p-3 border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#140152] focus:border-transparent"
+                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#140152] focus:border-transparent transition-all"
                         placeholder="you@example.com"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -77,13 +75,20 @@ export default function RegisterForm() {
                 <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-6 text-lg bg-[#140152] hover:bg-[#1d0175] text-white mt-2"
+                    className="w-full py-6 text-lg bg-[#140152] hover:bg-[#1d0175] text-white mt-2 shadow-lg shadow-indigo-900/20"
                 >
-                    {loading ? 'Creating Account...' : 'Register'}
+                    {loading ? (
+                        <>
+                            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                            Creating Account...
+                        </>
+                    ) : (
+                        'Register'
+                    )}
                 </Button>
             </form>
 
-            <p className="text-center text-sm text-gray-500 mt-6">
+            <p className="text-center text-sm text-gray-500 mt-8">
                 Already have an account? <Link href="/auth/login" className="text-[#140152] font-semibold hover:text-[#f5bb00] transition-colors">Sign In</Link>
             </p>
         </div>

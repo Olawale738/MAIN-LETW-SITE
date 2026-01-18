@@ -1,13 +1,15 @@
 'use client'
 import React from 'react'
 import RegisterForm from '@/components/auth/RegisterForm'
+import AuthLayout from '@/components/auth/AuthLayout'
 
 export default function RegisterPage() {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900 px-4">
-            <div className="max-w-md w-full">
-                <RegisterForm />
-            </div>
-        </div>
+        <AuthLayout
+            title="Join The Community"
+            subtitle="Create your account to get started."
+        >
+            <RegisterForm />
+        </AuthLayout>
     )
 }

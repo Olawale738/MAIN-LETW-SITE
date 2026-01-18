@@ -2,14 +2,20 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { tokenManager } from '@/lib/api'
 
 const sidebarItems = [
     {
         title: 'Dashboard',
         href: '/admin',
         icon: LayoutDashboard
+    },
+    {
+        title: 'Service Requests',
+        href: '/admin/service-requests',
+        icon: ClipboardList
     },
     {
         title: 'Sermons',
@@ -41,6 +47,11 @@ const sidebarItems = [
 export default function AdminSidebar() {
     const pathname = usePathname()
 
+    const handleLogout = () => {
+        tokenManager.clearTokens()
+        window.location.href = '/auth/login'
+    }
+
     return (
         <aside className="w-64 bg-[#140152] text-white min-h-screen flex flex-col fixed left-0 top-0 z-50">
             <div className="p-6 border-b border-white/10">
@@ -71,7 +82,10 @@ export default function AdminSidebar() {
             </nav>
 
             <div className="p-4 border-t border-white/10">
-                <button className="flex items-center space-x-3 px-4 py-3 rounded-xl text-white/70 hover:bg-red-500/10 hover:text-red-400 w-full transition-colors">
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-3 px-4 py-3 rounded-xl text-white/70 hover:bg-red-500/10 hover:text-red-400 w-full transition-colors"
+                >
                     <LogOut className="w-5 h-5" />
                     <span>Logout</span>
                 </button>
