@@ -8,7 +8,7 @@ from sqlalchemy.future import select
 
 from database import get_db
 from models.user import User
-from schemas.auth import UserResponse, UpdateServicesRequest
+from schemas.auth import UserResponse, UpdateServicesRequest, UpdateProfileRequest
 from utils.dependencies import get_current_active_user
 
 router = APIRouter()
@@ -69,3 +69,24 @@ async def get_my_profile(
     Get current user profile (alternative to /auth/me).
     """
     return UserResponse.model_validate(current_user)
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_my_profile(
+    request: UpdateProfileRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update current user profile.
+    """
+    current_user.name = request.name.strip()
+    
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(current_user, "name")
+    
+    await db.commit()
+    await db.refresh(current_user)
+    
+    return UserResponse.model_validate(current_user)
+

@@ -15,6 +15,7 @@ from schemas.auth import (
     RefreshTokenRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest,
+    ChangePasswordRequest,
     TokenResponse,
     TokenVerificationResponse,
     MessageResponse,
@@ -178,3 +179,30 @@ async def get_current_user(
     Requires valid JWT access token.
     """
     return UserResponse.model_validate(current_user)
+
+
+@router.put("/change-password", response_model=MessageResponse)
+async def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Change password for logged-in user.
+    Requires current password verification.
+    """
+    auth_service = AuthService(db)
+    success, message = await auth_service.change_password(
+        current_user.id,
+        request.current_password,
+        request.new_password
+    )
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message
+        )
+    
+    return MessageResponse(message=message, success=success)
+

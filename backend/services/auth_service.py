@@ -294,3 +294,35 @@ class AuthService:
         await self.db.flush()
         
         return token
+
+    async def change_password(
+        self, 
+        user_id: str, 
+        current_password: str, 
+        new_password: str
+    ) -> tuple[bool, str]:
+        """
+        Change password for a logged-in user.
+        
+        Returns: (success, message)
+        """
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            return False, "User not found."
+        
+        if user.status != UserStatus.ACTIVE:
+            return False, "Account is not active."
+        
+        if not user.password_hash:
+            return False, "Please complete email verification first."
+        
+        # Verify current password
+        if not verify_password(current_password, user.password_hash):
+            return False, "Current password is incorrect."
+        
+        # Set new password
+        user.password_hash = hash_password(new_password)
+        await self.db.commit()
+        
+        return True, "Password changed successfully."
+

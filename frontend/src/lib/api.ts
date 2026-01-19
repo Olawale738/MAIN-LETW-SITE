@@ -253,6 +253,26 @@ export const authApi = {
     },
 
     /**
+     * Reset password with token from email
+     */
+    resetPassword: async (token: string, password: string): Promise<MessageResponse> => {
+        return fetchApi<MessageResponse>('/auth/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ token, password }),
+        });
+    },
+
+    /**
+     * Change password (for logged-in users)
+     */
+    changePassword: async (currentPassword: string, newPassword: string): Promise<MessageResponse> => {
+        return fetchApi<MessageResponse>('/auth/change-password', {
+            method: 'PUT',
+            body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+        });
+    },
+
+    /**
      * Get current user info
      */
     getCurrentUser: async (): Promise<User> => {
@@ -285,6 +305,16 @@ export const userApi = {
      */
     getProfile: async (): Promise<User> => {
         return fetchApi<User>('/users/me');
+    },
+
+    /**
+     * Update user profile (name)
+     */
+    updateProfile: async (name: string): Promise<User> => {
+        return fetchApi<User>('/users/me', {
+            method: 'PUT',
+            body: JSON.stringify({ name }),
+        });
     }
 };
 

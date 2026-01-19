@@ -50,6 +50,17 @@ class ResetPasswordRequest(BaseModel):
     password: str = Field(..., min_length=8, max_length=128, description="New password")
 
 
+class ChangePasswordRequest(BaseModel):
+    """Request schema for changing password (logged-in user)."""
+    current_password: str = Field(..., min_length=1, description="Current password")
+    new_password: str = Field(..., min_length=8, max_length=128, description="New password")
+
+
+class UpdateProfileRequest(BaseModel):
+    """Request schema for updating user profile."""
+    name: str = Field(..., min_length=2, max_length=255, description="User's full name")
+
+
 class UpdateServicesRequest(BaseModel):
     """Request schema for updating user services."""
     services: list[str] = Field(..., description="List of selected services")
