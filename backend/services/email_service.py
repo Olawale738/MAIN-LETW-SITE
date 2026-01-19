@@ -245,3 +245,68 @@ async def send_service_approved_email(to_email: str, name: str, services: list[s
     
     return await send_email(to_email, subject, html_content)
 
+
+async def send_announcement_email(
+    to_email: str, 
+    name: str, 
+    service_name: str, 
+    title: str, 
+    content: str
+) -> bool:
+    """
+    Send email notification for a new service announcement.
+    """
+    subject = f"📢 New Announcement: {title}"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <div style="background: linear-gradient(135deg, #140152 0%, #1d0175 100%); padding: 40px; border-radius: 20px 20px 0 0; text-align: center;">
+                <h1 style="color: #f5bb00; margin: 0; font-size: 28px;">📢 New Announcement</h1>
+                <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">{service_name}</p>
+            </div>
+            
+            <div style="background: white; padding: 40px; border-radius: 0 0 20px 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
+                <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                    Dear {name},
+                </p>
+                
+                <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                    There's a new announcement for <strong>{service_name}</strong> that requires your attention:
+                </p>
+                
+                <div style="background: #f8fafc; padding: 24px; border-radius: 12px; border-left: 4px solid #f5bb00; margin: 24px 0;">
+                    <h2 style="color: #140152; margin: 0 0 12px 0; font-size: 20px;">{title}</h2>
+                    <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0; white-space: pre-wrap;">{content}</p>
+                </div>
+                
+                <div style="text-align: center; margin: 40px 0;">
+                    <a href="{settings.FRONTEND_URL}/dashboard" 
+                       style="display: inline-block; background: #f5bb00; color: #140152; text-decoration: none; 
+                              padding: 16px 40px; border-radius: 50px; font-weight: bold; font-size: 16px;
+                              box-shadow: 0 4px 20px rgba(245, 187, 0, 0.4);">
+                        Go to My Dashboard →
+                    </a>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                
+                <p style="color: #140152; font-size: 14px; text-align: center; font-weight: bold;">
+                    With Love,<br>
+                    The LETW Team
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return await send_email(to_email, subject, html_content)
+
+

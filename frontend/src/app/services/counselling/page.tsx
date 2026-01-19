@@ -4,6 +4,7 @@ import SectionWrapper from '@/components/shared/SectionWrapper'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { User, Users, Heart, ArrowRight } from 'lucide-react'
+import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
 
 export default function CounsellingPage() {
     return (
@@ -17,6 +18,10 @@ export default function CounsellingPage() {
             </div>
 
             <SectionWrapper>
+                {/* Announcements */}
+                <div className="max-w-4xl mx-auto mb-8">
+                    <ServiceAnnouncements serviceName="Counselling" />
+                </div>
                 <div className="grid md:grid-cols-2 gap-12">
                     {/* Services List */}
                     <div className="space-y-8">

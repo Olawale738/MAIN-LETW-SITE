@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { FileText, Calendar, Video, CheckCircle } from 'lucide-react'
+import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
 
 export default function CareerGuidancePage() {
     const router = useRouter()
@@ -43,6 +44,9 @@ export default function CareerGuidancePage() {
                         <p className="text-gray-500">Your career growth journey continues here.</p>
                     </div>
                 </div>
+
+                {/* Announcements */}
+                <ServiceAnnouncements serviceName="Career Guidance" />
 
                 {/* User Overview */}
                 <div className="grid md:grid-cols-3 gap-6 mb-8">

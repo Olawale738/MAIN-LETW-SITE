@@ -1,3 +1,4 @@
+'use client'
 import Hero from '@/components/shared/Hero'
 import SectionWrapper from '@/components/shared/SectionWrapper'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -5,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
 import Link from 'next/link'
 import { GraduationCap, Book, Users, Award } from 'lucide-react'
+import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
 
 export default function EducationPage() {
   return (
@@ -30,6 +32,11 @@ export default function EducationPage() {
       </div>
 
       <SectionWrapper>
+        {/* Announcements for Theology School */}
+        <div className="max-w-4xl mx-auto mb-12">
+          <ServiceAnnouncements serviceName="Theology school (paid)" />
+        </div>
+
         <div className="max-w-4xl mx-auto text-center mb-20 space-y-4">
           <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Academic Excellence</span>
           <h2 className="text-4xl md:text-5xl font-black text-[#140152]">Our Educational Mission</h2>

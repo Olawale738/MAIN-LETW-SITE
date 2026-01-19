@@ -18,6 +18,7 @@ class NotificationType(str, enum.Enum):
     SERVICE_APPROVED = "service_approved"
     SERVICE_REJECTED = "service_rejected"
     NEW_SERVICE_REQUEST = "new_service_request"  # For admins
+    ANNOUNCEMENT = "announcement"  # Service announcements from admin
     GENERAL = "general"
 
 

@@ -1,6 +1,6 @@
 """
 Database configuration and session management.
-Uses SQLAlchemy 2.0 async engine with aiosqlite for development.
+Uses SQLAlchemy 2.0 async engine with asyncpg for PostgreSQL.
 """
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker

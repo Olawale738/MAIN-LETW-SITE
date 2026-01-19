@@ -1,10 +1,6 @@
+'use client'
 import React from 'react'
-import { Metadata } from 'next'
-
-export const metadata: Metadata = {
-    title: 'Evangelism | Light Encounter Tabernacle',
-    description: 'Our approach to spreading the Gospel through street evangelism, one-on-one conversations, and compassion-driven outreach.',
-}
+import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
 
 export default function EvangelismPage() {
     return (
@@ -19,6 +15,11 @@ export default function EvangelismPage() {
                     </p>
                 </div>
             </section>
+
+            {/* Announcements */}
+            <div className="max-w-7xl mx-auto px-4 py-8">
+                <ServiceAnnouncements serviceName="Evangelism" />
+            </div>
 
             {/* Our Approach */}
             <section className="py-20 px-4 max-w-7xl mx-auto">

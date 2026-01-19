@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { PlayCircle, Download, Calendar } from 'lucide-react'
+import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
 
 export default function SkillDevelopmentPage() {
     const router = useRouter()
@@ -42,6 +43,9 @@ export default function SkillDevelopmentPage() {
                         <p className="text-gray-500">Ready to learn something new today?</p>
                     </div>
                 </div>
+
+                {/* Announcements */}
+                <ServiceAnnouncements serviceName="Skill Development" />
 
                 {/* Dashboard Cards */}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">

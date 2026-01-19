@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Mic2, Music2, Flame, Globe, Sparkles } from 'lucide-react'
 import Link from 'next/link'
+import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
 
 export default function SoundAltarPage() {
     return (
@@ -40,6 +41,11 @@ export default function SoundAltarPage() {
             </div>
 
             <div className="max-w-7xl mx-auto px-4 py-24">
+                {/* Announcements */}
+                <div className="mb-12">
+                    <ServiceAnnouncements serviceName="Choir" />
+                </div>
+
                 {/* Core Identity */}
                 <section className="mb-24">
                     <div className="grid lg:grid-cols-2 gap-16 items-center">

@@ -1,3 +1,4 @@
+'use client'
 import Hero from '@/components/shared/Hero'
 import SectionWrapper from '@/components/shared/SectionWrapper'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -5,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
 import Link from 'next/link'
 import { Calendar } from 'lucide-react'
+import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
 
 export default function PrayerPage() {
   return (
@@ -17,6 +19,11 @@ export default function PrayerPage() {
 
       <SectionWrapper>
         <div className="max-w-4xl mx-auto">
+          {/* Announcements */}
+          <div className="mb-8">
+            <ServiceAnnouncements serviceName="Prayer meeting" />
+          </div>
+
           <div className="text-center mb-12">
             <p className="text-lg text-gray-700 leading-relaxed">
               Every Friday at 8:00 PM, we come together to lift up our prayers and seek God's guidance. Our prayer meetings are a time of fellowship and spiritual renewal.

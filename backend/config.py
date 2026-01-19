@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     APP_NAME: str = "Light Encounter Tabernacle API"
     DEBUG: bool = True
     
-    # Database
-    DATABASE_URL: str = "sqlite+aiosqlite:///./letw.db"
+    # Database (PostgreSQL)
+    # Format: postgresql+asyncpg://user:password@host:port/database
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/letw_db"
     
     # JWT Authentication
     JWT_SECRET: str = "your-super-secret-key-change-in-production"

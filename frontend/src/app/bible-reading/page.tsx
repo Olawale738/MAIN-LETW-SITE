@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
 import { Check, Clock, MapPin } from 'lucide-react'
+import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
 
 interface ReadingPlan {
   week: number
@@ -114,6 +115,11 @@ export default function BibleReadingPage() {
       <SectionWrapper>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
+            {/* Announcements */}
+            <div className="text-left mb-8">
+              <ServiceAnnouncements serviceName="Bible study" />
+            </div>
+
             <p className="text-lg text-gray-700 leading-relaxed mb-4">
               The LIGHT is a Bible Reading Plan for children aged 6-12 years. It is designed to help children develop a strong foundation in the Bible and to encourage them to read the Bible in a regular and systematic manner.
             </p>
