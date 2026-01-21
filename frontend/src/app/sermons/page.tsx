@@ -398,6 +398,69 @@ export default function SermonsPage() {
                 )}
             </SectionWrapper>
 
+            {/* Books & Resources Section */}
+            <SectionWrapper background="gray">
+                <div className="text-center mb-16 space-y-4">
+                    <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Resources</span>
+                    <h2 className="text-4xl md:text-5xl font-black text-[#140152]">Books & Study Materials</h2>
+                    <div className="w-24 h-1.5 bg-[#f5bb00] mx-auto rounded-full" />
+                    <p className="max-w-2xl mx-auto text-gray-600">Grow deeper in your walk with God through our curated collection of books and study guides.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                    {/* Mock Data for Books */}
+                    {[
+                        {
+                            title: "Foundations of Faith",
+                            author: "Apostle Olawale N. Sanni",
+                            image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800&q=80", // Placeholder book cover
+                            description: "A comprehensive guide to understanding the core beliefs of Christianity and building a solid spiritual foundation.",
+                            downloadUrl: "/documents/foundations.pdf",
+                            amazonUrl: "https://amazon.com"
+                        },
+                        {
+                            title: "Walking in the Spirit",
+                            author: "Light Encounter Ministry",
+                            image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?w=800&q=80",
+                            description: "Learn how to live a spirit-led life and sensitive to the leading of the Holy Spirit in your daily walk.",
+                            downloadUrl: "/documents/walking-in-spirit.pdf",
+                            amazonUrl: "https://amazon.com"
+                        },
+                        {
+                            title: "Prayer That Moves Mountains",
+                            author: "Apostle Olawale N. Sanni",
+                            image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80",
+                            description: "Unlock the secrets of effective prayer and intercession that brings about divine intervention.",
+                            downloadUrl: "/documents/prayer-guide.pdf",
+                            amazonUrl: "https://amazon.com"
+                        }
+                    ].map((book, i) => (
+                        <div key={i} className="bg-white rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-shadow flex flex-col h-full border border-gray-100">
+                            <div className="h-64 overflow-hidden relative group">
+                                <img src={book.image} alt={book.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                            </div>
+                            <div className="p-8 flex flex-col flex-grow">
+                                <div className="mb-4">
+                                    <h3 className="text-xl font-black text-[#140152] mb-1 leading-tight">{book.title}</h3>
+                                    <p className="text-sm font-bold text-[#f5bb00]">{book.author}</p>
+                                </div>
+                                <p className="text-gray-600 text-sm mb-8 line-clamp-3 flex-grow">{book.description}</p>
+
+                                <div className="space-y-3 mt-auto">
+                                    <Button className="w-full bg-[#140152] hover:bg-[#2a0a6e] text-white font-bold rounded-xl" onClick={() => handleDownload(book.downloadUrl, `${book.title}.pdf`)}>
+                                        <Download className="w-4 h-4 mr-2" /> Download PDF
+                                    </Button>
+                                    <Button variant="outline" className="w-full border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl" onClick={() => window.open(book.amazonUrl, '_blank')}>
+                                        <ExternalLink className="w-4 h-4 mr-2" /> Get on Amazon
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </SectionWrapper>
+
             {/* YouTube Channel CTA */}
             <SectionWrapper background="dark">
                 <div className="text-center text-white max-w-4xl mx-auto space-y-8">

@@ -29,17 +29,11 @@ export default function TheologySchoolPage() {
                     <p className="text-lg md:text-2xl text-orange-100 max-w-2xl mx-auto font-medium mb-8">
                         Training Sound Minds. Forming Faithful Ministers. Shaping Kingdom Leaders.
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <PremiumButton className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold">Apply for Theology School</PremiumButton>
-                        <PremiumButton className="border-white text-white hover:bg-white hover:text-[#140152] border bg-transparent">View Programme Structure</PremiumButton>
-                    </div>
                 </motion.div>
             </div>
 
             <div className="max-w-7xl mx-auto px-4 py-20">
-                <Link href="/education" className="inline-flex items-center text-amber-700 mb-12 hover:underline font-medium">
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Back to Education Overview
-                </Link>
+
 
                 {/* Main Content Grid */}
                 <div className="grid lg:grid-cols-3 gap-16">

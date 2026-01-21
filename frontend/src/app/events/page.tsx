@@ -149,9 +149,7 @@ export default function EventsPage() {
                                     </li>
                                 ))}
                             </ul>
-                            <div className="mt-6 p-4 bg-blue-50 text-blue-800 rounded-xl text-sm font-medium">
-                                👉 Users know what participation looks like.
-                            </div>
+
                         </div>
 
                         <div>
@@ -172,31 +170,6 @@ export default function EventsPage() {
                         </div>
                     </div>
 
-                    <div className="mt-12 pt-12 border-t border-gray-200">
-                        <h3 className="text-xl font-bold text-[#140152] mb-6 text-center">Clean-Up Schedule & Location</h3>
-                        <div className="grid md:grid-cols-3 gap-6 text-center">
-                            <div className="p-6 bg-white rounded-2xl shadow-sm">
-                                <Calendar className="w-8 h-8 text-[#f5bb00] mx-auto mb-4" />
-                                <div className="font-bold text-[#140152]">When</div>
-                                <div className="text-gray-600 text-sm">Every third Saturday of the month</div>
-                            </div>
-                            <div className="p-6 bg-white rounded-2xl shadow-sm">
-                                <Clock className="w-8 h-8 text-[#f5bb00] mx-auto mb-4" />
-                                <div className="font-bold text-[#140152]">Time</div>
-                                <div className="text-gray-600 text-sm">7:00 AM - 10:00 AM</div>
-                            </div>
-                            <div className="p-6 bg-white rounded-2xl shadow-sm">
-                                <MapPin className="w-8 h-8 text-[#f5bb00] mx-auto mb-4" />
-                                <div className="font-bold text-[#140152]">Location</div>
-                                <div className="text-gray-600 text-sm">Local parks and designated community areas</div>
-                            </div>
-                        </div>
-                        <div className="text-center mt-8">
-                            <Button size="lg" className="bg-[#140152] hover:bg-[#140152]/90 text-white rounded-full px-8">
-                                Learn More
-                            </Button>
-                        </div>
-                    </div>
                 </div>
             </SectionWrapper>
         </>

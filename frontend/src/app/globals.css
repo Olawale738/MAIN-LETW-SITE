@@ -99,3 +99,14 @@ h6 {
 .bg-golden {
   background: var(--linear-golden);
 }
+
+/* Cursor pointer for all interactive elements */
+button,
+a,
+[role="button"],
+[type="button"],
+[type="submit"],
+[type="reset"],
+.cursor-pointer {
+  cursor: pointer;
+}

@@ -23,10 +23,8 @@ export default function ConditionalLayout({
         '/skill-development',
         '/leadership',
         '/bible-reading',
-        '/prayer',
         '/evangelism',
         '/services/counselling',
-        '/services/sound-altar',
     ]
 
     // Routes that should NOT show any navbar/footer

@@ -11,7 +11,7 @@ export default function AboutPage() {
   return (
     <div className="bg-white dark:bg-black">
       <Hero
-        title="About The LIGHT"
+        title="About LETW"
         subtitle="Spreading God's Love, Transforming Lives"
         height="medium"
         backgroundImage="/9.png"
@@ -25,7 +25,7 @@ export default function AboutPage() {
             <div className="w-24 h-1.5 bg-[#f5bb00] mx-auto rounded-full" />
             <div className="max-w-3xl mx-auto pt-4">
               <TextGenerateEffect
-                words="The LIGHT is dedicated to spreading the Word of GOD, empowering individuals, and engaging in charitable activities to uplift our community and beyond."
+                words="Light Encounter Tabernacle Worldwide is dedicated to spreading the Word of GOD, empowering individuals, and engaging in charitable activities to uplift our community and beyond."
                 className="text-xl text-[#140152]/70 leading-relaxed font-medium text-center"
               />
             </div>
@@ -83,7 +83,7 @@ export default function AboutPage() {
             </div>
             <div className="space-y-6 text-lg text-[#140152]/70 leading-relaxed font-medium">
               <p>
-                Founded with a vision to bring light to those in darkness, The LIGHT has grown into a vibrant community of believers committed to making a difference. Through worship, teaching, and service, we continue to fulfill our calling to be salt and light in the world.
+                Founded with a vision to bring light to those in darkness, LETW has grown into a vibrant community of believers committed to making a difference. Through worship, teaching, and service, we continue to fulfill our calling to be salt and light in the world.
               </p>
               <p>
                 Our journey has been marked by God's faithfulness, and we look forward to continued growth and impact as we serve our community and beyond.

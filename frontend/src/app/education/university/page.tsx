@@ -25,9 +25,7 @@ export default function UniversityPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-20">
-        <Link href="/education" className="inline-flex items-center text-emerald-700 mb-12 hover:underline">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Education Overview
-        </Link>
+
 
         <div className="grid md:grid-cols-3 gap-8">
           {[

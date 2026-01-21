@@ -170,7 +170,7 @@ export default function AnnouncementsPage() {
                             <Button
                                 type="submit"
                                 disabled={submitting}
-                                className="w-full bg-[#140152] hover:bg-[#1d0175] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2"
+                                className="bg-[#140152] hover:bg-[#1d0175] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2"
                             >
                                 {submitting ? (
                                     <>

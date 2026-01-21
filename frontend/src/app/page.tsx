@@ -6,17 +6,44 @@ import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import SectionWrapper from '@/components/shared/SectionWrapper'
-import { Calendar, Youtube, ChevronRight, ArrowRight, Heart, Users, Shield, Sparkles } from 'lucide-react'
+import { Calendar, Youtube, ChevronRight, ArrowRight, Heart, Users, Shield, Sparkles, PlayCircle } from 'lucide-react'
 import { BentoGrid, BentoGridItem } from '@/components/ui/bento-grid'
 import { Spotlight } from '@/components/ui/spotlight'
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect'
 import { InfiniteMovingCards } from '@/components/ui/infinite-moving-cards'
 import { motion } from 'framer-motion'
+import { sermonApi, eventApi, Sermon, Event } from '@/lib/api'
 
 export default function HomePage() {
+  const [recentSermons, setRecentSermons] = useState<Sermon[]>([])
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [sermonsData, eventsData] = await Promise.all([
+          sermonApi.getPublicSermons(),
+          eventApi.getPublicEvents()
+        ])
+        setRecentSermons(sermonsData.sermons.slice(0, 3)) // Get top 3
+        setUpcomingEvents(eventsData.events.slice(0, 3)) // Get top 3
+      } catch (error) {
+        console.error("Failed to fetch home data", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  const extractYoutubeId = (url: string): string | null => {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)
+    return match ? match[1] : null
+  }
+
   return (
     <div className="bg-white dark:bg-black overflow-x-hidden">
-      {/* Hero Section with Spotlight */}
       {/* Hero Section with Spotlight */}
       <div className="h-[100vh] md:h-[40rem] w-full rounded-md flex md:items-center md:justify-center bg-[#140152] antialiased bg-[url('/9.png')] bg-cover bg-center relative overflow-hidden">
 
@@ -111,7 +138,7 @@ export default function HomePage() {
         </SectionWrapper>
       </section>
 
-      {/* Latest Sermons - Parallax / Scroll */}
+      {/* Latest Sermons - Dynamic */}
       <section className="py-24 bg-[#140152] overflow-hidden">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12">
@@ -123,43 +150,59 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                whileHover={{ y: -10 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <Card className="overflow-hidden border-none shadow-xl hover:shadow-2xl transition-shadow bg-white h-full flex flex-col">
-                  <div className="relative aspect-video">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      src={`https://www.youtube.com/embed/S0Q4gqBUs7c?si=Testing${i}`}
-                      title="Sermon Video"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  </div>
-                  <CardContent className="p-6 flex-grow flex flex-col justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-[#f5bb00] uppercase tracking-wider mb-2 block">Sunday Service</span>
-                      <h3 className="text-xl font-bold text-[#140152] mb-2 leading-tight">Walking in Divine Authority</h3>
-                      <p className="text-sm text-gray-500 mb-4 line-clamp-2">Understanding your position in Christ and living a victorious life.</p>
+            {loading ? (
+              [1, 2, 3].map((i) => (
+                <div key={i} className="bg-white/5 rounded-2xl h-80 animate-pulse" />
+              ))
+            ) : recentSermons.length > 0 ? (
+              recentSermons.map((sermon) => (
+                <motion.div
+                  key={sermon.id}
+                  whileHover={{ y: -10 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <Card className="overflow-hidden border-none shadow-xl hover:shadow-2xl transition-shadow bg-white h-full flex flex-col">
+                    <div className="relative aspect-video bg-black">
+                      {sermon.video_url ? (
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          src={`https://www.youtube.com/embed/${extractYoutubeId(sermon.video_url)}`}
+                          title={sermon.title}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                          <PlayCircle className="w-12 h-12 text-gray-400" />
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center text-[#140152] font-semibold text-sm group cursor-pointer">
-                      Watch Now <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                    <CardContent className="p-6 flex-grow flex flex-col justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-[#f5bb00] uppercase tracking-wider mb-2 block">
+                          {sermon.series || "Sunday Service"}
+                        </span>
+                        <h3 className="text-xl font-bold text-[#140152] mb-2 leading-tight line-clamp-2">{sermon.title}</h3>
+                        <p className="text-sm text-gray-500 mb-4 line-clamp-2">{sermon.description}</p>
+                      </div>
+                      <div className="flex items-center text-[#140152] font-semibold text-sm group cursor-pointer">
+                        Watch Now <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))
+            ) : (
+              <div className="col-span-3 text-center text-white/60">No recent sermons found.</div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Events */}
+      {/* Events - Dynamic */}
       <section className="py-24 bg-white">
         <SectionWrapper>
           <div className="text-center mb-16">
@@ -168,38 +211,52 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                whileHover={{ scale: 1.02 }}
-                className="relative group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#140152] to-[#f5bb00] rounded-2xl blur opacity-25 group-hover:opacity-50 transition-opacity duration-500" />
-                <div className="relative bg-white rounded-2xl p-8 h-full border border-gray-100 shadow-lg flex flex-col">
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex flex-col items-center justify-center text-[#140152] border border-gray-100">
-                      <span className="text-2xl font-black leading-none">1{i}</span>
-                      <span className="text-[10px] font-bold uppercase">Oct</span>
-                    </div>
-                    <span className="px-3 py-1 bg-[#f5bb00]/10 text-[#f5bb00] text-xs font-bold rounded-full uppercase tracking-wider">
-                      Upcoming
-                    </span>
-                  </div>
-                  <h3 className="text-2xl font-black text-[#140152] mb-2">Worship Night</h3>
-                  <p className="text-gray-500 text-sm mb-6 flex-grow">Join us for an evening of powerful worship and prayer.</p>
+            {loading ? (
+              [1, 2, 3].map((i) => (
+                <div key={i} className="bg-gray-100 rounded-2xl h-80 animate-pulse" />
+              ))
+            ) : upcomingEvents.length > 0 ? (
+              upcomingEvents.map((event) => {
+                const eventDate = new Date(event.start_date);
+                const day = eventDate.getDate();
+                const month = eventDate.toLocaleString('default', { month: 'short' });
 
-                  <div className="flex items-center justify-between pt-6 border-t border-gray-100">
-                    <div className="flex items-center text-gray-400 text-xs font-medium">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span>18:00 PM</span>
+                return (
+                  <motion.div
+                    key={event.id}
+                    whileHover={{ scale: 1.02 }}
+                    className="relative group h-full"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#140152] to-[#f5bb00] rounded-2xl blur opacity-25 group-hover:opacity-50 transition-opacity duration-500" />
+                    <div className="relative bg-white rounded-2xl p-8 h-full border border-gray-100 shadow-lg flex flex-col">
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="w-16 h-16 bg-gray-50 rounded-2xl flex flex-col items-center justify-center text-[#140152] border border-gray-100">
+                          <span className="text-2xl font-black leading-none">{day}</span>
+                          <span className="text-[10px] font-bold uppercase">{month}</span>
+                        </div>
+                        <span className="px-3 py-1 bg-[#f5bb00]/10 text-[#f5bb00] text-xs font-bold rounded-full uppercase tracking-wider">
+                          Upcoming
+                        </span>
+                      </div>
+                      <h3 className="text-2xl font-black text-[#140152] mb-2 line-clamp-1">{event.title}</h3>
+                      <p className="text-gray-500 text-sm mb-6 flex-grow line-clamp-3">{event.description}</p>
+
+                      <div className="flex items-center justify-between pt-6 border-t border-gray-100">
+                        <div className="flex items-center text-gray-400 text-xs font-medium">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          <span>{eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <Link href="/events" className="w-8 h-8 rounded-full bg-[#140152] flex items-center justify-center hover:bg-[#f5bb00] transition-colors">
+                          <ArrowRight className="w-4 h-4 text-white" />
+                        </Link>
+                      </div>
                     </div>
-                    <Link href="/events" className="w-8 h-8 rounded-full bg-[#140152] flex items-center justify-center hover:bg-[#f5bb00] transition-colors">
-                      <ArrowRight className="w-4 h-4 text-white" />
-                    </Link>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                  </motion.div>
+                )
+              })
+            ) : (
+              <div className="col-span-3 text-center text-gray-400">No upcoming events scheduled.</div>
+            )}
           </div>
 
           <div className="text-center mt-16">

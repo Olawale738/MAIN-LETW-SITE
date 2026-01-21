@@ -34,7 +34,7 @@ export default function ServiceCard({
         <p className="text-[#140152]/60 font-medium leading-relaxed">{description}</p>
       </CardContent>
       <CardFooter className="pt-4">
-        <PremiumButton href={buttonLink} className="w-full">
+        <PremiumButton href={buttonLink} >
           {buttonText}
         </PremiumButton>
       </CardFooter>

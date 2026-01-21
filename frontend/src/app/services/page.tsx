@@ -1,15 +1,41 @@
-import Hero from '@/components/shared/Hero'
-import SectionWrapper from '@/components/shared/SectionWrapper'
-import ServiceCard from '@/components/shared/ServiceCard'
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import Link from 'next/link'
-import { Church, BookOpen, Users, Heart, TrendingUp, Briefcase } from 'lucide-react'
+import { ArrowRight, Music, Users, BookOpen, Heart, Sparkles, Mic2, Globe, TrendingUp, Church, Briefcase, PlayCircle } from 'lucide-react'
+import ServiceCard from '@/components/shared/ServiceCard'
+import SectionWrapper from '@/components/shared/SectionWrapper'
+import Hero from '@/components/shared/Hero'
+import { sermonApi, Sermon } from '@/lib/api'
 
 export default function ServicesPage() {
+  const [recentSermons, setRecentSermons] = useState<Sermon[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchSermons = async () => {
+      try {
+        const data = await sermonApi.getPublicSermons()
+        setRecentSermons(data.sermons.slice(0, 3))
+      } catch (error) {
+        console.error("Failed to fetch sermons", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchSermons()
+  }, [])
+
+  const extractYoutubeId = (url: string): string | null => {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)
+    return match ? match[1] : null
+  }
+
   return (
-    <>
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
       <Hero
         title="Our Services"
         subtitle="Serving God, Serving Community"
@@ -61,7 +87,7 @@ export default function ServicesPage() {
             title="Bible Study"
             description="Deepen your understanding of the Bible every Tuesday at 6:00 PM with our interactive sessions."
             buttonText="Join Bible Study"
-            buttonLink="/join"
+            buttonLink="/bible-study"
           />
           <ServiceCard
             icon={<Users className="w-8 h-8" />}
@@ -195,44 +221,69 @@ export default function ServicesPage() {
           />
           <ServiceCard
             icon={<Users className="w-8 h-8" />}
-            title="The Sound Altar"
+            title="Alter Sound"
             description="A consecrated space where worship and prophetic sound converge. Join the ministry."
-            buttonText="Enter Sound Altar"
-            buttonLink="/services/sound-altar"
+            buttonText="Enter Alter Sound"
+            buttonLink="/services/alter-sound"
           />
         </div>
       </SectionWrapper>
 
-      {/* RECENT SERMONS */}
-      <SectionWrapper>
-        <div className="text-center mb-16 space-y-4">
-          <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Media Vault</span>
-          <h2 className="text-4xl md:text-5xl font-black text-[#140152]">Recent Sermons</h2>
-          <div className="w-24 h-1.5 bg-[#f5bb00] mx-auto rounded-full" />
-        </div>
-        <div className="max-w-4xl mx-auto space-y-6">
-          {[
-            { title: "The Destiny of Dreamers with Heaven Sent Dreams", date: "Jul 13, 2024" },
-            { title: "Understanding the Universal Law of Sowing and Reaping", date: "Jul 9, 2024" },
-            { title: "The Evidential Proof of Saving Faith in Christ", date: "Jul 8, 2024" }
-          ].map((sermon, i) => (
-            <Card key={i} className="group hover:bg-[#140152] transition-all duration-500 overflow-hidden">
-              <div className="flex flex-col md:flex-row items-center p-8 gap-8">
-                <div className="w-16 h-16 bg-[#140152]/5 rounded-2xl flex items-center justify-center text-[#140152] group-hover:bg-[#f5bb00] transition-colors">
-                  <TrendingUp className="w-8 h-8" />
-                </div>
-                <div className="flex-grow text-center md:text-left space-y-2">
-                  <p className="text-xs font-bold text-[#f5bb00] uppercase tracking-widest">{sermon.date}</p>
-                  <CardTitle className="text-[#140152] text-2xl font-black group-hover:text-white transition-colors">
-                    {sermon.title}
-                  </CardTitle>
-                </div>
-                <PremiumButton href="/sermons">Watch Now</PremiumButton>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </SectionWrapper>
-    </>
+      {/* Recent Sermons Section - Dynamic */}
+      <section className="py-24 bg-white">
+        <SectionWrapper>
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12">
+            <div>
+              <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Media</span>
+              <h2 className="text-4xl md:text-5xl font-black text-[#140152] mt-2">Recent Sermons</h2>
+            </div>
+            <PremiumButton href="/sermons" className="mt-4 md:mt-0">View All Sermons</PremiumButton>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {loading ? (
+              [1, 2, 3].map((i) => (
+                <div key={i} className="bg-gray-100 rounded-2xl h-80 animate-pulse" />
+              ))
+            ) : recentSermons.length > 0 ? (
+              recentSermons.map((sermon) => (
+                <Card key={sermon.id} className="overflow-hidden border-none shadow-xl hover:shadow-2xl transition-all group">
+                  <div className="relative aspect-video bg-black">
+                    {sermon.video_url ? (
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        src={`https://www.youtube.com/embed/${extractYoutubeId(sermon.video_url)}`}
+                        title={sermon.title}
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                        <PlayCircle className="w-12 h-12 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <CardContent className="p-6">
+                    <span className="text-xs font-bold text-[#f5bb00] uppercase tracking-wider mb-2 block">
+                      {sermon.series || "Message"}
+                    </span>
+                    <h3 className="text-xl font-bold text-[#140152] mb-2 line-clamp-2">{sermon.title}</h3>
+                    <p className="text-sm text-gray-500 mb-4 line-clamp-2">{sermon.description}</p>
+                    <div className="flex items-center text-[#140152] font-semibold text-sm group-hover:underline">
+                      Watch Now <ArrowRight className="w-4 h-4 ml-2" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-3 text-center text-gray-400">No sermons available.</div>
+            )}
+          </div>
+        </SectionWrapper>
+      </section>
+    </div>
   )
 }
