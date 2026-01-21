@@ -68,16 +68,40 @@ export default function TheologySchoolPage() {
                             <h3 className="text-3xl font-bold text-[#140152] mb-8">Programme Structure</h3>
                             <div className="space-y-6">
                                 <div className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-l-[#f5bb00]">
-                                    <h4 className="text-xl font-black text-[#140152]">Certificate in Theology – Level 1</h4>
-                                    <p className="text-gray-600 mt-2">Foundational biblical and doctrinal studies for believers seeking theological grounding.</p>
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex-1">
+                                            <h4 className="text-xl font-black text-[#140152]">Certificate in Theology – Level 1</h4>
+                                            <p className="text-gray-600 mt-2 mb-3">Foundational biblical and doctrinal studies for believers seeking theological grounding.</p>
+                                            <p className="text-2xl font-black text-[#f5bb00]">₦20,000</p>
+                                        </div>
+                                        <PremiumButton href="/education/theology-school/billing?level=1" className="whitespace-nowrap">
+                                            Apply Now
+                                        </PremiumButton>
+                                    </div>
                                 </div>
                                 <div className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-l-[#140152]">
-                                    <h4 className="text-xl font-black text-[#140152]">Diploma in Theology & Ministry – Level 2</h4>
-                                    <p className="text-gray-600 mt-2">Deeper theology, practical ministry skills, and leadership development.</p>
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex-1">
+                                            <h4 className="text-xl font-black text-[#140152]">Diploma in Theology & Ministry – Level 2</h4>
+                                            <p className="text-gray-600 mt-2 mb-3">Deeper theology, practical ministry skills, and leadership development.</p>
+                                            <p className="text-2xl font-black text-[#f5bb00]">₦25,000</p>
+                                        </div>
+                                        <PremiumButton href="/education/theology-school/billing?level=2" className="whitespace-nowrap">
+                                            Apply Now
+                                        </PremiumButton>
+                                    </div>
                                 </div>
                                 <div className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-l-red-600">
-                                    <h4 className="text-xl font-black text-[#140152]">Advanced Ministerial Training – Level 3</h4>
-                                    <p className="text-gray-600 mt-2">Intensive formation for teaching, pastoral care, and apostolic leadership.</p>
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex-1">
+                                            <h4 className="text-xl font-black text-[#140152]">Advanced Ministerial Training – Level 3</h4>
+                                            <p className="text-gray-600 mt-2 mb-3">Intensive formation for teaching, pastoral care, and apostolic leadership.</p>
+                                            <p className="text-2xl font-black text-[#f5bb00]">₦30,000</p>
+                                        </div>
+                                        <PremiumButton href="/education/theology-school/billing?level=3" className="whitespace-nowrap">
+                                            Apply Now
+                                        </PremiumButton>
+                                    </div>
                                 </div>
                             </div>
                         </section>
@@ -112,7 +136,10 @@ export default function TheologySchoolPage() {
                             <p className="text-blue-200 mb-6 leading-relaxed">
                                 Join a structured programme that forms sound ministers and kingdom leaders.
                             </p>
-                            <PremiumButton className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6">
+                            <PremiumButton
+                                href="/education/theology-school/billing?level=1"
+                                className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6"
+                            >
                                 Apply Now
                             </PremiumButton>
                         </div>

@@ -25,8 +25,8 @@ export default function PrimarySchoolPage() {
                     className="relative z-20 text-center text-white px-4 max-w-4xl mx-auto"
                 >
                     <div className="text-[#f5bb00] font-bold tracking-widest uppercase mb-4 text-sm md:text-base">A Foundation for Life</div>
-                    <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">Primary School<br />Education</h1>
-                    <p className="text-lg md:text-2xl text-orange-100 max-w-2xl mx-auto font-medium">Nurturing young minds with faith, character, and academic excellence.</p>
+                    <h1 className="text-3xl md:text-5xl font-black mb-6 leading-tight">Primary School<br />Education</h1>
+                    <p className="text-lg md:text-xl text-orange-100 max-w-xl mx-auto font-medium">Nurturing young minds with faith, character, and academic excellence.</p>
                 </motion.div>
             </div>
 

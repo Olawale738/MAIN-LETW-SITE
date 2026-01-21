@@ -35,15 +35,42 @@ export default function Footer() {
               A bible believing church where the word of God is taught with simplicity and clarity. Join us to experience the divine presence.
             </p>
             <div className="flex gap-4">
-              {[Facebook, Twitter, Instagram, Youtube].map((Icon, index) => (
-                <Link
-                  key={index}
-                  href="#"
-                  className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#f5bb00] hover:text-[#140152] transition-all duration-300"
-                >
-                  <Icon className="w-5 h-5" />
-                </Link>
-              ))}
+              <Link
+                href="https://facebook.com/LightEncounterTabernacle"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#f5bb00] hover:text-[#140152] transition-all duration-300"
+                aria-label="Facebook"
+              >
+                <Facebook className="w-5 h-5" />
+              </Link>
+              <Link
+                href="https://twitter.com/LightEncounterTabernacle"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#f5bb00] hover:text-[#140152] transition-all duration-300"
+                aria-label="Twitter"
+              >
+                <Twitter className="w-5 h-5" />
+              </Link>
+              <Link
+                href="https://instagram.com/LightEncounterTabernacle"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#f5bb00] hover:text-[#140152] transition-all duration-300"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-5 h-5" />
+              </Link>
+              <Link
+                href="https://www.youtube.com/@LightEncounterTabernacle"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#f5bb00] hover:text-[#140152] transition-all duration-300"
+                aria-label="YouTube"
+              >
+                <Youtube className="w-5 h-5" />
+              </Link>
             </div>
           </div>
 

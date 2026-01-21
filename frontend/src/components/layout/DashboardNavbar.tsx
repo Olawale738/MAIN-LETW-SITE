@@ -9,12 +9,12 @@ import {
     Menu,
     X,
     Home,
-    ChevronLeft,
     Loader2,
     Settings,
     User,
     ChevronDown,
-    Shield
+    Shield,
+    ArrowLeft
 } from 'lucide-react'
 import { tokenManager, notificationApi, Notification, authApi } from '@/lib/api'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -161,61 +161,76 @@ export default function DashboardNavbar() {
     const isOnMainDashboard = pathname === '/dashboard' || pathname === '/admin'
 
     return (
-        <header className="bg-white/80 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-50 transition-all duration-300">
+        <header className="bg-gradient-to-r from-[#140152] via-[#1a0670] to-[#140152] backdrop-blur-xl border-b border-white/10 sticky top-0 z-50 shadow-2xl shadow-[#140152]/20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-16">
+                <div className="flex justify-between items-center h-20">
                     {/* Left Section */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-6">
                         {/* Logo */}
                         <Link href={userRole === 'admin' ? '/admin' : '/dashboard'} className="flex items-center gap-3 group">
                             <motion.div
-                                whileHover={{ scale: 1.05 }}
-                                className="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-[#140152] to-[#1d0175] rounded-xl shadow-lg shadow-indigo-900/20"
+                                whileHover={{ scale: 1.05, rotate: 5 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-[#f5bb00] to-[#d4a000] rounded-2xl shadow-xl shadow-[#f5bb00]/30 ring-2 ring-white/20"
                             >
-                                <img src="/LETWlogo.png" alt="LETW" className="w-full h-full object-cover rounded-xl" />
+                                <img src="/LETWlogo.png" alt="LETW" className="w-full h-full object-cover rounded-2xl" />
                             </motion.div>
-                            <span className="font-black text-sm text-[#140152] hidden sm:block tracking-tight">
-                                LETW <span className="text-[#f5bb00] font-normal">PORTAL</span>
-                            </span>
+                            <div className="hidden sm:block">
+                                <span className="font-black text-lg text-white block tracking-tight leading-tight">
+                                    LETW
+                                </span>
+                                <span className="text-xs text-[#f5bb00] font-semibold uppercase tracking-widest">
+                                    Portal
+                                </span>
+                            </div>
                         </Link>
 
                         {/* Breadcrumb / Section indicator */}
                         {!isOnMainDashboard && (
-                            <div className="hidden sm:flex items-center gap-2 text-gray-400">
-                                <span className="text-gray-300">/</span>
-                                <span className="text-[#140152] font-medium px-3 py-1 bg-[#140152]/5 rounded-full text-xs">
+                            <div className="hidden md:flex items-center gap-3">
+                                <div className="w-px h-8 bg-white/20" />
+                                <span className="text-white/90 font-semibold px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm border border-white/20">
                                     {getCurrentSection()}
                                 </span>
                             </div>
                         )}
                     </div>
 
-                    {/* Center - Back to Dashboard (when not on main dashboard) */}
-                    {!isOnMainDashboard && (
-                        <Link
-                            href={userRole === 'admin' ? '/admin' : '/dashboard'}
-                            className="hidden md:flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#140152] hover:bg-gray-50 rounded-full transition-all group"
-                        >
-                            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                            Back to Dashboard
-                        </Link>
-                    )}
-
                     {/* Right Section */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                        {/* Back to Dashboard - Repositioned to right side */}
+                        {!isOnMainDashboard && (
+                            <Link
+                                href={userRole === 'admin' ? '/admin' : '/dashboard'}
+                                className="hidden lg:flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white/80 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full transition-all border border-white/20 group"
+                            >
+                                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                                Dashboard
+                            </Link>
+                        )}
+
                         {/* Notification Bell with Dropdown */}
                         <div className="relative" ref={notificationRef}>
                             <motion.button
+                                whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={toggleNotifications}
                                 className={cn(
-                                    "relative p-2.5 rounded-full transition-all duration-200 outline-none",
-                                    showNotifications ? "bg-[#140152]/10 text-[#140152]" : "text-gray-500 hover:text-[#140152] hover:bg-gray-50"
+                                    "relative p-3 rounded-2xl transition-all duration-200 outline-none border",
+                                    showNotifications
+                                        ? "bg-white/20 text-white border-white/30 shadow-lg"
+                                        : "bg-white/5 text-white/70 hover:text-white hover:bg-white/10 border-white/10"
                                 )}
                             >
                                 <Bell className="w-5 h-5" />
                                 {unreadCount > 0 && (
-                                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+                                    <motion.span
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-red-500 to-red-600 border-2 border-[#140152] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg"
+                                    >
+                                        {unreadCount > 9 ? '9+' : unreadCount}
+                                    </motion.span>
                                 )}
                             </motion.button>
 
@@ -227,22 +242,22 @@ export default function DashboardNavbar() {
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                         transition={{ duration: 0.2 }}
-                                        className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 origin-top-right"
+                                        className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-50 origin-top-right"
                                     >
-                                        <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50 backdrop-blur-sm">
-                                            <h3 className="font-bold text-[#140152]">Notifications</h3>
+                                        <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+                                            <h3 className="font-black text-[#140152] text-lg">Notifications</h3>
                                             <div className="flex items-center gap-2">
                                                 {unreadCount > 0 && (
                                                     <button
                                                         onClick={markAllAsRead}
-                                                        className="text-xs font-medium text-[#140152] hover:text-[#f5bb00] transition-colors"
+                                                        className="text-xs font-bold text-[#140152] hover:text-[#f5bb00] transition-colors px-3 py-1 rounded-full bg-[#140152]/5 hover:bg-[#f5bb00]/10"
                                                     >
                                                         Mark all read
                                                     </button>
                                                 )}
                                                 <button
                                                     onClick={() => setShowNotifications(false)}
-                                                    className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                                                    className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
                                                 >
                                                     <X className="w-4 h-4" />
                                                 </button>
@@ -256,10 +271,10 @@ export default function DashboardNavbar() {
                                                 </div>
                                             ) : notifications.length === 0 ? (
                                                 <div className="p-12 text-center flex flex-col items-center">
-                                                    <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
-                                                        <Bell className="w-6 h-6 text-gray-300" />
+                                                    <div className="w-16 h-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-full flex items-center justify-center mb-4">
+                                                        <Bell className="w-8 h-8 text-gray-300" />
                                                     </div>
-                                                    <p className="text-gray-500 text-sm">No notifications yet</p>
+                                                    <p className="text-gray-500 text-sm font-medium">No notifications yet</p>
                                                 </div>
                                             ) : (
                                                 notifications.map((notification) => (
@@ -267,25 +282,25 @@ export default function DashboardNavbar() {
                                                         key={notification.id}
                                                         onClick={() => !notification.is_read && markAsRead(notification.id)}
                                                         className={cn(
-                                                            "p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-all",
+                                                            "p-4 border-b border-gray-50 hover:bg-gray-50 transition-all cursor-pointer",
                                                             !notification.is_read ? "bg-blue-50/30" : ""
                                                         )}
                                                     >
                                                         <div className="flex items-start gap-3">
                                                             <div className={cn(
-                                                                "w-2 h-2 rounded-full mt-2 flex-shrink-0 shadow-sm",
+                                                                "w-2.5 h-2.5 rounded-full mt-2 flex-shrink-0 shadow-lg",
                                                                 notification.type === 'service_approved' ? 'bg-green-500 shadow-green-200' :
                                                                     notification.type === 'service_rejected' ? 'bg-red-500 shadow-red-200' :
                                                                         'bg-blue-500 shadow-blue-200'
                                                             )} />
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="font-semibold text-sm text-[#140152]">
+                                                                <p className="font-bold text-sm text-[#140152]">
                                                                     {notification.title}
                                                                 </p>
                                                                 <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
                                                                     {notification.message}
                                                                 </p>
-                                                                <p className="text-[10px] text-gray-400 mt-2 font-medium">
+                                                                <p className="text-[10px] text-gray-400 mt-2 font-semibold">
                                                                     {formatTimeAgo(notification.created_at)}
                                                                 </p>
                                                             </div>
@@ -300,32 +315,43 @@ export default function DashboardNavbar() {
                         </div>
 
                         {/* User Profile Dropdown */}
-                        <div className="relative pl-2" ref={profileRef}>
+                        <div className="relative" ref={profileRef}>
                             <motion.button
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={toggleProfileMenu}
                                 className={cn(
-                                    "hidden sm:flex items-center gap-3 p-1 pr-3 rounded-full border transition-all duration-200",
+                                    "hidden sm:flex items-center gap-3 p-1.5 pr-4 rounded-full border-2 transition-all duration-200",
                                     showProfileMenu
-                                        ? "bg-[#140152] border-[#140152]"
-                                        : "bg-white border-gray-100 hover:border-gray-200 hover:shadow-sm"
+                                        ? "bg-white border-white shadow-xl"
+                                        : "bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/30 backdrop-blur-sm"
                                 )}
                             >
                                 <div className={cn(
-                                    "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-colors",
-                                    showProfileMenu ? "bg-white/10 text-white" : "bg-[#140152] text-white"
+                                    "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-lg transition-colors",
+                                    showProfileMenu ? "bg-gradient-to-br from-[#140152] to-[#1d0175] text-white" : "bg-[#f5bb00] text-[#140152]"
                                 )}>
                                     {userName.charAt(0).toUpperCase()}
                                 </div>
-                                <span className={cn(
-                                    "text-sm font-medium transition-colors max-w-[100px] truncate",
-                                    showProfileMenu ? "text-white" : "text-[#140152]"
-                                )}>
-                                    {userName}
-                                </span>
+                                <div className="text-left">
+                                    <span className={cn(
+                                        "text-sm font-bold block transition-colors max-w-[100px] truncate",
+                                        showProfileMenu ? "text-[#140152]" : "text-white"
+                                    )}>
+                                        {userName}
+                                    </span>
+                                    {userRole === 'admin' && (
+                                        <span className={cn(
+                                            "text-[10px] font-semibold uppercase tracking-wider",
+                                            showProfileMenu ? "text-[#f5bb00]" : "text-[#f5bb00]/90"
+                                        )}>
+                                            Admin
+                                        </span>
+                                    )}
+                                </div>
                                 <ChevronDown className={cn(
                                     "w-4 h-4 transition-transform duration-200",
-                                    showProfileMenu ? "text-white/70 rotate-180" : "text-gray-400"
+                                    showProfileMenu ? "text-[#140152] rotate-180" : "text-white/70"
                                 )} />
                             </motion.button>
 
@@ -336,52 +362,59 @@ export default function DashboardNavbar() {
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                         transition={{ duration: 0.2 }}
-                                        className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 origin-top-right ring-1 ring-black/5"
+                                        className="absolute right-0 mt-3 w-72 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-50 origin-top-right"
                                     >
-                                        <div className="p-4 bg-gray-50/50 border-b border-gray-50">
-                                            <p className="text-sm font-bold text-[#140152] truncate">{userName}</p>
-                                            <p className="text-xs text-gray-500 truncate">{userEmail}</p>
-                                            {userRole === 'admin' && (
-                                                <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#f5bb00]/10 text-[#bf8c00] text-[10px] font-bold uppercase tracking-wider">
-                                                    <Shield className="w-3 h-3" />
-                                                    Administrator
+                                        <div className="p-6 bg-gradient-to-br from-[#140152] to-[#1d0175] border-b border-white/10">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-14 h-14 rounded-2xl bg-[#f5bb00] flex items-center justify-center text-[#140152] font-black text-2xl shadow-xl">
+                                                    {userName.charAt(0).toUpperCase()}
                                                 </div>
-                                            )}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-base font-bold text-white truncate">{userName}</p>
+                                                    <p className="text-xs text-white/70 truncate">{userEmail}</p>
+                                                    {userRole === 'admin' && (
+                                                        <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f5bb00] text-[#140152] text-[10px] font-black uppercase tracking-wider">
+                                                            <Shield className="w-3 h-3" />
+                                                            Administrator
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <div className="p-2 space-y-1">
+                                        <div className="p-3 space-y-1">
                                             <Link
                                                 href={userRole === 'admin' ? '/admin/settings' : '/dashboard/settings'}
                                                 onClick={() => setShowProfileMenu(false)}
-                                                className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-gray-600 hover:text-[#140152] hover:bg-gray-50 rounded-xl transition-colors group"
+                                                className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-600 hover:text-[#140152] hover:bg-gray-50 rounded-2xl transition-all group"
                                             >
-                                                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-500 group-hover:bg-[#140152]/10 group-hover:text-[#140152] transition-colors">
-                                                    <Settings className="w-4 h-4" />
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center text-gray-500 group-hover:from-[#140152] group-hover:to-[#1d0175] group-hover:text-white transition-all shadow-sm">
+                                                    <Settings className="w-5 h-5" />
                                                 </div>
-                                                <span className="font-medium">Settings</span>
+                                                <span className="font-semibold">Settings</span>
                                             </Link>
 
                                             <Link
                                                 href={userRole === 'admin' ? '/admin/settings' : '/dashboard/settings'}
                                                 onClick={() => setShowProfileMenu(false)}
-                                                className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-gray-600 hover:text-[#140152] hover:bg-gray-50 rounded-xl transition-colors group"
+                                                className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-600 hover:text-[#140152] hover:bg-gray-50 rounded-2xl transition-all group"
                                             >
-                                                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-500 group-hover:bg-[#140152]/10 group-hover:text-[#140152] transition-colors">
-                                                    <User className="w-4 h-4" />
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center text-gray-500 group-hover:from-[#140152] group-hover:to-[#1d0175] group-hover:text-white transition-all shadow-sm">
+                                                    <User className="w-5 h-5" />
                                                 </div>
-                                                <span className="font-medium">Profile</span>
+                                                <span className="font-semibold">Profile</span>
                                             </Link>
                                         </div>
 
-                                        <div className="p-2 border-t border-gray-50">
+                                        <div className="p-3 border-t border-gray-100">
                                             <button
                                                 onClick={handleLogout}
-                                                className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors group"
+                                                className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-2xl transition-all group"
                                             >
-                                                <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-500 group-hover:bg-red-100 transition-colors">
-                                                    <LogOut className="w-4 h-4" />
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center text-red-500 group-hover:from-red-500 group-hover:to-red-600 group-hover:text-white transition-all shadow-sm">
+                                                    <LogOut className="w-5 h-5" />
                                                 </div>
-                                                <span className="font-medium">Sign Out</span>
+                                                <span className="font-semibold">Sign Out</span>
                                             </button>
                                         </div>
                                     </motion.div>
@@ -392,7 +425,7 @@ export default function DashboardNavbar() {
                         {/* Mobile Menu Toggle */}
                         <button
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="sm:hidden p-2 text-gray-500 hover:text-[#140152] hover:bg-gray-50 rounded-full transition-colors"
+                            className="sm:hidden p-2.5 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all border border-white/10"
                         >
                             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                         </button>
@@ -407,45 +440,45 @@ export default function DashboardNavbar() {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="sm:hidden bg-white border-t border-gray-100 overflow-hidden"
+                        className="sm:hidden bg-gradient-to-b from-[#140152] to-[#1a0670] border-t border-white/10 overflow-hidden"
                     >
                         <div className="p-4 space-y-2">
-                            <div className="p-4 bg-gray-50 rounded-2xl mb-4 flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full bg-[#140152] flex items-center justify-center text-white font-bold text-lg">
+                            <div className="p-4 bg-white/10 backdrop-blur-sm rounded-2xl mb-4 flex items-center gap-3 border border-white/20">
+                                <div className="w-12 h-12 rounded-full bg-[#f5bb00] flex items-center justify-center text-[#140152] font-bold text-lg shadow-lg">
                                     {userName.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="overflow-hidden">
-                                    <p className="font-bold text-[#140152] truncate">{userName}</p>
-                                    <p className="text-xs text-gray-500 truncate">{userEmail}</p>
+                                    <p className="font-bold text-white truncate">{userName}</p>
+                                    <p className="text-xs text-white/70 truncate">{userEmail}</p>
                                 </div>
                             </div>
 
                             <Link
                                 href={userRole === 'admin' ? '/admin' : '/dashboard'}
                                 onClick={() => setMobileMenuOpen(false)}
-                                className="flex items-center gap-3 p-3 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
+                                className="flex items-center gap-3 p-3 text-white hover:bg-white/10 rounded-xl transition-all backdrop-blur-sm border border-white/10"
                             >
                                 <Home className="w-5 h-5" />
-                                <span className="font-medium">Dashboard</span>
+                                <span className="font-semibold">Dashboard</span>
                             </Link>
 
                             <Link
                                 href={userRole === 'admin' ? '/admin/settings' : '/dashboard/settings'}
                                 onClick={() => setMobileMenuOpen(false)}
-                                className="flex items-center gap-3 p-3 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors"
+                                className="flex items-center gap-3 p-3 text-white hover:bg-white/10 rounded-xl transition-all backdrop-blur-sm border border-white/10"
                             >
                                 <Settings className="w-5 h-5" />
-                                <span className="font-medium">Settings</span>
+                                <span className="font-semibold">Settings</span>
                             </Link>
 
-                            <div className="h-px bg-gray-100 my-2" />
+                            <div className="h-px bg-white/10 my-2" />
 
                             <button
                                 onClick={handleLogout}
-                                className="w-full flex items-center gap-3 p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                                className="w-full flex items-center gap-3 p-3 text-red-300 hover:bg-red-500/20 rounded-xl transition-all backdrop-blur-sm border border-red-500/20"
                             >
                                 <LogOut className="w-5 h-5" />
-                                <span className="font-medium">Sign Out</span>
+                                <span className="font-semibold">Sign Out</span>
                             </button>
                         </div>
                     </motion.div>
