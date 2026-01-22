@@ -65,12 +65,13 @@ async def health_check():
 
 
 # Import and register routers after app creation to avoid circular imports
-from routers import auth, users, service_requests, notifications, announcements, leadership, sermons, events, dashboard
+from routers import auth, users, service_requests, notifications, announcements, leadership, sermons, events, dashboard, skills
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(service_requests.router, prefix="/api/service-requests", tags=["Service Requests"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
 app.include_router(announcements.router, prefix="/api/announcements", tags=["Announcements"])
+app.include_router(skills.router)
 app.include_router(leadership.router)
 app.include_router(sermons.router)
 app.include_router(events.router)

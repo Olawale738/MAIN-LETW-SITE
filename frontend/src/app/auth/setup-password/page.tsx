@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { authApi, tokenManager } from '@/lib/api'
@@ -7,7 +7,7 @@ import { Loader2, CheckCircle, XCircle } from 'lucide-react'
 
 type PageState = 'loading' | 'valid' | 'invalid' | 'setting'
 
-export default function SetupPasswordPage() {
+function SetupPasswordForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const token = searchParams.get('token') || ''
@@ -178,5 +178,17 @@ export default function SetupPasswordPage() {
                 </form>
             </div>
         </div>
+    )
+}
+
+export default function SetupPasswordPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+                <Loader2 className="w-12 h-12 animate-spin text-[#140152]" />
+            </div>
+        }>
+            <SetupPasswordForm />
+        </Suspense>
     )
 }

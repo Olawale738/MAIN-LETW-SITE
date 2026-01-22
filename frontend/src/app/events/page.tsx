@@ -106,7 +106,7 @@ export default function EventsPage() {
                                         </p>
                                     </div>
                                     <div className="flex items-center justify-between pt-6 border-t border-gray-50">
-                                        <Button variant="link" className="p-0 h-auto font-bold text-[#140152] hover:text-[#f5bb00] hover:no-underline group/btn">
+                                        <Button variant="ghost" className="p-0 h-auto font-bold text-[#140152] hover:text-[#f5bb00] hover:no-underline group/btn">
                                             Event Details <ArrowRight className="w-4 h-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
                                         </Button>
                                         <Button variant="ghost" size="icon" className="text-gray-400 hover:text-[#140152] hover:bg-[#140152]/5 rounded-full">

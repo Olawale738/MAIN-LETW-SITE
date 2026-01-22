@@ -1,11 +1,11 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, CheckCircle, Loader2 } from 'lucide-react'
 import { authApi } from '@/lib/api'
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const email = searchParams.get('email') || ''
@@ -78,8 +78,8 @@ export default function VerifyEmailPage() {
                 {/* Resend message */}
                 {resendMessage && (
                     <div className={`mb-4 p-3 rounded-lg text-sm ${resendMessage.includes('sent')
-                            ? 'bg-green-50 text-green-700 border border-green-200'
-                            : 'bg-red-50 text-red-700 border border-red-200'
+                        ? 'bg-green-50 text-green-700 border border-green-200'
+                        : 'bg-red-50 text-red-700 border border-red-200'
                         }`}>
                         {resendMessage}
                     </div>
@@ -122,5 +122,17 @@ export default function VerifyEmailPage() {
                 </Button>
             </div>
         </div>
+    )
+}
+
+export default function VerifyEmailPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+                <Loader2 className="w-12 h-12 animate-spin text-[#140152]" />
+            </div>
+        }>
+            <VerifyEmailContent />
+        </Suspense>
     )
 }

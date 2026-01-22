@@ -1030,3 +1030,163 @@ export const dashboardApi = {
         return fetchApi<{ users: AdminUser[]; total: number }>(`/dashboard/users?${params.toString()}`);
     },
 };
+
+// ============= Skills Types =============
+
+export interface Course {
+    id: string;
+    title: string;
+    description?: string;
+    thumbnail?: string;
+    instructor?: string;
+    is_published: boolean;
+    created_at: string;
+    is_enrolled?: boolean;
+    progress_percent?: number;
+    modules?: CourseModule[];
+}
+
+export interface CourseModule {
+    id: string;
+    title: string;
+    order_index: number;
+    lessons: Lesson[];
+    quizzes: Quiz[];
+}
+
+export interface Lesson {
+    id: string;
+    title: string;
+    content_type: 'video' | 'text' | 'mixed';
+    content_url?: string;
+    video_urls?: string[];
+    images?: string[];
+    text_content?: string;
+    duration?: number;
+    order_index: number;
+    is_completed?: boolean;
+}
+
+export interface Quiz {
+    id: string;
+    title: string;
+    pass_score: number;
+    questions?: QuizQuestion[];
+}
+
+export interface QuizQuestion {
+    id?: string;
+    question_text: string;
+    options: string[];
+    correct_option_index: number;
+}
+
+export interface CourseCreate {
+    title: string;
+    description?: string;
+    instructor?: string;
+    is_published?: boolean;
+}
+
+export interface ModuleCreate {
+    title: string;
+    order_index?: number;
+}
+
+export interface LessonCreate {
+    title: string;
+    content_type?: 'video' | 'text' | 'mixed';
+    content_url?: string;
+    video_urls?: string[];
+    images?: string[];
+    text_content?: string;
+    duration?: number;
+    order_index?: number;
+}
+
+export interface QuizCreate {
+    title: string;
+    pass_score?: number;
+    questions: QuizQuestion[];
+}
+
+// ============= Skills API =============
+
+export const skillsApi = {
+    // Public/User endpoints
+    getCourses: async (): Promise<Course[]> => {
+        return fetchApi<Course[]>('/skills/courses');
+    },
+
+    getCourse: async (id: string): Promise<Course> => {
+        return fetchApi<Course>(`/skills/courses/${id}`);
+    },
+
+    enroll: async (id: string): Promise<{ message: string }> => {
+        return fetchApi<{ message: string }>(`/skills/courses/${id}/enroll`, {
+            method: 'POST',
+        });
+    },
+
+    completeLesson: async (lessonId: string): Promise<{ message: string }> => {
+        return fetchApi<{ message: string }>(`/skills/lessons/${lessonId}/complete`, {
+            method: 'POST',
+        });
+    },
+
+    submitQuiz: async (quizId: string, answers: number[]): Promise<{ passed: boolean; score: number }> => {
+        return fetchApi<{ passed: boolean; score: number }>(`/skills/quizzes/${quizId}/submit`, {
+            method: 'POST',
+            body: JSON.stringify({ answers }),
+        });
+    },
+
+    // Admin endpoints
+    createCourse: async (data: CourseCreate): Promise<Course> => {
+        return fetchApi<Course>('/skills/courses', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    createModule: async (courseId: string, data: ModuleCreate): Promise<CourseModule> => {
+        return fetchApi<CourseModule>(`/skills/courses/${courseId}/modules`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    createLesson: async (moduleId: string, data: LessonCreate): Promise<Lesson> => {
+        return fetchApi<Lesson>(`/skills/modules/${moduleId}/lessons`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    updateLesson: async (id: string, data: LessonCreate): Promise<Lesson> => {
+        return fetchApi<Lesson>(`/skills/lessons/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    deleteLesson: async (id: string): Promise<void> => {
+        await fetchApi<void>(`/skills/lessons/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    updateCourse: async (id: string, data: Partial<CourseCreate>): Promise<Course> => {
+        return fetchApi<Course>(`/skills/courses/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    createQuiz: async (moduleId: string, data: QuizCreate): Promise<Quiz> => {
+        return fetchApi<Quiz>(`/skills/modules/${moduleId}/quizzes`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+};
