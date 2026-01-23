@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Video, Calendar, Users, Activity, TrendingUp, Megaphone, Loader2, FileText, Clock, User, ArrowRight } from 'lucide-react'
+import { Video, Calendar, Users, Activity, TrendingUp, Megaphone, Loader2, FileText, Clock, User, ArrowRight, BookOpen, Music, Briefcase, HandHeart, Settings } from 'lucide-react'
 import { dashboardApi, DashboardStats, RecentActivity } from '@/lib/api'
 
 export default function AdminDashboardPage() {
@@ -218,6 +218,116 @@ export default function AdminDashboardPage() {
                         </CardContent>
                     </Card>
                 </Link>
+            </div>
+
+            {/* Services Management Section */}
+            <div className="space-y-4">
+                <h2 className="text-2xl font-bold text-[#140152]">Services Management</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Bible Study */}
+                    <Card className="border-none shadow-md hover:shadow-lg transition-all group">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                                <BookOpen className="w-8 h-8 text-[#140152]" />
+                                <Settings className="w-4 h-4 text-gray-400" />
+                            </div>
+                            <CardTitle className="text-lg text-[#140152] mt-2">Bible Study</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            <Link href="/admin/bible-study/plans" className="block p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                <p className="text-sm font-medium text-gray-700">Reading Plans</p>
+                                <p className="text-xs text-gray-500">Manage reading plans</p>
+                            </Link>
+                            <Link href="/admin/bible-study/readings" className="block p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                <p className="text-sm font-medium text-gray-700">Daily Readings</p>
+                                <p className="text-xs text-gray-500">Add daily readings</p>
+                            </Link>
+                            <Link href="/admin/bible-study/resources" className="block p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                <p className="text-sm font-medium text-gray-700">Resources</p>
+                                <p className="text-xs text-gray-500">Study materials</p>
+                            </Link>
+                            <Link href="/admin/bible-study/settings" className="block p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                <p className="text-sm font-medium text-gray-700">Settings</p>
+                                <p className="text-xs text-gray-500">Page configuration</p>
+                            </Link>
+                        </CardContent>
+                    </Card>
+
+                    {/* Alter Sound */}
+                    <Card className="border-none shadow-md hover:shadow-lg transition-all group">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                                <Music className="w-8 h-8 text-[#140152]" />
+                                <Settings className="w-4 h-4 text-gray-400" />
+                            </div>
+                            <CardTitle className="text-lg text-[#140152] mt-2">Alter Sound</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            <Link href="/admin/alter-sound/categories" className="block p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                <p className="text-sm font-medium text-gray-700">Categories</p>
+                                <p className="text-xs text-gray-500">Manage categories</p>
+                            </Link>
+                            <Link href="/admin/alter-sound/tracks" className="block p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                <p className="text-sm font-medium text-gray-700">Tracks</p>
+                                <p className="text-xs text-gray-500">Upload audio tracks</p>
+                            </Link>
+                            <Link href="/admin/alter-sound/settings" className="block p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                <p className="text-sm font-medium text-gray-700">Settings</p>
+                                <p className="text-xs text-gray-500">Page configuration</p>
+                            </Link>
+                        </CardContent>
+                    </Card>
+
+                    {/* Prayer */}
+                    <Card className="border-none shadow-md hover:shadow-lg transition-all group">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                                <HandHeart className="w-8 h-8 text-[#140152]" />
+                                <Settings className="w-4 h-4 text-gray-400" />
+                            </div>
+                            <CardTitle className="text-lg text-[#140152] mt-2">Prayer</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            <Link href="/admin/prayer/categories" className="block p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                <p className="text-sm font-medium text-gray-700">Categories</p>
+                                <p className="text-xs text-gray-500">Prayer categories</p>
+                            </Link>
+                            <Link href="/admin/prayer/schedules" className="block p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                <p className="text-sm font-medium text-gray-700">Schedules</p>
+                                <p className="text-xs text-gray-500">Prayer schedules</p>
+                            </Link>
+                            <Link href="/admin/prayer/requests" className="block p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                <p className="text-sm font-medium text-gray-700">Requests</p>
+                                <p className="text-xs text-gray-500">Prayer requests</p>
+                            </Link>
+                            <Link href="/admin/prayer/settings" className="block p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                <p className="text-sm font-medium text-gray-700">Settings</p>
+                                <p className="text-xs text-gray-500">Page configuration</p>
+                            </Link>
+                        </CardContent>
+                    </Card>
+
+                    {/* Career */}
+                    <Card className="border-none shadow-md hover:shadow-lg transition-all group">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                                <Briefcase className="w-8 h-8 text-[#140152]" />
+                                <Settings className="w-4 h-4 text-gray-400" />
+                            </div>
+                            <CardTitle className="text-lg text-[#140152] mt-2">Career</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            <Link href="/admin/career" className="block p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                <p className="text-sm font-medium text-gray-700">Modules</p>
+                                <p className="text-xs text-gray-500">Career modules</p>
+                            </Link>
+                            <Link href="/admin/career/sessions" className="block p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                <p className="text-sm font-medium text-gray-700">Sessions</p>
+                                <p className="text-xs text-gray-500">Manage sessions</p>
+                            </Link>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     )

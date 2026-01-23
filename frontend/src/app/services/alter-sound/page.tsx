@@ -1,5 +1,5 @@
 'use client'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
@@ -8,14 +8,40 @@ import Link from 'next/link'
 import SectionWrapper from '@/components/shared/SectionWrapper'
 import { BentoGrid, BentoGridItem } from '@/components/ui/bento-grid'
 import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
+import { alterSoundApi, AlterSoundPageSettings } from '@/lib/api'
 
 export default function SoundAltarPage() {
+    const [settings, setSettings] = useState<AlterSoundPageSettings | null>(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const data = await alterSoundApi.getPageData()
+                setSettings(data.settings)
+            } catch (error) {
+                console.error('Failed to load Alter Sound settings:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchSettings()
+    }, [])
+
+    // Default values if settings not loaded
+    const heroTitle = settings?.hero_title || "Raising Sound That|Carries Heaven's Intention"
+    const heroSubtitle = settings?.hero_subtitle || "Alter Sound"
+    const heroDescription = settings?.hero_description || "Not entertainment. A consecrated space where worship, prophetic sound, and spiritual alignment converge to release God's presence."
+    const heroBackground = settings?.hero_background_url || "https://images.unsplash.com/photo-1525926477800-7a3be580c765?q=80&w=2670"
+    const ctaText = settings?.cta_text || "For those called to serve God through sound."
+    const ctaButtonText = settings?.cta_button_text || "Apply to Join"
+    const ctaButtonLink = settings?.cta_button_link || "/join"
     return (
         <div className="min-h-screen bg-white dark:bg-black">
             {/* Hero Section */}
             <div className="relative h-[80vh] w-full overflow-hidden flex items-center justify-center bg-[#140152] pt-24">
                 <img
-                    src="https://images.unsplash.com/photo-1525926477800-7a3be580c765?q=80&w=2670"
+                    src={heroBackground}
                     alt="Alter Sound"
                     className="absolute inset-0 w-full h-full object-cover opacity-30"
                 />
@@ -27,7 +53,7 @@ export default function SoundAltarPage() {
                     transition={{ duration: 0.8 }}
                     className="relative z-20 text-center text-white px-4 max-w-5xl mx-auto"
                 >
-                    <div className="text-[#f5bb00] font-bold tracking-widest uppercase mb-4 text-sm md:text-base">Alter Sound</div>
+                    <div className="text-[#f5bb00] font-bold tracking-widest uppercase mb-4 text-sm md:text-base">{heroSubtitle}</div>
                     <h1 className="text-4xl md:text-7xl font-black mb-6 leading-tight">
                         Raising Sound That<br /><span className="text-[#f5bb00]">Carries Heaven’s Intention</span>
                     </h1>
@@ -35,8 +61,11 @@ export default function SoundAltarPage() {
                         Not entertainment. A consecrated space where worship, prophetic sound, and spiritual alignment converge to release God’s presence.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <PremiumButton href="/join" className="bg-[#f5bb00] text-[#140152] hover:bg-white">
-                            Join Ministry
+                        <PremiumButton href="#audio-library" className="bg-[#f5bb00] text-[#140152] hover:bg-white">
+                            Explore Audio Library
+                        </PremiumButton>
+                        <PremiumButton href="/prayer" className="bg-white/10 text-white hover:bg-white hover:text-[#140152] border-2 border-white/30">
+                            Join Prayer
                         </PremiumButton>
                     </div>
                 </motion.div>
@@ -147,12 +176,21 @@ export default function SoundAltarPage() {
 
                         </div>
 
-                        <div className="bg-[#f5bb00] text-[#140152] p-10 rounded-[2.5rem] text-center shadow-xl">
-                            <h3 className="text-2xl font-black mb-4">Join The Ministry</h3>
-                            <p className="mb-8 font-bold opacity-90">For those called to serve God through sound.</p>
-                            <Button className="w-full bg-[#140152] text-white hover:bg-[#140152]/90 py-6 rounded-xl font-bold shadow-lg">
-                                Apply to Join
-                            </Button>
+                        <div className="bg-[#f5bb00] text-[#140152] p-10 rounded-[2.5rem] text-center shadow-xl" id="audio-library">
+                            <h3 className="text-2xl font-black mb-4">Experience Worship Sound</h3>
+                            <p className="mb-8 font-bold opacity-90">Listen to anointed worship and prophetic sound that carries heaven's presence</p>
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <Link href="/services/alter-sound/library" className="flex-1">
+                                    <Button className="w-full bg-[#140152] text-white hover:bg-[#140152]/90 py-6 rounded-xl font-bold shadow-lg">
+                                        Browse Audio Library
+                                    </Button>
+                                </Link>
+                                <Link href="/prayer" className="flex-1">
+                                    <Button className="w-full bg-white text-[#140152] hover:bg-white/90 py-6 rounded-xl font-bold shadow-lg border-2 border-[#140152]">
+                                        Prayer Ministry
+                                    </Button>
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </div>

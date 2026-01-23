@@ -1514,6 +1514,90 @@ export interface PrayerPageSettingsUpdate {
     live_prayer_link?: string;
 }
 
+// ============================================================================
+// ALTER SOUND TYPES
+// ============================================================================
+
+export interface AudioCategory {
+    id: string;
+    name: string;
+    description?: string;
+    icon?: string;
+    order_index: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AudioCategoryCreate {
+    name: string;
+    description?: string;
+    icon?: string;
+    order_index?: number;
+    is_active?: boolean;
+}
+
+export interface AudioTrack {
+    id: string;
+    category_id: string;
+    title: string;
+    description?: string;
+    artist?: string;
+    duration?: string;
+    play_count: number;
+    is_featured: boolean;
+    is_active: boolean;
+    order_index: number;
+    created_at: string;
+    updated_at: string;
+    category: AudioCategory;
+}
+
+export interface AudioTrackCreate {
+    category_id: string;
+    title: string;
+    description?: string;
+    artist?: string;
+    duration?: string;
+    is_featured?: boolean;
+    is_active?: boolean;
+    order_index?: number;
+}
+
+export interface AlterSoundPageSettings {
+    id: string;
+    hero_title: string;
+    hero_subtitle: string;
+    hero_description: string;
+    hero_background_url?: string;
+    featured_section_title: string;
+    categories_section_title: string;
+    cta_text?: string;
+    cta_button_text?: string;
+    cta_button_link?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AlterSoundPageSettingsUpdate {
+    hero_title?: string;
+    hero_subtitle?: string;
+    hero_description?: string;
+    hero_background_url?: string;
+    featured_section_title?: string;
+    categories_section_title?: string;
+    cta_text?: string;
+    cta_button_text?: string;
+    cta_button_link?: string;
+}
+
+export interface AlterSoundPageData {
+    settings: AlterSoundPageSettings;
+    featured_tracks: AudioTrack[];
+    categories: AudioCategory[];
+    all_tracks: AudioTrack[];
+}
+
 // ============= Prayer API =============
 
 export const prayerApi = {
@@ -1642,5 +1726,385 @@ export const prayerApi = {
                 body: JSON.stringify(data),
             });
         },
+    },
+};
+
+// ============================================================================
+// ALTER SOUND API
+// ============================================================================
+
+export const alterSoundApi = {
+        // User endpoints
+        getPageData: async (): Promise<AlterSoundPageData> => {
+            return fetchApi<AlterSoundPageData>('/alter-sound/page-data');
+        },
+
+        incrementPlayCount: async (trackId: string): Promise<{ message: string; play_count: number }> => {
+            return fetchApi<{ message: string; play_count: number }>(`/alter-sound/tracks/${trackId}/play`, {
+                method: 'POST',
+            });
+        },
+
+        // Admin - Categories
+        getAllCategories: async (): Promise<AudioCategory[]> => {
+            return fetchApi<AudioCategory[]>('/alter-sound/admin/categories');
+        },
+
+        createCategory: async (data: AudioCategoryCreate): Promise<AudioCategory> => {
+            return fetchApi<AudioCategory>('/alter-sound/admin/categories', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+        },
+
+        updateCategory: async (id: string, data: Partial<AudioCategoryCreate>): Promise<AudioCategory> => {
+            return fetchApi<AudioCategory>(`/alter-sound/admin/categories/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(data),
+            });
+        },
+
+        deleteCategory: async (id: string): Promise<void> => {
+            return fetchApi<void>(`/alter-sound/admin/categories/${id}`, {
+                method: 'DELETE',
+            });
+        },
+
+        // Admin - Tracks
+        getAllTracks: async (categoryId?: string): Promise<AudioTrack[]> => {
+            const params = categoryId ? `?category_id=${categoryId}` : '';
+            return fetchApi<AudioTrack[]>(`/alter-sound/admin/tracks${params}`);
+        },
+
+        createTrack: async (data: AudioTrackCreate & { audioFile: File; coverFile?: File }): Promise<AudioTrack> => {
+            const formData = new FormData();
+            formData.append('category_id', data.category_id);
+            formData.append('title', data.title);
+            if (data.description) formData.append('description', data.description);
+            if (data.artist) formData.append('artist', data.artist);
+            if (data.duration) formData.append('duration', data.duration);
+            formData.append('is_featured', String(data.is_featured));
+            formData.append('is_active', String(data.is_active));
+            formData.append('order_index', String(data.order_index));
+            formData.append('audio', data.audioFile);
+            if (data.coverFile) formData.append('cover', data.coverFile);
+
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`${API_BASE_URL}/alter-sound/admin/tracks`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to create track');
+            }
+
+            return response.json();
+        },
+
+        updateTrack: async (id: string, data: Partial<AudioTrackCreate>): Promise<AudioTrack> => {
+            return fetchApi<AudioTrack>(`/alter-sound/admin/tracks/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(data),
+            });
+        },
+
+        deleteTrack: async (id: string): Promise<void> => {
+            return fetchApi<void>(`/alter-sound/admin/tracks/${id}`, {
+                method: 'DELETE',
+            });
+        },
+
+        // Media URLs
+        getAudioUrl: (trackId: string): string => `${API_BASE_URL}/alter-sound/tracks/${trackId}/audio`,
+        getCoverUrl: (trackId: string): string => `${API_BASE_URL}/alter-sound/tracks/${trackId}/cover`,
+
+        // Admin - Settings
+        getSettings: async (): Promise<AlterSoundPageSettings> => {
+            return fetchApi<AlterSoundPageSettings>('/alter-sound/admin/settings');
+        },
+
+        updateSettings: async (data: AlterSoundPageSettingsUpdate): Promise<AlterSoundPageSettings> => {
+            return fetchApi<AlterSoundPageSettings>('/alter-sound/admin/settings', {
+                method: 'PUT',
+                body: JSON.stringify(data),
+            });
+        },
+};
+
+// ============================================================================
+// BIBLE STUDY API
+// ============================================================================
+
+export enum ReadingPlanType {
+    WEEKLY = "weekly",
+    MONTHLY = "monthly",
+    YEARLY = "yearly",
+    CUSTOM = "custom"
+}
+
+export enum ReadingStatus {
+    NOT_STARTED = "not_started",
+    IN_PROGRESS = "in_progress",
+    COMPLETED = "completed"
+}
+
+export interface BibleReadingPlan {
+    id: string;
+    title: string;
+    description?: string;
+    plan_type: ReadingPlanType;
+    duration_days: number;
+    target_audience?: string;
+    is_featured: boolean;
+    is_active: boolean;
+    order_index: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface DailyReading {
+    id: string;
+    plan_id: string;
+    day_number: number;
+    title: string;
+    scripture_reference: string;
+    reflection?: string;
+    key_verse?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface UserReadingProgress {
+    id: string;
+    user_id: string;
+    plan_id: string;
+    start_date: string;
+    current_day: number;
+    completed_days: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface UserDailyReading {
+    id: string;
+    progress_id: string;
+    daily_reading_id: string;
+    status: ReadingStatus;
+    completed_at?: string;
+    notes?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface BibleStudyResource {
+    id: string;
+    title: string;
+    description?: string;
+    resource_type: string;
+    resource_url?: string;
+    category?: string;
+    is_featured: boolean;
+    is_active: boolean;
+    order_index: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface BibleStudyPageSettings {
+    id: string;
+    hero_title: string;
+    hero_subtitle: string;
+    hero_description: string;
+    hero_background_url?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface BibleStudyPageData {
+    settings: BibleStudyPageSettings;
+    featured_plans: BibleReadingPlan[];
+    all_plans: BibleReadingPlan[];
+    featured_resources: BibleStudyResource[];
+}
+
+export interface BibleReadingPlanWithReadings extends BibleReadingPlan {
+    readings: DailyReading[];
+}
+
+export interface UserProgressWithDetails extends UserReadingProgress {
+    plan: BibleReadingPlan;
+    daily_readings: UserDailyReading[];
+}
+
+export interface BibleReadingPlanCreate {
+    title: string;
+    description?: string;
+    plan_type: ReadingPlanType;
+    duration_days: number;
+    target_audience?: string;
+    is_featured?: boolean;
+    is_active?: boolean;
+    order_index?: number;
+}
+
+export interface DailyReadingCreate {
+    plan_id: string;
+    day_number: number;
+    title: string;
+    scripture_reference: string;
+    reflection?: string;
+    key_verse?: string;
+}
+
+export interface BibleStudyResourceCreate {
+    title: string;
+    description?: string;
+    resource_type: string;
+    resource_url?: string;
+    category?: string;
+    is_featured?: boolean;
+    is_active?: boolean;
+    order_index?: number;
+}
+
+export interface BibleStudyPageSettingsUpdate {
+    hero_title?: string;
+    hero_subtitle?: string;
+    hero_description?: string;
+    hero_background_url?: string;
+}
+
+export const bibleStudyApi = {
+    // User endpoints
+    getPageData: async (): Promise<BibleStudyPageData> => {
+        return fetchApi<BibleStudyPageData>('/bible-study/page-data');
+    },
+
+    getPlanWithReadings: async (planId: string): Promise<BibleReadingPlanWithReadings> => {
+        return fetchApi<BibleReadingPlanWithReadings>(`/bible-study/plans/${planId}`);
+    },
+
+    startPlan: async (planId: string, startDate: string): Promise<UserReadingProgress> => {
+        return fetchApi<UserReadingProgress>('/bible-study/progress/start', {
+            method: 'POST',
+            body: JSON.stringify({ plan_id: planId, start_date: startDate }),
+        });
+    },
+
+    getMyProgress: async (): Promise<UserProgressWithDetails[]> => {
+        return fetchApi<UserProgressWithDetails[]>('/bible-study/progress/my-progress');
+    },
+
+    updateDailyReading: async (
+        progressId: string,
+        readingId: string,
+        status: ReadingStatus,
+        notes?: string
+    ): Promise<UserDailyReading> => {
+        return fetchApi<UserDailyReading>(
+            `/bible-study/progress/${progressId}/reading/${readingId}`,
+            {
+                method: 'PUT',
+                body: JSON.stringify({ status, notes }),
+            }
+        );
+    },
+
+    getResources: async (category?: string): Promise<BibleStudyResource[]> => {
+        const params = category ? `?category=${category}` : '';
+        return fetchApi<BibleStudyResource[]>(`/bible-study/resources${params}`);
+    },
+
+    // Admin - Plans
+    getAllPlans: async (): Promise<BibleReadingPlan[]> => {
+        return fetchApi<BibleReadingPlan[]>('/bible-study/admin/plans');
+    },
+
+    createPlan: async (data: BibleReadingPlanCreate): Promise<BibleReadingPlan> => {
+        return fetchApi<BibleReadingPlan>('/bible-study/admin/plans', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    updatePlan: async (id: string, data: Partial<BibleReadingPlanCreate>): Promise<BibleReadingPlan> => {
+        return fetchApi<BibleReadingPlan>(`/bible-study/admin/plans/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    deletePlan: async (id: string): Promise<void> => {
+        return fetchApi<void>(`/bible-study/admin/plans/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // Admin - Readings
+    getPlanReadings: async (planId: string): Promise<DailyReading[]> => {
+        return fetchApi<DailyReading[]>(`/bible-study/admin/plans/${planId}/readings`);
+    },
+
+    createReading: async (data: DailyReadingCreate): Promise<DailyReading> => {
+        return fetchApi<DailyReading>('/bible-study/admin/readings', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    updateReading: async (id: string, data: Partial<DailyReadingCreate>): Promise<DailyReading> => {
+        return fetchApi<DailyReading>(`/bible-study/admin/readings/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    deleteReading: async (id: string): Promise<void> => {
+        return fetchApi<void>(`/bible-study/admin/readings/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // Admin - Resources
+    getAllResources: async (): Promise<BibleStudyResource[]> => {
+        return fetchApi<BibleStudyResource[]>('/bible-study/admin/resources');
+    },
+
+    createResource: async (data: BibleStudyResourceCreate): Promise<BibleStudyResource> => {
+        return fetchApi<BibleStudyResource>('/bible-study/admin/resources', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    updateResource: async (id: string, data: Partial<BibleStudyResourceCreate>): Promise<BibleStudyResource> => {
+        return fetchApi<BibleStudyResource>(`/bible-study/admin/resources/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    deleteResource: async (id: string): Promise<void> => {
+        return fetchApi<void>(`/bible-study/admin/resources/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // Admin - Settings
+    getSettings: async (): Promise<BibleStudyPageSettings> => {
+        return fetchApi<BibleStudyPageSettings>('/bible-study/admin/settings');
+    },
+
+    updateSettings: async (data: BibleStudyPageSettingsUpdate): Promise<BibleStudyPageSettings> => {
+        return fetchApi<BibleStudyPageSettings>('/bible-study/admin/settings', {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
     },
 };

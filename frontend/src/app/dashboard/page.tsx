@@ -33,7 +33,7 @@ const SERVICE_CONFIG: Record<string, { icon: React.ReactNode; description: strin
         icon: <Music className="w-6 h-6" />,
         description: "Join our worship team and use your musical gifts to glorify God.",
         buttonText: "View Choir",
-        buttonLink: "/services/sound-altar"
+        buttonLink: "/services/alter-sound"
     },
     "Theology school (paid)": {
         icon: <GraduationCap className="w-6 h-6" />,

@@ -16,6 +16,14 @@ from models.prayer import (
     PrayerCategory, PrayerSchedule, PrayerStat, PrayerRequest,
     UserPrayer, PrayerPageSettings, PrayerRequestStatus
 )
+from models.alter_sound import (
+    AudioCategory, AudioTrack, AlterSoundPageSettings
+)
+from models.bible_study import (
+    BibleReadingPlan, DailyReading, UserReadingProgress,
+    UserDailyReading, BibleStudyResource, BibleStudyPageSettings,
+    ReadingPlanType, ReadingStatus
+)
 
 __all__ = [
     "User",
@@ -51,6 +59,17 @@ __all__ = [
     "UserPrayer",
     "PrayerPageSettings",
     "PrayerRequestStatus",
+    "AudioCategory",
+    "AudioTrack",
+    "AlterSoundPageSettings",
+    "BibleReadingPlan",
+    "DailyReading",
+    "UserReadingProgress",
+    "UserDailyReading",
+    "BibleStudyResource",
+    "BibleStudyPageSettings",
+    "ReadingPlanType",
+    "ReadingStatus",
 ]
 
 

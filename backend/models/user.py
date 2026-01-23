@@ -90,6 +90,7 @@ class User(Base):
 
     # Relationships
     prayer_requests: Mapped[List["PrayerRequest"]] = relationship("PrayerRequest", back_populates="user")
+    reading_progress: Mapped[List["UserReadingProgress"]] = relationship("UserReadingProgress", back_populates="user")
 
     def __repr__(self) -> str:
         return f"<User {self.email} ({self.role})>"
