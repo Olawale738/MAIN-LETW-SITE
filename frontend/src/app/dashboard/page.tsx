@@ -282,13 +282,25 @@ export default function UserDashboard() {
                                             {approvedServices.map((service) => {
                                                 const config = SERVICE_CONFIG[service]
                                                 if (config) {
+                                                    // Check for paid theology school
+                                                    let buttonLink = config.buttonLink
+                                                    let buttonText = config.buttonText
+
+                                                    if (service === "Theology school (paid)") {
+                                                        const paidServices = JSON.parse(localStorage.getItem('paidServices') || '{}')
+                                                        if (paidServices['theology_school']) {
+                                                            buttonLink = "/dashboard/theology-school"
+                                                            buttonText = "Access Dashboard"
+                                                        }
+                                                    }
+
                                                     return (
                                                         <ServiceCard
                                                             key={service}
                                                             title={service}
                                                             description={config.description}
-                                                            buttonText={config.buttonText}
-                                                            buttonLink={config.buttonLink}
+                                                            buttonText={buttonText}
+                                                            buttonLink={buttonLink}
                                                             icon={config.icon}
                                                         />
                                                     )
