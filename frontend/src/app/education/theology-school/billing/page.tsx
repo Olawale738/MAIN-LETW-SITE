@@ -93,8 +93,8 @@ function BillingContent() {
                                 >
                                     <Card
                                         className={`cursor-pointer transition-all border-2 ${selectedMethod === method.id
-                                                ? 'border-[#f5bb00] shadow-xl bg-[#f5bb00]/5'
-                                                : 'border-gray-200 hover:border-[#140152]/30'
+                                            ? 'border-[#f5bb00] shadow-xl bg-[#f5bb00]/5'
+                                            : 'border-gray-200 hover:border-[#140152]/30'
                                             }`}
                                         onClick={() => setSelectedMethod(method.id)}
                                     >
@@ -102,8 +102,8 @@ function BillingContent() {
                                             <div className="flex items-center gap-3">
                                                 <div
                                                     className={`w-12 h-12 rounded-xl flex items-center justify-center ${selectedMethod === method.id
-                                                            ? 'bg-[#f5bb00] text-[#140152]'
-                                                            : 'bg-gray-100 text-gray-600'
+                                                        ? 'bg-[#f5bb00] text-[#140152]'
+                                                        : 'bg-gray-100 text-gray-600'
                                                         }`}
                                                 >
                                                     <method.icon className="w-6 h-6" />
@@ -158,10 +158,21 @@ function BillingContent() {
 
                             {selectedMethod === 'card' && (
                                 <div className="text-center py-8">
-                                    <PremiumButton className="px-12 py-6 text-lg">
-                                        Proceed to Secure Payment
+                                    <PremiumButton
+                                        onClick={() => {
+                                            // Simulate successful payment
+                                            const payments = JSON.parse(localStorage.getItem('paidServices') || '{}')
+                                            payments['theology_school'] = true
+                                            localStorage.setItem('paidServices', JSON.stringify(payments))
+
+                                            // Redirect to dashboard
+                                            window.location.href = '/dashboard/theology-school'
+                                        }}
+                                        className="px-12 py-6 text-lg"
+                                    >
+                                        Pay ₦{currentLevel.price.toLocaleString()}
                                     </PremiumButton>
-                                    <p className="text-sm text-gray-500 mt-4">You will be redirected to Paystack</p>
+                                    <p className="text-sm text-gray-500 mt-4">Secured by Paystack</p>
                                 </div>
                             )}
 
@@ -173,6 +184,21 @@ function BillingContent() {
                                     <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200">
                                         <p><strong>Account Number:</strong> 0123456789</p>
                                         <p><strong>Bank:</strong> Access Bank</p>
+                                    </div>
+                                    <div className="mt-4 text-center">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                // Simulate successful payment confirmation specific for manual transfer
+                                                const payments = JSON.parse(localStorage.getItem('paidServices') || '{}')
+                                                payments['theology_school'] = true
+                                                localStorage.setItem('paidServices', JSON.stringify(payments))
+                                                window.location.href = '/dashboard/theology-school'
+                                            }}
+                                            className="border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white"
+                                        >
+                                            I have made the transfer
+                                        </Button>
                                     </div>
                                 </div>
                             )}
