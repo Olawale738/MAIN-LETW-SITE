@@ -272,14 +272,29 @@ export default function UserDashboard() {
                             <div className="flex items-center justify-center py-8">
                                 <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                             </div>
-                        ) : approvedServices.length > 0 || pendingServices.length > 0 ? (
+                        ) : (
                             <div className="space-y-6">
-                                {/* Approved Services */}
-                                {approvedServices.length > 0 && (
+                                {/* Always Available Services - No Approval Required */}
+                                <div>
+                                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Always Available</h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                        {/* Counselling - Always accessible */}
+                                        <ServiceCard
+                                            title="Counselling"
+                                            description="Access spiritual and pastoral counselling support services."
+                                            buttonText="Get Counselling"
+                                            buttonLink="/services/counselling"
+                                            icon={<MessageCircle className="w-6 h-6" />}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Approved Services - Filter out Counselling to prevent duplicates */}
+                                {approvedServices.filter(s => s !== 'Counselling').length > 0 && (
                                     <div>
                                         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Active</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                            {approvedServices.map((service) => {
+                                            {approvedServices.filter(s => s !== 'Counselling').map((service) => {
                                                 const config = SERVICE_CONFIG[service]
                                                 if (config) {
                                                     return (
@@ -328,17 +343,13 @@ export default function UserDashboard() {
                                         </div>
                                     </div>
                                 )}
-                            </div>
-                        ) : (
-                            <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                <p>You haven't joined any ministries yet.</p>
-                                <Button
-                                    onClick={() => router.push('/onboarding/services')}
-                                    variant="ghost"
-                                    className="text-[#140152] hover:bg-transparent hover:underline p-0 h-auto"
-                                >
-                                    Join a Ministry
-                                </Button>
+
+                                {/* Show message if no other services besides Counselling */}
+                                {approvedServices.filter(s => s !== 'Counselling').length === 0 && pendingServices.length === 0 && (
+                                    <div className="text-center py-4 text-gray-400 text-sm">
+                                        <p>No other services yet. Visit Manage Services to join additional ministries.</p>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

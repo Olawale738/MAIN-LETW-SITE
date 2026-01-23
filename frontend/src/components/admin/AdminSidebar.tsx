@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager } from '@/lib/api'
 import { useState } from 'react'
@@ -47,6 +47,16 @@ const sidebarItems = [
         title: 'Skill Development',
         href: '/admin/skills',
         icon: BookOpen
+    },
+    {
+        title: 'Career Guidance',
+        href: '/admin/career',
+        icon: Target
+    },
+    {
+        title: 'Prayer',
+        href: '/admin/prayer',
+        icon: HandHeart
     },
 ]
 

@@ -328,6 +328,7 @@ export interface ServiceRequest {
     user_name?: string;
     user_email?: string;
     service_name: string;
+    message?: string;
     status: ServiceRequestStatus;
     reviewed_by?: string;
     reviewed_at?: string;
@@ -373,10 +374,10 @@ export const serviceRequestApi = {
     /**
      * Submit service requests (creates pending requests)
      */
-    submitRequests: async (services: string[]): Promise<MessageResponse> => {
+    submitRequests: async (services: string[], message?: string): Promise<MessageResponse> => {
         return fetchApi<MessageResponse>('/service-requests', {
             method: 'POST',
-            body: JSON.stringify({ services }),
+            body: JSON.stringify({ services, message }),
         });
     },
 
@@ -1188,5 +1189,458 @@ export const skillsApi = {
             method: 'POST',
             body: JSON.stringify(data),
         });
+    },
+};
+
+// ============= Career Guidance Types =============
+
+export interface CareerModule {
+    id: string;
+    title: string;
+    description?: string;
+    icon?: string;
+    order_index: number;
+    is_published: boolean;
+    created_at: string;
+    updated_at: string;
+    resources?: CareerResource[];
+    tasks?: CareerTask[];
+    progress_percent?: number;
+}
+
+export interface CareerResource {
+    id: string;
+    module_id: string;
+    title: string;
+    description?: string;
+    resource_type: 'pdf' | 'video' | 'article' | 'link';
+    file_url?: string;
+    video_url?: string;
+    article_content?: string;
+    external_link?: string;
+    order_index: number;
+    created_at: string;
+}
+
+export interface CareerTask {
+    id: string;
+    module_id: string;
+    title: string;
+    description?: string;
+    order_index: number;
+    created_at: string;
+    is_completed?: boolean;
+}
+
+export interface CareerSession {
+    id: string;
+    user_id: string;
+    title: string;
+    description?: string;
+    session_date: string;
+    duration_minutes: number;
+    meeting_link?: string;
+    status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
+    notes?: string;
+    created_at: string;
+    user_name?: string;
+}
+
+export interface UserCareerDashboard {
+    current_focus?: string;
+    next_session?: CareerSession;
+    overall_progress: number;
+    modules: CareerModule[];
+    pending_tasks: CareerTask[];
+}
+
+export interface CareerModuleCreate {
+    title: string;
+    description?: string;
+    icon?: string;
+    order_index?: number;
+    is_published?: boolean;
+}
+
+export interface CareerResourceCreate {
+    title: string;
+    description?: string;
+    resource_type: 'pdf' | 'video' | 'article' | 'link';
+    file_url?: string;
+    video_url?: string;
+    article_content?: string;
+    external_link?: string;
+    order_index?: number;
+}
+
+export interface CareerTaskCreate {
+    title: string;
+    description?: string;
+    order_index?: number;
+}
+
+export interface CareerSessionCreate {
+    user_id: string;
+    title: string;
+    description?: string;
+    session_date: string;
+    duration_minutes?: number;
+    meeting_link?: string;
+    status?: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
+    notes?: string;
+}
+
+// ============= Career Guidance API =============
+
+export const careerApi = {
+    // User endpoints
+    getDashboard: async (): Promise<UserCareerDashboard> => {
+        return fetchApi<UserCareerDashboard>('/career/dashboard');
+    },
+
+    getModules: async (): Promise<CareerModule[]> => {
+        return fetchApi<CareerModule[]>('/career/modules');
+    },
+
+    getModule: async (id: string): Promise<CareerModule> => {
+        return fetchApi<CareerModule>(`/career/modules/${id}`);
+    },
+
+    completeTask: async (taskId: string): Promise<{ message: string }> => {
+        return fetchApi<{ message: string }>(`/career/tasks/${taskId}/complete`, {
+            method: 'POST',
+        });
+    },
+
+    getSessions: async (): Promise<CareerSession[]> => {
+        return fetchApi<CareerSession[]>('/career/sessions');
+    },
+
+    // Admin endpoints
+    admin: {
+        getModules: async (): Promise<CareerModule[]> => {
+            return fetchApi<CareerModule[]>('/career/admin/modules');
+        },
+
+        getModule: async (id: string): Promise<CareerModule> => {
+            return fetchApi<CareerModule>(`/career/admin/modules/${id}`);
+        },
+
+        createModule: async (data: CareerModuleCreate): Promise<CareerModule> => {
+            return fetchApi<CareerModule>('/career/admin/modules', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+        },
+
+        updateModule: async (id: string, data: Partial<CareerModuleCreate>): Promise<CareerModule> => {
+            return fetchApi<CareerModule>(`/career/admin/modules/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+            });
+        },
+
+        deleteModule: async (id: string): Promise<{ message: string }> => {
+            return fetchApi<{ message: string }>(`/career/admin/modules/${id}`, {
+                method: 'DELETE',
+            });
+        },
+
+        createResource: async (moduleId: string, data: CareerResourceCreate): Promise<CareerResource> => {
+            return fetchApi<CareerResource>(`/career/admin/modules/${moduleId}/resources`, {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+        },
+
+        deleteResource: async (id: string): Promise<{ message: string }> => {
+            return fetchApi<{ message: string }>(`/career/admin/resources/${id}`, {
+                method: 'DELETE',
+            });
+        },
+
+        createTask: async (moduleId: string, data: CareerTaskCreate): Promise<CareerTask> => {
+            return fetchApi<CareerTask>(`/career/admin/modules/${moduleId}/tasks`, {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+        },
+
+        deleteTask: async (id: string): Promise<{ message: string }> => {
+            return fetchApi<{ message: string }>(`/career/admin/tasks/${id}`, {
+                method: 'DELETE',
+            });
+        },
+
+        getSessions: async (): Promise<CareerSession[]> => {
+            return fetchApi<CareerSession[]>('/career/admin/sessions');
+        },
+
+        createSession: async (data: CareerSessionCreate): Promise<CareerSession> => {
+            return fetchApi<CareerSession>('/career/admin/sessions', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+        },
+
+        updateSession: async (id: string, data: Partial<CareerSessionCreate>): Promise<CareerSession> => {
+            return fetchApi<CareerSession>(`/career/admin/sessions/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+            });
+        },
+
+        deleteSession: async (id: string): Promise<{ message: string }> => {
+            return fetchApi<{ message: string }>(`/career/admin/sessions/${id}`, {
+                method: 'DELETE',
+            });
+        },
+    },
+};
+
+
+// ============= Prayer Types =============
+
+export interface PrayerCategory {
+    id: string;
+    title: string;
+    description?: string;
+    icon?: string;
+    order_index: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PrayerSchedule {
+    id: string;
+    program_name: string;
+    time_description: string;
+    description?: string;
+    icon?: string;
+    meeting_link?: string;
+    order_index: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PrayerStat {
+    id: string;
+    label: string;
+    value: string;
+    order_index: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PrayerRequest {
+    id: string;
+    user_id: string;
+    title: string;
+    description: string;
+    category?: string;
+    is_anonymous: boolean;
+    is_public: boolean;
+    status: 'pending' | 'praying' | 'answered' | 'archived';
+    prayer_count: number;
+    testimony?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PrayerPageSettings {
+    id: string;
+    hero_title: string;
+    hero_subtitle: string;
+    hero_description: string;
+    hero_image_url?: string;
+    scripture_text: string;
+    scripture_reference: string;
+    call_to_action_text: string;
+    live_prayer_link?: string;
+    updated_at: string;
+}
+
+export interface PrayerPageData {
+    settings: PrayerPageSettings;
+    categories: PrayerCategory[];
+    schedules: PrayerSchedule[];
+    stats: PrayerStat[];
+}
+
+export interface PrayerCategoryCreate {
+    title: string;
+    description?: string;
+    icon?: string;
+    order_index?: number;
+    is_active?: boolean;
+}
+
+export interface PrayerScheduleCreate {
+    program_name: string;
+    time_description: string;
+    description?: string;
+    icon?: string;
+    meeting_link?: string;
+    order_index?: number;
+    is_active?: boolean;
+}
+
+export interface PrayerStatCreate {
+    label: string;
+    value: string;
+    order_index?: number;
+    is_active?: boolean;
+}
+
+export interface PrayerRequestCreate {
+    title: string;
+    description: string;
+    category?: string;
+    is_anonymous?: boolean;
+    is_public?: boolean;
+}
+
+export interface PrayerPageSettingsUpdate {
+    hero_title?: string;
+    hero_subtitle?: string;
+    hero_description?: string;
+    hero_image_url?: string;
+    scripture_text?: string;
+    scripture_reference?: string;
+    call_to_action_text?: string;
+    live_prayer_link?: string;
+}
+
+// ============= Prayer API =============
+
+export const prayerApi = {
+    // User endpoints
+    getPageData: async (): Promise<PrayerPageData> => {
+        return fetchApi<PrayerPageData>('/prayer/page-data');
+    },
+
+    getMyRequests: async (statusFilter?: string): Promise<PrayerRequest[]> => {
+        const params = statusFilter ? `?status_filter=${statusFilter}` : '';
+        return fetchApi<PrayerRequest[]>(`/prayer/requests${params}`);
+    },
+
+    createRequest: async (data: PrayerRequestCreate): Promise<PrayerRequest> => {
+        return fetchApi<PrayerRequest>('/prayer/requests', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    prayForRequest: async (requestId: string): Promise<{ message: string }> => {
+        return fetchApi<{ message: string }>(`/prayer/requests/${requestId}/pray`, {
+            method: 'POST',
+        });
+    },
+
+    // Admin endpoints
+    admin: {
+        // Categories
+        getCategories: async (): Promise<PrayerCategory[]> => {
+            return fetchApi<PrayerCategory[]>('/prayer/admin/categories');
+        },
+
+        createCategory: async (data: PrayerCategoryCreate): Promise<PrayerCategory> => {
+            return fetchApi<PrayerCategory>('/prayer/admin/categories', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+        },
+
+        updateCategory: async (id: string, data: Partial<PrayerCategoryCreate>): Promise<PrayerCategory> => {
+            return fetchApi<PrayerCategory>(`/prayer/admin/categories/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+            });
+        },
+
+
+        deleteCategory: async (id: string): Promise<void> => {
+            return fetchApi<void>(`/prayer/admin/categories/${id}`, {
+                method: 'DELETE',
+            });
+        },
+
+        // Schedules
+        getSchedules: async (): Promise<PrayerSchedule[]> => {
+            return fetchApi<PrayerSchedule[]>('/prayer/admin/schedules');
+        },
+
+        createSchedule: async (data: PrayerScheduleCreate): Promise<PrayerSchedule> => {
+            return fetchApi<PrayerSchedule>('/prayer/admin/schedules', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+        },
+
+        updateSchedule: async (id: string, data: Partial<PrayerScheduleCreate>): Promise<PrayerSchedule> => {
+            return fetchApi<PrayerSchedule>(`/prayer/admin/schedules/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+            });
+        },
+
+        deleteSchedule: async (id: string): Promise<void> => {
+            return fetchApi<void>(`/prayer/admin/schedules/${id}`, {
+                method: 'DELETE',
+            });
+        },
+
+        // Stats
+        getStats: async (): Promise<PrayerStat[]> => {
+            return fetchApi<PrayerStat[]>('/prayer/admin/stats');
+        },
+
+        createStat: async (data: PrayerStatCreate): Promise<PrayerStat> => {
+            return fetchApi<PrayerStat>('/prayer/admin/stats', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+        },
+
+        updateStat: async (id: string, data: Partial<PrayerStatCreate>): Promise<PrayerStat> => {
+            return fetchApi<PrayerStat>(`/prayer/admin/stats/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+            });
+        },
+
+        deleteStat: async (id: string): Promise<void> => {
+            return fetchApi<void>(`/prayer/admin/stats/${id}`, {
+                method: 'DELETE',
+            });
+        },
+
+        // Settings
+        getSettings: async (): Promise<PrayerPageSettings> => {
+            return fetchApi<PrayerPageSettings>('/prayer/admin/settings');
+        },
+
+        updateSettings: async (data: PrayerPageSettingsUpdate): Promise<PrayerPageSettings> => {
+            return fetchApi<PrayerPageSettings>('/prayer/admin/settings', {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+            });
+        },
+
+        // Prayer Requests
+        getAllRequests: async (statusFilter?: string): Promise<PrayerRequest[]> => {
+            const params = statusFilter ? `?status_filter=${statusFilter}` : '';
+            return fetchApi<PrayerRequest[]>(`/prayer/admin/requests${params}`);
+        },
+
+        updateRequest: async (id: string, data: Partial<PrayerRequest>): Promise<PrayerRequest> => {
+            return fetchApi<PrayerRequest>(`/prayer/admin/requests/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+            });
+        },
     },
 };

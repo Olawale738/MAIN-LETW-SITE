@@ -308,6 +308,11 @@ export default function ServiceRequestsPage() {
                                                     <p className="text-xs text-gray-500">
                                                         Requested {formatDate(request.created_at)}
                                                     </p>
+                                                    {request.message && (
+                                                        <div className="mt-2 bg-gray-50 p-2 rounded text-sm text-gray-600 border border-gray-100 italic">
+                                                            "{request.message}"
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 

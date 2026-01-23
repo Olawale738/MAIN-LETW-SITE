@@ -21,7 +21,7 @@ from schemas.service_request import (
 )
 from schemas.auth import MessageResponse
 from utils.dependencies import get_current_active_user, get_admin_user
-from services.email_service import send_service_approved_email
+from services.email_service import send_service_approved_email, send_new_request_notification_email
 
 router = APIRouter()
 
@@ -36,6 +36,7 @@ def _request_to_response(request: ServiceRequest, include_user: bool = False) ->
         "reviewed_by": request.reviewed_by,
         "reviewed_at": request.reviewed_at,
         "admin_note": request.admin_note,
+        "message": request.message,
         "created_at": request.created_at,
         "updated_at": request.updated_at,
     }
@@ -50,6 +51,7 @@ def _request_to_response(request: ServiceRequest, include_user: bool = False) ->
 @router.post("", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
 async def create_service_requests(
     request: ServiceRequestCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -57,17 +59,19 @@ async def create_service_requests(
     Submit requests to join services.
     Creates pending requests for each service that needs admin approval.
     """
-    # Get existing pending/approved requests for this user
-    existing_result = await db.execute(
-        select(ServiceRequest.service_name).where(
-            ServiceRequest.user_id == current_user.id,
-            ServiceRequest.status.in_([ServiceRequestStatus.PENDING, ServiceRequestStatus.APPROVED])
-        )
-    )
-    existing_services = set(existing_result.scalars().all())
-    
     # Filter out services that already have pending or approved requests
-    new_services = [s for s in request.services if s not in existing_services]
+    # BUT if a message is provided, we assume this is a specific inquiry/appointment request and allow it.
+    if request.message:
+        new_services = request.services
+    else:
+        existing_result = await db.execute(
+            select(ServiceRequest.service_name).where(
+                ServiceRequest.user_id == current_user.id,
+                ServiceRequest.status.in_([ServiceRequestStatus.PENDING, ServiceRequestStatus.APPROVED])
+            )
+        )
+        existing_services = set(existing_result.scalars().all())
+        new_services = [s for s in request.services if s not in existing_services]
     
     if not new_services:
         return MessageResponse(
@@ -80,7 +84,8 @@ async def create_service_requests(
         service_request = ServiceRequest(
             user_id=current_user.id,
             service_name=service_name,
-            status=ServiceRequestStatus.PENDING
+            status=ServiceRequestStatus.PENDING,
+            message=request.message
         )
         db.add(service_request)
     
@@ -93,6 +98,7 @@ async def create_service_requests(
     admins = admin_result.scalars().all()
     
     for admin in admins:
+        # DB Notification
         notification = Notification(
             user_id=admin.id,
             title="New Service Requests",
@@ -101,6 +107,28 @@ async def create_service_requests(
             reference_id=current_user.id
         )
         db.add(notification)
+        
+        # Email Notification (background)
+        if background_tasks:
+            background_tasks.add_task(
+                send_new_request_notification_email,
+                to_email=admin.email,
+                admin_name=admin.name,
+                user_name=current_user.name,
+                user_email=current_user.email,
+                services=new_services,
+                message=request.message
+            )
+        else:
+            # Fallback if background_tasks not provided (should be provided by FastAPI)
+             await send_new_request_notification_email(
+                to_email=admin.email,
+                admin_name=admin.name,
+                user_name=current_user.name,
+                user_email=current_user.email,
+                services=new_services,
+                message=request.message
+            )
     
     await db.commit()
     

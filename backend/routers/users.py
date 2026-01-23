@@ -21,7 +21,6 @@ AVAILABLE_SERVICES = [
     "Skill Development",
     "Theology school (paid)",
     "Leadership Training",
-    "Counselling",
     "Career Guidance"
 ]
 

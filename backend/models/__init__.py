@@ -8,10 +8,18 @@ from models.leadership import LeadershipModule, LeadershipContent, ContentType
 from models.user_progress import UserContentProgress
 from models.sermon import Sermon, SermonMediaType
 from models.event import Event
+from models.career import (
+    CareerModule, CareerResource, CareerSession, CareerTask,
+    UserCareerProgress, UserCareerTask, ResourceType, SessionStatus, TaskStatus
+)
+from models.prayer import (
+    PrayerCategory, PrayerSchedule, PrayerStat, PrayerRequest,
+    UserPrayer, PrayerPageSettings, PrayerRequestStatus
+)
 
 __all__ = [
     "User",
-    "UserStatus", 
+    "UserStatus",
     "UserRole",
     "VerificationToken",
     "TokenType",
@@ -27,6 +35,22 @@ __all__ = [
     "Sermon",
     "SermonMediaType",
     "Event",
+    "CareerModule",
+    "CareerResource",
+    "CareerSession",
+    "CareerTask",
+    "UserCareerProgress",
+    "UserCareerTask",
+    "ResourceType",
+    "SessionStatus",
+    "TaskStatus",
+    "PrayerCategory",
+    "PrayerSchedule",
+    "PrayerStat",
+    "PrayerRequest",
+    "UserPrayer",
+    "PrayerPageSettings",
+    "PrayerRequestStatus",
 ]
 
 
