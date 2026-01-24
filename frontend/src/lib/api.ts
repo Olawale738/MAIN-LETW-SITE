@@ -698,6 +698,50 @@ export const leadershipApi = {
             method: 'DELETE',
         });
     },
+    unmarkContentComplete: async (contentId: string): Promise<{ message: string; content_id: string }> => {
+        return fetchApi<{ message: string; content_id: string }>(`/leadership/content/${contentId}/complete`, {
+            method: 'DELETE',
+        });
+    },
+};
+
+// ============= Settings API =============
+
+export const settingsApi = {
+    /**
+     * Get theology school registration status
+     */
+    getTheologyRegistrationStatus: async (): Promise<{ isOpen: boolean }> => {
+        // In a real app, this would be a backend call
+        // return fetchApi<{ isOpen: boolean }>('/settings/theology-registration');
+
+        // Mock implementation using localStorage
+        if (typeof window !== 'undefined') {
+            const status = localStorage.getItem('theology_registration_open');
+            return { isOpen: status !== 'false' }; // Default to true
+        }
+        return { isOpen: true };
+    },
+
+    /**
+     * Set theology school registration status
+     */
+    setTheologyRegistrationStatus: async (isOpen: boolean): Promise<{ success: boolean }> => {
+        // In a real app, this would be a backend call
+        // return fetchApi<{ success: boolean }>('/settings/theology-registration', {
+        //     method: 'PUT',
+        //     body: JSON.stringify({ isOpen }),
+        // });
+
+        // Mock implementation using localStorage
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('theology_registration_open', String(isOpen));
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return { success: true };
+        }
+        return { success: false };
+    }
 };
 
 // ============= Sermon Types =============

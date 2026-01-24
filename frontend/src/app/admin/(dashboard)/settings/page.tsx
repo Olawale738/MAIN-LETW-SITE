@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { authApi, userApi, User } from '@/lib/api'
+import { authApi, userApi, settingsApi, User } from '@/lib/api'
 import {
     User as UserIcon,
     Lock,
@@ -14,7 +14,8 @@ import {
     Eye,
     EyeOff,
     Shield,
-    Crown
+    Crown,
+    School
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -22,7 +23,11 @@ export default function AdminSettingsPage() {
     const router = useRouter()
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile')
+    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'registrations'>('profile')
+
+    // Registration Settings state
+    const [theologyRegistrationOpen, setTheologyRegistrationOpen] = useState(true)
+    const [registrationLoading, setRegistrationLoading] = useState(false)
 
     // Profile form state
     const [name, setName] = useState('')
@@ -49,6 +54,10 @@ export default function AdminSettingsPage() {
                 }
                 setUser(userData)
                 setName(userData.name)
+
+                // Fetch settings
+                const settings = await settingsApi.getTheologyRegistrationStatus()
+                setTheologyRegistrationOpen(settings.isOpen)
             } catch (error) {
                 console.error('Failed to fetch user', error)
                 router.push('/auth/login')
@@ -58,6 +67,18 @@ export default function AdminSettingsPage() {
         }
         fetchUser()
     }, [router])
+
+    const handleRegistrationToggle = async (checked: boolean) => {
+        setRegistrationLoading(true)
+        try {
+            await settingsApi.setTheologyRegistrationStatus(checked)
+            setTheologyRegistrationOpen(checked)
+        } catch (error) {
+            console.error('Failed to update settings', error)
+        } finally {
+            setRegistrationLoading(false)
+        }
+    }
 
     const handleProfileUpdate = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -122,6 +143,7 @@ export default function AdminSettingsPage() {
     const tabs = [
         { id: 'profile' as const, label: 'Profile', icon: UserIcon },
         { id: 'security' as const, label: 'Security', icon: Shield },
+        { id: 'registrations' as const, label: 'Registrations', icon: School },
     ]
 
     return (
@@ -160,6 +182,48 @@ export default function AdminSettingsPage() {
                 {/* Content */}
                 <div className="p-6">
                     <AnimatePresence mode="wait">
+                        {activeTab === 'registrations' && (
+                            <motion.div
+                                key="registrations"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                        <div>
+                                            <h3 className="font-bold text-[#140152]">Theology School Registration</h3>
+                                            <p className="text-sm text-gray-500">Enable or disable new student applications</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only peer"
+                                                checked={theologyRegistrationOpen}
+                                                onChange={(e) => handleRegistrationToggle(e.target.checked)}
+                                                disabled={registrationLoading}
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#f5bb00]"></div>
+                                            {registrationLoading && (
+                                                <div className="absolute right-12">
+                                                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                                                </div>
+                                            )}
+                                        </label>
+                                    </div>
+
+                                    <div className="p-4 bg-blue-50 text-blue-800 rounded-xl text-sm">
+                                        <div className="flex gap-2">
+                                            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                            <p>
+                                                When registration is closed, the "Apply Now" buttons on the Theology School page will be disabled, and a message will be displayed to visitors.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
                         {activeTab === 'profile' && (
                             <motion.div
                                 key="profile"

@@ -1,12 +1,29 @@
-'use client'
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { ArrowLeft, BookOpen, Scroll, Users, Globe, Award } from 'lucide-react'
+import { ArrowLeft, BookOpen, Scroll, Users, Globe, Award, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+import { settingsApi } from '@/lib/api'
 
 export default function TheologySchoolPage() {
+    const [registrationOpen, setRegistrationOpen] = useState(true)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const settings = await settingsApi.getTheologyRegistrationStatus()
+                setRegistrationOpen(settings.isOpen)
+            } catch (error) {
+                console.error('Failed to fetch settings', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchSettings()
+    }, [])
+
     return (
         <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
             {/* Hero Section – School of Theology & Ministry Formation */}
@@ -68,39 +85,60 @@ export default function TheologySchoolPage() {
                             <h3 className="text-3xl font-bold text-[#140152] mb-8">Programme Structure</h3>
                             <div className="space-y-6">
                                 <div className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-l-[#f5bb00]">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="flex-1">
+                                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                                        <div className="flex-1 min-w-[250px]">
                                             <h4 className="text-xl font-black text-[#140152]">Certificate in Theology – Level 1</h4>
-                                            <p className="text-gray-600 mt-2 mb-3">Foundational biblical and doctrinal studies for believers seeking theological grounding.</p>
-                                            <p className="text-2xl font-black text-[#f5bb00]">₦20,000</p>
+                                            <p className="text-gray-600 mt-2">Foundational biblical and doctrinal studies for believers seeking theological grounding.</p>
                                         </div>
-                                        <PremiumButton href="/education/theology-school/billing?level=1" className="whitespace-nowrap">
-                                            Apply Now
-                                        </PremiumButton>
+                                        <div>
+                                            {registrationOpen ? (
+                                                <PremiumButton href="/education/theology-school/billing?level=1" className="whitespace-nowrap">
+                                                    Apply Now
+                                                </PremiumButton>
+                                            ) : (
+                                                <div className="px-6 py-3 bg-gray-100 text-gray-500 rounded-xl font-bold text-sm border border-gray-200 cursor-not-allowed">
+                                                    Registration Closed
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-l-[#140152]">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="flex-1">
+                                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                                        <div className="flex-1 min-w-[250px]">
                                             <h4 className="text-xl font-black text-[#140152]">Diploma in Theology & Ministry – Level 2</h4>
-                                            <p className="text-gray-600 mt-2 mb-3">Deeper theology, practical ministry skills, and leadership development.</p>
-                                            <p className="text-2xl font-black text-[#f5bb00]">₦25,000</p>
+                                            <p className="text-gray-600 mt-2">Deeper theology, practical ministry skills, and leadership development.</p>
                                         </div>
-                                        <PremiumButton href="/education/theology-school/billing?level=2" className="whitespace-nowrap">
-                                            Apply Now
-                                        </PremiumButton>
+                                        <div>
+                                            {registrationOpen ? (
+                                                <PremiumButton href="/education/theology-school/billing?level=2" className="whitespace-nowrap">
+                                                    Apply Now
+                                                </PremiumButton>
+                                            ) : (
+                                                <div className="px-6 py-3 bg-gray-100 text-gray-500 rounded-xl font-bold text-sm border border-gray-200 cursor-not-allowed">
+                                                    Registration Closed
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-l-red-600">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="flex-1">
+                                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                                        <div className="flex-1 min-w-[250px]">
                                             <h4 className="text-xl font-black text-[#140152]">Advanced Ministerial Training – Level 3</h4>
-                                            <p className="text-gray-600 mt-2 mb-3">Intensive formation for teaching, pastoral care, and apostolic leadership.</p>
-                                            <p className="text-2xl font-black text-[#f5bb00]">₦30,000</p>
+                                            <p className="text-gray-600 mt-2">Intensive formation for teaching, pastoral care, and apostolic leadership.</p>
                                         </div>
-                                        <PremiumButton href="/education/theology-school/billing?level=3" className="whitespace-nowrap">
-                                            Apply Now
-                                        </PremiumButton>
+                                        <div>
+                                            {registrationOpen ? (
+                                                <PremiumButton href="/education/theology-school/billing?level=3" className="whitespace-nowrap">
+                                                    Apply Now
+                                                </PremiumButton>
+                                            ) : (
+                                                <div className="px-6 py-3 bg-gray-100 text-gray-500 rounded-xl font-bold text-sm border border-gray-200 cursor-not-allowed">
+                                                    Registration Closed
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -132,16 +170,28 @@ export default function TheologySchoolPage() {
                     <div className="space-y-8">
                         {/* Apply Section */}
                         <div className="bg-[#140152] text-white p-8 rounded-[2rem] shadow-xl">
-                            <h3 className="text-2xl font-bold mb-4">Ready to Begin?</h3>
+                            <h3 className="text-2xl font-bold mb-4">
+                                {registrationOpen ? 'Ready to Begin?' : 'Registration Closed'}
+                            </h3>
                             <p className="text-blue-200 mb-6 leading-relaxed">
-                                Join a structured programme that forms sound ministers and kingdom leaders.
+                                {registrationOpen
+                                    ? 'Join a structured programme that forms sound ministers and kingdom leaders.'
+                                    : 'Registration for the current academic session is currently closed. Please check back later.'}
                             </p>
-                            <PremiumButton
-                                href="/education/theology-school/billing?level=1"
-                                className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6"
-                            >
-                                Apply Now
-                            </PremiumButton>
+
+                            {registrationOpen ? (
+                                <PremiumButton
+                                    href="/education/theology-school/billing?level=1"
+                                    className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6"
+                                >
+                                    Apply Now
+                                </PremiumButton>
+                            ) : (
+                                <div className="flex items-center gap-2 p-4 bg-white/10 rounded-xl text-yellow-300 font-medium">
+                                    <AlertCircle className="w-5 h-5" />
+                                    <span>Applications are closed</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Study Options */}
