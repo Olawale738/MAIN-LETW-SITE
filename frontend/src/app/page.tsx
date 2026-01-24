@@ -217,7 +217,7 @@ export default function HomePage() {
               ))
             ) : upcomingEvents.length > 0 ? (
               upcomingEvents.map((event) => {
-                const eventDate = new Date(event.start_date);
+                const eventDate = new Date(event.event_date);
                 const day = eventDate.getDate();
                 const month = eventDate.toLocaleString('default', { month: 'short' });
 

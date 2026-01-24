@@ -25,9 +25,12 @@ export default function ServiceSelectionPage() {
             }
 
             try {
-                // Get available services
+                // Get available services and filter out freely accessed ones
                 const servicesList = await userApi.getAvailableServices()
-                setServices(servicesList)
+                const filteredServices = servicesList.filter(s =>
+                    s !== 'Evangelism' && s !== 'Prayer meeting'
+                )
+                setServices(filteredServices)
 
                 // Get user's existing requests
                 const myRequests = await serviceRequestApi.getMyRequests()

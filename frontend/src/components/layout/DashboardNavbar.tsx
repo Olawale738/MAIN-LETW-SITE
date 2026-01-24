@@ -154,6 +154,7 @@ export default function DashboardNavbar() {
         if (pathname?.includes('evangelism')) return 'Evangelism'
         if (pathname?.includes('counselling')) return 'Counselling'
         if (pathname?.includes('education')) return 'Education'
+        if (pathname?.includes('alter-sound')) return 'Choir'
         if (pathname?.includes('settings')) return 'Settings'
         return 'Dashboard'
     }

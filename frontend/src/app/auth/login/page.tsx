@@ -9,7 +9,9 @@ export default function LoginPage() {
             title="Welcome Back"
             subtitle="Please sign in to your account."
         >
-            <LoginForm />
+            <React.Suspense fallback={<div className="flex justify-center p-4">Loading...</div>}>
+                <LoginForm />
+            </React.Suspense>
         </AuthLayout>
     )
 }

@@ -6,6 +6,8 @@ Main application entry point.
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 
 from config import settings
 from database import init_db
@@ -65,13 +67,28 @@ async def health_check():
 
 
 # Import and register routers after app creation to avoid circular imports
-from routers import auth, users, service_requests, notifications, announcements, leadership, sermons, events, dashboard
+from routers import auth, users, service_requests, notifications, announcements, leadership, sermons, events, dashboard, skills, career, prayer, alter_sound, bible_study
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(service_requests.router, prefix="/api/service-requests", tags=["Service Requests"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
 app.include_router(announcements.router, prefix="/api/announcements", tags=["Announcements"])
+app.include_router(skills.router)
 app.include_router(leadership.router)
 app.include_router(sermons.router)
 app.include_router(events.router)
 app.include_router(dashboard.router)
+app.include_router(career.router)
+app.include_router(prayer.router)
+app.include_router(alter_sound.router)
+app.include_router(bible_study.router)
+
+# Mount static files for uploads
+# Create uploads directory if it doesn't exist
+UPLOADS_DIR = "uploads"
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+os.makedirs(f"{UPLOADS_DIR}/audio", exist_ok=True)
+os.makedirs(f"{UPLOADS_DIR}/audio/covers", exist_ok=True)
+
+# Mount the uploads directory to serve static files
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")

@@ -66,7 +66,7 @@ export default function Navbar() {
     open: (i: number) => ({
       y: 0,
       opacity: 1,
-      transition: { delay: 0.1 + i * 0.1, duration: 0.4, ease: "easeOut" }
+      transition: { delay: 0.1 + i * 0.1, duration: 0.4, ease: "easeOut" as const }
     })
   }
 
@@ -77,7 +77,7 @@ export default function Navbar() {
       y: 0,
       scale: 1,
       display: "block",
-      transition: { type: "spring", stiffness: 400, damping: 25 }
+      transition: { type: "spring" as const, stiffness: 400, damping: 25 }
     }
   }
 

@@ -222,7 +222,7 @@ export default function ServiceRequestsPage() {
                             <Button
                                 key={status}
                                 onClick={() => setFilter(status)}
-                                variant={filter === status ? 'default' : 'outline'}
+                                variant={filter === status ? 'primary' : 'outline'}
                                 className={filter === status
                                     ? 'bg-[#140152] text-white'
                                     : 'border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -296,8 +296,8 @@ export default function ServiceRequestsPage() {
                                         >
                                             <div className="flex items-center gap-4">
                                                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${request.status === 'pending' ? 'bg-amber-100 text-amber-600' :
-                                                        request.status === 'approved' ? 'bg-green-100 text-green-600' :
-                                                            'bg-red-100 text-red-600'
+                                                    request.status === 'approved' ? 'bg-green-100 text-green-600' :
+                                                        'bg-red-100 text-red-600'
                                                     }`}>
                                                     {request.status === 'pending' ? <Clock className="w-5 h-5" /> :
                                                         request.status === 'approved' ? <CheckCircle className="w-5 h-5" /> :
@@ -308,6 +308,11 @@ export default function ServiceRequestsPage() {
                                                     <p className="text-xs text-gray-500">
                                                         Requested {formatDate(request.created_at)}
                                                     </p>
+                                                    {request.message && (
+                                                        <div className="mt-2 bg-gray-50 p-2 rounded text-sm text-gray-600 border border-gray-100 italic">
+                                                            "{request.message}"
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -343,8 +348,8 @@ export default function ServiceRequestsPage() {
 
                                             {request.status !== 'pending' && (
                                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${request.status === 'approved'
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : 'bg-red-100 text-red-700'
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : 'bg-red-100 text-red-700'
                                                     }`}>
                                                     {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                                                 </span>

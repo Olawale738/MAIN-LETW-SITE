@@ -13,6 +13,7 @@ from models.service_request import ServiceRequestStatus
 class ServiceRequestCreate(BaseModel):
     """Request schema for creating service requests."""
     services: list[str] = Field(..., min_length=1, description="List of services to request")
+    message: Optional[str] = Field(None, description="Optional message for the request")
 
 
 class ServiceRequestAction(BaseModel):
@@ -29,6 +30,7 @@ class ServiceRequestResponse(BaseModel):
     user_name: Optional[str] = None
     user_email: Optional[str] = None
     service_name: str
+    message: Optional[str] = None
     status: ServiceRequestStatus
     reviewed_by: Optional[str] = None
     reviewed_at: Optional[datetime] = None

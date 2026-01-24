@@ -5,11 +5,15 @@ User database model.
 import uuid
 import enum
 from datetime import datetime
+from typing import List, TYPE_CHECKING
 from sqlalchemy import String, DateTime, Enum as SQLEnum, JSON
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from database import Base
+
+if TYPE_CHECKING:
+    from models.prayer import PrayerRequest
 
 
 class UserStatus(str, enum.Enum):
@@ -83,6 +87,10 @@ class User(Base):
         onupdate=func.now(),
         nullable=False
     )
-    
+
+    # Relationships
+    prayer_requests: Mapped[List["PrayerRequest"]] = relationship("PrayerRequest", back_populates="user")
+    reading_progress: Mapped[List["UserReadingProgress"]] = relationship("UserReadingProgress", back_populates="user")
+
     def __repr__(self) -> str:
         return f"<User {self.email} ({self.role})>"
