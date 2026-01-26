@@ -17,15 +17,14 @@ I've updated `backend/database.py` to include **SSL support** which is required 
 Your Supabase connection string should be:
 
 ```bash
-DATABASE_URL=postgresql+asyncpg://postgres:YOUR_PASSWORD@db.rtsnvbdwtnbqwwxrfpsc.supabase.co:5432/postgres?sslmode=require
+DATABASE_URL=postgresql+asyncpg://postgres:YOUR_PASSWORD@db.rtsnvbdwtnbqwwxrfpsc.supabase.co:5432/postgres
 ```
 
 **Important Notes:**
 - ✅ Must include `+asyncpg` after `postgresql`
-- ✅ Must include `?sslmode=require` at the end (critical for Supabase)
+- ✅ **DO NOT** include `?sslmode=require` (asyncpg doesn't support this parameter)
+- ✅ SSL is automatically configured in the code for Supabase connections
 - ✅ Use your actual Supabase password (not `letwsupabase` if that's a placeholder)
-
-**The code will auto-add `?sslmode=require` if you forget it, but it's better to include it explicitly.**
 
 ---
 
@@ -34,8 +33,8 @@ DATABASE_URL=postgresql+asyncpg://postgres:YOUR_PASSWORD@db.rtsnvbdwtnbqwwxrfpsc
 Set these in your Render backend service:
 
 ```bash
-# Database (Supabase) - IMPORTANT: Include ?sslmode=require at the end
-DATABASE_URL=postgresql+asyncpg://postgres:YOUR_SUPABASE_PASSWORD@db.rtsnvbdwtnbqwwxrfpsc.supabase.co:5432/postgres?sslmode=require
+# Database (Supabase) - SSL is automatically configured in the code
+DATABASE_URL=postgresql+asyncpg://postgres:YOUR_SUPABASE_PASSWORD@db.rtsnvbdwtnbqwwxrfpsc.supabase.co:5432/postgres
 
 # JWT Secret (generate with: python -c "import secrets; print(secrets.token_urlsafe(32))")
 JWT_SECRET=your-generated-secret-here
@@ -75,8 +74,8 @@ Example transformation:
 # From Supabase (original):
 postgresql://postgres:[YOUR-PASSWORD]@db.rtsnvbdwtnbqwwxrfpsc.supabase.co:5432/postgres
 
-# For Render (modified - add +asyncpg AND ?sslmode=require):
-postgresql+asyncpg://postgres:YOUR_ACTUAL_PASSWORD@db.rtsnvbdwtnbqwwxrfpsc.supabase.co:5432/postgres?sslmode=require
+# For Render (modified - just add +asyncpg):
+postgresql+asyncpg://postgres:YOUR_ACTUAL_PASSWORD@db.rtsnvbdwtnbqwwxrfpsc.supabase.co:5432/postgres
 ```
 
 ---
@@ -131,13 +130,13 @@ postgresql+asyncpg://postgres:YOUR_ACTUAL_PASSWORD@db.rtsnvbdwtnbqwwxrfpsc.supab
 **Check 2: Connection string format**
 ```bash
 # ✅ Correct:
-postgresql+asyncpg://postgres:password@db.xxx.supabase.co:5432/postgres?sslmode=require
+postgresql+asyncpg://postgres:password@db.xxx.supabase.co:5432/postgres
 
 # ❌ Wrong (missing +asyncpg):
 postgresql://postgres:password@db.xxx.supabase.co:5432/postgres
 
-# ❌ Wrong (missing ?sslmode=require):
-postgresql+asyncpg://postgres:password@db.xxx.supabase.co:5432/postgres
+# ❌ Wrong (has sslmode parameter - asyncpg doesn't support this):
+postgresql+asyncpg://postgres:password@db.xxx.supabase.co:5432/postgres?sslmode=require
 ```
 
 **Check 3: Supabase project is active**
