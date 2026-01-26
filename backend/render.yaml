@@ -1,0 +1,36 @@
+services:
+  # FastAPI Backend Service
+  - type: web
+    name: letw-backend
+    runtime: python
+    plan: free  # Change to 'starter' ($7/mo) for production
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DEBUG
+        value: false
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: 7
+      - key: EMAIL_FROM_NAME
+        value: Light Encounter Tabernacle
+      - key: EMAIL_FROM_ADDRESS
+        value: noreply@letw.org
+      - key: EMAIL_ENABLED
+        value: false
+      # These will be set via Render dashboard (secrets):
+      # - DATABASE_URL (auto-generated when you add PostgreSQL)
+      # - JWT_SECRET (generate a secure random string)
+      # - FRONTEND_URL (your Vercel URL)
+      # - SMTP credentials (if enabling email)
+
+databases:
+  # PostgreSQL Database
+  - name: letw-db
+    plan: free  # Change to 'starter' for production
+    databaseName: letw_db
+    user: letw_user
+
