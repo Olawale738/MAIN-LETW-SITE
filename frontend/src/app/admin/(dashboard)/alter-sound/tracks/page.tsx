@@ -30,6 +30,8 @@ export default function AlterSoundTracksPage() {
         is_featured: false,
         is_active: true,
         order_index: 0,
+        audio_url: '',
+        cover_url: '',
     })
 
     const [audioFile, setAudioFile] = useState<File | null>(null)
