@@ -19,10 +19,11 @@ if "?sslmode=" in database_url or "&sslmode=" in database_url:
     import re
     database_url = re.sub(r'[?&]sslmode=[^&]*', '', database_url)
 
-# Configure SSL context for Supabase
+# Configure SSL context for Supabase direct connections (not pooler)
 connect_args = {}
-if "supabase.co" in database_url:
-    # Create SSL context that doesn't verify certificates (required for Supabase)
+if "supabase.co" in database_url and "pooler.supabase.com" not in database_url:
+    # Direct connection to Supabase requires SSL
+    # Pooler connections don't need SSL configuration (handled by pooler)
     ssl_context = ssl_module.create_default_context()
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl_module.CERT_NONE
@@ -35,7 +36,7 @@ engine = create_async_engine(
     future=True,
     pool_pre_ping=True,  # Verify connections before using them
     pool_recycle=3600,  # Recycle connections after 1 hour
-    connect_args=connect_args,
+    connect_args=connect_args if connect_args else {},
 )
 
 # Create async session factory
