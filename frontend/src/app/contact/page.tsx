@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
 import { MapPin, Phone, Mail, Clock, ArrowRight } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -22,7 +23,7 @@ export default function ContactPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     console.log('Form submitted:', formData)
-    alert('Thank you for contacting us! We will get back to you soon.')
+    toast.success('Thank you for contacting us! We will get back to you soon.')
     setFormData({ name: '', email: '', subject: '', message: '' })
   }
 

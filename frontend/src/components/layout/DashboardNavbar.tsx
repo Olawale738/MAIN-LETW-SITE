@@ -14,7 +14,8 @@ import {
     User,
     ChevronDown,
     Shield,
-    ArrowLeft
+    ArrowLeft,
+    CreditCard
 } from 'lucide-react'
 import { tokenManager, notificationApi, Notification, authApi } from '@/lib/api'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -393,6 +394,17 @@ export default function DashboardNavbar() {
                                                     <Settings className="w-5 h-5" />
                                                 </div>
                                                 <span className="font-semibold">Settings</span>
+                                            </Link>
+
+                                            <Link
+                                                href="/dashboard/billing"
+                                                onClick={() => setShowProfileMenu(false)}
+                                                className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-600 hover:text-[#140152] hover:bg-gray-50 rounded-2xl transition-all group"
+                                            >
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center text-gray-500 group-hover:from-[#140152] group-hover:to-[#1d0175] group-hover:text-white transition-all shadow-sm">
+                                                    <CreditCard className="w-5 h-5" />
+                                                </div>
+                                                <span className="font-semibold">Billing</span>
                                             </Link>
 
                                             <Link

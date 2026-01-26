@@ -28,6 +28,7 @@ export default function ConditionalLayout({
         '/prayer',
         '/education',
         '/services',
+        '/theology-school',
     ]
 
     // Routes that should NOT show any navbar/footer

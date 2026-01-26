@@ -19,7 +19,7 @@ AVAILABLE_SERVICES = [
     "Evangelism",
     "Choir",
     "Skill Development",
-    "Theology school (paid)",
+    "Theology school",
     "Leadership Training",
     "Career Guidance"
 ]

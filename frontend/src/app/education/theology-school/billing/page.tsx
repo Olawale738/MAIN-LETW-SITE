@@ -166,7 +166,7 @@ function BillingContent() {
                                             localStorage.setItem('paidServices', JSON.stringify(payments))
 
                                             // Redirect to dashboard
-                                            window.location.href = '/dashboard/theology-school'
+                                            window.location.href = '/theology-school'
                                         }}
                                         className="px-12 py-6 text-lg"
                                     >
@@ -193,7 +193,7 @@ function BillingContent() {
                                                 const payments = JSON.parse(localStorage.getItem('paidServices') || '{}')
                                                 payments['theology_school'] = true
                                                 localStorage.setItem('paidServices', JSON.stringify(payments))
-                                                window.location.href = '/dashboard/theology-school'
+                                                window.location.href = '/theology-school'
                                             }}
                                             className="border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white"
                                         >

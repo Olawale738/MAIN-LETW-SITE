@@ -8,22 +8,34 @@ import {
     Book, BookOpen, CheckCircle2, Circle, Play, Calendar,
     TrendingUp, Award, Target, ChevronRight
 } from 'lucide-react'
-import { 
+import {
     bibleStudyApi, BibleStudyPageData, BibleReadingPlan,
-    UserProgressWithDetails, ReadingStatus
+    UserProgressWithDetails, ReadingStatus, tokenManager, authApi
 } from '@/lib/api'
-import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 
 export default function BibleReadingPage() {
-    const { user } = useAuth()
+    const [user, setUser] = useState<any>(null)
     const [pageData, setPageData] = useState<BibleStudyPageData | null>(null)
     const [myProgress, setMyProgress] = useState<UserProgressWithDetails[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
+        checkAuth()
         fetchData()
-    }, [user])
+    }, [])
+
+    const checkAuth = async () => {
+        const token = tokenManager.getAccessToken()
+        if (token) {
+            try {
+                const userData = await authApi.getCurrentUser()
+                setUser(userData)
+            } catch (error) {
+                console.error('Failed to get user:', error)
+            }
+        }
+    }
 
     const fetchData = async () => {
         try {

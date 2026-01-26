@@ -35,11 +35,11 @@ const SERVICE_CONFIG: Record<string, { icon: React.ReactNode; description: strin
         buttonText: "View Choir",
         buttonLink: "/services/alter-sound"
     },
-    "Theology school (paid)": {
+    "Theology school": {
         icon: <GraduationCap className="w-6 h-6" />,
         description: "Advance your theological knowledge through our accredited courses.",
         buttonText: "Access School",
-        buttonLink: "/education"
+        buttonLink: "/theology-school"
     },
     "Counselling": {
         icon: <MessageCircle className="w-6 h-6" />,
@@ -301,10 +301,10 @@ export default function UserDashboard() {
                                                     let buttonLink = config.buttonLink
                                                     let buttonText = config.buttonText
 
-                                                    if (service === "Theology school (paid)") {
+                                                    if (service === "Theology school") {
                                                         const paidServices = JSON.parse(localStorage.getItem('paidServices') || '{}')
                                                         if (paidServices['theology_school']) {
-                                                            buttonLink = "/dashboard/theology-school"
+                                                            buttonLink = "/theology-school"
                                                             buttonText = "Access Dashboard"
                                                         }
                                                     }

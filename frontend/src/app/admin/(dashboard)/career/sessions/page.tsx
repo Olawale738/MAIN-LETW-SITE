@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Plus, Calendar, Clock, User, Trash, Edit, Loader2 } from 'lucide-react'
 import { careerApi, CareerSession, CareerSessionCreate } from '@/lib/api'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 
 export default function CareerSessionsPage() {
     const router = useRouter()
@@ -41,7 +42,7 @@ export default function CareerSessionsPage() {
 
     const handleCreateSession = async (e: React.FormEvent) => {
         e.preventDefault()
-        
+
         try {
             await careerApi.admin.createSession(sessionForm)
             setShowModal(false)
@@ -57,13 +58,13 @@ export default function CareerSessionsPage() {
             await loadSessions()
         } catch (err) {
             console.error('Failed to create session', err)
-            alert('Failed to create session. Please try again.')
+            toast.error('Failed to create session. Please try again.')
         }
     }
 
     const handleDeleteSession = async (id: string) => {
         if (!confirm('Are you sure you want to delete this session?')) return
-        
+
         try {
             await careerApi.admin.deleteSession(id)
             await loadSessions()

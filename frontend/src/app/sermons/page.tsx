@@ -7,11 +7,12 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
 import {
-    PlayCircle, Calendar, Share2, Youtube, Users,
+    PlayCircle, Calendar, Youtube, Users,
     Music, FileText, Download, X, Loader2, Pause, Play,
-    Volume2, VolumeX, Maximize2, ExternalLink
+    Volume2, VolumeX, BookOpen, ExternalLink
 } from 'lucide-react'
 import { sermonApi, Sermon } from '@/lib/api'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function SermonsPage() {
     const [sermons, setSermons] = useState<Sermon[]>([])
@@ -19,6 +20,9 @@ export default function SermonsPage() {
     const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
     const [seriesList, setSeriesList] = useState<string[]>([])
     const [selectedSeries, setSelectedSeries] = useState<string>('')
+
+    // Available tabs
+    const [activeTab, setActiveTab] = useState("all");
 
     // Audio player state
     const [currentAudio, setCurrentAudio] = useState<{ sermon: Sermon, url: string } | null>(null)
@@ -133,8 +137,45 @@ export default function SermonsPage() {
         }
     }
 
-    const featuredSermon = sermons.find(s => s.is_featured) || sermons[0]
-    const otherSermons = sermons.filter(s => s.id !== featuredSermon?.id)
+    // Filter sermons based on active tab
+    const filteredSermons = sermons.filter(sermon => {
+        if (activeTab === 'all') return true;
+        if (activeTab === 'video') return !!sermon.video_url;
+        if (activeTab === 'audio') return sermon.has_audio;
+        if (activeTab === 'books') return sermon.has_document;
+        return true;
+    });
+
+    const featuredSermon = filteredSermons.find(s => s.is_featured) || filteredSermons[0]
+    const otherSermons = filteredSermons.filter(s => s.id !== featuredSermon?.id)
+
+    // Books hardcoded data
+    const books = [
+        {
+            title: "Foundations of Faith",
+            author: "Apostle Olawale N. Sanni",
+            image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800&q=80",
+            description: "A comprehensive guide to understanding the core beliefs of Christianity and building a solid spiritual foundation.",
+            downloadUrl: "/documents/foundations.pdf",
+            amazonUrl: "https://amazon.com"
+        },
+        {
+            title: "Walking in the Spirit",
+            author: "Light Encounter Ministry",
+            image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?w=800&q=80",
+            description: "Learn how to live a spirit-led life and sensitive to the leading of the Holy Spirit in your daily walk.",
+            downloadUrl: "/documents/walking-in-spirit.pdf",
+            amazonUrl: "https://amazon.com"
+        },
+        {
+            title: "Prayer That Moves Mountains",
+            author: "Apostle Olawale N. Sanni",
+            image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80",
+            description: "Unlock the secrets of effective prayer and intercession that brings about divine intervention.",
+            downloadUrl: "/documents/prayer-guide.pdf",
+            amazonUrl: "https://amazon.com"
+        }
+    ];
 
     return (
         <>
@@ -152,8 +193,39 @@ export default function SermonsPage() {
                     <div className="w-24 h-1.5 bg-[#f5bb00] mx-auto rounded-full" />
                 </div>
 
-                {/* Series Filter */}
-                {seriesList.length > 0 && (
+                <div className="max-w-7xl mx-auto mb-12">
+                    <Tabs defaultValue="all" className="w-full justify-center" onValueChange={setActiveTab}>
+                        <TabsList className="grid w-full max-w-md mx-auto grid-cols-4 bg-gray-100 p-1 rounded-xl">
+                            <TabsTrigger
+                                value="all"
+                                className="rounded-lg text-gray-600 data-[state=active]:bg-white data-[state=active]:text-[#140152] data-[state=active]:shadow-sm font-bold"
+                            >
+                                All
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="video"
+                                className="rounded-lg text-gray-600 data-[state=active]:bg-white data-[state=active]:text-[#140152] data-[state=active]:shadow-sm font-bold"
+                            >
+                                Video
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="audio"
+                                className="rounded-lg text-gray-600 data-[state=active]:bg-white data-[state=active]:text-[#140152] data-[state=active]:shadow-sm font-bold"
+                            >
+                                Audio
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="books"
+                                className="rounded-lg text-gray-600 data-[state=active]:bg-white data-[state=active]:text-[#140152] data-[state=active]:shadow-sm font-bold"
+                            >
+                                Books
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
+
+                {/* Series Filter - Only show for sermon-related tabs */}
+                {(activeTab !== 'books') && seriesList.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-2 mb-10">
                         <Button
                             variant={selectedSeries === '' ? 'primary' : 'outline'}
@@ -179,16 +251,10 @@ export default function SermonsPage() {
                     <div className="flex justify-center py-20">
                         <Loader2 className="w-10 h-10 animate-spin text-[#140152]" />
                     </div>
-                ) : sermons.length === 0 ? (
-                    <div className="text-center py-20">
-                        <Youtube className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                        <p className="text-xl font-medium text-gray-600">No sermons available yet</p>
-                        <p className="text-gray-400">Check back soon for new messages!</p>
-                    </div>
                 ) : (
                     <>
                         {/* Featured Sermon */}
-                        {featuredSermon && (
+                        {activeTab !== 'books' && featuredSermon && (
                             <div className="mb-20 max-w-6xl mx-auto">
                                 <Card className="border-none shadow-2xl overflow-hidden group rounded-[2rem] bg-[#140152]">
                                     <div className="grid grid-cols-1 lg:grid-cols-2">
@@ -211,7 +277,9 @@ export default function SermonsPage() {
                                                 >
                                                     <div
                                                         className="absolute inset-0 bg-cover bg-center"
-                                                        style={{ backgroundImage: `url(${featuredSermon.video_thumbnail || 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=800'})` }}
+                                                        style={{
+                                                            backgroundImage: `url(${featuredSermon.has_thumbnail ? sermonApi.getThumbnailUrl(featuredSermon.id) : (featuredSermon.video_thumbnail || 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=800')})`
+                                                        }}
                                                     />
                                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                                                         {featuredSermon.video_url && (
@@ -261,15 +329,6 @@ export default function SermonsPage() {
                                                         {currentAudio?.sermon.id === featuredSermon.id && isPlaying ? 'Playing...' : 'Listen'}
                                                     </Button>
                                                 )}
-                                                {featuredSermon.has_document && (
-                                                    <Button
-                                                        variant="outline"
-                                                        className="border-white/30 text-white hover:bg-white/10"
-                                                        onClick={() => viewDocument(featuredSermon)}
-                                                    >
-                                                        <FileText className="w-5 h-5 mr-2" /> View Notes
-                                                    </Button>
-                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -277,9 +336,9 @@ export default function SermonsPage() {
                             </div>
                         )}
 
-                        {/* Sermon Grid */}
+                        {/* Content Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-                            {otherSermons.map((sermon) => (
+                            {activeTab !== 'books' && otherSermons.map((sermon) => (
                                 <Card key={sermon.id} className="border-none shadow-lg hover:shadow-2xl transition-all duration-300 group rounded-[1.5rem] overflow-hidden flex flex-col h-full bg-white">
                                     <div className="relative h-56 bg-black">
                                         {playingVideoId === sermon.id && sermon.video_url ? (
@@ -300,7 +359,9 @@ export default function SermonsPage() {
                                             >
                                                 <div
                                                     className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-                                                    style={{ backgroundImage: `url(${sermon.video_thumbnail || 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=800'})` }}
+                                                    style={{
+                                                        backgroundImage: `url(${sermon.has_thumbnail ? sermonApi.getThumbnailUrl(sermon.id) : (sermon.video_thumbnail || 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=800')})`
+                                                    }}
                                                 />
                                                 <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
                                                 {sermon.video_url && (
@@ -322,11 +383,6 @@ export default function SermonsPage() {
                                                     {sermon.has_audio && (
                                                         <span className="bg-purple-500/80 backdrop-blur-md px-2 py-1 rounded-full text-xs text-white flex items-center gap-1">
                                                             <Music className="w-3 h-3" />
-                                                        </span>
-                                                    )}
-                                                    {sermon.has_document && (
-                                                        <span className="bg-blue-500/80 backdrop-blur-md px-2 py-1 rounded-full text-xs text-white flex items-center gap-1">
-                                                            <FileText className="w-3 h-3" />
                                                         </span>
                                                     )}
                                                 </div>
@@ -379,89 +435,107 @@ export default function SermonsPage() {
                                                         )}
                                                     </Button>
                                                 )}
-                                                {sermon.has_document && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => viewDocument(sermon)}
-                                                    >
-                                                        <FileText className="w-4 h-4" />
-                                                    </Button>
-                                                )}
                                             </div>
                                         </div>
                                     </CardFooter>
                                 </Card>
                             ))}
+
+                            {/* Special display for Books tab */}
+                            {activeTab === 'books' && (
+                                <>
+                                    {/* Sermons with Documents */}
+                                    {filteredSermons.map((sermon) => (
+                                        <Card key={sermon.id} className="border-none shadow-lg hover:shadow-2xl transition-all duration-300 group rounded-[1.5rem] overflow-hidden flex flex-col h-full bg-white">
+                                            <div className="relative h-56 bg-black">
+                                                <div
+                                                    className="relative h-full w-full cursor-pointer"
+                                                    onClick={() => viewDocument(sermon)}
+                                                >
+                                                    <div
+                                                        className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+                                                        style={{
+                                                            backgroundImage: `url(${sermon.has_thumbnail ? sermonApi.getThumbnailUrl(sermon.id) : (sermon.video_thumbnail || 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=800')})`
+                                                        }}
+                                                    />
+                                                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                                            <BookOpen className="w-8 h-8 text-white" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <CardContent className="p-6 flex-grow">
+                                                <div className="flex items-center gap-2 text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">
+                                                    <Calendar className="w-3 h-3" />
+                                                    {new Date(sermon.sermon_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                </div>
+                                                <h3 className="text-xl font-black text-[#140152] mb-3 leading-snug group-hover:text-[#f5bb00] transition-colors">
+                                                    {sermon.title}
+                                                </h3>
+                                                <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
+                                                    {sermon.description || 'A powerful message from the Word of God.'}
+                                                </p>
+                                            </CardContent>
+                                            <CardFooter className="p-6 pt-0 mt-auto border-t border-gray-50">
+                                                <Button
+                                                    className="w-full bg-[#140152] hover:bg-[#2a0a6e] text-white"
+                                                    onClick={() => viewDocument(sermon)}
+                                                >
+                                                    <FileText className="w-4 h-4 mr-2" /> Read Book
+                                                </Button>
+                                            </CardFooter>
+                                        </Card>
+                                    ))}
+
+                                    {/* Hardcoded Books */}
+                                    {books.map((book, i) => (
+                                        <div key={`book-${i}`} className="bg-white rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-shadow flex flex-col h-full border border-gray-100">
+                                            <div className="h-64 overflow-hidden relative group">
+                                                <img src={book.image} alt={book.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                                            </div>
+                                            <div className="p-8 flex flex-col flex-grow">
+                                                <div className="mb-4">
+                                                    <h3 className="text-xl font-black text-[#140152] mb-1 leading-tight">{book.title}</h3>
+                                                    <p className="text-sm font-bold text-[#f5bb00]">{book.author}</p>
+                                                </div>
+                                                <p className="text-gray-600 text-sm mb-8 line-clamp-3 flex-grow">{book.description}</p>
+
+                                                <div className="space-y-3 mt-auto">
+                                                    <Button className="w-full bg-[#140152] hover:bg-[#2a0a6e] text-white font-bold rounded-xl" onClick={() => handleDownload(book.downloadUrl, `${book.title}.pdf`)}>
+                                                        <Download className="w-4 h-4 mr-2" /> Download PDF
+                                                    </Button>
+                                                    <Button variant="outline" className="w-full border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl" onClick={() => window.open(book.amazonUrl, '_blank')}>
+                                                        <ExternalLink className="w-4 h-4 mr-2" /> Get on Amazon
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
                         </div>
+
+                        {/* Show No Content Message if empty */}
+                        {activeTab !== 'books' && filteredSermons.length === 0 && !loading && (
+                            <div className="text-center py-20 col-span-full">
+                                <Youtube className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                                <p className="text-xl font-medium text-gray-600">No content found in this category.</p>
+                            </div>
+                        )}
+                        {activeTab === 'books' && filteredSermons.length === 0 && books.length === 0 && !loading && (
+                            <div className="text-center py-20 col-span-full">
+                                <BookOpen className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                                <p className="text-xl font-medium text-gray-600">No books found.</p>
+                            </div>
+                        )}
                     </>
                 )}
             </SectionWrapper>
 
-            {/* Books & Resources Section */}
-            <SectionWrapper background="gray">
-                <div className="text-center mb-16 space-y-4">
-                    <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Resources</span>
-                    <h2 className="text-4xl md:text-5xl font-black text-[#140152]">Books & Study Materials</h2>
-                    <div className="w-24 h-1.5 bg-[#f5bb00] mx-auto rounded-full" />
-                    <p className="max-w-2xl mx-auto text-gray-600">Grow deeper in your walk with God through our curated collection of books and study guides.</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                    {/* Mock Data for Books */}
-                    {[
-                        {
-                            title: "Foundations of Faith",
-                            author: "Apostle Olawale N. Sanni",
-                            image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800&q=80", // Placeholder book cover
-                            description: "A comprehensive guide to understanding the core beliefs of Christianity and building a solid spiritual foundation.",
-                            downloadUrl: "/documents/foundations.pdf",
-                            amazonUrl: "https://amazon.com"
-                        },
-                        {
-                            title: "Walking in the Spirit",
-                            author: "Light Encounter Ministry",
-                            image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?w=800&q=80",
-                            description: "Learn how to live a spirit-led life and sensitive to the leading of the Holy Spirit in your daily walk.",
-                            downloadUrl: "/documents/walking-in-spirit.pdf",
-                            amazonUrl: "https://amazon.com"
-                        },
-                        {
-                            title: "Prayer That Moves Mountains",
-                            author: "Apostle Olawale N. Sanni",
-                            image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80",
-                            description: "Unlock the secrets of effective prayer and intercession that brings about divine intervention.",
-                            downloadUrl: "/documents/prayer-guide.pdf",
-                            amazonUrl: "https://amazon.com"
-                        }
-                    ].map((book, i) => (
-                        <div key={i} className="bg-white rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-shadow flex flex-col h-full border border-gray-100">
-                            <div className="h-64 overflow-hidden relative group">
-                                <img src={book.image} alt={book.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                            </div>
-                            <div className="p-8 flex flex-col flex-grow">
-                                <div className="mb-4">
-                                    <h3 className="text-xl font-black text-[#140152] mb-1 leading-tight">{book.title}</h3>
-                                    <p className="text-sm font-bold text-[#f5bb00]">{book.author}</p>
-                                </div>
-                                <p className="text-gray-600 text-sm mb-8 line-clamp-3 flex-grow">{book.description}</p>
-
-                                <div className="space-y-3 mt-auto">
-                                    <Button className="w-full bg-[#140152] hover:bg-[#2a0a6e] text-white font-bold rounded-xl" onClick={() => handleDownload(book.downloadUrl, `${book.title}.pdf`)}>
-                                        <Download className="w-4 h-4 mr-2" /> Download PDF
-                                    </Button>
-                                    <Button variant="outline" className="w-full border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl" onClick={() => window.open(book.amazonUrl, '_blank')}>
-                                        <ExternalLink className="w-4 h-4 mr-2" /> Get on Amazon
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </SectionWrapper>
-
-            {/* YouTube Channel CTA */}
+            {/* YouTube Channel CTA - Hide for books */}
             <SectionWrapper background="dark">
                 <div className="text-center text-white max-w-4xl mx-auto space-y-8">
                     <Youtube className="w-20 h-20 text-[#f5bb00] mx-auto animate-pulse" />
