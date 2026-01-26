@@ -100,7 +100,7 @@ export default function PlanDetailsPage() {
 
     return (
         <div className="min-h-screen bg-neutral-50">
-            {ToastComponent}
+            {ToastComponent()}
             
             {/* Header */}
             <div className="bg-gradient-to-br from-[#140152] to-purple-900 text-white py-12">

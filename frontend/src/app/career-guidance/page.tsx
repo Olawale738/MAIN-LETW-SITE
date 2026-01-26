@@ -142,11 +142,11 @@ export default function CareerGuidancePage() {
                                         <BookOpen className="w-4 h-4" />
                                         {module.title}
                                     </div>
-                                    {module.progress_percent > 0 && (
+                                    {(module.progress_percent ?? 0) > 0 && (
                                         <div className="mt-2 h-1 bg-white/20 rounded-full overflow-hidden">
                                             <div
                                                 className="h-full bg-accent transition-all"
-                                                style={{ width: `${module.progress_percent}%` }}
+                                                style={{ width: `${module.progress_percent ?? 0}%` }}
                                             />
                                         </div>
                                     )}
@@ -227,11 +227,11 @@ export default function CareerGuidancePage() {
                                             </p>
                                         </div>
                                     </div>
-                                    {module.progress_percent > 0 && (
+                                    {(module.progress_percent ?? 0) > 0 && (
                                         <div className="mt-4">
                                             <div className="flex justify-between text-sm mb-1">
                                                 <span className="text-gray-600 dark:text-gray-400">Progress</span>
-                                                <span className="text-primary font-semibold">{module.progress_percent}%</span>
+                                                <span className="text-primary font-semibold">{module.progress_percent ?? 0}%</span>
                                             </div>
                                             <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
                                                 <div

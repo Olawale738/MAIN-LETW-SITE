@@ -699,11 +699,6 @@ export const leadershipApi = {
             method: 'DELETE',
         });
     },
-    unmarkContentComplete: async (contentId: string): Promise<{ message: string; content_id: string }> => {
-        return fetchApi<{ message: string; content_id: string }>(`/leadership/content/${contentId}/complete`, {
-            method: 'DELETE',
-        });
-    },
 };
 
 // ============= Settings API =============
@@ -1588,6 +1583,8 @@ export interface AudioTrack {
     description?: string;
     artist?: string;
     duration?: string;
+    audio_url?: string;
+    cover_url?: string;
     play_count: number;
     is_featured: boolean;
     is_active: boolean;
@@ -1982,7 +1979,7 @@ export interface BibleReadingPlanWithReadings extends BibleReadingPlan {
 }
 
 export interface UserProgressWithDetails extends UserReadingProgress {
-    plan: BibleReadingPlan;
+    plan: BibleReadingPlanWithReadings;
     daily_readings: UserDailyReading[];
 }
 

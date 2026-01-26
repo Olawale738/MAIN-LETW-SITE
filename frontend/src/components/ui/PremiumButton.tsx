@@ -11,9 +11,11 @@ interface PremiumButtonProps {
     onClick?: () => void
     className?: string
     target?: string
+    disabled?: boolean
+    type?: 'button' | 'submit' | 'reset'
 }
 
-export default function PremiumButton({ href, children, onClick, className, target }: PremiumButtonProps) {
+export default function PremiumButton({ href, children, onClick, className, target, disabled, type }: PremiumButtonProps) {
     const content = (
         <>
             <p>{children}</p>
@@ -30,7 +32,7 @@ export default function PremiumButton({ href, children, onClick, className, targ
 
     if (href) {
         return (
-            <Button variant="primary" asChild className={buttonClass}>
+            <Button variant="primary" asChild className={buttonClass} disabled={disabled}>
                 <Link href={href} target={target}>
                     {content}
                 </Link>
@@ -39,10 +41,10 @@ export default function PremiumButton({ href, children, onClick, className, targ
     }
 
     return (
-        <Button variant="primary" className={buttonClass} onClick={onClick}>
-            {/* We wrap in a span to ensure the flex layout behaves like the Link version if needed, 
+        <Button variant="primary" className={buttonClass} onClick={onClick} disabled={disabled} type={type}>
+            {/* We wrap in a span to ensure the flex layout behaves like the Link version if needed,
             though Button itself is flex. But we need to match the structure manually since we don't have the Link wrapper.
-            Actually, Button puts children directly inside. So we just render content. 
+            Actually, Button puts children directly inside. So we just render content.
             However, the 'group-hover' for the arrow translation relies on the parent having 'group'.
             Button variants don't usually have 'group'. We might need to add 'group' to the button class.
         */}

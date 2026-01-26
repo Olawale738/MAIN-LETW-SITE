@@ -134,7 +134,7 @@ export default function MyProgressPage() {
 
     return (
         <div className="min-h-screen bg-neutral-50">
-            {ToastComponent}
+            {ToastComponent()}
             
             {/* Header */}
             <div className="bg-gradient-to-br from-[#140152] to-purple-900 text-white py-12">
@@ -229,7 +229,7 @@ export default function MyProgressPage() {
                                                         reading.id,
                                                         reading.userReading?.status || ReadingStatus.NOT_STARTED
                                                     )}
-                                                    variant={isCompleted ? "outline" : "default"}
+                                                    variant={isCompleted ? "outline" : "primary"}
                                                     className={isCompleted
                                                         ? "border-green-500 text-green-600 hover:bg-green-50"
                                                         : "bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152]"
