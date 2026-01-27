@@ -62,7 +62,7 @@ export default function ServicesPage() {
             title="Midweek Service"
             description="Recharge your spiritual batteries every Wednesday at 7:00 PM at our Downtown Campus."
             buttonText="Watch Midweek Sermons"
-            buttonLink="/midweek-sermons"
+            buttonLink="/sermons"
           />
           <ServiceCard
             icon={<Church className="w-8 h-8" />}

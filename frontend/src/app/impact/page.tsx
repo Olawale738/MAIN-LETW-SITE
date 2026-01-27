@@ -25,8 +25,8 @@ export default function ImpactPage() {
                     transition={{ duration: 0.8 }}
                     className="relative z-20 text-center text-white px-4 max-w-4xl mx-auto"
                 >
-                    <div className="text-[#f5bb00] font-bold tracking-widest uppercase mb-4 text-sm md:text-base">Kingdom Impact</div>
-                    <h1 className="text-5xl md:text-8xl font-black mb-6 leading-tight">Making Jesus<br /><span className="text-[#f5bb00]">Known</span></h1>
+                    <div className="text-[#f5bb00] font-bold tracking-widest uppercase mb-2 text-sm md:text-base">Kingdom Impact</div>
+                    <h1 className="text-4xl md:text-6xl font-black mb-3 leading-tight">Making Jesus<br /><span className="text-[#f5bb00]">Known</span></h1>
                     <p className="text-lg md:text-2xl text-gray-300 max-w-2xl mx-auto font-light">
                         Extending the love of Christ beyond the four walls of the church through service, missions, and community transformation.
                     </p>
