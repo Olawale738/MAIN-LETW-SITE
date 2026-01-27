@@ -29,6 +29,12 @@ if "supabase.co" in database_url and "pooler.supabase.com" not in database_url:
     ssl_context.verify_mode = ssl_module.CERT_NONE
     connect_args["ssl"] = ssl_context
 
+# CRITICAL: Disable prepared statement cache for pgbouncer compatibility
+# pgbouncer in transaction mode doesn't support prepared statements
+# This fixes: DuplicatePreparedStatementError
+connect_args["server_settings"] = {"jit": "off"}
+connect_args["statement_cache_size"] = 0
+
 # Create async engine
 engine = create_async_engine(
     database_url,
@@ -36,7 +42,7 @@ engine = create_async_engine(
     future=True,
     pool_pre_ping=True,  # Verify connections before using them
     pool_recycle=3600,  # Recycle connections after 1 hour
-    connect_args=connect_args if connect_args else {},
+    connect_args=connect_args,
 )
 
 # Create async session factory
