@@ -13,30 +13,24 @@ from config import settings
 # Supabase requires SSL for external connections
 database_url = settings.DATABASE_URL
 
-# Remove any sslmode query parameters and prepared_statement_cache_size
+# Remove any sslmode query parameters
 # (asyncpg doesn't support them in URL, we'll use connect_args instead)
 if "?sslmode=" in database_url or "&sslmode=" in database_url:
     import re
     database_url = re.sub(r'[?&]sslmode=[^&]*', '', database_url)
 
-# Remove prepared_statement_cache_size from URL if present
-# We'll set it in connect_args instead
-if "prepared_statement_cache_size" in database_url:
-    import re
-    database_url = re.sub(r'[?&]prepared_statement_cache_size=[^&]*', '', database_url)
-    # Remove trailing ? if it's the only parameter
-    database_url = database_url.rstrip('?')
+# CRITICAL: Add prepared_statement_cache_size=0 to URL for pgbouncer compatibility
+# This must be in the URL, not just connect_args
+if "prepared_statement_cache_size" not in database_url:
+    if "?" in database_url:
+        database_url += "&prepared_statement_cache_size=0"
+    else:
+        database_url += "?prepared_statement_cache_size=0"
 
-# CRITICAL FIX for pgbouncer: Use dynamic prepared statement names
-# This prevents naming conflicts in pgbouncer transaction mode
-from uuid import uuid4
-
-# Configure connection arguments for asyncpg
+# CRITICAL FIX for pgbouncer: Disable prepared statement cache
+# pgbouncer in transaction mode does NOT support prepared statements
+# We must completely disable them at the asyncpg connection level
 connect_args = {
-    # CRITICAL: Use dynamic prepared statement names to avoid conflicts
-    # This is the recommended solution for pgbouncer compatibility
-    "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4().hex[:8]}__",
-
     # Disable JIT for better pgbouncer compatibility
     "server_settings": {
         "jit": "off"
@@ -57,7 +51,7 @@ print("=" * 80)
 print("🔧 DATABASE CONFIGURATION - PGBOUNCER FIX")
 print("=" * 80)
 print(f"Database URL: {database_url[:70]}...")
-print(f"✅ CRITICAL FIX: Dynamic prepared statement names enabled")
+print(f"✅ CRITICAL FIX: Prepared statement cache DISABLED (statement_cache_size=0)")
 print(f"✅ JIT disabled: {connect_args.get('server_settings', {}).get('jit', 'NOT SET')}")
 print(f"SSL configured: {'Yes' if 'ssl' in connect_args else 'No'}")
 print("=" * 80)
@@ -67,8 +61,8 @@ engine = create_async_engine(
     database_url,
     echo=settings.DEBUG,  # Log SQL queries in debug mode
     future=True,
-    pool_pre_ping=True,  # Verify connections before using them
-    pool_recycle=3600,  # Recycle connections after 1 hour
+    pool_pre_ping=False,  # DISABLED: Causes issues with pgbouncer prepared statements
+    pool_recycle=300,  # Recycle connections after 5 minutes (pgbouncer friendly)
     connect_args=connect_args,
 )
 
