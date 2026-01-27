@@ -14,7 +14,7 @@ export default function EducationPage() {
       {/* Custom Hero for Mobile 100vh + Img Tag */}
       <div className="relative h-[100vh] md:h-[60vh] w-full overflow-hidden flex items-center justify-center bg-black">
         <img
-          src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1200"
+          src="/EducationHero.jpg"
           alt="Education Background"
           className="absolute inset-0 w-full h-full object-cover opacity-50"
         />

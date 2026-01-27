@@ -26,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="scroll-smooth">
-      <body className={`${poppins.variable} font-sans antialiased`} suppressHydrationWarning>
+      <body className={`${poppins.variable} font-sans antialiased animate-page-load`} suppressHydrationWarning>
         <ConditionalLayout>
           {children}
         </ConditionalLayout>

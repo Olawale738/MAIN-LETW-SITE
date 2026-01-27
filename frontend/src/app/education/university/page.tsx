@@ -10,6 +10,11 @@ export default function UniversityPage() {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
       <div className="relative h-[60vh] bg-emerald-900 overflow-hidden flex items-center justify-center pt-24">
+        <img
+          src="/UniversityHero.jpg"
+          alt="University Background"
+          className="absolute inset-0 w-full h-full object-cover opacity-50"
+        />
         <div className="absolute inset-0 bg-black/40 z-10" />
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}

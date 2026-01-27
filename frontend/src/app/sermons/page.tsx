@@ -544,7 +544,7 @@ export default function SermonsPage() {
                         Don't miss out on live streams, worship sessions, and special content. Join our online community on YouTube.
                     </p>
                     <div className="flex justify-center">
-                        <PremiumButton href="https://youtube.com">Subscribe Now</PremiumButton>
+                        <PremiumButton href="https://www.youtube.com/@LightEncounterTabernacle">Subscribe Now</PremiumButton>
                     </div>
                 </div>
             </SectionWrapper>

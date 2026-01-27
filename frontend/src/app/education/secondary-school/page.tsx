@@ -12,7 +12,7 @@ export default function SecondarySchoolPage() {
       {/* Hero Section – Secondary School */}
       <div className="relative h-[80vh] md:h-[60vh] w-full overflow-hidden flex items-center justify-center bg-[#1e293b] pt-24">
         <img
-          src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2670&auto=format&fit=crop"
+          src="/SecondarySchoolHero.jpg"
           alt="Secondary School"
           className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay"
         />
@@ -29,7 +29,7 @@ export default function SecondarySchoolPage() {
           <p className="text-lg md:text-2xl text-blue-100 max-w-2xl mx-auto font-medium mb-8">
             Preparing futures with knowledge, discipline, and leadership excellence.
           </p>
-          
+
         </motion.div>
       </div>
 
