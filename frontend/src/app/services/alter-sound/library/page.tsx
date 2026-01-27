@@ -135,7 +135,7 @@ export default function AudioLibraryPage() {
                     <div className="flex gap-2 flex-wrap">
                         <Button
                             onClick={() => setSelectedCategory('all')}
-                            variant={selectedCategory === 'all' ? 'default' : 'outline'}
+                            variant={selectedCategory === 'all' ? 'primary' : 'outline'}
                             className={selectedCategory === 'all' ? 'bg-[#f5bb00] text-[#140152] hover:bg-[#f5bb00]/90' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}
                         >
                             All Categories
@@ -144,7 +144,7 @@ export default function AudioLibraryPage() {
                             <Button
                                 key={category.id}
                                 onClick={() => setSelectedCategory(category.id)}
-                                variant={selectedCategory === category.id ? 'default' : 'outline'}
+                                variant={selectedCategory === category.id ? 'primary' : 'outline'}
                                 className={selectedCategory === category.id ? 'bg-[#f5bb00] text-[#140152] hover:bg-[#f5bb00]/90' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}
                             >
                                 {category.name}

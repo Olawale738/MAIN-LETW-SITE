@@ -30,6 +30,8 @@ export default function AlterSoundTracksPage() {
         is_featured: false,
         is_active: true,
         order_index: 0,
+        audio_url: '',
+        cover_url: '',
     })
 
     const [audioFile, setAudioFile] = useState<File | null>(null)
@@ -66,6 +68,8 @@ export default function AlterSoundTracksPage() {
                 is_featured: track.is_featured,
                 is_active: track.is_active,
                 order_index: track.order_index,
+                audio_url: track.audio_url || '',
+                cover_url: track.cover_url || '',
             })
         } else {
             setEditingTrack(null)
@@ -78,6 +82,8 @@ export default function AlterSoundTracksPage() {
                 is_featured: false,
                 is_active: true,
                 order_index: tracks.length,
+                audio_url: '',
+                cover_url: '',
             })
         }
         setAudioFile(null)

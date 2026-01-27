@@ -4,14 +4,15 @@ import React, { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-    ArrowLeft, Loader2, Plus, Trash, Edit, FileDown, PlayCircle, 
-    FileText, Link as LinkIcon, CheckSquare 
+import {
+    ArrowLeft, Loader2, Plus, Trash, Edit, FileDown, PlayCircle,
+    FileText, Link as LinkIcon, CheckSquare
 } from 'lucide-react'
-import { 
-    careerApi, CareerModule, CareerResource, CareerTask, 
-    CareerModuleCreate, CareerResourceCreate, CareerTaskCreate 
+import {
+    careerApi, CareerModule, CareerResource, CareerTask,
+    CareerModuleCreate, CareerResourceCreate, CareerTaskCreate
 } from '@/lib/api'
+import { toast } from 'sonner'
 
 export default function EditCareerModulePage() {
     const router = useRouter()
@@ -22,7 +23,7 @@ export default function EditCareerModulePage() {
     const [saving, setSaving] = useState(false)
     const [module, setModule] = useState<CareerModule | null>(null)
     const [formData, setFormData] = useState<Partial<CareerModuleCreate>>({})
-    
+
     // Resource modal
     const [showResourceModal, setShowResourceModal] = useState(false)
     const [resourceForm, setResourceForm] = useState<CareerResourceCreate>({
@@ -31,7 +32,7 @@ export default function EditCareerModulePage() {
         resource_type: 'pdf',
         order_index: 0
     })
-    
+
     // Task modal
     const [showTaskModal, setShowTaskModal] = useState(false)
     const [taskForm, setTaskForm] = useState<CareerTaskCreate>({
@@ -66,15 +67,15 @@ export default function EditCareerModulePage() {
 
     const handleUpdateModule = async (e: React.FormEvent) => {
         e.preventDefault()
-        
+
         try {
             setSaving(true)
             await careerApi.admin.updateModule(moduleId, formData)
             await loadModule()
-            alert('Module updated successfully!')
+            toast.success('Module updated successfully!')
         } catch (err) {
             console.error('Failed to update module', err)
-            alert('Failed to update module. Please try again.')
+            toast.error('Failed to update module. Please try again.')
         } finally {
             setSaving(false)
         }
@@ -82,7 +83,7 @@ export default function EditCareerModulePage() {
 
     const handleAddResource = async (e: React.FormEvent) => {
         e.preventDefault()
-        
+
         try {
             await careerApi.admin.createResource(moduleId, resourceForm)
             setShowResourceModal(false)
@@ -95,13 +96,13 @@ export default function EditCareerModulePage() {
             await loadModule()
         } catch (err) {
             console.error('Failed to add resource', err)
-            alert('Failed to add resource. Please try again.')
+            toast.error('Failed to add resource. Please try again.')
         }
     }
 
     const handleDeleteResource = async (resourceId: string) => {
         if (!confirm('Are you sure you want to delete this resource?')) return
-        
+
         try {
             await careerApi.admin.deleteResource(resourceId)
             await loadModule()
@@ -112,7 +113,7 @@ export default function EditCareerModulePage() {
 
     const handleAddTask = async (e: React.FormEvent) => {
         e.preventDefault()
-        
+
         try {
             await careerApi.admin.createTask(moduleId, taskForm)
             setShowTaskModal(false)
@@ -124,13 +125,13 @@ export default function EditCareerModulePage() {
             await loadModule()
         } catch (err) {
             console.error('Failed to add task', err)
-            alert('Failed to add task. Please try again.')
+            toast.error('Failed to add task. Please try again.')
         }
     }
 
     const handleDeleteTask = async (taskId: string) => {
         if (!confirm('Are you sure you want to delete this task?')) return
-        
+
         try {
             await careerApi.admin.deleteTask(taskId)
             await loadModule()

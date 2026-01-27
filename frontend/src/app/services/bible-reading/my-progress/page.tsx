@@ -10,16 +10,16 @@ import {
     Book, CheckCircle2, Circle, ArrowLeft, Calendar, TrendingUp,
     Edit3, Save, X
 } from 'lucide-react'
-import { 
-    bibleStudyApi, UserProgressWithDetails, ReadingStatus, DailyReading
+import {
+    bibleStudyApi, UserProgressWithDetails, ReadingStatus, DailyReading,
+    tokenManager, authApi
 } from '@/lib/api'
-import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { useToast } from '@/components/ui/toast'
 
 export default function MyProgressPage() {
     const router = useRouter()
-    const { user } = useAuth()
+    const [user, setUser] = useState<any>(null)
     const { showToast, ToastComponent } = useToast()
     const [progress, setProgress] = useState<UserProgressWithDetails[]>([])
     const [loading, setLoading] = useState(true)
@@ -27,12 +27,24 @@ export default function MyProgressPage() {
     const [notes, setNotes] = useState('')
 
     useEffect(() => {
-        if (!user) {
+        checkAuth()
+    }, [])
+
+    const checkAuth = async () => {
+        const token = tokenManager.getAccessToken()
+        if (!token) {
             router.push('/auth/login')
             return
         }
-        fetchProgress()
-    }, [user])
+        try {
+            const userData = await authApi.getCurrentUser()
+            setUser(userData)
+            fetchProgress()
+        } catch (error) {
+            console.error('Failed to get user:', error)
+            router.push('/auth/login')
+        }
+    }
 
     const fetchProgress = async () => {
         try {
@@ -122,7 +134,7 @@ export default function MyProgressPage() {
 
     return (
         <div className="min-h-screen bg-neutral-50">
-            {ToastComponent}
+            {ToastComponent()}
             
             {/* Header */}
             <div className="bg-gradient-to-br from-[#140152] to-purple-900 text-white py-12">
@@ -217,7 +229,7 @@ export default function MyProgressPage() {
                                                         reading.id,
                                                         reading.userReading?.status || ReadingStatus.NOT_STARTED
                                                     )}
-                                                    variant={isCompleted ? "outline" : "default"}
+                                                    variant={isCompleted ? "outline" : "primary"}
                                                     className={isCompleted
                                                         ? "border-green-500 text-green-600 hover:bg-green-50"
                                                         : "bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152]"

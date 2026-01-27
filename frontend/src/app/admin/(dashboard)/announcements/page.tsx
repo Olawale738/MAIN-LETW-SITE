@@ -11,7 +11,7 @@ const AVAILABLE_SERVICES = [
     "Prayer meeting",
     "Evangelism",
     "Choir",
-    "Theology school (paid)",
+    "Theology school",
     "Counselling",
     "Skill Development",
     "Leadership Training",

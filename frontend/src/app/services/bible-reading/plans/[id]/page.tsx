@@ -8,17 +8,17 @@ import { Button } from '@/components/ui/button'
 import { 
     Book, BookOpen, Calendar, ArrowLeft, Play, CheckCircle2
 } from 'lucide-react'
-import { 
-    bibleStudyApi, BibleReadingPlanWithReadings, UserProgressWithDetails
+import {
+    bibleStudyApi, BibleReadingPlanWithReadings, UserProgressWithDetails,
+    tokenManager, authApi
 } from '@/lib/api'
-import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { useToast } from '@/components/ui/toast'
 
 export default function PlanDetailsPage() {
     const params = useParams()
     const router = useRouter()
-    const { user } = useAuth()
+    const [user, setUser] = useState<any>(null)
     const { showToast, ToastComponent } = useToast()
     const [plan, setPlan] = useState<BibleReadingPlanWithReadings | null>(null)
     const [myProgress, setMyProgress] = useState<UserProgressWithDetails[]>([])
@@ -26,8 +26,21 @@ export default function PlanDetailsPage() {
     const [starting, setStarting] = useState(false)
 
     useEffect(() => {
+        checkAuth()
         fetchData()
-    }, [params.id, user])
+    }, [params.id])
+
+    const checkAuth = async () => {
+        const token = tokenManager.getAccessToken()
+        if (token) {
+            try {
+                const userData = await authApi.getCurrentUser()
+                setUser(userData)
+            } catch (error) {
+                console.error('Failed to get user:', error)
+            }
+        }
+    }
 
     const fetchData = async () => {
         try {
@@ -87,7 +100,7 @@ export default function PlanDetailsPage() {
 
     return (
         <div className="min-h-screen bg-neutral-50">
-            {ToastComponent}
+            {ToastComponent()}
             
             {/* Header */}
             <div className="bg-gradient-to-br from-[#140152] to-purple-900 text-white py-12">

@@ -34,7 +34,7 @@ export default function EducationPage() {
       <SectionWrapper>
         {/* Announcements for Theology School */}
         <div className="max-w-4xl mx-auto mb-12">
-          <ServiceAnnouncements serviceName="Theology school (paid)" />
+          <ServiceAnnouncements serviceName="Theology school" />
         </div>
 
         <div className="max-w-4xl mx-auto text-center mb-20 space-y-4">

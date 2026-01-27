@@ -35,11 +35,11 @@ const SERVICE_CONFIG: Record<string, { icon: React.ReactNode; description: strin
         buttonText: "View Choir",
         buttonLink: "/services/alter-sound"
     },
-    "Theology school (paid)": {
+    "Theology school": {
         icon: <GraduationCap className="w-6 h-6" />,
         description: "Advance your theological knowledge through our accredited courses.",
         buttonText: "Access School",
-        buttonLink: "/education"
+        buttonLink: "/theology-school"
     },
     "Counselling": {
         icon: <MessageCircle className="w-6 h-6" />,
@@ -274,9 +274,8 @@ export default function UserDashboard() {
                             </div>
                         ) : (
                             <div className="space-y-6">
-                                {/* Always Available Services - No Approval Required */}
+                                {/* Active Services (Combined) */}
                                 <div>
-                                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Always Available</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                         {/* Counselling - Always accessible */}
                                         <ServiceCard
@@ -286,55 +285,48 @@ export default function UserDashboard() {
                                             buttonLink="/services/counselling"
                                             icon={<MessageCircle className="w-6 h-6" />}
                                         />
-                                    </div>
-                                </div>
 
-                                {/* Approved Services - Filter out Counselling to prevent duplicates */}
-                                {approvedServices.filter(s => s !== 'Counselling').length > 0 && (
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Active</h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                            {approvedServices.filter(s => s !== 'Counselling').map((service) => {
-                                                const config = SERVICE_CONFIG[service]
-                                                if (config) {
-                                                    // Check for paid theology school
-                                                    let buttonLink = config.buttonLink
-                                                    let buttonText = config.buttonText
+                                        {/* Other Approved Services */}
+                                        {approvedServices.filter(s => s !== 'Counselling').map((service) => {
+                                            const config = SERVICE_CONFIG[service]
+                                            if (config) {
+                                                // Check for paid theology school
+                                                let buttonLink = config.buttonLink
+                                                let buttonText = config.buttonText
 
-                                                    if (service === "Theology school (paid)") {
-                                                        const paidServices = JSON.parse(localStorage.getItem('paidServices') || '{}')
-                                                        if (paidServices['theology_school']) {
-                                                            buttonLink = "/dashboard/theology-school"
-                                                            buttonText = "Access Dashboard"
-                                                        }
+                                                if (service === "Theology school") {
+                                                    const paidServices = JSON.parse(localStorage.getItem('paidServices') || '{}')
+                                                    if (paidServices['theology_school']) {
+                                                        buttonLink = "/theology-school"
+                                                        buttonText = "Access Dashboard"
                                                     }
-
-                                                    return (
-                                                        <ServiceCard
-                                                            key={service}
-                                                            title={service}
-                                                            description={config.description}
-                                                            buttonText={buttonText}
-                                                            buttonLink={buttonLink}
-                                                            icon={config.icon}
-                                                        />
-                                                    )
                                                 }
-                                                // Fallback for unknown services
+
                                                 return (
                                                     <ServiceCard
                                                         key={service}
                                                         title={service}
-                                                        description="Access your enrolled service and start participating."
-                                                        buttonText="Access Service"
-                                                        buttonLink="/services"
-                                                        icon={<Briefcase className="w-6 h-6" />}
+                                                        description={config.description}
+                                                        buttonText={buttonText}
+                                                        buttonLink={buttonLink}
+                                                        icon={config.icon}
                                                     />
                                                 )
-                                            })}
-                                        </div>
+                                            }
+                                            // Fallback for unknown services
+                                            return (
+                                                <ServiceCard
+                                                    key={service}
+                                                    title={service}
+                                                    description="Access your enrolled service and start participating."
+                                                    buttonText="Access Service"
+                                                    buttonLink="/services"
+                                                    icon={<Briefcase className="w-6 h-6" />}
+                                                />
+                                            )
+                                        })}
                                     </div>
-                                )}
+                                </div>
 
                                 {/* Pending Services */}
                                 {pendingServices.length > 0 && (

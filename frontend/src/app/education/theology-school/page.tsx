@@ -1,6 +1,10 @@
 'use client'
 
+<<<<<<< HEAD
 import React, { useState } from 'react'
+=======
+import React, { useState, useEffect } from 'react'
+>>>>>>> a8e2aa2404cb8806985a69a3a546cbf4d07f7cec
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import {

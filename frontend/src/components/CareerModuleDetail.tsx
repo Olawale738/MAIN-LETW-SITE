@@ -75,11 +75,11 @@ export default function CareerModuleDetail({ module, onBack, onTaskComplete }: C
                     {module.description && (
                         <p className="text-gray-700 dark:text-gray-300">{module.description}</p>
                     )}
-                    {module.progress_percent > 0 && (
+                    {(module.progress_percent ?? 0) > 0 && (
                         <div className="mt-4">
                             <div className="flex justify-between text-sm mb-2">
                                 <span className="text-gray-700 dark:text-gray-300">Your Progress</span>
-                                <span className="text-primary font-bold">{module.progress_percent}%</span>
+                                <span className="text-primary font-bold">{module.progress_percent ?? 0}%</span>
                             </div>
                             <div className="h-3 bg-white/50 dark:bg-gray-800 rounded-full overflow-hidden">
                                 <div 
@@ -143,7 +143,7 @@ export default function CareerModuleDetail({ module, onBack, onTaskComplete }: C
                                 key={task.id}
                                 className={cn(
                                     "p-4 flex items-start gap-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors",
-                                    index !== module.tasks.length - 1 && "border-b border-gray-100 dark:border-gray-800"
+                                    index !== (module.tasks?.length ?? 0) - 1 && "border-b border-gray-100 dark:border-gray-800"
                                 )}
                             >
                                 <button

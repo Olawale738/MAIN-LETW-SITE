@@ -126,7 +126,7 @@ export default function BibleStudyPlansAdmin() {
 
     return (
         <div className="min-h-screen bg-neutral-50 p-8">
-            {ToastComponent}
+            {ToastComponent()}
             
             {/* Header */}
             <div className="mb-8">

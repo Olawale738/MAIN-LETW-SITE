@@ -15,6 +15,8 @@ export const metadata: Metadata = {
   description: "Dedicated to spreading the Word of GOD, empowering individuals, and engaging in charitable activities",
 };
 
+import { Toaster } from 'sonner';
+
 export default function RootLayout({
   children,
   modal
@@ -29,6 +31,7 @@ export default function RootLayout({
           {children}
         </ConditionalLayout>
         {modal}
+        <Toaster richColors position="top-center" />
       </body>
     </html>
   );

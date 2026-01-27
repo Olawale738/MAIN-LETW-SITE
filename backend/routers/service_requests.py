@@ -5,8 +5,9 @@ Handles user requests to join services and admin approval workflow.
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from datetime import datetime
+import uuid
 
 from database import get_db
 from models.user import User
@@ -48,6 +49,9 @@ def _request_to_response(request: ServiceRequest, include_user: bool = False) ->
     return ServiceRequestResponse(**data)
 
 
+AUTO_APPROVED_SERVICES = ["Theology school"]
+
+
 @router.post("", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
 async def create_service_requests(
     request: ServiceRequestCreate,
@@ -58,6 +62,7 @@ async def create_service_requests(
     """
     Submit requests to join services.
     Creates pending requests for each service that needs admin approval.
+    Auto-approves specific services like Theology school.
     """
     # Filter out services that already have pending or approved requests
     # BUT if a message is provided, we assume this is a specific inquiry/appointment request and allow it.
@@ -79,61 +84,130 @@ async def create_service_requests(
             success=True
         )
     
-    # Create new service requests
-    for service_name in new_services:
-        service_request = ServiceRequest(
-            user_id=current_user.id,
-            service_name=service_name,
-            status=ServiceRequestStatus.PENDING,
-            message=request.message
-        )
-        db.add(service_request)
+    # Refresh user to ensure session state is clean
+    await db.refresh(current_user)
     
-    await db.commit()
+    # Split into auto-approved and pending services
+    auto_approved = [s for s in new_services if s in AUTO_APPROVED_SERVICES]
+    pending_services = [s for s in new_services if s not in AUTO_APPROVED_SERVICES]
     
-    # Notify admins about new requests
-    admin_result = await db.execute(
-        select(User).where(User.role == "admin")
-    )
-    admins = admin_result.scalars().all()
-    
-    for admin in admins:
-        # DB Notification
-        notification = Notification(
-            user_id=admin.id,
-            title="New Service Requests",
-            message=f"{current_user.name} has requested to join {len(new_services)} service(s): {', '.join(new_services)}",
-            type=NotificationType.NEW_SERVICE_REQUEST,
-            reference_id=current_user.id
-        )
-        db.add(notification)
+    # Process auto-approved services
+    if auto_approved:
+        # Add to user's services list immediately
+        current_services = list(current_user.services) if current_user.services else []
+        services_added = False
         
-        # Email Notification (background)
-        if background_tasks:
-            background_tasks.add_task(
-                send_new_request_notification_email,
-                to_email=admin.email,
-                admin_name=admin.name,
-                user_name=current_user.name,
-                user_email=current_user.email,
-                services=new_services,
+        for service_name in auto_approved:
+            if service_name not in current_services:
+                current_services.append(service_name)
+                services_added = True
+            
+            # Create approved service request record
+            service_request = ServiceRequest(
+                user=current_user,
+                service_name=service_name,
+                status=ServiceRequestStatus.APPROVED,
+                reviewed_at=datetime.utcnow(),
+                admin_note="Auto-approved by system",
                 message=request.message
             )
-        else:
-            # Fallback if background_tasks not provided (should be provided by FastAPI)
-             await send_new_request_notification_email(
-                to_email=admin.email,
-                admin_name=admin.name,
-                user_name=current_user.name,
-                user_email=current_user.email,
-                services=new_services,
+            db.add(service_request)
+            
+            # Create notification for user (using raw SQL to avoid ORM conflicts)
+            notif_id = str(uuid.uuid4())
+            await db.execute(
+                text("""
+                    INSERT INTO notifications (id, user_id, title, message, type, is_read, reference_id, created_at)
+                    VALUES (:id, :user_id, :title, :message, :type, :is_read, :reference_id, :created_at)
+                """),
+                {
+                    "id": notif_id,
+                    "user_id": current_user.id,
+                    "title": "Service Joined",
+                    "message": f"You have successfully joined '{service_name}'.",
+                    "type": NotificationType.SERVICE_APPROVED.name,
+                    "is_read": False,
+                    "reference_id": service_request.id,
+                    "created_at": datetime.utcnow()
+                }
+            )
+        
+        if services_added:
+            current_user.services = current_services
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(current_user, "services")
+    
+    # Process pending services
+    if pending_services:
+        for service_name in pending_services:
+            service_request = ServiceRequest(
+                user=current_user,
+                service_name=service_name,
+                status=ServiceRequestStatus.PENDING,
                 message=request.message
             )
+            db.add(service_request)
+        
+        # Notify admins about new requests
+        admin_result = await db.execute(
+            select(User).where(User.role == "admin")
+        )
+        admins = admin_result.scalars().all()
+        
+        for admin in admins:
+            # DB Notification
+            notif_id = str(uuid.uuid4())
+            await db.execute(
+                text("""
+                    INSERT INTO notifications (id, user_id, title, message, type, is_read, reference_id, created_at)
+                    VALUES (:id, :user_id, :title, :message, :type, :is_read, :reference_id, :created_at)
+                """),
+                {
+                    "id": notif_id,
+                    "user_id": admin.id,
+                    "title": "New Service Requests",
+                    "message": f"{current_user.name} has requested to join {len(pending_services)} service(s): {', '.join(pending_services)}",
+                    "type": NotificationType.NEW_SERVICE_REQUEST.name,
+                    "is_read": False,
+                    "reference_id": current_user.id,
+                    "created_at": datetime.utcnow()
+                }
+            )
+            
+            # Email Notification (background)
+            if background_tasks:
+                background_tasks.add_task(
+                    send_new_request_notification_email,
+                    to_email=admin.email,
+                    admin_name=admin.name,
+                    user_name=current_user.name,
+                    user_email=current_user.email,
+                    services=pending_services,
+                    message=request.message
+                )
+            else:
+                # Fallback if background_tasks not provided
+                 await send_new_request_notification_email(
+                    to_email=admin.email,
+                    admin_name=admin.name,
+                    user_name=current_user.name,
+                    user_email=current_user.email,
+                    services=pending_services,
+                    message=request.message
+                )
     
     await db.commit()
+    
+    # Construct response message
+    if auto_approved and pending_services:
+        msg = f"Successfully joined {len(auto_approved)} service(s). {len(pending_services)} other request(s) are awaiting approval."
+    elif auto_approved:
+        msg = f"Successfully joined {len(auto_approved)} service(s)."
+    else:
+        msg = f"Successfully submitted {len(pending_services)} service request(s). Awaiting admin approval."
     
     return MessageResponse(
-        message=f"Successfully submitted {len(new_services)} service request(s). Awaiting admin approval.",
+        message=msg,
         success=True
     )
 
