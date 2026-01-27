@@ -44,6 +44,7 @@ async def send_email(to_email: str, subject: str, html_content: str) -> bool:
         use_tls = settings.SMTP_PORT == 465
         start_tls = settings.SMTP_PORT == 587
 
+        # Try with increased timeout for slow connections
         await aiosmtplib.send(
             message,
             hostname=settings.SMTP_HOST,
@@ -51,11 +52,21 @@ async def send_email(to_email: str, subject: str, html_content: str) -> bool:
             username=settings.SMTP_USER,
             password=settings.SMTP_PASSWORD,
             use_tls=use_tls,
-            start_tls=start_tls
+            start_tls=start_tls,
+            timeout=30  # Increase timeout to 30 seconds
         )
 
         print(f"✅ Email sent successfully to {to_email}")
         return True
+    except aiosmtplib.errors.SMTPConnectTimeoutError as e:
+        print(f"❌ SMTP Connection Timeout: {e}")
+        print(f"⚠️  This usually means:")
+        print(f"   1. Render is blocking outbound SMTP connections on port {settings.SMTP_PORT}")
+        print(f"   2. Your SMTP server ({settings.SMTP_HOST}) is not reachable from Render")
+        print(f"   3. Firewall rules are blocking the connection")
+        print(f"💡 Suggestion: Try using port 465 (SSL) instead of 587 (TLS)")
+        print(f"💡 Or use a service like SendGrid, Mailgun, or AWS SES for production")
+        return False
     except Exception as e:
         print(f"❌ Failed to send email to {to_email}: {e}")
         import traceback
