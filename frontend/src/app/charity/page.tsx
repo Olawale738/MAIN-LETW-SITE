@@ -12,9 +12,9 @@ export default function CharityPage() {
     return (
         <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
             {/* Hero Section */}
-            <section className="relative h-[50vh] flex items-center justify-center bg-black overflow-hidden">
-                {/* Placeholder for image */}
-                <div className="absolute inset-0 bg-neutral-900/60 z-10" />
+            <section className="relative h-[50vh] flex items-center justify-center bg-black overflow-hidden bg-cover bg-center bg-no-repeat" style={{backgroundImage: 'url("https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=1600&q=80")'}}>
+                {/* Dark Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-black/50 z-10" />
                 <div className="relative z-20 text-center px-4 max-w-3xl">
                     <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">Charity & Compassion</h1>
                     <p className="text-xl text-neutral-100 mb-8">
