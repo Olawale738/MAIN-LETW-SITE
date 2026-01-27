@@ -24,10 +24,6 @@ export default function ConditionalLayout({
         '/skill-development',
         '/leadership',
         '/bible-reading',
-        '/evangelism',
-        '/prayer',
-        '/education',
-        '/services',
         '/theology-school',
     ]
 
