@@ -13,18 +13,29 @@ from config import settings
 # Supabase requires SSL for external connections
 database_url = settings.DATABASE_URL
 
-# Remove any sslmode query parameters (asyncpg doesn't support them)
+# Remove any sslmode query parameters and prepared_statement_cache_size
+# (asyncpg doesn't support them in URL, we'll use connect_args instead)
 if "?sslmode=" in database_url or "&sslmode=" in database_url:
-    # Remove sslmode parameter if present
     import re
     database_url = re.sub(r'[?&]sslmode=[^&]*', '', database_url)
 
+# Remove prepared_statement_cache_size from URL if present
+# We'll set it in connect_args instead
+if "prepared_statement_cache_size" in database_url:
+    import re
+    database_url = re.sub(r'[?&]prepared_statement_cache_size=[^&]*', '', database_url)
+    # Remove trailing ? if it's the only parameter
+    database_url = database_url.rstrip('?')
+
+# CRITICAL FIX for pgbouncer: Use dynamic prepared statement names
+# This prevents naming conflicts in pgbouncer transaction mode
+from uuid import uuid4
+
 # Configure connection arguments for asyncpg
 connect_args = {
-    # CRITICAL FIX: Disable prepared statement cache for pgbouncer compatibility
-    # pgbouncer in transaction mode doesn't support prepared statements
-    # This MUST be set to 0 to avoid DuplicatePreparedStatementError
-    "statement_cache_size": 0,
+    # CRITICAL: Use dynamic prepared statement names to avoid conflicts
+    # This is the recommended solution for pgbouncer compatibility
+    "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4().hex[:8]}__",
 
     # Disable JIT for better pgbouncer compatibility
     "server_settings": {
@@ -43,10 +54,10 @@ if "supabase.co" in database_url and "pooler.supabase.com" not in database_url:
 
 # Log the critical fix being applied
 print("=" * 80)
-print("🔧 DATABASE CONFIGURATION")
+print("🔧 DATABASE CONFIGURATION - PGBOUNCER FIX")
 print("=" * 80)
-print(f"Database URL: {database_url[:50]}...")
-print(f"✅ CRITICAL FIX APPLIED: statement_cache_size = {connect_args.get('statement_cache_size', 'NOT SET')}")
+print(f"Database URL: {database_url[:70]}...")
+print(f"✅ CRITICAL FIX: Dynamic prepared statement names enabled")
 print(f"✅ JIT disabled: {connect_args.get('server_settings', {}).get('jit', 'NOT SET')}")
 print(f"SSL configured: {'Yes' if 'ssl' in connect_args else 'No'}")
 print("=" * 80)
