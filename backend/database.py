@@ -19,8 +19,20 @@ if "?sslmode=" in database_url or "&sslmode=" in database_url:
     import re
     database_url = re.sub(r'[?&]sslmode=[^&]*', '', database_url)
 
-# Configure SSL context for Supabase direct connections (not pooler)
-connect_args = {}
+# Configure connection arguments for asyncpg
+connect_args = {
+    # CRITICAL FIX: Disable prepared statement cache for pgbouncer compatibility
+    # pgbouncer in transaction mode doesn't support prepared statements
+    # This MUST be set to 0 to avoid DuplicatePreparedStatementError
+    "statement_cache_size": 0,
+
+    # Disable JIT for better pgbouncer compatibility
+    "server_settings": {
+        "jit": "off"
+    }
+}
+
+# Add SSL context for Supabase direct connections (not pooler)
 if "supabase.co" in database_url and "pooler.supabase.com" not in database_url:
     # Direct connection to Supabase requires SSL
     # Pooler connections don't need SSL configuration (handled by pooler)
@@ -29,13 +41,17 @@ if "supabase.co" in database_url and "pooler.supabase.com" not in database_url:
     ssl_context.verify_mode = ssl_module.CERT_NONE
     connect_args["ssl"] = ssl_context
 
-# CRITICAL: Disable prepared statement cache for pgbouncer compatibility
-# pgbouncer in transaction mode doesn't support prepared statements
-# This fixes: DuplicatePreparedStatementError
-connect_args["server_settings"] = {"jit": "off"}
-connect_args["statement_cache_size"] = 0
+# Log the critical fix being applied
+print("=" * 80)
+print("🔧 DATABASE CONFIGURATION")
+print("=" * 80)
+print(f"Database URL: {database_url[:50]}...")
+print(f"✅ CRITICAL FIX APPLIED: statement_cache_size = {connect_args.get('statement_cache_size', 'NOT SET')}")
+print(f"✅ JIT disabled: {connect_args.get('server_settings', {}).get('jit', 'NOT SET')}")
+print(f"SSL configured: {'Yes' if 'ssl' in connect_args else 'No'}")
+print("=" * 80)
 
-# Create async engine
+# Create async engine with explicit connect_args
 engine = create_async_engine(
     database_url,
     echo=settings.DEBUG,  # Log SQL queries in debug mode
