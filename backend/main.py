@@ -37,13 +37,23 @@ app = FastAPI(
 )
 
 # Configure CORS for frontend
+# Allow multiple origins for development and production
+allowed_origins = [
+    settings.FRONTEND_URL,
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://letw.vercel.app",  # Production frontend
+    "https://letw-git-main-letw-code.vercel.app",  # Vercel preview deployments
+]
+
+# Remove duplicates and empty strings
+allowed_origins = list(set(filter(None, allowed_origins)))
+
+print(f"🌐 CORS enabled for origins: {allowed_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        settings.FRONTEND_URL,
-        "http://localhost:3000",
-        "http://127.0.0.1:3000"
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
