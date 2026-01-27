@@ -107,7 +107,7 @@ export default function Navbar() {
           </Link>
 
           {/* DESKTOP NAV */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link
                 key={link.name}
@@ -169,7 +169,7 @@ export default function Navbar() {
 
           {/* ACTIONS & MOBILE TOGGLE */}
           <div className="flex items-center gap-4">
-            <div className="hidden md:block">
+            <div className="hidden lg:block">
               {isLoggedIn ? (
                 <PremiumButton href="/dashboard" className="py-2 text-sm">
                   My Dashboard
@@ -181,7 +181,7 @@ export default function Navbar() {
 
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="md:hidden relative z-50 p-1 text-[#140152] hover:opacity-80 transition-opacity"
+              className="lg:hidden relative z-50 p-1 text-[#140152] hover:opacity-80 transition-opacity"
               aria-label="Toggle Menu"
             >
               {isOpen ? (
@@ -206,7 +206,7 @@ export default function Navbar() {
             animate="open"
             exit="closed"
             variants={menuVariants}
-            className="fixed inset-0 z-40 bg-white/95 backdrop-blur-3xl md:hidden flex flex-col pt-32 px-6 pb-8 overflow-y-auto"
+            className="fixed inset-0 z-40 bg-white/95 backdrop-blur-3xl lg:hidden flex flex-col pt-32 px-6 pb-8 overflow-y-auto"
           >
             <div className="flex flex-col gap-6">
               {navLinks.map((link, i) => (

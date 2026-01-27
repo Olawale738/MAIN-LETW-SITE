@@ -25,13 +25,11 @@ export default function SecondarySchoolPage() {
           className="relative z-20 text-center text-white px-4 max-w-4xl mx-auto"
         >
           <div className="text-[#f5bb00] font-bold tracking-widest uppercase mb-4 text-sm md:text-base">Secondary School</div>
-          <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">Shaping Minds,<br />Building Character</h1>
+          <h1 className="text-5xl md:text-5xl font-black mb-6 leading-tight">Shaping Minds,<br />Building Character</h1>
           <p className="text-lg md:text-2xl text-blue-100 max-w-2xl mx-auto font-medium mb-8">
             Preparing futures with knowledge, discipline, and leadership excellence.
           </p>
-          <div className="flex justify-center">
-            <PremiumButton className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold">Apply Now</PremiumButton>
-          </div>
+          
         </motion.div>
       </div>
 
