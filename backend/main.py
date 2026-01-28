@@ -44,7 +44,10 @@ allowed_origins = [
     "http://127.0.0.1:3000",
     "https://letw.vercel.app",  # Production frontend
     "https://letw-git-main-letw-code.vercel.app",
-    "https://letw.org"  # Vercel preview deployments
+    "https://letw.org",  # Production domain (without www)
+    "https://www.letw.org",  # Production domain (with www)
+    "http://letw.org",  # HTTP fallback
+    "http://www.letw.org",  # HTTP fallback with www
 ]
 
 # Remove duplicates and empty strings
@@ -58,6 +61,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],  # Allow frontend to read all response headers
 )
 
 
