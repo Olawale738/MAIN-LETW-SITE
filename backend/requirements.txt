@@ -1,5 +1,6 @@
 aiosmtplib==3.0.2
 aiosqlite==0.20.0
+resend==2.5.0
 annotated-types==0.7.0
 anyio==4.12.1
 asyncpg==0.30.0

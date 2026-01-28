@@ -25,13 +25,19 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # Email Settings
+    # Resend API (recommended for production)
+    RESEND_API_KEY: str = ""  # Get from https://resend.com/api-keys
+
+    # SMTP Settings (fallback if Resend not configured)
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
+
+    # Email sender details
     EMAIL_FROM_NAME: str = "Light Encounter Tabernacle"
     EMAIL_FROM_ADDRESS: str = "noreply@letw.org"
-    EMAIL_ENABLED: bool = False  # Set to True when SMTP is configured
+    EMAIL_ENABLED: bool = False  # Set to True when email is configured
     
     # Frontend URL (for verification links)
     FRONTEND_URL: str = "http://localhost:3000"

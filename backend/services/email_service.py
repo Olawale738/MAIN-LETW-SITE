@@ -1,6 +1,6 @@
 """
 Email service for sending verification and notification emails.
-Supports console logging for development and SMTP for production.
+Supports console logging for development, SMTP, and Resend API for production.
 """
 
 import aiosmtplib
@@ -9,12 +9,23 @@ from email.mime.multipart import MIMEMultipart
 
 from config import settings
 
+# Try to import resend, but don't fail if not installed
+try:
+    import resend
+    RESEND_AVAILABLE = True
+except ImportError:
+    RESEND_AVAILABLE = False
+
 
 async def send_email(to_email: str, subject: str, html_content: str) -> bool:
     """
     Send an email to the specified address.
     In development mode (EMAIL_ENABLED=False), logs to console instead.
-    
+
+    Supports multiple email providers:
+    - Resend API (if RESEND_API_KEY is set)
+    - SMTP (traditional email servers)
+
     Returns True if email was sent/logged successfully.
     """
     if not settings.EMAIL_ENABLED:
@@ -28,8 +39,46 @@ async def send_email(to_email: str, subject: str, html_content: str) -> bool:
         print(html_content)
         print("=" * 60 + "\n")
         return True
-    
-    # Production mode: send via SMTP
+
+    # Check if Resend API key is configured
+    resend_api_key = getattr(settings, 'RESEND_API_KEY', None)
+
+    if resend_api_key and RESEND_AVAILABLE:
+        # Use Resend API
+        return await send_email_resend(to_email, subject, html_content, resend_api_key)
+    else:
+        # Fall back to SMTP
+        return await send_email_smtp(to_email, subject, html_content)
+
+
+async def send_email_resend(to_email: str, subject: str, html_content: str, api_key: str) -> bool:
+    """
+    Send email using Resend API.
+    """
+    try:
+        resend.api_key = api_key
+
+        params = {
+            "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM_ADDRESS}>",
+            "to": [to_email],
+            "subject": subject,
+            "html": html_content,
+        }
+
+        email = resend.Emails.send(params)
+        print(f"✅ Email sent successfully via Resend to {to_email} (ID: {email.get('id', 'unknown')})")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send email via Resend to {to_email}: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+async def send_email_smtp(to_email: str, subject: str, html_content: str) -> bool:
+    """
+    Send email using traditional SMTP.
+    """
     try:
         message = MIMEMultipart("alternative")
         message["From"] = f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM_ADDRESS}>"
