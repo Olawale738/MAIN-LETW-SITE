@@ -43,7 +43,8 @@ allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://letw.vercel.app",  # Production frontend
-    "https://letw-git-main-letw-code.vercel.app",  # Vercel preview deployments
+    "https://letw-git-main-letw-code.vercel.app",
+    "https://letw.org"  # Vercel preview deployments
 ]
 
 # Remove duplicates and empty strings
