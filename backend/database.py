@@ -34,7 +34,10 @@ connect_args = {
     # Disable JIT for better pgbouncer compatibility
     "server_settings": {
         "jit": "off"
-    }
+    },
+    # Increase connection timeout for Render's network
+    "timeout": 60,  # 60 seconds timeout (default is 10)
+    "command_timeout": 60,  # Command execution timeout
 }
 
 # Add SSL context for Supabase direct connections (not pooler)
@@ -63,6 +66,7 @@ engine = create_async_engine(
     future=True,
     pool_pre_ping=False,  # DISABLED: Causes issues with pgbouncer prepared statements
     pool_recycle=300,  # Recycle connections after 5 minutes (pgbouncer friendly)
+    pool_timeout=30,  # Wait up to 30 seconds for a connection from the pool
     connect_args=connect_args,
 )
 
