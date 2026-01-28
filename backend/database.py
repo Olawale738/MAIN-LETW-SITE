@@ -13,18 +13,12 @@ from config import settings
 # Supabase requires SSL for external connections
 database_url = settings.DATABASE_URL
 
-# Remove any query parameters from URL (asyncpg doesn't support them)
-# We'll configure everything via connect_args instead
-if "?" in database_url:
-    import re
-    database_url = re.sub(r'\?.*$', '', database_url)
-
 # CRITICAL FIX for pgbouncer: Disable prepared statement cache
 # pgbouncer in transaction mode does NOT support prepared statements
-# We must set statement_cache_size=0 as a connect_arg (NOT in URL)
+# SQLAlchemy's asyncpg dialect uses 'prepared_statement_cache_size' parameter
 connect_args = {
-    # CRITICAL: Disable prepared statement cache for pgbouncer compatibility
-    "statement_cache_size": 0,
+    # CRITICAL: Use the correct parameter name for SQLAlchemy's asyncpg dialect
+    "prepared_statement_cache_size": 0,
     # Disable JIT for better pgbouncer compatibility
     "server_settings": {
         "jit": "off"
@@ -45,16 +39,18 @@ if "supabase.co" in database_url and "pooler.supabase.com" not in database_url:
 
 # Log the critical fix being applied
 print("=" * 80)
-print("🔧 DATABASE CONFIGURATION - PGBOUNCER FIX")
+print("🔧 DATABASE CONFIGURATION - PGBOUNCER COMPATIBILITY MODE")
 print("=" * 80)
 print(f"Database URL: {database_url[:70]}...")
-print(f"✅ CRITICAL FIX: statement_cache_size={connect_args.get('statement_cache_size', 'NOT SET')}")
-print(f"✅ JIT disabled: {connect_args.get('server_settings', {}).get('jit', 'NOT SET')}")
-print(f"✅ SSL configured: {'Yes' if 'ssl' in connect_args else 'No'}")
+print(f"✅ prepared_statement_cache_size: {connect_args.get('prepared_statement_cache_size', 'NOT SET')}")
+print(f"✅ SQLAlchemy compiled_cache: disabled")
+print(f"✅ JIT: {connect_args.get('server_settings', {}).get('jit', 'NOT SET')}")
+print(f"✅ SSL: {'Yes' if 'ssl' in connect_args else 'No'}")
 print(f"✅ Connection timeout: {connect_args.get('timeout', 'default')}s")
 print("=" * 80)
 
 # Create async engine with explicit connect_args
+# CRITICAL: use_insertmanyvalues=False disables SQLAlchemy's prepared statement optimization
 engine = create_async_engine(
     database_url,
     echo=settings.DEBUG,  # Log SQL queries in debug mode
@@ -63,6 +59,10 @@ engine = create_async_engine(
     pool_recycle=300,  # Recycle connections after 5 minutes (pgbouncer friendly)
     pool_timeout=30,  # Wait up to 30 seconds for a connection from the pool
     connect_args=connect_args,
+    # CRITICAL: Disable SQLAlchemy's prepared statement caching for pgbouncer
+    execution_options={
+        "compiled_cache": None,  # Disable statement compilation cache
+    },
 )
 
 # Create async session factory
