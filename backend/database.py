@@ -13,24 +13,18 @@ from config import settings
 # Supabase requires SSL for external connections
 database_url = settings.DATABASE_URL
 
-# Remove any sslmode query parameters
-# (asyncpg doesn't support them in URL, we'll use connect_args instead)
-if "?sslmode=" in database_url or "&sslmode=" in database_url:
+# Remove any query parameters from URL (asyncpg doesn't support them)
+# We'll configure everything via connect_args instead
+if "?" in database_url:
     import re
-    database_url = re.sub(r'[?&]sslmode=[^&]*', '', database_url)
-
-# CRITICAL: Add prepared_statement_cache_size=0 to URL for pgbouncer compatibility
-# This must be in the URL, not just connect_args
-if "prepared_statement_cache_size" not in database_url:
-    if "?" in database_url:
-        database_url += "&prepared_statement_cache_size=0"
-    else:
-        database_url += "?prepared_statement_cache_size=0"
+    database_url = re.sub(r'\?.*$', '', database_url)
 
 # CRITICAL FIX for pgbouncer: Disable prepared statement cache
 # pgbouncer in transaction mode does NOT support prepared statements
-# We must completely disable them at the asyncpg connection level
+# We must set statement_cache_size=0 as a connect_arg (NOT in URL)
 connect_args = {
+    # CRITICAL: Disable prepared statement cache for pgbouncer compatibility
+    "statement_cache_size": 0,
     # Disable JIT for better pgbouncer compatibility
     "server_settings": {
         "jit": "off"
@@ -54,9 +48,10 @@ print("=" * 80)
 print("🔧 DATABASE CONFIGURATION - PGBOUNCER FIX")
 print("=" * 80)
 print(f"Database URL: {database_url[:70]}...")
-print(f"✅ CRITICAL FIX: Prepared statement cache DISABLED (statement_cache_size=0)")
+print(f"✅ CRITICAL FIX: statement_cache_size={connect_args.get('statement_cache_size', 'NOT SET')}")
 print(f"✅ JIT disabled: {connect_args.get('server_settings', {}).get('jit', 'NOT SET')}")
-print(f"SSL configured: {'Yes' if 'ssl' in connect_args else 'No'}")
+print(f"✅ SSL configured: {'Yes' if 'ssl' in connect_args else 'No'}")
+print(f"✅ Connection timeout: {connect_args.get('timeout', 'default')}s")
 print("=" * 80)
 
 # Create async engine with explicit connect_args
