@@ -2151,3 +2151,66 @@ export const bibleStudyApi = {
         });
     },
 };
+
+// ============= CMS API =============
+
+export interface CMSPageContent {
+    [key: string]: any;
+}
+
+export interface CMSPageResponse {
+    id: string;
+    slug: string;
+    title: string;
+    content: CMSPageContent;
+    updated_at: string;
+}
+
+export interface CMSImageResponse {
+    id: string;
+    filename: string;
+    mime_type: string;
+    size: number;
+    url: string;
+    created_at: string;
+}
+
+export const cmsApi = {
+    getPage: async (slug: string): Promise<CMSPageResponse> => {
+        return fetchApi<CMSPageResponse>(`/cms/pages/${slug}`);
+    },
+
+    updatePage: async (slug: string, title: string, content: CMSPageContent): Promise<CMSPageResponse> => {
+        return fetchApi<CMSPageResponse>(`/cms/pages/${slug}`, {
+            method: 'POST',
+            body: JSON.stringify({ title, content }),
+        });
+    },
+
+    uploadImage: async (file: File): Promise<CMSImageResponse> => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`${API_BASE_URL}/cms/images`, {
+            method: 'POST',
+            headers: {
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: 'Image upload failed' }));
+            throw new Error(errorData.detail || 'Image upload failed');
+        }
+
+        return response.json();
+    },
+
+    getImageUrl: (id: string): string => {
+        if (!id) return '';
+        if (id.startsWith('http')) return id;
+        return `${API_BASE_URL}/cms/images/${id}`;
+    }
+};

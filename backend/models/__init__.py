@@ -24,6 +24,7 @@ from models.bible_study import (
     UserDailyReading, BibleStudyResource, BibleStudyPageSettings,
     ReadingPlanType, ReadingStatus
 )
+from models.cms import CMSPage, CMSImage
 
 __all__ = [
     "User",
@@ -70,6 +71,8 @@ __all__ = [
     "BibleStudyPageSettings",
     "ReadingPlanType",
     "ReadingStatus",
+    "CMSPage",
+    "CMSImage",
 ]
 
 

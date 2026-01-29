@@ -82,7 +82,7 @@ async def health_check():
 
 
 # Import and register routers after app creation to avoid circular imports
-from routers import auth, users, service_requests, notifications, announcements, leadership, sermons, events, dashboard, skills, career, prayer, alter_sound, bible_study
+from routers import auth, users, service_requests, notifications, announcements, leadership, sermons, events, dashboard, skills, career, prayer, alter_sound, bible_study, cms
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(service_requests.router, prefix="/api/service-requests", tags=["Service Requests"])
@@ -97,6 +97,7 @@ app.include_router(career.router)
 app.include_router(prayer.router)
 app.include_router(alter_sound.router)
 app.include_router(bible_study.router)
+app.include_router(cms.router)
 
 # Mount static files for uploads
 # Create uploads directory if it doesn't exist

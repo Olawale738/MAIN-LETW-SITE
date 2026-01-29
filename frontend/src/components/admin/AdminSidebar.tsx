@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager } from '@/lib/api'
 import { useState } from 'react'
@@ -37,6 +37,21 @@ const sidebarItems = [
         title: 'Events',
         href: '/admin/events',
         icon: Calendar
+    },
+    {
+        title: 'Home Page',
+        href: '/admin/pages/home',
+        icon: Home
+    },
+    {
+        title: 'About Page',
+        href: '/admin/pages/about',
+        icon: Users
+    },
+    {
+        title: 'Impact Page',
+        href: '/admin/pages/impact',
+        icon: Globe
     },
     {
         title: 'Users',
@@ -79,7 +94,7 @@ export default function AdminSidebar() {
         window.location.href = '/auth/login'
     }
 
-    const SidebarContent = () => (
+    const SidebarContent = (
         <>
             <div className="p-5 border-b border-white/10">
                 <h1 className="text-lg font-bold font-serif text-[#f5bb00]">Light Encounter</h1>
@@ -159,12 +174,12 @@ export default function AdminSidebar() {
                 "md:hidden fixed left-0 top-0 bottom-0 w-64 bg-[#140152] text-white flex flex-col z-50 transition-transform duration-300",
                 mobileOpen ? "translate-x-0" : "-translate-x-full"
             )}>
-                <SidebarContent />
+                {SidebarContent}
             </aside>
 
             {/* Desktop Sidebar */}
             <aside className="hidden md:flex w-56 bg-[#140152] text-white h-screen flex-col sticky top-0">
-                <SidebarContent />
+                {SidebarContent}
             </aside>
         </>
     )
