@@ -159,7 +159,7 @@ export default function GivingPage() {
                       {/* Fund Selector */}
                       <div className="space-y-2">
                         <label className="text-xs font-extrabold text-[#140152] uppercase tracking-wider ml-1">Select Fund</label>
-                        <Select onValueChange={setFund} defaultValue={fund}>
+                        <Select onValueChange={setFund} value={fund}>
                           <SelectTrigger className="w-full h-14 rounded-xl border-gray-200 bg-gray-50/50 hover:bg-gray-100 transition-colors focus:ring-1 focus:ring-[#140152] focus:border-[#140152]">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-lg bg-[#f5bb00]/10 flex items-center justify-center text-[#f5bb00]">
