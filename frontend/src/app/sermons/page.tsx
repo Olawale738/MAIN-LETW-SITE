@@ -1,18 +1,14 @@
 'use client'
-
-import { useState, useEffect, useRef } from 'react'
-import Hero from '@/components/shared/Hero'
-import SectionWrapper from '@/components/shared/SectionWrapper'
-import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
 import {
     PlayCircle, Calendar, Youtube, Users,
-    Music, FileText, Download, X, Loader2, Pause, Play,
-    Volume2, VolumeX, BookOpen, ExternalLink
+    FileText, Download, Loader2, BookOpen, ExternalLink
 } from 'lucide-react'
 import { sermonApi, Sermon } from '@/lib/api'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Spotlight } from '@/components/ui/spotlight'
 
 export default function SermonsPage() {
     const [sermons, setSermons] = useState<Sermon[]>([])
@@ -20,19 +16,6 @@ export default function SermonsPage() {
     const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
     const [seriesList, setSeriesList] = useState<string[]>([])
     const [selectedSeries, setSelectedSeries] = useState<string>('')
-
-    // Available tabs
-    const [activeTab, setActiveTab] = useState("all");
-
-    // Audio player state
-    const [currentAudio, setCurrentAudio] = useState<{ sermon: Sermon, url: string } | null>(null)
-    const [isPlaying, setIsPlaying] = useState(false)
-    const [audioProgress, setAudioProgress] = useState(0)
-    const [audioDuration, setAudioDuration] = useState(0)
-    const [isMuted, setIsMuted] = useState(false)
-    const audioRef = useRef<HTMLAudioElement>(null)
-
-    // Document viewer state
     const [viewingDocument, setViewingDocument] = useState<{ sermon: Sermon, url: string } | null>(null)
 
     useEffect(() => {
@@ -66,60 +49,6 @@ export default function SermonsPage() {
         return match ? match[1] : null
     }
 
-    // Audio player functions
-    const playAudio = (sermon: Sermon) => {
-        const url = sermonApi.getAudioUrl(sermon.id)
-        if (currentAudio?.sermon.id === sermon.id) {
-            // Toggle play/pause
-            if (isPlaying) {
-                audioRef.current?.pause()
-                setIsPlaying(false)
-            } else {
-                audioRef.current?.play()
-                setIsPlaying(true)
-            }
-        } else {
-            // Play new audio
-            setCurrentAudio({ sermon, url })
-            setIsPlaying(true)
-            setAudioProgress(0)
-        }
-    }
-
-    const handleAudioTimeUpdate = () => {
-        if (audioRef.current) {
-            setAudioProgress(audioRef.current.currentTime)
-            setAudioDuration(audioRef.current.duration || 0)
-        }
-    }
-
-    const handleAudioSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const time = parseFloat(e.target.value)
-        if (audioRef.current) {
-            audioRef.current.currentTime = time
-            setAudioProgress(time)
-        }
-    }
-
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60)
-        const secs = Math.floor(seconds % 60)
-        return `${mins}:${secs.toString().padStart(2, '0')}`
-    }
-
-    const closeAudioPlayer = () => {
-        audioRef.current?.pause()
-        setCurrentAudio(null)
-        setIsPlaying(false)
-        setAudioProgress(0)
-    }
-
-    // Document viewer functions
-    const viewDocument = (sermon: Sermon) => {
-        const url = sermonApi.getDocumentUrl(sermon.id)
-        setViewingDocument({ sermon, url })
-    }
-
     const handleDownload = async (url: string, filename: string) => {
         try {
             const response = await fetch(url)
@@ -137,134 +66,155 @@ export default function SermonsPage() {
         }
     }
 
-    // Filter sermons based on active tab
-    const filteredSermons = sermons.filter(sermon => {
-        if (activeTab === 'all') return true;
-        if (activeTab === 'video') return !!sermon.video_url;
-        if (activeTab === 'audio') return sermon.has_audio;
-        if (activeTab === 'books') return sermon.has_document;
-        return true;
-    });
-
-    const featuredSermon = filteredSermons.find(s => s.is_featured) || filteredSermons[0]
-    const otherSermons = filteredSermons.filter(s => s.id !== featuredSermon?.id)
-
-    // Books hardcoded data
-    const books = [
-        {
-            title: "Foundations of Faith",
-            author: "Apostle Olawale N. Sanni",
-            image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800&q=80",
-            description: "A comprehensive guide to understanding the core beliefs of Christianity and building a solid spiritual foundation.",
-            downloadUrl: "/documents/foundations.pdf",
-            amazonUrl: "https://amazon.com"
-        },
-        {
-            title: "Walking in the Spirit",
-            author: "Light Encounter Ministry",
-            image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?w=800&q=80",
-            description: "Learn how to live a spirit-led life and sensitive to the leading of the Holy Spirit in your daily walk.",
-            downloadUrl: "/documents/walking-in-spirit.pdf",
-            amazonUrl: "https://amazon.com"
-        },
-        {
-            title: "Prayer That Moves Mountains",
-            author: "Apostle Olawale N. Sanni",
-            image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80",
-            description: "Unlock the secrets of effective prayer and intercession that brings about divine intervention.",
-            downloadUrl: "/documents/prayer-guide.pdf",
-            amazonUrl: "https://amazon.com"
+    const viewDocument = (sermon: Sermon) => {
+        const url = sermon.document_url || (sermon.id ? sermonApi.getDocumentUrl(sermon.id) : '')
+        if (url) {
+            setViewingDocument({ sermon, url })
         }
-    ];
+    }
+
+    // Filter sermons
+    const videoSermons = sermons.filter(s => s.video_url)
+    const bookContent = sermons.filter(s => s.has_document || s.document_url)
+
+    const featuredSermon = videoSermons.find(s => s.is_featured) || videoSermons[0]
+    const otherSermons = videoSermons.filter(s => s.id !== featuredSermon?.id)
 
     return (
-        <>
-            <Hero
-                title="Sermons & Messages"
-                subtitle="Dive deeper into the Word of God"
-                height="medium"
-                backgroundImage="https://images.unsplash.com/photo-1478147427282-58a87a120781?w=1200"
-            />
-
-            <SectionWrapper>
-                <div className="text-center mb-16 space-y-4">
-                    <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Media Library</span>
-                    <h2 className="text-4xl md:text-5xl font-black text-[#140152]">Latest Messages</h2>
-                    <div className="w-24 h-1.5 bg-[#f5bb00] mx-auto rounded-full" />
+        <div className="min-h-screen bg-gray-50 font-sans">
+            {/* Spotlight Hero Section */}
+            <div className="relative bg-[#140152] pt-32 pb-24 px-4 md:px-12 overflow-hidden">
+                <Spotlight className="-top-10 left-0 md:left-60 md:-top-20" fill="white" />
+                <div className="max-w-7xl mx-auto relative z-10 text-center">
+                    <h1 className="text-4xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 mb-6 tracking-tight">
+                        Sermons & Library
+                    </h1>
+                    <p className="text-blue-200 text-lg md:text-xl max-w-2xl mx-auto font-light leading-relaxed">
+                        Explore our collection of life-changing messages and spiritual resources.
+                    </p>
                 </div>
+            </div>
 
-                <div className="max-w-7xl mx-auto mb-12">
-                    <Tabs defaultValue="all" className="w-full justify-center" onValueChange={setActiveTab}>
-                        <TabsList className="grid w-full max-w-md mx-auto grid-cols-4 bg-gray-100 p-1 rounded-xl">
-                            <TabsTrigger
-                                value="all"
-                                className="rounded-lg text-gray-600 data-[state=active]:bg-white data-[state=active]:text-[#140152] data-[state=active]:shadow-sm font-bold"
-                            >
-                                All
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="video"
-                                className="rounded-lg text-gray-600 data-[state=active]:bg-white data-[state=active]:text-[#140152] data-[state=active]:shadow-sm font-bold"
-                            >
-                                Video
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="audio"
-                                className="rounded-lg text-gray-600 data-[state=active]:bg-white data-[state=active]:text-[#140152] data-[state=active]:shadow-sm font-bold"
-                            >
-                                Audio
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="books"
-                                className="rounded-lg text-gray-600 data-[state=active]:bg-white data-[state=active]:text-[#140152] data-[state=active]:shadow-sm font-bold"
-                            >
-                                Books
-                            </TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-                </div>
+            <main className="py-16 px-4 md:px-12 space-y-24 max-w-7xl mx-auto">
 
-                {/* Series Filter - Only show for sermon-related tabs */}
-                {(activeTab !== 'books') && seriesList.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-2 mb-10">
-                        <Button
-                            variant={selectedSeries === '' ? 'primary' : 'outline'}
-                            size="sm"
-                            onClick={() => setSelectedSeries('')}
-                        >
-                            All Series
-                        </Button>
-                        {seriesList.map(series => (
-                            <Button
-                                key={series}
-                                variant={selectedSeries === series ? 'primary' : 'outline'}
-                                size="sm"
-                                onClick={() => setSelectedSeries(series)}
-                            >
-                                {series}
-                            </Button>
-                        ))}
+                {/* 1. MESSAGES SECTION */}
+                <section>
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm block mb-2">Watch</span>
+                            <h2 className="text-3xl md:text-4xl font-black text-[#140152]">Latest Messages</h2>
+                        </div>
+                        {/* Series Filter */}
+                        {seriesList.length > 0 && (
+                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                <Button
+                                    variant={selectedSeries === '' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setSelectedSeries('')}
+                                    className={`rounded-full ${selectedSeries === '' ? 'bg-[#140152] text-white hover:bg-[#140152]/90' : 'border-gray-200 text-gray-600'}`}
+                                >
+                                    All
+                                </Button>
+                                {seriesList.map(series => (
+                                    <Button
+                                        key={series}
+                                        variant={selectedSeries === series ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setSelectedSeries(series)}
+                                        className={`rounded-full whitespace-nowrap ${selectedSeries === series ? 'bg-[#140152] text-white hover:bg-[#140152]/90' : 'border-gray-200 text-gray-600'}`}
+                                    >
+                                        {series}
+                                    </Button>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                )}
 
-                {loading ? (
-                    <div className="flex justify-center py-20">
-                        <Loader2 className="w-10 h-10 animate-spin text-[#140152]" />
-                    </div>
-                ) : (
-                    <>
-                        {/* Featured Sermon */}
-                        {activeTab !== 'books' && featuredSermon && (
-                            <div className="mb-20 max-w-6xl mx-auto">
-                                <Card className="border-none shadow-2xl overflow-hidden group rounded-[2rem] bg-[#140152]">
-                                    <div className="grid grid-cols-1 lg:grid-cols-2">
-                                        <div className="relative h-[300px] lg:h-[400px] overflow-hidden bg-black">
-                                            {playingVideoId === featuredSermon.id && featuredSermon.video_url ? (
+                    {loading ? (
+                        <div className="flex justify-center py-20">
+                            <Loader2 className="w-10 h-10 animate-spin text-[#140152]" />
+                        </div>
+                    ) : (
+                        <>
+                            {/* Featured Sermon */}
+                            {featuredSermon && (
+                                <div className="mb-12">
+                                    <div className="bg-[#140152] rounded-3xl overflow-hidden shadow-2xl relative group">
+                                        <div className="grid grid-cols-1 lg:grid-cols-2">
+                                            <div className="relative h-[300px] lg:h-[450px] bg-black">
+                                                {playingVideoId === featuredSermon.id && featuredSermon.video_url ? (
+                                                    <iframe
+                                                        width="100%"
+                                                        height="100%"
+                                                        src={`https://www.youtube.com/embed/${extractYoutubeId(featuredSermon.video_url)}?autoplay=1`}
+                                                        title="YouTube video player"
+                                                        frameBorder="0"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        allowFullScreen
+                                                        className="absolute inset-0 w-full h-full"
+                                                    />
+                                                ) : (
+                                                    <div
+                                                        className="relative h-full w-full cursor-pointer group/video"
+                                                        onClick={() => featuredSermon.video_url && setPlayingVideoId(featuredSermon.id)}
+                                                    >
+                                                        <div
+                                                            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover/video:scale-105"
+                                                            style={{
+                                                                backgroundImage: `url(${featuredSermon.has_thumbnail ? sermonApi.getThumbnailUrl(featuredSermon.id) : (featuredSermon.video_thumbnail || 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=800')})`
+                                                            }}
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                                            <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center group-hover/video:scale-110 transition-transform">
+                                                                <PlayCircle className="w-10 h-10 text-white fill-white/20" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="p-8 lg:p-12 flex flex-col justify-center relative">
+                                                <div className="absolute top-0 right-0 p-8 opacity-10">
+                                                    <Youtube className="w-32 h-32 text-white" />
+                                                </div>
+                                                <div className="relative z-10">
+                                                    <div className="flex items-center gap-2 text-[#f5bb00] text-sm font-bold uppercase tracking-widest mb-4">
+                                                        <span className="bg-[#f5bb00]/20 px-3 py-1 rounded-full">Featured Message</span>
+                                                    </div>
+                                                    <h3 className="text-3xl lg:text-4xl font-black text-white mb-4 leading-tight">{featuredSermon.title}</h3>
+                                                    <p className="text-white/70 text-lg mb-8 leading-relaxed line-clamp-3">
+                                                        {featuredSermon.description || 'A powerful message to transform your life.'}
+                                                    </p>
+
+                                                    <div className="flex flex-wrap items-center gap-6 mb-8 text-white/60 font-medium">
+                                                        <span className="flex items-center gap-2"><Users className="w-4 h-4" /> {featuredSermon.preacher}</span>
+                                                        <span className="flex items-center gap-2"><Calendar className="w-4 h-4" /> {new Date(featuredSermon.sermon_date).toLocaleDateString()}</span>
+                                                    </div>
+
+                                                    <Button
+                                                        onClick={() => setPlayingVideoId(featuredSermon.id)}
+                                                        className="bg-[#f5bb00] text-[#140152] hover:bg-[#d9a600] font-bold text-lg px-8 py-6 rounded-xl w-fit"
+                                                    >
+                                                        <PlayCircle className="w-5 h-5 mr-2" /> Watch Now
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Sermon Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {otherSermons.map((sermon) => (
+                                    <div key={sermon.id} className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 flex flex-col">
+                                        {/* Thumbnail Area */}
+                                        <div className="relative aspect-video bg-black overflow-hidden">
+                                            {playingVideoId === sermon.id && sermon.video_url ? (
                                                 <iframe
                                                     width="100%"
                                                     height="100%"
-                                                    src={`https://www.youtube.com/embed/${extractYoutubeId(featuredSermon.video_url)}?autoplay=1`}
-                                                    title="YouTube video player"
+                                                    src={`https://www.youtube.com/embed/${extractYoutubeId(sermon.video_url)}?autoplay=1`}
+                                                    title={sermon.title}
                                                     frameBorder="0"
                                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                                     allowFullScreen
@@ -272,427 +222,206 @@ export default function SermonsPage() {
                                                 />
                                             ) : (
                                                 <div
-                                                    className="relative h-full w-full cursor-pointer"
-                                                    onClick={() => featuredSermon.video_url && setPlayingVideoId(featuredSermon.id)}
+                                                    className="w-full h-full cursor-pointer relative"
+                                                    onClick={() => sermon.video_url && setPlayingVideoId(sermon.id)}
                                                 >
                                                     <div
-                                                        className="absolute inset-0 bg-cover bg-center"
-                                                        style={{
-                                                            backgroundImage: `url(${featuredSermon.has_thumbnail ? sermonApi.getThumbnailUrl(featuredSermon.id) : (featuredSermon.video_thumbnail || 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=800')})`
-                                                        }}
-                                                    />
-                                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                                        {featuredSermon.video_url && (
-                                                            <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
-                                                                <PlayCircle className="w-12 h-12 text-white" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="p-8 lg:p-12 flex flex-col justify-center text-white">
-                                            <div className="flex items-center gap-2 text-[#f5bb00] text-sm font-bold uppercase tracking-widest mb-4">
-                                                <span className="bg-[#f5bb00]/20 px-3 py-1 rounded-full">Featured</span>
-                                                {featuredSermon.series && <span>{featuredSermon.series}</span>}
-                                            </div>
-                                            <h3 className="text-3xl lg:text-4xl font-black mb-4 leading-tight">{featuredSermon.title}</h3>
-                                            <p className="text-white/70 text-lg mb-6 leading-relaxed line-clamp-3">
-                                                {featuredSermon.description || 'A powerful message to transform your life.'}
-                                            </p>
-                                            <div className="flex items-center gap-6 text-sm font-medium text-white/60 mb-8">
-                                                <div className="flex items-center gap-2">
-                                                    <Users className="w-4 h-4" />
-                                                    {featuredSermon.preacher}
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="w-4 h-4" />
-                                                    {new Date(featuredSermon.sermon_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-wrap gap-3">
-                                                {featuredSermon.video_url && (
-                                                    <Button
-                                                        onClick={() => setPlayingVideoId(featuredSermon.id)}
-                                                        className="bg-[#f5bb00] text-[#140152] hover:bg-[#d9a600]"
-                                                    >
-                                                        <PlayCircle className="w-5 h-5 mr-2" /> Watch Now
-                                                    </Button>
-                                                )}
-                                                {featuredSermon.has_audio && (
-                                                    <Button
-                                                        variant="outline"
-                                                        className="border-white/30 text-white hover:bg-white/10"
-                                                        onClick={() => playAudio(featuredSermon)}
-                                                    >
-                                                        <Music className="w-5 h-5 mr-2" />
-                                                        {currentAudio?.sermon.id === featuredSermon.id && isPlaying ? 'Playing...' : 'Listen'}
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Card>
-                            </div>
-                        )}
-
-                        {/* Content Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-                            {activeTab !== 'books' && otherSermons.map((sermon) => (
-                                <Card key={sermon.id} className="border-none shadow-lg hover:shadow-2xl transition-all duration-300 group rounded-[1.5rem] overflow-hidden flex flex-col h-full bg-white">
-                                    <div className="relative h-56 bg-black">
-                                        {playingVideoId === sermon.id && sermon.video_url ? (
-                                            <iframe
-                                                width="100%"
-                                                height="100%"
-                                                src={`https://www.youtube.com/embed/${extractYoutubeId(sermon.video_url)}?autoplay=1`}
-                                                title={sermon.title}
-                                                frameBorder="0"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowFullScreen
-                                                className="absolute inset-0 w-full h-full"
-                                            />
-                                        ) : (
-                                            <div
-                                                className="relative h-full w-full cursor-pointer"
-                                                onClick={() => sermon.video_url && setPlayingVideoId(sermon.id)}
-                                            >
-                                                <div
-                                                    className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-                                                    style={{
-                                                        backgroundImage: `url(${sermon.has_thumbnail ? sermonApi.getThumbnailUrl(sermon.id) : (sermon.video_thumbnail || 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=800')})`
-                                                    }}
-                                                />
-                                                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
-                                                {sermon.video_url && (
-                                                    <div className="absolute inset-0 flex items-center justify-center">
-                                                        <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                                            <PlayCircle className="w-8 h-8 text-white" />
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {sermon.series && (
-                                                    <div className="absolute bottom-4 left-4">
-                                                        <span className="bg-[#f5bb00] text-[#140152] text-xs font-bold px-3 py-1 rounded-full">
-                                                            {sermon.series}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                {/* Media badges */}
-                                                <div className="absolute top-4 right-4 flex gap-1">
-                                                    {sermon.has_audio && (
-                                                        <span className="bg-purple-500/80 backdrop-blur-md px-2 py-1 rounded-full text-xs text-white flex items-center gap-1">
-                                                            <Music className="w-3 h-3" />
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <CardContent className="p-6 flex-grow">
-                                        <div className="flex items-center gap-2 text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">
-                                            <Calendar className="w-3 h-3" />
-                                            {new Date(sermon.sermon_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                        </div>
-                                        <h3 className="text-xl font-black text-[#140152] mb-3 leading-snug group-hover:text-[#f5bb00] transition-colors">
-                                            {sermon.title}
-                                        </h3>
-                                        <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
-                                            {sermon.description || 'A powerful message from the Word of God.'}
-                                        </p>
-                                    </CardContent>
-                                    <CardFooter className="p-6 pt-0 mt-auto border-t border-gray-50">
-                                        <div className="w-full">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <div className="text-sm font-bold text-[#140152]/70 flex items-center gap-2">
-                                                    <Users className="w-4 h-4 text-[#f5bb00]" />
-                                                    {sermon.preacher}
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                {sermon.video_url && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="flex-1"
-                                                        onClick={() => setPlayingVideoId(playingVideoId === sermon.id ? null : sermon.id)}
-                                                    >
-                                                        <PlayCircle className="w-4 h-4 mr-1" />
-                                                        {playingVideoId === sermon.id ? 'Stop' : 'Watch'}
-                                                    </Button>
-                                                )}
-                                                {sermon.has_audio && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className={`${currentAudio?.sermon.id === sermon.id && isPlaying ? 'bg-purple-100 border-purple-300' : ''}`}
-                                                        onClick={() => playAudio(sermon)}
-                                                    >
-                                                        {currentAudio?.sermon.id === sermon.id && isPlaying ? (
-                                                            <Pause className="w-4 h-4" />
-                                                        ) : (
-                                                            <Music className="w-4 h-4" />
-                                                        )}
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </CardFooter>
-                                </Card>
-                            ))}
-
-                            {/* Special display for Books tab */}
-                            {activeTab === 'books' && (
-                                <>
-                                    {/* Sermons with Documents */}
-                                    {filteredSermons.map((sermon) => (
-                                        <Card key={sermon.id} className="border-none shadow-lg hover:shadow-2xl transition-all duration-300 group rounded-[1.5rem] overflow-hidden flex flex-col h-full bg-white">
-                                            <div className="relative h-56 bg-black">
-                                                <div
-                                                    className="relative h-full w-full cursor-pointer"
-                                                    onClick={() => viewDocument(sermon)}
-                                                >
-                                                    <div
-                                                        className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+                                                        className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
                                                         style={{
                                                             backgroundImage: `url(${sermon.has_thumbnail ? sermonApi.getThumbnailUrl(sermon.id) : (sermon.video_thumbnail || 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=800')})`
                                                         }}
                                                     />
-                                                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
-                                                    <div className="absolute inset-0 flex items-center justify-center">
-                                                        <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                                            <BookOpen className="w-8 h-8 text-white" />
+                                                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                        <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
+                                                            <PlayCircle className="w-6 h-6 text-white" />
                                                         </div>
                                                     </div>
+                                                    {sermon.series && (
+                                                        <div className="absolute top-4 left-4">
+                                                            <span className="bg-[#140152]/80 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full">
+                                                                {sermon.series}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            </div>
-                                            <CardContent className="p-6 flex-grow">
-                                                <div className="flex items-center gap-2 text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">
-                                                    <Calendar className="w-3 h-3" />
-                                                    {new Date(sermon.sermon_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                                </div>
-                                                <h3 className="text-xl font-black text-[#140152] mb-3 leading-snug group-hover:text-[#f5bb00] transition-colors">
-                                                    {sermon.title}
-                                                </h3>
-                                                <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
-                                                    {sermon.description || 'A powerful message from the Word of God.'}
-                                                </p>
-                                            </CardContent>
-                                            <CardFooter className="p-6 pt-0 mt-auto border-t border-gray-50">
-                                                <Button
-                                                    className="w-full bg-[#140152] hover:bg-[#2a0a6e] text-white"
-                                                    onClick={() => viewDocument(sermon)}
-                                                >
-                                                    <FileText className="w-4 h-4 mr-2" /> Read Book
-                                                </Button>
-                                            </CardFooter>
-                                        </Card>
-                                    ))}
+                                            )}
+                                        </div>
 
-                                    {/* Hardcoded Books */}
-                                    {books.map((book, i) => (
-                                        <div key={`book-${i}`} className="bg-white rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-shadow flex flex-col h-full border border-gray-100">
-                                            <div className="h-64 overflow-hidden relative group">
-                                                <img src={book.image} alt={book.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                                        {/* Content */}
+                                        <div className="p-6 flex flex-col flex-grow">
+                                            <div className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider flex items-center gap-2">
+                                                <Calendar className="w-3 h-3" />
+                                                {new Date(sermon.sermon_date).toLocaleDateString()}
                                             </div>
-                                            <div className="p-8 flex flex-col flex-grow">
-                                                <div className="mb-4">
-                                                    <h3 className="text-xl font-black text-[#140152] mb-1 leading-tight">{book.title}</h3>
-                                                    <p className="text-sm font-bold text-[#f5bb00]">{book.author}</p>
-                                                </div>
-                                                <p className="text-gray-600 text-sm mb-8 line-clamp-3 flex-grow">{book.description}</p>
-
-                                                <div className="space-y-3 mt-auto">
-                                                    <Button className="w-full bg-[#140152] hover:bg-[#2a0a6e] text-white font-bold rounded-xl" onClick={() => handleDownload(book.downloadUrl, `${book.title}.pdf`)}>
-                                                        <Download className="w-4 h-4 mr-2" /> Download PDF
-                                                    </Button>
-                                                    <Button variant="outline" className="w-full border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl" onClick={() => window.open(book.amazonUrl, '_blank')}>
-                                                        <ExternalLink className="w-4 h-4 mr-2" /> Get on Amazon
-                                                    </Button>
-                                                </div>
+                                            <h3 className="text-lg font-bold text-[#140152] mb-2 line-clamp-2 group-hover:text-blue-700 transition-colors">
+                                                {sermon.title}
+                                            </h3>
+                                            <p className="text-sm text-gray-500 line-clamp-2 mb-4 flex-grow">
+                                                {sermon.description || 'Watch this powerful message.'}
+                                            </p>
+                                            <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-auto">
+                                                <span className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                                                    <Users className="w-4 h-4 text-[#f5bb00]" /> {sermon.preacher}
+                                                </span>
                                             </div>
                                         </div>
-                                    ))}
-                                </>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {videoSermons.length === 0 && (
+                                <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200">
+                                    <Video className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                                    <h3 className="text-xl font-bold text-gray-400">No messages found</h3>
+                                </div>
                             )}
-                        </div>
+                        </>
+                    )}
+                </section>
 
-                        {/* Show No Content Message if empty */}
-                        {activeTab !== 'books' && filteredSermons.length === 0 && !loading && (
-                            <div className="text-center py-20 col-span-full">
-                                <Youtube className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                                <p className="text-xl font-medium text-gray-600">No content found in this category.</p>
-                            </div>
-                        )}
-                        {activeTab === 'books' && filteredSermons.length === 0 && books.length === 0 && !loading && (
-                            <div className="text-center py-20 col-span-full">
-                                <BookOpen className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                                <p className="text-xl font-medium text-gray-600">No books found.</p>
-                            </div>
-                        )}
-                    </>
-                )}
-            </SectionWrapper>
-
-            {/* YouTube Channel CTA - Hide for books */}
-            <SectionWrapper background="dark">
-                <div className="text-center text-white max-w-4xl mx-auto space-y-8">
-                    <Youtube className="w-20 h-20 text-[#f5bb00] mx-auto animate-pulse" />
-                    <h2 className="text-4xl md:text-5xl font-black">Subscribe to Our Channel</h2>
-                    <p className="text-xl text-white/80 leading-relaxed">
-                        Don't miss out on live streams, worship sessions, and special content. Join our online community on YouTube.
-                    </p>
-                    <div className="flex justify-center">
-                        <PremiumButton href="https://www.youtube.com/@LightEncounterTabernacle">Subscribe Now</PremiumButton>
-                    </div>
-                </div>
-            </SectionWrapper>
-
-            {/* Hidden Audio Element */}
-            {currentAudio && (
-                <audio
-                    ref={audioRef}
-                    src={currentAudio.url}
-                    onTimeUpdate={handleAudioTimeUpdate}
-                    onLoadedMetadata={handleAudioTimeUpdate}
-                    onEnded={() => setIsPlaying(false)}
-                    onPlay={() => setIsPlaying(true)}
-                    onPause={() => setIsPlaying(false)}
-                    autoPlay
-                />
-            )}
-
-            {/* Floating Audio Player */}
-            {currentAudio && (
-                <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-[#140152] to-[#2a0a6e] text-white shadow-2xl z-50 border-t border-white/10">
-                    <div className="max-w-6xl mx-auto px-4 py-3">
-                        <div className="flex items-center gap-4">
-                            {/* Album Art / Icon */}
-                            <div className="w-14 h-14 bg-[#f5bb00]/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                                <Music className="w-7 h-7 text-[#f5bb00]" />
-                            </div>
-
-                            {/* Song Info */}
-                            <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-white truncate">{currentAudio.sermon.title}</h4>
-                                <p className="text-sm text-white/60 truncate">{currentAudio.sermon.preacher}</p>
-                            </div>
-
-                            {/* Controls */}
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => {
-                                        if (isPlaying) {
-                                            audioRef.current?.pause()
-                                        } else {
-                                            audioRef.current?.play()
-                                        }
-                                    }}
-                                    className="w-12 h-12 bg-[#f5bb00] rounded-full flex items-center justify-center hover:bg-[#d9a600] transition-colors"
-                                >
-                                    {isPlaying ? (
-                                        <Pause className="w-5 h-5 text-[#140152]" />
-                                    ) : (
-                                        <Play className="w-5 h-5 text-[#140152] ml-0.5" />
-                                    )}
-                                </button>
-
-                                <button
-                                    onClick={() => {
-                                        setIsMuted(!isMuted)
-                                        if (audioRef.current) audioRef.current.muted = !isMuted
-                                    }}
-                                    className="p-2 hover:bg-white/10 rounded-lg"
-                                >
-                                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                                </button>
-
-                                <button
-                                    onClick={() => handleDownload(currentAudio.url, currentAudio.sermon.audio_filename || 'audio.mp3')}
-                                    className="p-2 hover:bg-white/10 rounded-lg"
-                                    title="Download"
-                                >
-                                    <Download className="w-5 h-5" />
-                                </button>
-
-                                <button
-                                    onClick={closeAudioPlayer}
-                                    className="p-2 hover:bg-white/10 rounded-lg"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="flex items-center gap-3 mt-2">
-                            <span className="text-xs text-white/60 w-10">{formatTime(audioProgress)}</span>
-                            <input
-                                type="range"
-                                min={0}
-                                max={audioDuration || 100}
-                                value={audioProgress}
-                                onChange={handleAudioSeek}
-                                className="flex-1 h-1 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#f5bb00]"
-                            />
-                            <span className="text-xs text-white/60 w-10">{formatTime(audioDuration)}</span>
+                {/* 2. LIBRARY / BOOKS SECTION */}
+                <section>
+                    <div className="flex items-end justify-between mb-8 border-b border-gray-200 pb-4">
+                        <div>
+                            <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm block mb-2">Read</span>
+                            <h2 className="text-3xl md:text-4xl font-black text-[#140152]">Books & Resources</h2>
                         </div>
                     </div>
-                </div>
-            )}
 
-            {/* Document Viewer Modal */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {bookContent.map((book) => (
+                            <div key={book.id} className="group relative bg-[#f8f9fc] rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full hover:-translate-y-1">
+                                <div className="aspect-[3/4] bg-white relative overflow-hidden flex items-center justify-center p-8 bg-gradient-to-br from-gray-50 to-gray-100">
+                                    {/* Book Cover Simulation */}
+                                    <div
+                                        className="w-full h-full shadow-[0_10px_20px_rgba(0,0,0,0.15)] rounded-r-md border-l-4 border-gray-300 relative transform transition-transform duration-500 group-hover:scale-105 bg-cover bg-center"
+                                        style={{
+                                            backgroundImage: `url(${book.has_thumbnail ? sermonApi.getThumbnailUrl(book.id) : (book.video_thumbnail || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600')})`
+                                        }}
+                                    >
+                                        <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent pointer-events-none" />
+                                    </div>
+                                </div>
+
+                                <div className="p-5 flex flex-col flex-grow bg-white">
+                                    <h3 className="font-bold text-[#140152] text-lg leading-tight mb-1 line-clamp-2">{book.title}</h3>
+                                    <p className="text-sm text-gray-500 font-medium mb-3">{book.preacher}</p>
+
+                                    <div className="mt-auto space-y-2">
+                                        <Button
+                                            className="w-full bg-[#140152] text-white hover:bg-[#2a0a6e]"
+                                            onClick={() => viewDocument(book)}
+                                        >
+                                            <BookOpen className="w-4 h-4 mr-2" /> Read Now
+                                        </Button>
+                                        {book.has_document && !book.document_url && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full text-gray-500 hover:text-[#140152]"
+                                                onClick={() => handleDownload(sermonApi.getDocumentUrl(book.id), book.document_filename || 'book.pdf')}
+                                            >
+                                                <Download className="w-3 h-3 mr-2" /> Download
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+
+                        {/* Example Placeholder Books if library is empty */}
+                        {bookContent.length === 0 && !loading && (
+                            <div className="col-span-full py-12 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                                <BookOpen className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                                <p className="text-gray-500 font-medium">No books currently available in the library.</p>
+                            </div>
+                        )}
+                    </div>
+                </section>
+            </main>
+
+            {/* Viewer Modal */}
             {viewingDocument && (
                 <div
-                    className="fixed inset-0 bg-black/90 z-50 flex flex-col"
+                    className="fixed inset-0 bg-black/95 z-50 flex flex-col animate-in fade-in duration-200"
                     onClick={() => setViewingDocument(null)}
                 >
-                    {/* Header */}
-                    <div className="bg-[#140152] text-white p-4 flex items-center justify-between" onClick={e => e.stopPropagation()}>
+                    <div className="bg-[#140152] text-white p-4 flex items-center justify-between shadow-lg" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center gap-3">
-                            <FileText className="w-6 h-6 text-[#f5bb00]" />
+                            <div className="bg-white/10 p-2 rounded-lg">
+                                <FileText className="w-5 h-5 text-[#f5bb00]" />
+                            </div>
                             <div>
-                                <h3 className="font-bold">{viewingDocument.sermon.title}</h3>
-                                <p className="text-sm text-white/60">{viewingDocument.sermon.document_filename}</p>
+                                <h3 className="font-bold text-sm md:text-base">{viewingDocument.sermon.title}</h3>
+                                <p className="text-xs text-white/50">{viewingDocument.sermon.preacher}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
                             <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
-                                className="border-white/30 text-white hover:bg-white/10"
-                                onClick={() => handleDownload(viewingDocument.url, viewingDocument.sermon.document_filename || 'document.pdf')}
-                            >
-                                <Download className="w-4 h-4 mr-2" /> Download
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="border-white/30 text-white hover:bg-white/10"
+                                className="text-white hover:bg-white/10"
                                 onClick={() => window.open(viewingDocument.url, '_blank')}
                             >
-                                <ExternalLink className="w-4 h-4 mr-2" /> Open in New Tab
+                                <ExternalLink className="w-4 h-4 mr-2" /> Open External
                             </Button>
                             <button
                                 onClick={() => setViewingDocument(null)}
-                                className="p-2 hover:bg-white/10 rounded-lg ml-2"
+                                className="p-2 hover:bg-white/10 rounded-full transition-colors"
                             >
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
                     </div>
-
-                    {/* Document Embed */}
-                    <div className="flex-1 bg-gray-100" onClick={e => e.stopPropagation()}>
+                    <div className="flex-1 bg-gray-900 overflow-hidden relative" onClick={e => e.stopPropagation()}>
                         <iframe
-                            src={`${viewingDocument.url}#toolbar=1&navpanes=0`}
-                            className="w-full h-full"
+                            src={viewingDocument.url}
+                            className="w-full h-full border-none"
                             title={viewingDocument.sermon.title}
                         />
                     </div>
                 </div>
             )}
-        </>
+        </div>
+    )
+}
+
+function Video({ className }: { className?: string }) {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+        >
+            <path d="m22 8-6 4 6 4V8Z" />
+            <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
+        </svg>
+    )
+}
+
+function X({ className }: { className?: string }) {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+        >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+        </svg>
     )
 }

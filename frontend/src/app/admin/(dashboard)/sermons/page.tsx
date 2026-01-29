@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import {
     Plus, Trash2, Loader2, Edit2, Video, Search, Eye, EyeOff,
-    Star, StarOff, Music, FileText, Upload, X, Calendar, User
+    Star, StarOff, FileText, Upload, X, Calendar, User, Link as LinkIcon
 } from 'lucide-react'
 import { sermonApi, Sermon, SermonCreateData } from '@/lib/api'
 
@@ -28,13 +28,12 @@ export default function AdminSermonsPage() {
     const [description, setDescription] = useState('')
     const [series, setSeries] = useState('')
     const [videoUrl, setVideoUrl] = useState('')
+    const [documentUrl, setDocumentUrl] = useState('')
     const [isFeatured, setIsFeatured] = useState(false)
     const [isPublished, setIsPublished] = useState(true)
-    const [audioFile, setAudioFile] = useState<File | null>(null)
     const [documentFile, setDocumentFile] = useState<File | null>(null)
     const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
 
-    const audioInputRef = useRef<HTMLInputElement>(null)
     const documentInputRef = useRef<HTMLInputElement>(null)
     const thumbnailInputRef = useRef<HTMLInputElement>(null)
 
@@ -71,9 +70,9 @@ export default function AdminSermonsPage() {
         setDescription('')
         setSeries('')
         setVideoUrl('')
+        setDocumentUrl('')
         setIsFeatured(false)
         setIsPublished(true)
-        setAudioFile(null)
         setDocumentFile(null)
         setThumbnailFile(null)
         setEditingSermon(null)
@@ -88,6 +87,7 @@ export default function AdminSermonsPage() {
         setDescription(sermon.description || '')
         setSeries(sermon.series || '')
         setVideoUrl(sermon.video_url || '')
+        setDocumentUrl(sermon.document_url || '')
         setIsFeatured(sermon.is_featured)
         setIsPublished(sermon.is_published)
         setShowForm(true)
@@ -106,9 +106,9 @@ export default function AdminSermonsPage() {
                 description: description || undefined,
                 series: series || undefined,
                 video_url: videoUrl || undefined,
+                document_url: documentUrl || undefined,
                 is_featured: isFeatured,
                 is_published: isPublished,
-                audio: audioFile || undefined,
                 document: documentFile || undefined,
                 thumbnail: thumbnailFile || undefined,
             }
@@ -160,13 +160,6 @@ export default function AdminSermonsPage() {
         }
     }
 
-    const formatFileSize = (bytes?: number) => {
-        if (!bytes) return ''
-        if (bytes < 1024) return `${bytes} B`
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-    }
-
     const filteredSermons = sermons.filter(s =>
         s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.preacher.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -177,14 +170,14 @@ export default function AdminSermonsPage() {
         <div className="max-w-6xl mx-auto space-y-6">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-[#140152]">Sermons & Messages</h1>
-                    <p className="text-gray-500 text-sm">Manage your video library, audio messages, and documents</p>
+                    <h1 className="text-2xl font-bold text-[#140152]">Sermons & Books</h1>
+                    <p className="text-gray-500 text-sm">Manage your video library and books (PDF)</p>
                 </div>
                 <Button
                     onClick={() => { resetForm(); setShowForm(true) }}
                     className="bg-[#f5bb00] text-[#140152] hover:bg-[#d9a600] font-bold"
                 >
-                    <Plus className="w-4 h-4 mr-2" /> Add Sermon
+                    <Plus className="w-4 h-4 mr-2" /> Add Content
                 </Button>
             </div>
 
@@ -196,7 +189,7 @@ export default function AdminSermonsPage() {
                 <Card className="border-2 border-purple-200 shadow-lg">
                     <CardHeader className="pb-3">
                         <div className="flex justify-between items-center">
-                            <CardTitle>{editingSermon ? 'Edit Sermon' : 'Add New Sermon'}</CardTitle>
+                            <CardTitle>{editingSermon ? 'Edit Content' : 'Add New Content'}</CardTitle>
                             <Button variant="ghost" size="sm" onClick={resetForm}>
                                 <X className="w-4 h-4" />
                             </Button>
@@ -210,13 +203,13 @@ export default function AdminSermonsPage() {
                                     <input
                                         value={title}
                                         onChange={e => setTitle(e.target.value)}
-                                        placeholder="e.g., Walking in Victory"
+                                        placeholder="e.g., Walking in Victory or Book Title"
                                         className="w-full p-2 border rounded-lg"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Preacher *</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Preacher / Author *</label>
                                     <input
                                         value={preacher}
                                         onChange={e => setPreacher(e.target.value)}
@@ -239,7 +232,7 @@ export default function AdminSermonsPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Series</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Series (Optional)</label>
                                     <input
                                         value={series}
                                         onChange={e => setSeries(e.target.value)}
@@ -254,50 +247,39 @@ export default function AdminSermonsPage() {
                                 <textarea
                                     value={description}
                                     onChange={e => setDescription(e.target.value)}
-                                    placeholder="Brief summary of the message..."
+                                    placeholder="Brief summary..."
                                     className="w-full p-2 border rounded-lg"
                                     rows={2}
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
-                                <input
-                                    value={videoUrl}
-                                    onChange={e => setVideoUrl(e.target.value)}
-                                    placeholder="https://youtube.com/watch?v=..."
-                                    className="w-full p-2 border rounded-lg"
-                                />
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
+                                    <input
+                                        value={videoUrl}
+                                        onChange={e => setVideoUrl(e.target.value)}
+                                        placeholder="https://youtube.com/watch?v=..."
+                                        className="w-full p-2 border rounded-lg"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Document URL (PDF)</label>
+                                    <input
+                                        value={documentUrl}
+                                        onChange={e => setDocumentUrl(e.target.value)}
+                                        placeholder="https://example.com/book.pdf"
+                                        className="w-full p-2 border rounded-lg"
+                                    />
+                                </div>
                             </div>
 
                             {/* File Uploads */}
-                            <div className="grid md:grid-cols-3 gap-4">
+                            <div className="grid md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Audio (MP3)</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Or Upload Document (PDF)</label>
                                     <div
-                                        className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-purple-400 transition-colors"
-                                        onClick={() => audioInputRef.current?.click()}
-                                    >
-                                        <input
-                                            ref={audioInputRef}
-                                            type="file"
-                                            accept="audio/*"
-                                            className="hidden"
-                                            onChange={e => setAudioFile(e.target.files?.[0] || null)}
-                                        />
-                                        {audioFile ? (
-                                            <span className="text-green-600 text-sm">{audioFile.name}</span>
-                                        ) : editingSermon?.has_audio ? (
-                                            <span className="text-blue-600 text-sm">{editingSermon.audio_filename}</span>
-                                        ) : (
-                                            <span className="text-gray-400 text-sm"><Music className="w-5 h-5 inline mr-1" />Upload Audio</span>
-                                        )}
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Document (PDF)</label>
-                                    <div
-                                        className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 transition-colors"
+                                        className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 transition-colors bg-gray-50 hover:bg-white"
                                         onClick={() => documentInputRef.current?.click()}
                                     >
                                         <input
@@ -308,18 +290,21 @@ export default function AdminSermonsPage() {
                                             onChange={e => setDocumentFile(e.target.files?.[0] || null)}
                                         />
                                         {documentFile ? (
-                                            <span className="text-green-600 text-sm">{documentFile.name}</span>
+                                            <span className="text-green-600 text-sm font-medium">{documentFile.name}</span>
                                         ) : editingSermon?.has_document ? (
-                                            <span className="text-blue-600 text-sm">{editingSermon.document_filename}</span>
+                                            <span className="text-blue-600 text-sm font-medium">{editingSermon.document_filename}</span>
                                         ) : (
-                                            <span className="text-gray-400 text-sm"><FileText className="w-5 h-5 inline mr-1" />Upload Doc</span>
+                                            <span className="text-gray-400 text-sm flex items-center justify-center gap-2">
+                                                <Upload className="w-5 h-5" />
+                                                <span>Choose PDF File</span>
+                                            </span>
                                         )}
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Thumbnail (Image)</label>
                                     <div
-                                        className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-yellow-400 transition-colors"
+                                        className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-yellow-400 transition-colors bg-gray-50 hover:bg-white"
                                         onClick={() => thumbnailInputRef.current?.click()}
                                     >
                                         <input
@@ -330,9 +315,12 @@ export default function AdminSermonsPage() {
                                             onChange={e => setThumbnailFile(e.target.files?.[0] || null)}
                                         />
                                         {thumbnailFile ? (
-                                            <span className="text-green-600 text-sm">{thumbnailFile.name}</span>
+                                            <span className="text-green-600 text-sm font-medium">{thumbnailFile.name}</span>
                                         ) : (
-                                            <span className="text-gray-400 text-sm"><Upload className="w-5 h-5 inline mr-1" />Thumbnail</span>
+                                            <span className="text-gray-400 text-sm flex items-center justify-center gap-2">
+                                                <Upload className="w-5 h-5" />
+                                                <span>Choose Image</span>
+                                            </span>
                                         )}
                                     </div>
                                 </div>
@@ -344,25 +332,25 @@ export default function AdminSermonsPage() {
                                         type="checkbox"
                                         checked={isFeatured}
                                         onChange={e => setIsFeatured(e.target.checked)}
-                                        className="w-4 h-4"
+                                        className="w-4 h-4 text-purple-600 rounded"
                                     />
-                                    <span className="text-sm">Featured</span>
+                                    <span className="text-sm font-medium text-gray-700">Featured</span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={isPublished}
                                         onChange={e => setIsPublished(e.target.checked)}
-                                        className="w-4 h-4"
+                                        className="w-4 h-4 text-purple-600 rounded"
                                     />
-                                    <span className="text-sm">Published</span>
+                                    <span className="text-sm font-medium text-gray-700">Published</span>
                                 </label>
                             </div>
 
                             <div className="flex gap-3 pt-2">
                                 <Button type="submit" disabled={submitting} className="bg-[#140152] hover:bg-[#1d0175]">
                                     {submitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                                    {editingSermon ? 'Update Sermon' : 'Create Sermon'}
+                                    {editingSermon ? 'Update Content' : 'Create Content'}
                                 </Button>
                                 <Button type="button" variant="outline" onClick={resetForm}>Cancel</Button>
                             </div>
@@ -378,7 +366,7 @@ export default function AdminSermonsPage() {
                         <Search className="w-4 h-4 text-gray-400" />
                         <input
                             type="text"
-                            placeholder="Search sermons..."
+                            placeholder="Search content..."
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                             className="bg-transparent border-none outline-none text-sm w-64"
@@ -390,16 +378,16 @@ export default function AdminSermonsPage() {
                         <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-purple-500" /></div>
                     ) : filteredSermons.length === 0 ? (
                         <div className="text-center py-12 text-gray-500">
-                            {searchQuery ? 'No sermons match your search' : 'No sermons yet. Add your first one!'}
+                            {searchQuery ? 'No content matches your search' : 'No content yet. Add your first video or book!'}
                         </div>
                     ) : (
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs text-gray-500 uppercase bg-gray-50/50">
                                 <tr>
                                     <th className="px-6 py-3">Title</th>
-                                    <th className="px-6 py-3">Preacher</th>
+                                    <th className="px-6 py-3">Type</th>
+                                    <th className="px-6 py-3">Author/Preacher</th>
                                     <th className="px-6 py-3">Date</th>
-                                    <th className="px-6 py-3">Media</th>
                                     <th className="px-6 py-3">Status</th>
                                     <th className="px-6 py-3 text-right">Actions</th>
                                 </tr>
@@ -413,7 +401,9 @@ export default function AdminSermonsPage() {
                                                     {sermon.video_thumbnail ? (
                                                         <img src={sermon.video_thumbnail} alt="" className="w-full h-full object-cover" />
                                                     ) : (
-                                                        <Video className="w-4 h-4 text-[#140152]" />
+                                                        <div className="text-[#140152]">
+                                                            {sermon.video_url ? <Video className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                                                        </div>
                                                     )}
                                                 </div>
                                                 <div>
@@ -422,26 +412,27 @@ export default function AdminSermonsPage() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">{sermon.preacher}</td>
-                                        <td className="px-6 py-4 text-gray-500">{sermon.sermon_date}</td>
                                         <td className="px-6 py-4">
                                             <div className="flex gap-1">
                                                 {sermon.video_url && (
-                                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600">Video</span>
+                                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600 flex items-center gap-1">
+                                                        <Video className="w-3 h-3" /> Video
+                                                    </span>
                                                 )}
-                                                {sermon.has_audio && (
-                                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-600">Audio</span>
-                                                )}
-                                                {sermon.has_document && (
-                                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-600">Doc</span>
+                                                {(sermon.has_document || sermon.document_url) && (
+                                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-600 flex items-center gap-1">
+                                                        <FileText className="w-3 h-3" /> Book
+                                                    </span>
                                                 )}
                                             </div>
                                         </td>
+                                        <td className="px-6 py-4">{sermon.preacher}</td>
+                                        <td className="px-6 py-4 text-gray-500">{sermon.sermon_date}</td>
                                         <td className="px-6 py-4">
                                             <div className="flex gap-1 items-center">
                                                 {sermon.is_featured && <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />}
                                                 {sermon.is_published ? (
-                                                    <span className="text-green-600 text-xs">Published</span>
+                                                    <span className="text-green-600 text-xs font-bold">Published</span>
                                                 ) : (
                                                     <span className="text-gray-400 text-xs">Draft</span>
                                                 )}

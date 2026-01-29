@@ -2,77 +2,76 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import SectionWrapper from '@/components/shared/SectionWrapper'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { Briefcase, TrendingUp, Users, LogOut, Loader2, Clock, Bell, X, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone } from 'lucide-react'
+import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
+import { serviceRequestApi, notificationApi, Notification } from '@/lib/api'
+import { Spotlight } from '@/components/ui/spotlight'
 
-// Service configuration for cards - these only appear after user is approved for each service
+// Service configuration for cards
 const SERVICE_CONFIG: Record<string, { icon: React.ReactNode; description: string; buttonText: string; buttonLink: string }> = {
     "Bible study": {
-        icon: <BookOpen className="w-6 h-6" />,
+        icon: <BookOpen className="w-8 h-8" />,
         description: "Deepen your understanding of Scripture through our comprehensive Bible study programs.",
         buttonText: "Join Bible Study",
         buttonLink: "/bible-reading"
     },
     "Prayer meeting": {
-        icon: <Heart className="w-6 h-6" />,
+        icon: <Heart className="w-8 h-8" />,
         description: "Connect with fellow believers in powerful prayer sessions and intercession.",
         buttonText: "Join Prayer",
         buttonLink: "/prayer"
     },
     "Evangelism": {
-        icon: <Megaphone className="w-6 h-6" />,
+        icon: <Megaphone className="w-8 h-8" />,
         description: "Be part of our outreach team spreading the Gospel in communities.",
         buttonText: "Go Evangelism",
         buttonLink: "/evangelism"
     },
     "Choir": {
-        icon: <Music className="w-6 h-6" />,
+        icon: <Music className="w-8 h-8" />,
         description: "Join our worship team and use your musical gifts to glorify God.",
         buttonText: "View Choir",
         buttonLink: "/services/alter-sound"
     },
     "Theology school": {
-        icon: <GraduationCap className="w-6 h-6" />,
+        icon: <GraduationCap className="w-8 h-8" />,
         description: "Advance your theological knowledge through our accredited courses.",
         buttonText: "Access School",
         buttonLink: "/theology-school"
     },
     "Counselling": {
-        icon: <MessageCircle className="w-6 h-6" />,
+        icon: <MessageCircle className="w-8 h-8" />,
         description: "Access spiritual and pastoral counselling support services.",
         buttonText: "Get Counselling",
         buttonLink: "/services/counselling"
     },
     "Skill Development": {
-        icon: <TrendingUp className="w-6 h-6" />,
+        icon: <TrendingUp className="w-8 h-8" />,
         description: "Track your courses, workshops, and skill acquisition progress.",
         buttonText: "Go to Skills Hub",
         buttonLink: "/skill-development"
     },
     "Leadership Training": {
-        icon: <Users className="w-6 h-6" />,
+        icon: <Users className="w-8 h-8" />,
         description: "View your leadership modules and ministry training status.",
         buttonText: "View Leadership",
         buttonLink: "/leadership"
     },
     "Career Guidance": {
-        icon: <Briefcase className="w-6 h-6" />,
+        icon: <Briefcase className="w-8 h-8" />,
         description: "Access your mentorship dashboard using our Mentorship Code feature.",
         buttonText: "Access Career Track",
         buttonLink: "/career-guidance"
     }
 }
-import { userApi, serviceRequestApi, notificationApi, tokenManager, Notification } from '@/lib/api'
 
 export default function UserDashboard() {
     const router = useRouter()
     const [userName, setUserName] = useState('')
     const [bibleProgress, setBibleProgress] = useState(0)
-    const [attendance, setAttendance] = useState<string[]>([])
     const [approvedServices, setApprovedServices] = useState<string[]>([])
     const [pendingServices, setPendingServices] = useState<string[]>([])
     const [servicesLoading, setServicesLoading] = useState(true)
@@ -97,10 +96,6 @@ export default function UserDashboard() {
             const totalWeeks = 54 // Based on the plan length in bible-reading page
             const completedCount = Object.values(completed).filter(Boolean).length
             setBibleProgress(Math.round((completedCount / totalWeeks) * 100))
-
-            // Service Attendance
-            const storedAttendance = JSON.parse(localStorage.getItem('serviceAttendance') || '[]')
-            setAttendance(storedAttendance)
 
             // Fetch My Services from service requests
             try {
@@ -144,203 +139,155 @@ export default function UserDashboard() {
         setShowNotifications(!showNotifications)
     }
 
-    const markAsRead = async (notificationId: string) => {
-        try {
-            await notificationApi.markAsRead(notificationId)
-            setNotifications(prev =>
-                prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
-            )
-            setUnreadCount(prev => Math.max(0, prev - 1))
-        } catch (err) {
-            console.error('Failed to mark notification as read', err)
-        }
-    }
-
-    const markAllAsRead = async () => {
-        try {
-            await notificationApi.markAllAsRead()
-            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
-            setUnreadCount(0)
-        } catch (err) {
-            console.error('Failed to mark all notifications as read', err)
-        }
-    }
-
-    const handleLogout = () => {
-        tokenManager.clearTokens()
-        router.push('/')
-    }
-
-    const handleCheckIn = () => {
-        const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-        const newAttendance = [today, ...attendance]
-        setAttendance(newAttendance)
-        localStorage.setItem('serviceAttendance', JSON.stringify(newAttendance))
-    }
-
-    const formatTimeAgo = (dateString: string) => {
-        const date = new Date(dateString)
-        const now = new Date()
-        const diffMs = now.getTime() - date.getTime()
-        const diffMins = Math.floor(diffMs / 60000)
-        const diffHours = Math.floor(diffMins / 60)
-        const diffDays = Math.floor(diffHours / 24)
-
-        if (diffMins < 1) return 'Just now'
-        if (diffMins < 60) return `${diffMins}m ago`
-        if (diffHours < 24) return `${diffHours}h ago`
-        return `${diffDays}d ago`
-    }
-
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* Welcome Section */}
-            <div className="bg-white border-b border-gray-100 py-6 px-4 md:px-12">
-                <div className="max-w-6xl mx-auto">
-                    <h1 className="text-2xl md:text-3xl font-bold text-[#140152]">Welcome back, {userName}!</h1>
-                    <p className="text-gray-500 mt-1">Here's what's happening with your ministries.</p>
+        <div className="min-h-screen bg-gray-50 flex flex-col relative overflow-hidden font-sans">
+
+            {/* Spotlight Hero Section */}
+            <div className="relative bg-[#140152] pt-32 pb-32 px-4 md:px-12 overflow-hidden">
+                <Spotlight className="-top-10 left-0 md:left-60 md:-top-20" fill="white" />
+                <div className="max-w-7xl mx-auto relative z-10 flex flex-col md:flex-row justify-between items-end gap-8">
+                    <div>
+                        <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 mb-6 tracking-tight">
+                            Welcome back,<br /> {userName}.
+                        </h1>
+                        <p className="text-blue-200 text-lg md:text-xl max-w-2xl font-light leading-relaxed">
+                            Your spiritual journey continues. Here's what's happening today.
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            <main className="flex-grow py-12 px-4 md:px-12">
-                <div className="max-w-6xl mx-auto space-y-8">
+            <main className="flex-grow py-16 px-4 md:px-12 -mt-20 relative z-20">
+                <div className="max-w-7xl mx-auto space-y-16">
 
-                    {/* Stats Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Top Highlights Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Bible Progress Card */}
-                        <Card className="bg-gradient-to-br from-blue-600 to-blue-800 text-white border-none shadow-lg">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-blue-100 text-sm uppercase tracking-wider font-medium">Bible Reading</CardTitle>
+                        <Card className="bg-white/95 backdrop-blur-xl border-white/20 shadow-2xl hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.7)] transition-all duration-500 overflow-hidden group rounded-3xl h-full flex flex-col justify-between">
+                            <CardHeader className="pb-2 relative p-8">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100/50 rounded-full blur-3xl -mr-20 -mt-20 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                <CardTitle className="text-blue-600 text-sm uppercase tracking-widest font-bold z-10 flex items-center gap-2">
+                                    <BookOpen className="w-4 h-4" />
+                                    Bible Reading Plan
+                                </CardTitle>
                             </CardHeader>
-                            <CardContent>
-                                <div className="flex items-end justify-between mb-4">
-                                    <span className="text-4xl font-bold">{bibleProgress}%</span>
-                                    <span className="text-blue-200 text-sm mb-1">Completed</span>
+                            <CardContent className="relative z-10 px-8 pb-8 pt-0 flex-grow flex flex-col justify-end">
+                                <div className="flex items-baseline gap-2 mb-6">
+                                    <span className="text-7xl font-black text-[#140152] tracking-tighter">{bibleProgress}%</span>
+                                    <span className="text-gray-400 font-medium text-lg">completed</span>
                                 </div>
-                                <div className="w-full bg-blue-900/50 rounded-full h-2">
-                                    <div className="bg-white h-2 rounded-full transition-all duration-1000" style={{ width: `${bibleProgress}%` }} />
+                                <div className="w-full bg-gray-100 rounded-full h-4 mb-8 overflow-hidden">
+                                    <div className="bg-gradient-to-r from-blue-600 to-[#140152] h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(20,1,82,0.3)]" style={{ width: `${bibleProgress}%` }} />
                                 </div>
-                                <PremiumButton href="/bible-reading" className="mt-6 w-full bg-white/10 hover:bg-white/20 border-none text-white">Go to Reading Plan</PremiumButton>
+                                <PremiumButton href="/bible-reading" className="w-full justify-center py-6 text-lg rounded-xl">Continue Reading</PremiumButton>
                             </CardContent>
                         </Card>
 
-                        {/* Attendance Card */}
-                        <Card className="bg-white border-none shadow-lg">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-gray-500 text-sm uppercase tracking-wider font-medium">Service Attendance</CardTitle>
+                        {/* Up Next Card */}
+                        <Card className="bg-gradient-to-br from-[#f5bb00] to-[#e6a800] text-[#140152] border-none shadow-2xl hover:shadow-[0_20px_50px_rgba(245,187,0,0.4)] transition-all duration-500 rounded-3xl h-full flex flex-col justify-between">
+                            <CardHeader className="p-8 pb-2">
+                                <CardTitle className="text-[#140152]/60 text-sm uppercase tracking-widest font-bold flex items-center gap-2">
+                                    <Clock className="w-4 h-4" />
+                                    Upcoming Event
+                                </CardTitle>
                             </CardHeader>
-                            <CardContent>
-                                <div className="flex items-end justify-between mb-4">
-                                    <span className="text-4xl font-bold text-[#140152]">{attendance.length}</span>
-                                    <span className="text-gray-400 text-sm mb-1">Services Joined</span>
+                            <CardContent className="p-8 pt-4 flex-grow flex flex-col justify-end">
+                                <div className="mb-8">
+                                    <h3 className="text-4xl md:text-5xl font-black mb-3 tracking-tight">Sunday Service</h3>
+                                    <p className="font-semibold opacity-80 text-xl border-l-4 border-[#140152]/20 pl-4 py-1">9:00 AM • Main Sanctuary</p>
                                 </div>
-                                <Button onClick={handleCheckIn} className="w-full bg-[#140152] hover:bg-blue-900 text-white">
-                                    Check In Today
-                                </Button>
-                            </CardContent>
-                        </Card>
-
-                        {/* Next Event Card (Static Simulation) */}
-                        <Card className="bg-[#f5bb00] text-[#140152] border-none shadow-lg">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-[#140152]/70 text-sm uppercase tracking-wider font-bold">Up Next</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="mb-4">
-                                    <h3 className="text-2xl font-black">Sunday Service</h3>
-                                    <p className="font-medium opacity-80">9:00 AM • Main Sanctuary</p>
-                                </div>
-                                <PremiumButton href="/services" className="w-full bg-[#140152] text-white hover:bg-[#140152]/90 border-none">View All Services</PremiumButton>
+                                <PremiumButton href="/services" className="w-full bg-[#140152] text-white hover:bg-[#140152]/90 border-none justify-center py-6 text-lg rounded-xl shadow-none">
+                                    View Full Schedule
+                                </PremiumButton>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* My Services Section */}
-                    <div className="bg-white rounded-2xl p-8 shadow-sm">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-bold text-[#140152]">My Ministries & Services</h2>
+                    {/* Ministries Section */}
+                    <div>
+                        <div className="flex items-center justify-between mb-10">
+                            <h2 className="text-3xl font-black text-[#140152] tracking-tight">My Ministries</h2>
                             <Button
                                 onClick={() => router.push('/onboarding/services')}
                                 variant="outline"
-                                className="border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white"
+                                className="border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white transition-all rounded-full px-8 py-6 text-base font-bold shadow-sm hover:shadow-lg"
                             >
                                 Manage Services
                             </Button>
                         </div>
 
                         {servicesLoading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                            <div className="flex items-center justify-center py-20">
+                                <Loader2 className="w-12 h-12 animate-spin text-[#140152]" />
                             </div>
                         ) : (
-                            <div className="space-y-6">
-                                {/* Active Services (Combined) */}
-                                <div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                        {/* Counselling - Always accessible */}
-                                        <ServiceCard
-                                            title="Counselling"
-                                            description="Access spiritual and pastoral counselling support services."
-                                            buttonText="Get Counselling"
-                                            buttonLink="/services/counselling"
-                                            icon={<MessageCircle className="w-6 h-6" />}
-                                        />
+                            <div className="space-y-12">
+                                {/* Active Services Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {/* Counselling - Always accessible */}
+                                    <ServiceCard
+                                        title="Counselling"
+                                        description="Access spiritual and pastoral counselling support services."
+                                        buttonText="Get Counselling"
+                                        buttonLink="/services/counselling"
+                                        icon={<MessageCircle className="w-8 h-8" />}
+                                    />
 
-                                        {/* Other Approved Services */}
-                                        {approvedServices.filter(s => s !== 'Counselling').map((service) => {
-                                            const config = SERVICE_CONFIG[service]
-                                            if (config) {
-                                                // Check for paid theology school
-                                                let buttonLink = config.buttonLink
-                                                let buttonText = config.buttonText
+                                    {/* Approved Services */}
+                                    {approvedServices.filter(s => s !== 'Counselling').map((service) => {
+                                        const config = SERVICE_CONFIG[service]
+                                        if (config) {
+                                            let buttonLink = config.buttonLink
+                                            let buttonText = config.buttonText
 
-                                                if (service === "Theology school") {
-                                                    const paidServices = JSON.parse(localStorage.getItem('paidServices') || '{}')
-                                                    if (paidServices['theology_school']) {
-                                                        buttonLink = "/theology-school"
-                                                        buttonText = "Access Dashboard"
-                                                    }
+                                            if (service === "Theology school") {
+                                                const paidServices = JSON.parse(localStorage.getItem('paidServices') || '{}')
+                                                if (paidServices['theology_school']) {
+                                                    buttonLink = "/theology-school"
+                                                    buttonText = "Access Dashboard"
                                                 }
-
-                                                return (
-                                                    <ServiceCard
-                                                        key={service}
-                                                        title={service}
-                                                        description={config.description}
-                                                        buttonText={buttonText}
-                                                        buttonLink={buttonLink}
-                                                        icon={config.icon}
-                                                    />
-                                                )
                                             }
-                                            // Fallback for unknown services
+
                                             return (
                                                 <ServiceCard
                                                     key={service}
                                                     title={service}
-                                                    description="Access your enrolled service and start participating."
-                                                    buttonText="Access Service"
-                                                    buttonLink="/services"
-                                                    icon={<Briefcase className="w-6 h-6" />}
+                                                    description={config.description}
+                                                    buttonText={buttonText}
+                                                    buttonLink={buttonLink}
+                                                    icon={config.icon}
                                                 />
                                             )
-                                        })}
-                                    </div>
+                                        }
+                                        return (
+                                            <ServiceCard
+                                                key={service}
+                                                title={service}
+                                                description="Access your enrolled service and start participating."
+                                                buttonText="Access Service"
+                                                buttonLink="/services"
+                                                icon={<Briefcase className="w-8 h-8" />}
+                                            />
+                                        )
+                                    })}
                                 </div>
 
                                 {/* Pending Services */}
                                 {pendingServices.length > 0 && (
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Pending Approval</h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div className="bg-amber-50 rounded-3xl p-8 border border-amber-100">
+                                        <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider mb-6 flex items-center gap-3">
+                                            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                            Pending Approvals
+                                        </h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {pendingServices.map((service) => (
-                                                <div key={service} className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white">
-                                                        <Clock className="w-5 h-5" />
+                                                <div key={service} className="bg-white p-6 rounded-2xl shadow-sm border border-amber-100 flex items-center gap-5 hover:shadow-md transition-shadow">
+                                                    <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                                                        <Clock className="w-6 h-6" />
                                                     </div>
                                                     <div>
-                                                        <span className="font-medium text-amber-800">{service}</span>
-                                                        <p className="text-xs text-amber-600">Awaiting admin approval</p>
+                                                        <span className="font-bold text-gray-900 block text-lg mb-1">{service}</span>
+                                                        <span className="text-sm text-amber-700 font-medium bg-amber-100 px-3 py-1 rounded-full">Awaiting review</span>
                                                     </div>
                                                 </div>
                                             ))}
@@ -348,45 +295,23 @@ export default function UserDashboard() {
                                     </div>
                                 )}
 
-                                {/* Show message if no other services besides Counselling */}
                                 {approvedServices.filter(s => s !== 'Counselling').length === 0 && pendingServices.length === 0 && (
-                                    <div className="text-center py-4 text-gray-400 text-sm">
-                                        <p>No other services yet. Visit Manage Services to join additional ministries.</p>
+                                    <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100 hover:border-blue-200 transition-colors">
+                                        <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-300">
+                                            <Briefcase className="w-10 h-10" />
+                                        </div>
+                                        <p className="text-gray-500 font-medium text-lg mb-4">You haven't joined any ministries yet.</p>
+                                        <Button
+                                            variant="link"
+                                            className="text-[#140152] font-bold text-lg"
+                                            onClick={() => router.push('/onboarding/services')}
+                                        >
+                                            Explore Available Ministries <Megaphone className="w-4 h-4 ml-2" />
+                                        </Button>
                                     </div>
                                 )}
                             </div>
                         )}
-                    </div>
-
-
-
-                    {/* Attendance History */}
-                    {attendance.length > 0 && (
-                        <div className="bg-white rounded-2xl p-8 shadow-sm">
-                            <h3 className="text-xl font-bold text-[#140152] mb-6">Recent Activity</h3>
-                            <div className="space-y-4">
-                                {attendance.slice(0, 5).map((date, i) => (
-                                    <div key={i} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-                                        <div className="w-2 h-2 rounded-full bg-green-500" />
-                                        <div>
-                                            <p className="font-bold text-[#140152]">Attended Service</p>
-                                            <p className="text-sm text-gray-500">{date}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="mt-12 bg-[#140152] text-white rounded-[2rem] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
-                        <div>
-                            <h2 className="text-3xl font-bold mb-2">Need Spiritual Support?</h2>
-                            <p className="text-blue-200">Our pastoral team is here to pray with you and counsel you.</p>
-                        </div>
-                        <div className="flex gap-4">
-                            <PremiumButton href="/prayer" className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152]">Request Prayer</PremiumButton>
-                            <Link href="/contact" className="px-6 py-3 bg-white/10 rounded-full font-bold hover:bg-white/20 transition-all">Contact Pastor</Link>
-                        </div>
                     </div>
                 </div>
             </main>

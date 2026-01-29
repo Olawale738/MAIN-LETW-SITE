@@ -756,6 +756,7 @@ export interface Sermon {
     audio_size?: number;
     has_document: boolean;
     document_filename?: string;
+    document_url?: string;
     document_size?: number;
     has_thumbnail: boolean;
     is_featured: boolean;
@@ -776,6 +777,7 @@ export interface SermonCreateData {
     description?: string;
     series?: string;
     video_url?: string;
+    document_url?: string;
     is_featured?: boolean;
     is_published?: boolean;
     audio?: File;
@@ -1775,106 +1777,106 @@ export const prayerApi = {
 // ============================================================================
 
 export const alterSoundApi = {
-        // User endpoints
-        getPageData: async (): Promise<AlterSoundPageData> => {
-            return fetchApi<AlterSoundPageData>('/alter-sound/page-data');
-        },
+    // User endpoints
+    getPageData: async (): Promise<AlterSoundPageData> => {
+        return fetchApi<AlterSoundPageData>('/alter-sound/page-data');
+    },
 
-        incrementPlayCount: async (trackId: string): Promise<{ message: string; play_count: number }> => {
-            return fetchApi<{ message: string; play_count: number }>(`/alter-sound/tracks/${trackId}/play`, {
-                method: 'POST',
-            });
-        },
+    incrementPlayCount: async (trackId: string): Promise<{ message: string; play_count: number }> => {
+        return fetchApi<{ message: string; play_count: number }>(`/alter-sound/tracks/${trackId}/play`, {
+            method: 'POST',
+        });
+    },
 
-        // Admin - Categories
-        getAllCategories: async (): Promise<AudioCategory[]> => {
-            return fetchApi<AudioCategory[]>('/alter-sound/admin/categories');
-        },
+    // Admin - Categories
+    getAllCategories: async (): Promise<AudioCategory[]> => {
+        return fetchApi<AudioCategory[]>('/alter-sound/admin/categories');
+    },
 
-        createCategory: async (data: AudioCategoryCreate): Promise<AudioCategory> => {
-            return fetchApi<AudioCategory>('/alter-sound/admin/categories', {
-                method: 'POST',
-                body: JSON.stringify(data),
-            });
-        },
+    createCategory: async (data: AudioCategoryCreate): Promise<AudioCategory> => {
+        return fetchApi<AudioCategory>('/alter-sound/admin/categories', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
 
-        updateCategory: async (id: string, data: Partial<AudioCategoryCreate>): Promise<AudioCategory> => {
-            return fetchApi<AudioCategory>(`/alter-sound/admin/categories/${id}`, {
-                method: 'PUT',
-                body: JSON.stringify(data),
-            });
-        },
+    updateCategory: async (id: string, data: Partial<AudioCategoryCreate>): Promise<AudioCategory> => {
+        return fetchApi<AudioCategory>(`/alter-sound/admin/categories/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
 
-        deleteCategory: async (id: string): Promise<void> => {
-            return fetchApi<void>(`/alter-sound/admin/categories/${id}`, {
-                method: 'DELETE',
-            });
-        },
+    deleteCategory: async (id: string): Promise<void> => {
+        return fetchApi<void>(`/alter-sound/admin/categories/${id}`, {
+            method: 'DELETE',
+        });
+    },
 
-        // Admin - Tracks
-        getAllTracks: async (categoryId?: string): Promise<AudioTrack[]> => {
-            const params = categoryId ? `?category_id=${categoryId}` : '';
-            return fetchApi<AudioTrack[]>(`/alter-sound/admin/tracks${params}`);
-        },
+    // Admin - Tracks
+    getAllTracks: async (categoryId?: string): Promise<AudioTrack[]> => {
+        const params = categoryId ? `?category_id=${categoryId}` : '';
+        return fetchApi<AudioTrack[]>(`/alter-sound/admin/tracks${params}`);
+    },
 
-        createTrack: async (data: AudioTrackCreate & { audioFile: File; coverFile?: File }): Promise<AudioTrack> => {
-            const formData = new FormData();
-            formData.append('category_id', data.category_id);
-            formData.append('title', data.title);
-            if (data.description) formData.append('description', data.description);
-            if (data.artist) formData.append('artist', data.artist);
-            if (data.duration) formData.append('duration', data.duration);
-            formData.append('is_featured', String(data.is_featured));
-            formData.append('is_active', String(data.is_active));
-            formData.append('order_index', String(data.order_index));
-            formData.append('audio', data.audioFile);
-            if (data.coverFile) formData.append('cover', data.coverFile);
+    createTrack: async (data: AudioTrackCreate & { audioFile: File; coverFile?: File }): Promise<AudioTrack> => {
+        const formData = new FormData();
+        formData.append('category_id', data.category_id);
+        formData.append('title', data.title);
+        if (data.description) formData.append('description', data.description);
+        if (data.artist) formData.append('artist', data.artist);
+        if (data.duration) formData.append('duration', data.duration);
+        formData.append('is_featured', String(data.is_featured));
+        formData.append('is_active', String(data.is_active));
+        formData.append('order_index', String(data.order_index));
+        formData.append('audio', data.audioFile);
+        if (data.coverFile) formData.append('cover', data.coverFile);
 
-            const token = localStorage.getItem('access_token');
-            const response = await fetch(`${API_BASE_URL}/alter-sound/admin/tracks`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: formData,
-            });
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`${API_BASE_URL}/alter-sound/admin/tracks`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+            body: formData,
+        });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Failed to create track');
-            }
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to create track');
+        }
 
-            return response.json();
-        },
+        return response.json();
+    },
 
-        updateTrack: async (id: string, data: Partial<AudioTrackCreate>): Promise<AudioTrack> => {
-            return fetchApi<AudioTrack>(`/alter-sound/admin/tracks/${id}`, {
-                method: 'PUT',
-                body: JSON.stringify(data),
-            });
-        },
+    updateTrack: async (id: string, data: Partial<AudioTrackCreate>): Promise<AudioTrack> => {
+        return fetchApi<AudioTrack>(`/alter-sound/admin/tracks/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
 
-        deleteTrack: async (id: string): Promise<void> => {
-            return fetchApi<void>(`/alter-sound/admin/tracks/${id}`, {
-                method: 'DELETE',
-            });
-        },
+    deleteTrack: async (id: string): Promise<void> => {
+        return fetchApi<void>(`/alter-sound/admin/tracks/${id}`, {
+            method: 'DELETE',
+        });
+    },
 
-        // Media URLs
-        getAudioUrl: (trackId: string): string => `${API_BASE_URL}/alter-sound/tracks/${trackId}/audio`,
-        getCoverUrl: (trackId: string): string => `${API_BASE_URL}/alter-sound/tracks/${trackId}/cover`,
+    // Media URLs
+    getAudioUrl: (trackId: string): string => `${API_BASE_URL}/alter-sound/tracks/${trackId}/audio`,
+    getCoverUrl: (trackId: string): string => `${API_BASE_URL}/alter-sound/tracks/${trackId}/cover`,
 
-        // Admin - Settings
-        getSettings: async (): Promise<AlterSoundPageSettings> => {
-            return fetchApi<AlterSoundPageSettings>('/alter-sound/admin/settings');
-        },
+    // Admin - Settings
+    getSettings: async (): Promise<AlterSoundPageSettings> => {
+        return fetchApi<AlterSoundPageSettings>('/alter-sound/admin/settings');
+    },
 
-        updateSettings: async (data: AlterSoundPageSettingsUpdate): Promise<AlterSoundPageSettings> => {
-            return fetchApi<AlterSoundPageSettings>('/alter-sound/admin/settings', {
-                method: 'PUT',
-                body: JSON.stringify(data),
-            });
-        },
+    updateSettings: async (data: AlterSoundPageSettingsUpdate): Promise<AlterSoundPageSettings> => {
+        return fetchApi<AlterSoundPageSettings>('/alter-sound/admin/settings', {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
 };
 
 // ============================================================================
