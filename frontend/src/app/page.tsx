@@ -26,7 +26,9 @@ export default function HomePage() {
           sermonApi.getPublicSermons(),
           eventApi.getPublicEvents()
         ])
-        setRecentSermons(sermonsData.sermons.slice(0, 3)) // Get top 3
+        // Filter for video sermons only
+        const videoSermons = sermonsData.sermons.filter(s => s.video_url)
+        setRecentSermons(videoSermons.slice(0, 3)) // Get top 3 videos
         setUpcomingEvents(eventsData.events.slice(0, 3)) // Get top 3
       } catch (error) {
         console.error("Failed to fetch home data", error)

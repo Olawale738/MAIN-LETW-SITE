@@ -108,7 +108,7 @@ export default function SermonsPage() {
                         {seriesList.length > 0 && (
                             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                                 <Button
-                                    variant={selectedSeries === '' ? 'default' : 'outline'}
+                                    variant={selectedSeries === '' ? 'primary' : 'outline'}
                                     size="sm"
                                     onClick={() => setSelectedSeries('')}
                                     className={`rounded-full ${selectedSeries === '' ? 'bg-[#140152] text-white hover:bg-[#140152]/90' : 'border-gray-200 text-gray-600'}`}
@@ -118,7 +118,7 @@ export default function SermonsPage() {
                                 {seriesList.map(series => (
                                     <Button
                                         key={series}
-                                        variant={selectedSeries === series ? 'default' : 'outline'}
+                                        variant={selectedSeries === series ? 'primary' : 'outline'}
                                         size="sm"
                                         onClick={() => setSelectedSeries(series)}
                                         className={`rounded-full whitespace-nowrap ${selectedSeries === series ? 'bg-[#140152] text-white hover:bg-[#140152]/90' : 'border-gray-200 text-gray-600'}`}
@@ -308,20 +308,20 @@ export default function SermonsPage() {
                                     <p className="text-sm text-gray-500 font-medium mb-3">{book.preacher}</p>
 
                                     <div className="mt-auto space-y-2">
-                                        <Button
-                                            className="w-full bg-[#140152] text-white hover:bg-[#2a0a6e]"
-                                            onClick={() => viewDocument(book)}
-                                        >
-                                            <BookOpen className="w-4 h-4 mr-2" /> Read Now
-                                        </Button>
                                         {book.has_document && !book.document_url && (
                                             <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="w-full text-gray-500 hover:text-[#140152]"
+                                                className="w-full bg-[#140152] text-white hover:bg-[#2a0a6e]"
                                                 onClick={() => handleDownload(sermonApi.getDocumentUrl(book.id), book.document_filename || 'book.pdf')}
                                             >
-                                                <Download className="w-3 h-3 mr-2" /> Download
+                                                <Download className="w-4 h-4 mr-2" /> Download
+                                            </Button>
+                                        )}
+                                        {book.document_url && (
+                                            <Button
+                                                className="w-full bg-[#140152] text-white hover:bg-[#2a0a6e]"
+                                                onClick={() => window.open(book.document_url, '_blank')}
+                                            >
+                                                <ExternalLink className="w-4 h-4 mr-2" /> Open Resource
                                             </Button>
                                         )}
                                     </div>
