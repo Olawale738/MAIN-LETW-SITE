@@ -5,6 +5,7 @@ import { cmsApi, Block } from '@/lib/api'
 import PageRenderer from '@/components/cms/PageRenderer'
 import { DEFAULT_HOME_BLOCKS } from '@/lib/cmsDefaults'
 import { Loader2 } from 'lucide-react'
+import LiveStreamPlayer from '@/components/LiveStreamPlayer' // [NEW]
 
 export default function HomePage() {
   const [blocks, setBlocks] = useState<Block[]>([])
@@ -40,6 +41,7 @@ export default function HomePage() {
 
   return (
     <div className="bg-white dark:bg-black overflow-x-hidden min-h-screen">
+      <LiveStreamPlayer />
       <PageRenderer blocks={blocks} />
     </div>
   )

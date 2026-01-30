@@ -99,6 +99,9 @@ app.include_router(alter_sound.router)
 app.include_router(bible_study.router)
 app.include_router(cms.router)
 
+from routers import live_stream
+app.include_router(live_stream.router)
+
 # Mount static files for uploads
 # Create uploads directory if it doesn't exist
 UPLOADS_DIR = "uploads"

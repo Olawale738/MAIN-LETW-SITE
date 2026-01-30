@@ -2173,6 +2173,53 @@ export const bibleStudyApi = {
     },
 };
 
+// ============= Live Stream API =============
+
+export interface LiveStream {
+    id: string;
+    title: string | null;
+    url: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface LiveStreamCreate {
+    title?: string;
+    url: string;
+    is_active?: boolean;
+}
+
+export interface LiveStreamUpdate {
+    title?: string;
+    url?: string;
+    is_active?: boolean;
+}
+
+export const liveStreamApi = {
+    getActiveStream: async (): Promise<LiveStream | null> => {
+        return fetchApi<LiveStream | null>('/live-stream/active');
+    },
+
+    createStream: async (data: LiveStreamCreate): Promise<LiveStream> => {
+        return fetchApi<LiveStream>('/live-stream', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    updateStream: async (id: string, data: LiveStreamUpdate): Promise<LiveStream> => {
+        return fetchApi<LiveStream>(`/live-stream/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    getHistory: async (): Promise<LiveStream[]> => {
+        return fetchApi<LiveStream[]>('/live-stream/history');
+    }
+};
+
 // ============= CMS Types =============
 
 export type BlockType = 'hero' | 'content' | 'features' | 'cta' | 'image' | 'video' | 'upcoming-events' | 'sermon-list' | 'leadership-list';
