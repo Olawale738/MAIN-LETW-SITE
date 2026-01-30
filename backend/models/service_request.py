@@ -85,7 +85,7 @@ class ServiceRequest(Base):
     )
     
     # Relationships
-    user = relationship("User", foreign_keys=[user_id], backref="service_requests")
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id], back_populates="service_requests")
     reviewer = relationship("User", foreign_keys=[reviewed_by])
     
     def __repr__(self) -> str:

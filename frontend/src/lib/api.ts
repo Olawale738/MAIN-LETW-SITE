@@ -1053,6 +1053,14 @@ export interface AdminUser {
     services: string[];
 }
 
+export interface DashboardUserUpdate {
+    name?: string;
+    email?: string;
+    role?: string;
+    status?: string;
+    services?: string[];
+}
+
 // ============= Dashboard API =============
 
 export const dashboardApi = {
@@ -1070,6 +1078,19 @@ export const dashboardApi = {
         if (limit) params.append('limit', String(limit));
         if (offset) params.append('offset', String(offset));
         return fetchApi<{ users: AdminUser[]; total: number }>(`/dashboard/users?${params.toString()}`);
+    },
+
+    updateUser: async (userId: string, data: DashboardUserUpdate): Promise<AdminUser> => {
+        return fetchApi<AdminUser>(`/dashboard/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    deleteUser: async (userId: string): Promise<MessageResponse> => {
+        return fetchApi<MessageResponse>(`/dashboard/users/${userId}`, {
+            method: 'DELETE',
+        });
     },
 };
 

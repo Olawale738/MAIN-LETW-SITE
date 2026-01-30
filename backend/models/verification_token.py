@@ -60,7 +60,7 @@ class VerificationToken(Base):
     )
     
     # Relationship to user
-    user = relationship("User", backref="verification_tokens")
+    user: Mapped["User"] = relationship("User", back_populates="verification_tokens")
     
     def __repr__(self) -> str:
         return f"<VerificationToken {self.token_type.value} for user {self.user_id}>"

@@ -2,8 +2,24 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, Search, Loader2, Mail, Shield, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { Users, Search, Loader2, Mail, Shield, CheckCircle, Clock, XCircle, MoreVertical, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { dashboardApi, AdminUser } from '@/lib/api'
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter
+} from '@/components/ui/dialog'
+import {
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem
+} from '@/components/ui/select'
+import { toast } from 'sonner'
 
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<AdminUser[]>([])
@@ -11,6 +27,10 @@ export default function AdminUsersPage() {
     const [total, setTotal] = useState(0)
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState('')
+    const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+    const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null)
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
     useEffect(() => {
         loadUsers()
@@ -29,10 +49,44 @@ export default function AdminUsersPage() {
         }
     }
 
+    const handleUpdateUser = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!editingUser) return
+
+        try {
+            await dashboardApi.updateUser(editingUser.id, {
+                name: editingUser.name,
+                role: editingUser.role,
+                status: editingUser.status
+            })
+            toast.success('User updated successfully')
+            setIsEditDialogOpen(false)
+            loadUsers()
+        } catch (err) {
+            toast.error('Failed to update user')
+            console.error(err)
+        }
+    }
+
+    const handleDeleteUser = async () => {
+        if (!deletingUser) return
+
+        try {
+            await dashboardApi.deleteUser(deletingUser.id)
+            toast.success('User deleted successfully')
+            setIsDeleteDialogOpen(false)
+            loadUsers()
+        } catch (err) {
+            toast.error('Failed to delete user')
+            console.error(err)
+        }
+    }
+
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'active':
                 return <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Active</span>
+            case 'pending':
             case 'pending_verification':
                 return <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</span>
             case 'suspended':
@@ -120,6 +174,7 @@ export default function AdminUsersPage() {
                                     <th className="px-6 py-3">Role</th>
                                     <th className="px-6 py-3">Services</th>
                                     <th className="px-6 py-3">Joined</th>
+                                    <th className="px-6 py-3 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -159,6 +214,32 @@ export default function AdminUsersPage() {
                                         <td className="px-6 py-4 text-gray-500">
                                             {new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                                         </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setEditingUser(user)
+                                                        setIsEditDialogOpen(true)
+                                                    }}
+                                                    className="w-8 h-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setDeletingUser(user)
+                                                        setIsDeleteDialogOpen(true)
+                                                    }}
+                                                    className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -166,6 +247,101 @@ export default function AdminUsersPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Edit User Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit User</DialogTitle>
+                    </DialogHeader>
+                    {editingUser && (
+                        <form onSubmit={handleUpdateUser} className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Full Name</label>
+                                <input
+                                    type="text"
+                                    value={editingUser.name}
+                                    onChange={e => setEditingUser({ ...editingUser!, name: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-md text-sm outline-none focus:ring-2 focus:ring-[#140152]"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Email</label>
+                                <input
+                                    type="email"
+                                    value={editingUser.email}
+                                    disabled
+                                    className="w-full px-3 py-2 border rounded-md text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Role</label>
+                                <Select
+                                    value={editingUser.role}
+                                    onValueChange={(val) => setEditingUser({ ...editingUser!, role: val })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="user">User</SelectItem>
+                                        <SelectItem value="admin">Admin</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Status</label>
+                                <Select
+                                    value={editingUser.status}
+                                    onValueChange={(val) => setEditingUser({ ...editingUser!, status: val })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="active">Active</SelectItem>
+                                        <SelectItem value="pending">Pending Verification</SelectItem>
+                                        <SelectItem value="suspended">Suspended</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" className="bg-[#140152] hover:bg-[#140152]/90">
+                                    Save Changes
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-600">
+                            <AlertTriangle className="w-5 h-5" />
+                            Confirm Deletion
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <p>Are you sure you want to delete <strong>{deletingUser?.name}</strong>?</p>
+                        <p className="text-sm text-gray-500 mt-2">This action cannot be undone. All user data, including prayer requests and progress, will be permanently removed.</p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button variant="outline" onClick={handleDeleteUser} className="bg-red-600 hover:bg-red-700 text-white border-none">
+                            Delete User
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

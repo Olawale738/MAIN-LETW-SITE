@@ -4,7 +4,7 @@ Provides aggregated statistics for the admin dashboard.
 """
 
 from datetime import date, datetime, timedelta
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from pydantic import BaseModel
@@ -51,6 +51,14 @@ class UserStats(BaseModel):
     role: str
     created_at: datetime
     services: List[str]
+
+
+class DashboardUserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[str] = None
+    status: Optional[str] = None
+    services: Optional[List[str]] = None
 
 
 @router.get("/stats", response_model=DashboardStats)
@@ -226,3 +234,74 @@ async def list_users(
         ],
         "total": total
     }
+
+
+@router.put("/users/{user_id}")
+async def update_user(
+    user_id: str,
+    updates: DashboardUserUpdate,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user)
+):
+    """Update a user (admin only)."""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if updates.name is not None:
+        user.name = updates.name
+    if updates.email is not None:
+        user.email = updates.email
+    if updates.role is not None:
+        try:
+            from models.user import UserRole
+            user.role = UserRole(updates.role)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid role")
+    if updates.status is not None:
+        try:
+            from models.user import UserStatus
+            user.status = UserStatus(updates.status)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid status")
+    if updates.services is not None:
+        user.services = updates.services
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(user, "services")
+        
+    await db.commit()
+    await db.refresh(user)
+    
+    return {
+        "id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "status": user.status.value,
+        "role": user.role.value,
+        "services": user.services
+    }
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user)
+):
+    """Delete a user (admin only)."""
+    if user_id == admin.id:
+        raise HTTPException(status_code=400, detail="You cannot delete your own account")
+        
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    await db.delete(user)
+    await db.commit()
+    
+    return {"message": "User deleted successfully"}
+# Force reload

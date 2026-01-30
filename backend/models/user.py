@@ -14,6 +14,11 @@ from database import Base
 
 if TYPE_CHECKING:
     from models.prayer import PrayerRequest
+    from models.notification import Notification
+    from models.service_request import ServiceRequest
+    from models.verification_token import VerificationToken
+    from models.announcement import Announcement
+    from models.bible_study import UserReadingProgress
 
 
 class UserStatus(str, enum.Enum):
@@ -89,8 +94,12 @@ class User(Base):
     )
 
     # Relationships
-    prayer_requests: Mapped[List["PrayerRequest"]] = relationship("PrayerRequest", back_populates="user")
-    reading_progress: Mapped[List["UserReadingProgress"]] = relationship("UserReadingProgress", back_populates="user")
+    prayer_requests: Mapped[List["PrayerRequest"]] = relationship("PrayerRequest", back_populates="user", cascade="all, delete-orphan")
+    reading_progress: Mapped[List["UserReadingProgress"]] = relationship("UserReadingProgress", back_populates="user", cascade="all, delete-orphan")
+    notifications: Mapped[List["Notification"]] = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+    service_requests: Mapped[List["ServiceRequest"]] = relationship("ServiceRequest", back_populates="user", foreign_keys="[ServiceRequest.user_id]", cascade="all, delete-orphan")
+    verification_tokens: Mapped[List["VerificationToken"]] = relationship("VerificationToken", back_populates="user", cascade="all, delete-orphan")
+    announcements: Mapped[List["Announcement"]] = relationship("Announcement", back_populates="author")
 
     def __repr__(self) -> str:
         return f"<User {self.email} ({self.role})>"

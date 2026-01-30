@@ -75,7 +75,7 @@ class Notification(Base):
     )
     
     # Relationships
-    user = relationship("User", backref="notifications")
+    user: Mapped["User"] = relationship("User", back_populates="notifications")
     
     def __repr__(self) -> str:
         return f"<Notification {self.title} for user {self.user_id}>"

@@ -58,7 +58,7 @@ class Announcement(Base):
     )
     
     # Relationships
-    author = relationship("User", backref="announcements")
+    author: Mapped["User"] = relationship("User", back_populates="announcements")
     
     def __repr__(self) -> str:
         return f"<Announcement {self.title} for {self.service_name}>"
