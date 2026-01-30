@@ -301,13 +301,12 @@ export default function UserDashboard() {
                                             <Briefcase className="w-10 h-10" />
                                         </div>
                                         <p className="text-gray-500 font-medium text-lg mb-4">You haven't joined any ministries yet.</p>
-                                        <Button
-                                            variant="link"
-                                            className="text-[#140152] font-bold text-lg"
-                                            onClick={() => router.push('/onboarding/services')}
+                                        <PremiumButton
+                                            href="/onboarding/services"
+                                            className="w-full justify-center py-6 text-lg rounded-xl mt-4"
                                         >
-                                            Explore Available Ministries <Megaphone className="w-4 h-4 ml-2" />
-                                        </Button>
+                                            Explore Available Ministries
+                                        </PremiumButton>
                                     </div>
                                 )}
                             </div>
