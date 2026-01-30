@@ -2173,10 +2173,26 @@ export const bibleStudyApi = {
     },
 };
 
-// ============= CMS API =============
+// ============= CMS Types =============
+
+export type BlockType = 'hero' | 'content' | 'features' | 'cta' | 'image' | 'video' | 'upcoming-events' | 'sermon-list' | 'leadership-list';
+
+export interface Block {
+    id: string;
+    type: BlockType;
+    data: any; // Flexible data structure based on type
+}
 
 export interface CMSPageContent {
-    [key: string]: any;
+    blocks: Block[];
+    meta?: {
+        title?: string;
+        description?: string;
+    };
+    // Legacy support (optional) while migrating
+    hero?: any;
+    about?: any;
+    essence?: any;
 }
 
 export interface CMSPageResponse {
