@@ -54,7 +54,7 @@ export default function PrayerPage() {
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-[#140152] mx-auto mb-4" />
-          <p className="text-gray-600">Loading prayer page...</p>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     )
@@ -130,27 +130,7 @@ export default function PrayerPage() {
       </div>
 
       {/* Impact Stats */}
-      <SectionWrapper background="gray">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white p-6 rounded-2xl shadow-lg text-center border border-gray-100"
-            >
-              <div className="text-4xl md:text-5xl font-black text-[#f5bb00] mb-2">
-                {stat.value}
-              </div>
-              <div className="text-sm md:text-base font-semibold text-[#140152]">
-                {stat.label}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </SectionWrapper>
+
 
       {/* Prayer Experience Section */}
       <SectionWrapper>

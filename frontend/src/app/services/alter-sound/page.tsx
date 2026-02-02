@@ -54,7 +54,7 @@ export default function SoundAltarPage() {
                     className="relative z-20 text-center text-white px-4 max-w-5xl mx-auto"
                 >
                     <div className="text-[#f5bb00] font-bold tracking-widest uppercase mb-4 text-sm md:text-base">{heroSubtitle}</div>
-                    <h1 className="text-4xl md:text-7xl font-black mb-6 leading-tight">
+                    <h1 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
                         Raising Sound That<br /><span className="text-[#f5bb00]">Carries Heaven’s Intention</span>
                     </h1>
                     <p className="text-lg md:text-2xl text-gray-300 max-w-3xl mx-auto font-light mb-8">
@@ -64,9 +64,7 @@ export default function SoundAltarPage() {
                         <PremiumButton href="#audio-library" className="bg-[#f5bb00] text-[#140152] hover:bg-white">
                             Explore Audio Library
                         </PremiumButton>
-                        <PremiumButton href="/prayer" className="bg-white/10 text-white hover:bg-white hover:text-[#140152] border-2 border-white/30">
-                            Join Prayer
-                        </PremiumButton>
+
                     </div>
                 </motion.div>
             </div>
@@ -119,17 +117,52 @@ export default function SoundAltarPage() {
 
                 <BentoGrid className="max-w-6xl mx-auto mb-24">
                     {[
-                        { title: "Worship Sound", desc: "Hosts God’s presence and leads into adoration.", icon: Music2, bg: "bg-blue-50" },
-                        { title: "Prophetic Sound", desc: "Spirit-led melodies aligning with divine instruction.", icon: Mic2, bg: "bg-purple-50" },
-                        { title: "Healing Sound", desc: "Anointed expressions for freedom and restoration.", icon: Sparkles, bg: "bg-green-50" },
-                        { title: "Missional Sound", desc: "Songs crafted for nations and global contexts.", icon: Globe, bg: "bg-orange-50" },
+                        {
+                            title: "Worship Sound",
+                            desc: "Hosts God's presence and leads into adoration.",
+                            icon: Music2,
+                            bg: "bg-blue-50",
+                            bgImage: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop&q=60"
+                        },
+                        {
+                            title: "Prophetic Sound",
+                            desc: "Spirit-led melodies aligning with divine instruction.",
+                            icon: Mic2,
+                            bg: "bg-purple-50",
+                            bgImage: "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=800&auto=format&fit=crop&q=60"
+                        },
+                        {
+                            title: "Healing Sound",
+                            desc: "Anointed expressions for freedom and restoration.",
+                            icon: Sparkles,
+                            bg: "bg-green-50",
+                            bgImage: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&auto=format&fit=crop&q=60"
+                        },
+                        {
+                            title: "Missional Sound",
+                            desc: "Songs crafted for nations and global contexts.",
+                            icon: Globe,
+                            bg: "bg-orange-50",
+                            bgImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&auto=format&fit=crop&q=60"
+                        },
                     ].map((dim, i) => (
-                        <div key={i} className={`p-8 rounded-3xl border border-gray-100 hover:border-[#f5bb00] transition-all group bg-white shadow-lg ${i === 0 || i === 3 ? "md:col-span-2" : "md:col-span-2 lg:col-span-1"}`}>
-                            <div className={`w-14 h-14 ${dim.bg} rounded-2xl flex items-center justify-center text-[#140152] mb-6 group-hover:scale-110 transition-transform`}>
-                                <dim.icon className="w-7 h-7" />
+                        <div key={i} className={`p-8 rounded-3xl border border-gray-100 hover:border-[#f5bb00] transition-all group shadow-lg overflow-hidden relative min-h-[280px] ${i === 0 || i === 3 ? "md:col-span-2" : "md:col-span-2 lg:col-span-1"}`}>
+                            {/* Background Image */}
+                            <div
+                                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+                                style={{ backgroundImage: `url(${dim.bgImage})` }}
+                            />
+                            {/* Gradient Overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-[#140152]/85 via-[#140152]/80 to-[#140152]/90" />
+
+                            {/* Content */}
+                            <div className="relative z-10">
+                                <div className="w-14 h-14 bg-[#f5bb00]/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110 group-hover:bg-[#f5bb00] transition-all">
+                                    <dim.icon className="w-7 h-7" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-[#f5bb00] transition-colors">{dim.title}</h3>
+                                <p className="text-gray-200 leading-relaxed font-medium text-sm">{dim.desc}</p>
                             </div>
-                            <h3 className="text-xl font-bold text-[#140152] mb-3">{dim.title}</h3>
-                            <p className="text-gray-600 leading-relaxed font-medium text-sm">{dim.desc}</p>
                         </div>
                     ))}
                 </BentoGrid>

@@ -35,7 +35,7 @@ export default function AudioLibraryPage() {
     const filteredTracks = tracks.filter(track => {
         const matchesCategory = selectedCategory === 'all' || track.category_id === selectedCategory
         const matchesSearch = track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            track.artist?.toLowerCase().includes(searchQuery.toLowerCase())
+            track.artist?.toLowerCase().includes(searchQuery.toLowerCase())
         return matchesCategory && matchesSearch
     })
 
@@ -97,15 +97,16 @@ export default function AudioLibraryPage() {
     }, [])
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#140152] via-purple-900 to-[#140152] text-white">
-            {/* Header */}
-            <div className="bg-black/30 backdrop-blur-sm border-b border-white/10">
-                <div className="container mx-auto px-4 py-8">
+        <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
+            {/* Hero Header - Fixed padding for navbar */}
+            <div className="bg-[#140152] text-white pt-32 pb-16 px-4">
+                <div className="container mx-auto">
                     <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-center"
+                        className="text-center max-w-4xl mx-auto"
                     >
+                        <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm mb-4 inline-block">Alter Sound</span>
                         <h1 className="text-4xl md:text-6xl font-black mb-4">
                             Audio <span className="text-[#f5bb00]">Library</span>
                         </h1>
@@ -127,7 +128,7 @@ export default function AudioLibraryPage() {
                                 placeholder="Search tracks or artists..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400 text-gray-900"
+                                className="pl-10 bg-white border-gray-200 text-[#140152] placeholder:text-gray-400"
                             />
                         </div>
                     </div>
@@ -136,7 +137,7 @@ export default function AudioLibraryPage() {
                         <Button
                             onClick={() => setSelectedCategory('all')}
                             variant={selectedCategory === 'all' ? 'primary' : 'outline'}
-                            className={selectedCategory === 'all' ? 'bg-[#f5bb00] text-[#140152] hover:bg-[#f5bb00]/90' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}
+                            className={selectedCategory === 'all' ? 'bg-[#f5bb00] text-[#140152] hover:bg-[#f5bb00]/90' : 'bg-white text-[#140152] border-gray-200 hover:bg-gray-50'}
                         >
                             All Categories
                         </Button>
@@ -145,7 +146,7 @@ export default function AudioLibraryPage() {
                                 key={category.id}
                                 onClick={() => setSelectedCategory(category.id)}
                                 variant={selectedCategory === category.id ? 'primary' : 'outline'}
-                                className={selectedCategory === category.id ? 'bg-[#f5bb00] text-[#140152] hover:bg-[#f5bb00]/90' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}
+                                className={selectedCategory === category.id ? 'bg-[#f5bb00] text-[#140152] hover:bg-[#f5bb00]/90' : 'bg-white text-[#140152] border-gray-200 hover:bg-gray-50'}
                             >
                                 {category.name}
                             </Button>
@@ -157,12 +158,12 @@ export default function AudioLibraryPage() {
                 {loading ? (
                     <div className="text-center py-20">
                         <Music className="w-16 h-16 text-[#f5bb00] mx-auto mb-4 animate-pulse" />
-                        <p className="text-gray-300">Loading audio library...</p>
+                        <p className="text-gray-600">Loading audio library...</p>
                     </div>
                 ) : filteredTracks.length === 0 ? (
                     <div className="text-center py-20">
-                        <Music className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                        <p className="text-gray-400">No tracks found</p>
+                        <Music className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No tracks found</p>
                     </div>
                 ) : (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -174,7 +175,7 @@ export default function AudioLibraryPage() {
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.9 }}
                                 >
-                                    <Card className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all overflow-hidden group">
+                                    <Card className="bg-white border-gray-200 hover:shadow-xl transition-all overflow-hidden group">
                                         <div className="relative aspect-square bg-gradient-to-br from-[#140152] to-purple-900">
                                             <img
                                                 src={alterSoundApi.getCoverUrl(track.id)}
@@ -200,8 +201,8 @@ export default function AudioLibraryPage() {
                                             </div>
                                         </div>
                                         <div className="p-4">
-                                            <h3 className="font-bold text-lg text-white mb-1 truncate">{track.title}</h3>
-                                            <p className="text-sm text-gray-400 mb-2">{track.artist || 'Unknown Artist'}</p>
+                                            <h3 className="font-bold text-lg text-[#140152] mb-1 truncate">{track.title}</h3>
+                                            <p className="text-sm text-gray-600 mb-2">{track.artist || 'Unknown Artist'}</p>
                                             <div className="flex items-center justify-between text-xs text-gray-500">
                                                 <span>{track.category.name}</span>
                                                 <span>{track.play_count} plays</span>

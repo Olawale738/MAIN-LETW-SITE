@@ -11,7 +11,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "The LIGHT - Ministry",
+  title: "LETW - Light Encounter Tabernacle Worldwide",
   description: "Dedicated to spreading the Word of GOD, empowering individuals, and engaging in charitable activities",
 };
 

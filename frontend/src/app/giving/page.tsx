@@ -16,7 +16,7 @@ const PaystackButton = dynamic(
 )
 
 export default function GivingPage() {
-  const [activeMethod, setActiveMethod] = useState<'card' | 'bank' | 'crypto'>('card')
+  const [activeMethod, setActiveMethod] = useState<'card' | 'bank' | 'paypal'>('card')
   const [amount, setAmount] = useState('5000')
   const [email, setEmail] = useState('')
   const [copied, setCopied] = useState(false)
@@ -41,7 +41,7 @@ export default function GivingPage() {
   const paymentMethods = [
     { id: 'card', name: 'Card', icon: CreditCard },
     { id: 'bank', name: 'Transfer', icon: Landmark },
-    { id: 'crypto', name: 'Crypto', icon: Bitcoin },
+    { id: 'paypal', name: 'Paypal', icon: Bitcoin },
   ]
 
   const funds = [
@@ -106,9 +106,18 @@ export default function GivingPage() {
 
             <div className="hidden lg:flex gap-8 pt-8">
               <div className="flex -space-x-4">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="w-12 h-12 rounded-full border-2 border-[#140152] bg-white/10 backdrop-blur flex items-center justify-center text-xs font-bold">
-                    Letw
+                {[
+                  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces',
+                  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
+                  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=faces',
+                  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=faces'
+                ].map((src, i) => (
+                  <div key={i} className="w-12 h-12 rounded-full border-2 border-[#140152] overflow-hidden bg-white/10 backdrop-blur">
+                    <img
+                      src={src}
+                      alt={`Giver ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 ))}
               </div>
@@ -261,15 +270,15 @@ export default function GivingPage() {
                         <div className="space-y-3">
                           <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-500">Bank</span>
-                            <span className="font-bold text-[#140152]">GTBank</span>
+                            <span className="font-bold text-[#140152]">Providus Bank</span>
                           </div>
                           <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-500">Account</span>
                             <span className="font-bold text-[#140152]">Light Encounter Tabernacle</span>
                           </div>
                           <div className="p-3 bg-white rounded-xl border border-gray-200 flex justify-between items-center">
-                            <span className="font-mono font-bold text-lg text-[#140152] tracking-widest">0123456789</span>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleCopy('0123456789')}>
+                            <span className="font-mono font-bold text-lg text-[#140152] tracking-widest">1308078805</span>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleCopy('1308078805')}>
                               {copied ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                             </Button>
                           </div>
@@ -284,20 +293,20 @@ export default function GivingPage() {
                             <span className="text-gray-300">Bank</span>
                             <span className="font-bold">Zenith Bank</span>
                           </div>
-                          <div className="p-3 bg-white/10 rounded-xl border border-white/10 flex justify-between items-center">
+                          {/* <div className="p-3 bg-white/10 rounded-xl border border-white/10 flex justify-between items-center">
                             <span className="font-mono font-bold text-lg tracking-widest">5040302010</span>
                             <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-white/10 text-white" onClick={() => handleCopy('5040302010')}>
                               <Copy className="w-4 h-4" />
                             </Button>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     </motion.div>
                   )}
 
-                  {activeMethod === 'crypto' && (
+                  {activeMethod === 'paypal' && (
                     <motion.div
-                      key="crypto"
+                      key="paypal"
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
@@ -307,22 +316,7 @@ export default function GivingPage() {
                         <Bitcoin className="w-8 h-8" />
                       </div>
 
-                      <div className="space-y-4">
-                        {[
-                          { label: 'Bitcoin (BTC)', addr: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' },
-                          { label: 'USDT (TRC20)', addr: 'T9yD14Nj9j7xAB4dbGeiX9h8bAyWC3RZkz' }
-                        ].map((crypto, i) => (
-                          <div key={i} className="text-left space-y-2">
-                            <span className="text-xs font-bold uppercase text-gray-400 ml-1">{crypto.label}</span>
-                            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                              <code className="text-xs text-[#140152] font-mono flex-1 break-all">{crypto.addr}</code>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 flex-shrink-0" onClick={() => handleCopy(crypto.addr)}>
-                                <Copy className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+
                       <p className="text-[10px] text-gray-400">Transactions are inevitable and non-reversible.</p>
                     </motion.div>
                   )}

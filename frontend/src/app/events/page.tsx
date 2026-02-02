@@ -128,12 +128,7 @@ export default function EventsPage() {
                     </div>
                 )}
 
-                <div className="mt-20 text-center">
-                    <Link href="/contact" className="inline-flex items-center gap-2 text-[#140152]/60 font-medium hover:text-[#140152] transition-colors">
-                        <Calendar className="w-5 h-5" />
-                        <span>Looking for more? View full calendar</span>
-                    </Link>
-                </div>
+
 
                 {/* Community Clean-Up Day Section - kept as static/promo section as requested for design */}
                 <div className="mt-24 bg-neutral-50 rounded-[3rem] p-10 md:p-16">
