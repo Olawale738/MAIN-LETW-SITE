@@ -32,7 +32,7 @@ export default function ServiceCard({
         <p className="text-gray-500 font-medium leading-relaxed text-sm">{description}</p>
       </CardContent>
       <CardFooter className="pt-2 px-6 pb-6">
-        <PremiumButton href={buttonLink} className="w-full justify-center text-sm py-6">
+        <PremiumButton href={buttonLink} className="justify-center text-sm">
           {buttonText}
         </PremiumButton>
       </CardFooter>

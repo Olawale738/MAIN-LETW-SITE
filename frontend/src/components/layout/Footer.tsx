@@ -28,7 +28,7 @@ export default function Footer() {
                 <img src="/LETWlogo.png" alt="LETWlogo" className="w-full h-full object-contain" />
               </div>
               <span className="font-bold text-[12px] tracking-tight text-[#fff] block leading-tight">
-                Light<span className="text-[#f5bb00]"><br />Encounter</span> <br /> Tabernacle <span className="text-[#f5bb00]"> Worldwide</span>
+                Light<span><br />Encounter</span> <br /> Tabernacle <span> Worldwide</span>
               </span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed">
