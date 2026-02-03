@@ -18,7 +18,7 @@ export default function SkillDevelopmentPage() {
         const userName = localStorage.getItem('userName')
 
         if (!isLoggedIn) {
-            router.push('/auth/login?redirect=/skill-development')
+            router.replace('/auth/login?redirect=/skill-development')
         } else {
             setUser(userName || 'User')
             loadCourses()

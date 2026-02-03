@@ -34,7 +34,7 @@ export default function CareerGuidancePage() {
             setDashboard(data)
         } catch (error) {
             console.error('Failed to load dashboard:', error)
-            router.push('/auth/login?redirect=/career-guidance')
+            router.replace('/auth/login?redirect=/career-guidance')
         } finally {
             setLoading(false)
         }
