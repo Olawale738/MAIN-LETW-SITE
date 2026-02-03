@@ -2261,7 +2261,7 @@ export interface CMSImageResponse {
 
 export const cmsApi = {
     getPage: async (slug: string): Promise<CMSPageResponse> => {
-        return fetchApi<CMSPageResponse>(`/cms/pages/${slug}`);
+        return fetchApi<CMSPageResponse>(`/cms/pages/${slug}`, { cache: 'no-store' });
     },
 
     updatePage: async (slug: string, title: string, content: CMSPageContent): Promise<CMSPageResponse> => {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager } from '@/lib/api'
 import { useState } from 'react'
@@ -57,6 +57,11 @@ const sidebarItems = [
         title: 'Impact Page',
         href: '/admin/pages/impact',
         icon: Globe
+    },
+    {
+        title: 'Sunday Service',
+        href: '/admin/pages/sunday-service',
+        icon: Church
     },
     {
         title: 'Users',

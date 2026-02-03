@@ -1,4 +1,6 @@
 import React from 'react';
+import Link from 'next/link';
+
 import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 import Image from 'next/image';
@@ -62,43 +64,59 @@ export default function FeaturesBlock({ data }: FeaturesBlockProps) {
                 )}
 
                 <div className={cn("grid gap-8", gridCols[columns])}>
-                    {features.map((feature, idx) => (
-                        <div
-                            key={idx}
-                            className={cn(
-                                "flex flex-col",
-                                style === 'cards' && "bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow",
-                                style === 'icons' && "items-center text-center",
-                                style === 'minimal' && "border-l-4 border-yellow-500 pl-6"
-                            )}
-                        >
-                            {feature.image ? (
-                                <div className="mb-6 relative h-48 w-full rounded-lg overflow-hidden">
-                                    <Image
-                                        src={feature.image}
-                                        alt={feature.title}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                </div>
-                            ) : feature.icon ? (
-                                <div className={cn(
-                                    "mb-4 text-[#140152]",
-                                    style === 'cards' && "p-3 bg-blue-50 rounded-lg w-fit",
-                                    style === 'icons' && "p-4 bg-white rounded-full shadow-sm"
-                                )}>
-                                    <DynamicIcon name={feature.icon} className="w-8 h-8" />
-                                </div>
-                            ) : null}
+                    {features.map((feature, idx) => {
+                        const content = (
+                            <div
+                                className={cn(
+                                    "flex flex-col h-full",
+                                    style === 'cards' && "bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow",
+                                    style === 'icons' && "items-center text-center",
+                                    style === 'minimal' && "border-l-4 border-yellow-500 pl-6"
+                                )}
+                            >
+                                {feature.image ? (
+                                    <div className="mb-6 relative h-48 w-full rounded-lg overflow-hidden flex-shrink-0">
+                                        <Image
+                                            src={feature.image}
+                                            alt={feature.title}
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    </div>
+                                ) : feature.icon ? (
+                                    <div className={cn(
+                                        "mb-4 text-[#140152]",
+                                        style === 'cards' && "p-3 bg-blue-50 rounded-lg w-fit",
+                                        style === 'icons' && "p-4 bg-white rounded-full shadow-sm"
+                                    )}>
+                                        <DynamicIcon name={feature.icon} className="w-8 h-8" />
+                                    </div>
+                                ) : null}
 
-                            <h3 className="text-xl font-bold mb-2 text-[#140152]">
-                                {feature.title}
-                            </h3>
-                            <p className="text-gray-600 leading-relaxed">
-                                {feature.description}
-                            </p>
-                        </div>
-                    ))}
+                                <h3 className="text-xl font-bold mb-2 text-[#140152]">
+                                    {feature.title}
+                                </h3>
+                                <p className="text-gray-600 leading-relaxed flex-grow">
+                                    {feature.description}
+                                </p>
+                                {feature.link && (
+                                    <span className="text-[#140152] font-semibold mt-4 block text-sm group-hover:underline">
+                                        View Resource &rarr;
+                                    </span>
+                                )}
+                            </div>
+                        );
+
+                        if (feature.link) {
+                            return (
+                                <Link href={feature.link} key={idx} className="block group h-full">
+                                    {content}
+                                </Link>
+                            );
+                        }
+
+                        return <div key={idx} className="h-full">{content}</div>;
+                    })}
                 </div>
             </div>
         </section>

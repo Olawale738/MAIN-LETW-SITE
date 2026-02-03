@@ -197,3 +197,86 @@ export const DEFAULT_IMPACT_BLOCKS: Block[] = [
         }
     }
 ];
+
+export const DEFAULT_SUNDAY_SERVICE_BLOCKS: Block[] = [
+    {
+        id: 'sunday-hero',
+        type: 'hero',
+        data: {
+            title: "Sunday <span class='text-[#f5bb00]'>Worship</span> Service",
+            subtitle: "Join us every Sunday at 9:00 AM at our Main Campus for a powerful time of worship and word.",
+            cta_text: "Watch Latest Sermons",
+            cta_link: "/sermons",
+            align: 'center',
+            bg_image: "https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1200"
+        }
+    },
+    {
+        id: 'service-info',
+        type: 'features',
+        data: {
+            title: "What to Expect",
+            subtitle: "Come as you are and experience God's presence",
+            columns: 3,
+            style: 'cards',
+            features: [
+                {
+                    title: "Worship",
+                    description: "Uplifting contemporary worship that leads into the presence of God.",
+                    icon: "Music"
+                },
+                {
+                    title: "The Word",
+                    description: "Practical, biblical teaching that empowers you for daily living.",
+                    icon: "BookOpen"
+                },
+                {
+                    title: "Kids Ministry",
+                    description: "Fun, safe, and engaging biblical learning for children of all ages.",
+                    icon: "Smile"
+                }
+            ]
+        }
+    },
+    {
+        id: 'service-resources',
+        type: 'features',
+        data: {
+            title: "Service Resources",
+            subtitle: "Enhance your worship experience with these materials",
+            columns: 3,
+            style: 'cards',
+            features: [
+                {
+                    title: "Weekly Bulletin",
+                    description: "Download this week's bulletin to stay updated with church announcements and events.",
+                    icon: "FileText",
+                    link: "/download/bulletin"
+                },
+                {
+                    title: "Sermon Notes",
+                    description: "Follow along with the message using our interactive sermon notes.",
+                    icon: "PenTool",
+                    link: "/sermons/notes"
+                },
+                {
+                    title: "First Time Guest?",
+                    description: "Complete our connection card so we can welcome you properly.",
+                    icon: "Heart",
+                    link: "/connect"
+                }
+            ]
+        }
+    },
+    {
+        id: 'sunday-cta',
+        type: 'cta',
+        data: {
+            title: "Plan Your Visit",
+            text: "We can't wait to welcome you home. Let us know you're coming!",
+            button_text: "Get Directions",
+            button_link: "/contact",
+            style: 'simple'
+        }
+    }
+];
