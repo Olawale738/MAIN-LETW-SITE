@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function ContributePage() {
     return (
-        <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 py-20 px-4">
+        <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 py-28 px-4">
             <div className="max-w-4xl mx-auto">
                 <h1 className="text-4xl font-bold text-center mb-6 text-neutral-900 dark:text-white">Support Our Charity Work</h1>
 

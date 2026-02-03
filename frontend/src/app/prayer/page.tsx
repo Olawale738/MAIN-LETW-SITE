@@ -116,15 +116,7 @@ export default function PrayerPage() {
                 </PremiumButton>
               </a>
             )}
-            <PremiumButton
-              onClick={() => {
-                const schedulesSection = document.getElementById('prayer-schedules')
-                schedulesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              }}
-              className="px-10 py-6 text-lg bg-white/10 text-white hover:bg-white hover:text-[#140152] backdrop-blur-sm"
-            >
-              Full Schedule
-            </PremiumButton>
+
           </div>
         </motion.div>
       </div>
@@ -175,57 +167,7 @@ export default function PrayerPage() {
       </SectionWrapper>
 
       {/* Prayer Schedule */}
-      <SectionWrapper background="gray">
-        <div id="prayer-schedules" className="text-center mb-16 space-y-4">
-          <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">
-            Join Us
-          </span>
-          <h2 className="text-4xl md:text-5xl font-black text-[#140152]">
-            Prayer Schedule
-          </h2>
-          <div className="w-24 h-1.5 bg-[#f5bb00] mx-auto rounded-full" />
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            24/7 continuous prayer chain + powerful scheduled gatherings. All times in GMT — join from anywhere in the world.
-          </p>
-        </div>
 
-        <div className="max-w-4xl mx-auto space-y-6">
-          {schedules.map((item, index) => {
-            const IconComponent = getIconComponent(item.icon)
-            return (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 flex items-start gap-6"
-              >
-                <div className="w-16 h-16 bg-gradient-to-br from-[#140152] to-[#1d0175] rounded-2xl flex items-center justify-center flex-shrink-0">
-                  <IconComponent className="w-8 h-8 text-[#f5bb00]" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-2xl font-black text-[#140152] mb-2">
-                    {item.program_name}
-                  </h3>
-                  <p className="text-[#f5bb00] font-bold mb-3">{item.time_description}</p>
-                  <p className="text-gray-600 leading-relaxed">{item.description}</p>
-                  {item.meeting_link && (
-                    <a
-                      href={item.meeting_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block mt-4 text-[#140152] hover:text-[#f5bb00] font-semibold transition-colors"
-                    >
-                      Join Meeting →
-                    </a>
-                  )}
-                </div>
-              </motion.div>
-            )
-          })}
-        </div>
-      </SectionWrapper>
 
       {/* Final Call Section */}
       <SectionWrapper>
@@ -259,15 +201,7 @@ export default function PrayerPage() {
                   </PremiumButton>
                 </a>
               )}
-              <PremiumButton
-                onClick={() => {
-                  const schedulesSection = document.getElementById('prayer-schedules')
-                  schedulesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                }}
-                className="px-12 py-7 text-lg bg-white/10 text-white hover:bg-white hover:text-[#140152] backdrop-blur-sm border border-white/20"
-              >
-                See Full Schedule
-              </PremiumButton>
+
             </div>
           </div>
         </motion.div>

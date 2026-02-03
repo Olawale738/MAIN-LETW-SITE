@@ -2,6 +2,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import PremiumButton from '@/components/ui/PremiumButton'
 import { BookOpen, Users, TrendingUp, ArrowRight, Heart } from 'lucide-react'
 import Hero from '@/components/shared/Hero'
 import SectionWrapper from '@/components/shared/SectionWrapper'
@@ -23,18 +24,14 @@ export default function DiscipleshipPage() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.8 }}
-                    className="relative z-20 text-center text-white px-4 max-w-4xl"
+                    className="relative z-20 text-center text-white px-4 pt=6 max-w-4xl"
                 >
-                    <span className="text-[#f5bb00] font-bold tracking-[0.2em] uppercase text-sm md:text-base mb-4 block">Walk with Christ</span>
-                    <h1 className="text-5xl md:text-8xl font-black mb-6 leading-tight">Follow.<br />Learn.<br />Lead.</h1>
+                    <span className="text-[#f5bb00] font-bold tracking-[0.2em] uppercase text-sm md:text-base mb-1 block">Walk with Christ</span>
+                    <h1 className="text-5xl md:text-6xl font-black mb-6 leading-tight">Follow. Learn. Lead.</h1>
                     <p className="text-lg md:text-2xl text-gray-200 mt-4 max-w-2xl mx-auto font-light">
                         The journey of a disciple is a lifelong pursuit of knowing Jesus and making Him known.
                     </p>
-                    <div className="mt-8">
-                        <Button className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold rounded-full px-8 py-6 text-lg">
-                            Start Your Window
-                        </Button>
-                    </div>
+
                 </motion.div>
             </div>
 
@@ -105,7 +102,7 @@ export default function DiscipleshipPage() {
                                     <h3 className="text-2xl font-bold text-[#140152] mb-2">{step.title}</h3>
                                     <p className="text-gray-600 font-medium">{step.desc}</p>
                                 </div>
-                                <Button variant="outline" className="rounded-full">Details</Button>
+
                             </div>
                         ))}
                     </div>
@@ -113,21 +110,19 @@ export default function DiscipleshipPage() {
             </SectionWrapper>
 
             <SectionWrapper>
-                <div className="bg-[#140152] rounded-[3rem] p-12 md:p-24 text-center relative overflow-hidden">
+                <div className="rounded-[3rem] p-12 md:p-24 text-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-[#f5bb00] rounded-full blur-[100px] opacity-20" />
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500 rounded-full blur-[100px] opacity-20" />
 
-                    <h2 className="text-4xl md:text-6xl font-black text-white mb-8 relative z-10">Ready to Grow?</h2>
-                    <p className="text-xl text-blue-200 mb-12 max-w-2xl mx-auto relative z-10">
-                        Join a small group or sign up for our next 'Foundations' class. Your journey starts today.
+                    <h2 className="text-4xl md:text-6xl font-black text-black mb-8 relative z-10">Ready to Grow?</h2>
+                    <p className="text-xl text-black mb-12 max-w-2xl mx-auto relative z-10">
+                        Sign up for our next 'Foundations' class. Your journey starts today.
                     </p>
                     <div className="relative z-10 flex flex-col md:flex-row gap-4 justify-center">
-                        <Button className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] py-6 px-10 rounded-full text-lg font-bold">
-                            Find a Small Group
-                        </Button>
-                        <Button variant="outline" className="border-white text-white hover:bg-white hover:text-[#140152] py-6 px-10 rounded-full text-lg font-bold bg-transparent">
-                            Talk to a Pastor
-                        </Button>
+                        <PremiumButton href="/auth/login" className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152]">
+                            Join Now
+                        </PremiumButton>
+
                     </div>
                 </div>
             </SectionWrapper>

@@ -86,7 +86,7 @@ export default function ServicesPage() {
             icon={<BookOpen className="w-8 h-8" />}
             title="Bible Study"
             description="Deepen your understanding of the Bible every Tuesday at 6:00 PM with our interactive sessions."
-            buttonText="Join Bible Study"
+            buttonText="Learn more"
             buttonLink="/bible-study"
           />
           <ServiceCard
@@ -150,22 +150,13 @@ export default function ServicesPage() {
             Read powerful stories of how God is moving in the lives of our members. Share your own story to encourage others.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+
             <Card className="hover:shadow-lg transition-all border-none">
               <CardHeader>
-                <CardTitle className="text-[#140152]">Read Stories</CardTitle>
+                <CardTitle className="text-[#140152]">Share Yours and read that of others</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 mb-4">Be inspired by faith-building testimonies.</p>
-                <PremiumButton href="/testimony">View Testimonies</PremiumButton>
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-lg transition-all border-none">
-              <CardHeader>
-                <CardTitle className="text-[#140152]">Share Yours</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">Testify of God's goodness in your life.</p>
-                <PremiumButton href="/testimony">Submit Testimony</PremiumButton>
+                <PremiumButton href="/testimony">Submit and Read Testimonies</PremiumButton>
               </CardContent>
             </Card>
           </div>
