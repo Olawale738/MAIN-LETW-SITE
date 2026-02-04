@@ -171,11 +171,11 @@ export default function Navbar() {
           <div className="flex items-center gap-4">
             <div className="hidden lg:block">
               {isLoggedIn ? (
-                <PremiumButton href="/dashboard" className="py-2 text-sm">
+                <PremiumButton href="/dashboard" className="text-sm">
                   My Dashboard
                 </PremiumButton>
               ) : (
-                <PremiumButton href="/join" className="py-2 text-sm">Join Us</PremiumButton>
+                <PremiumButton href="/join" className="text-sm">Join Us</PremiumButton>
               )}
             </div>
 
@@ -206,7 +206,7 @@ export default function Navbar() {
             animate="open"
             exit="closed"
             variants={menuVariants}
-            className="fixed inset-0 z-40 bg-white/95 backdrop-blur-3xl lg:hidden flex flex-col pt-32 px-6 pb-8 overflow-y-auto"
+            className="fixed top-0 left-0 w-full h-[100dvh] z-40 bg-white/95 backdrop-blur-3xl lg:hidden flex flex-col pt-32 px-6 pb-8 overflow-y-auto overscroll-contain no-scrollbar"
           >
             <div className="flex flex-col gap-6">
               {navLinks.map((link, i) => (
@@ -243,12 +243,12 @@ export default function Navbar() {
 
               <motion.div custom={navLinks.length + 1} variants={linkVariants} className="mt-auto">
                 {isLoggedIn ? (
-                  <PremiumButton href="/dashboard" className="w-full py-4 text-center justify-center text-lg mb-4">
+                  <PremiumButton href="/dashboard" className="text-center justify-center text-lg mb-4">
                     My Dashboard
                   </PremiumButton>
                 ) : (
                   <>
-                    <PremiumButton href="/join" className="w-full py-4 text-center justify-center text-lg">
+                    <PremiumButton href="/join" className="text-center justify-center text-lg">
                       Join The Family
                     </PremiumButton>
                     <div className="mt-4 text-center">
