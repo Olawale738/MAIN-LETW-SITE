@@ -6,7 +6,7 @@ import { cmsApi, Block } from '@/lib/api'
 import { Loader2, Save } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import PageBuilder from '@/components/admin/cms/PageBuilder'
-import { DEFAULT_HOME_BLOCKS, DEFAULT_ABOUT_BLOCKS, DEFAULT_IMPACT_BLOCKS } from '@/lib/cmsDefaults'
+import { DEFAULT_HOME_BLOCKS, DEFAULT_ABOUT_BLOCKS, DEFAULT_IMPACT_BLOCKS, DEFAULT_SUNDAY_SERVICE_BLOCKS } from '@/lib/cmsDefaults'
 
 export default function GenericPageEditor() {
     const params = useParams()
@@ -30,6 +30,7 @@ export default function GenericPageEditor() {
             case 'home': return DEFAULT_HOME_BLOCKS;
             case 'about': return DEFAULT_ABOUT_BLOCKS;
             case 'impact': return DEFAULT_IMPACT_BLOCKS;
+            case 'sunday-service': return DEFAULT_SUNDAY_SERVICE_BLOCKS;
             default: return [];
         }
     }

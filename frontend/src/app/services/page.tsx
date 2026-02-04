@@ -55,7 +55,7 @@ export default function ServicesPage() {
             title="Sunday Worship Service"
             description="Join us every Sunday at 9:00 AM at our Main Campus for a powerful time of worship and word."
             buttonText="Watch Latest Sermons"
-            buttonLink="/sermons"
+            buttonLink="/services/sunday-service"
           />
           <ServiceCard
             icon={<Church className="w-8 h-8" />}

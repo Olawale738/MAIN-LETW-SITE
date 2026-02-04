@@ -24,7 +24,7 @@ export default function LeadershipPage() {
     const userName = localStorage.getItem('userName')
 
     if (!isLoggedIn) {
-      router.push('/auth/register?redirect=/leadership')
+      router.replace('/auth/register?redirect=/leadership')
     } else {
       setUser(userName || 'User')
       loadData()
