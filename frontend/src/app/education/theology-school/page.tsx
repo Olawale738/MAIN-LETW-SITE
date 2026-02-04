@@ -18,8 +18,6 @@ import {
     Map
 } from 'lucide-react'
 import SectionWrapper from '@/components/shared/SectionWrapper'
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
 import PremiumButton from '@/components/ui/PremiumButton'
 import Link from 'next/link'
 
@@ -269,7 +267,6 @@ export default function TheologySchoolPage() {
 
     return (
         <>
-            <Navbar />
             <div className="min-h-screen bg-gray-50 pb-20">
                 {/* Hero Section */}
                 <div className="bg-[#140152] text-white pt-32 pb-20 px-4 relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url("/TheologyHero.jpg")' }}>
@@ -432,7 +429,7 @@ export default function TheologySchoolPage() {
                                                                 </li>
                                                             ))}
                                                         </ul>
-                                                        <PremiumButton href="https://live.letw.org" target="_blank" className="w-full">
+                                                        <PremiumButton href="https://live.letw.org" target="_blank">
                                                             Apply for Level {program.level}
                                                         </PremiumButton>
                                                     </div>
@@ -575,7 +572,6 @@ export default function TheologySchoolPage() {
                     </div>
                 </SectionWrapper>
             </div>
-            <Footer />
         </>
     )
 }
