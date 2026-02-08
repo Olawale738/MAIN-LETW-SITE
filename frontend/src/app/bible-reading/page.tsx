@@ -146,7 +146,7 @@ export default function BibleReadingPage() {
                   <p className="text-gray-700 mb-4">
                     Register to track your progress through the reading plan.
                   </p>
-                  <PremiumButton onClick={handleRegister} className="w-full">
+                  <PremiumButton onClick={handleRegister} className="">
                     Register Now
                   </PremiumButton>
                 </CardContent>

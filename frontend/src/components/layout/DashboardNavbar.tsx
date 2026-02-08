@@ -173,16 +173,14 @@ export default function DashboardNavbar() {
                             <motion.div
                                 whileHover={{ scale: 1.05, rotate: 5 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-[#f5bb00] to-[#d4a000] rounded-2xl shadow-xl shadow-[#f5bb00]/30 ring-2 ring-white/20"
+                                className="w-12 h-12 flex items-center justify-center"
                             >
                                 <img src="/LETWlogo.png" alt="LETW" className="w-full h-full object-cover rounded-2xl" />
                             </motion.div>
                             <div className="hidden sm:block">
-                                <span className="font-black text-lg text-white block tracking-tight leading-tight">
-                                    LETW
-                                </span>
-                                <span className="text-xs text-[#f5bb00] font-semibold uppercase tracking-widest">
-                                    Portal
+
+                                <span className="text-l text-[#f5bb00] font-semibold uppercase tracking-widest">
+                                    DASHBOARD
                                 </span>
                             </div>
                         </Link>
@@ -201,7 +199,7 @@ export default function DashboardNavbar() {
                     {/* Right Section */}
                     <div className="flex items-center gap-3">
                         {/* Back to Dashboard - Repositioned to right side */}
-                        {!isOnMainDashboard && (
+                        {/* {!isOnMainDashboard && (
                             <Link
                                 href={userRole === 'admin' ? '/admin' : '/dashboard'}
                                 className="hidden lg:flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white/80 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full transition-all border border-white/20 group"
@@ -209,7 +207,7 @@ export default function DashboardNavbar() {
                                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                                 Dashboard
                             </Link>
-                        )}
+                        )} */}
 
                         {/* Notification Bell with Dropdown */}
                         <div className="relative" ref={notificationRef}>
