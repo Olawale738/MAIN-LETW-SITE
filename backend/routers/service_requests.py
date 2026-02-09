@@ -49,7 +49,7 @@ def _request_to_response(request: ServiceRequest, include_user: bool = False) ->
     return ServiceRequestResponse(**data)
 
 
-AUTO_APPROVED_SERVICES = ["Theology school", "Prayer", "Prayer meeting", "Evangelism"]
+AUTO_APPROVED_SERVICES = ["Prayer", "Prayer meeting", "Evangelism"]
 
 
 @router.post("", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)

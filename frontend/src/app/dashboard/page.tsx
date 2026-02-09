@@ -36,12 +36,6 @@ const SERVICE_CONFIG: Record<string, { icon: React.ReactNode; description: strin
         buttonText: "View Choir",
         buttonLink: "/services/alter-sound"
     },
-    "Theology school": {
-        icon: <GraduationCap className="w-8 h-8" />,
-        description: "Advance your theological knowledge through our accredited courses.",
-        buttonText: "Access School",
-        buttonLink: "/theology-school"
-    },
     "Counselling": {
         icon: <MessageCircle className="w-8 h-8" />,
         description: "Access spiritual and pastoral counselling support services.",
@@ -234,27 +228,16 @@ export default function UserDashboard() {
                                     />
 
                                     {/* Approved Services */}
-                                    {approvedServices.filter(s => s !== 'Counselling').map((service) => {
+                                    {approvedServices.filter(s => s !== 'Counselling' && s !== 'Theology school').map((service) => {
                                         const config = SERVICE_CONFIG[service]
                                         if (config) {
-                                            let buttonLink = config.buttonLink
-                                            let buttonText = config.buttonText
-
-                                            if (service === "Theology school") {
-                                                const paidServices = JSON.parse(localStorage.getItem('paidServices') || '{}')
-                                                if (paidServices['theology_school']) {
-                                                    buttonLink = "/theology-school"
-                                                    buttonText = "Access Dashboard"
-                                                }
-                                            }
-
                                             return (
                                                 <ServiceCard
                                                     key={service}
                                                     title={service}
                                                     description={config.description}
-                                                    buttonText={buttonText}
-                                                    buttonLink={buttonLink}
+                                                    buttonText={config.buttonText}
+                                                    buttonLink={config.buttonLink}
                                                     icon={config.icon}
                                                 />
                                             )
@@ -273,14 +256,14 @@ export default function UserDashboard() {
                                 </div>
 
                                 {/* Pending Services */}
-                                {pendingServices.length > 0 && (
+                                {pendingServices.filter(s => s !== 'Theology school').length > 0 && (
                                     <div className="bg-amber-50 rounded-3xl p-8 border border-amber-100">
                                         <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider mb-6 flex items-center gap-3">
                                             <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                                             Pending Approvals
                                         </h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {pendingServices.map((service) => (
+                                            {pendingServices.filter(s => s !== 'Theology school').map((service) => (
                                                 <div key={service} className="bg-white p-6 rounded-2xl shadow-sm border border-amber-100 flex items-center gap-5 hover:shadow-md transition-shadow">
                                                     <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
                                                         <Clock className="w-6 h-6" />
@@ -295,7 +278,7 @@ export default function UserDashboard() {
                                     </div>
                                 )}
 
-                                {approvedServices.filter(s => s !== 'Counselling').length === 0 && pendingServices.length === 0 && (
+                                {approvedServices.filter(s => s !== 'Counselling' && s !== 'Theology school').length === 0 && pendingServices.filter(s => s !== 'Theology school').length === 0 && (
                                     <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100 hover:border-blue-200 transition-colors">
                                         <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-300">
                                             <Briefcase className="w-10 h-10" />
