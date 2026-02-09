@@ -139,20 +139,20 @@ export default function UserDashboard() {
             {/* Spotlight Hero Section */}
             <div className="relative bg-[#140152] pt-32 pb-32 px-4 md:px-12 overflow-hidden">
                 <Spotlight className="-top-10 left-0 md:left-60 md:-top-20" fill="white" />
-                <div className="max-w-7xl mx-auto relative z-10 flex flex-col md:flex-row justify-between items-end gap-8">
+                <div className="max-w-5xl mx-auto relative z-10 flex flex-col md:flex-row justify-between items-end gap-8">
                     <div>
-                        <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 mb-6 tracking-tight">
+                        <h1 className="text-xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 mb-6 tracking-tight">
                             Welcome back,<br /> {userName}.
                         </h1>
-                        <p className="text-blue-200 text-lg md:text-xl max-w-2xl font-light leading-relaxed">
+                        <p className="text-blue-200 text-md md:text-xl max-w-2xl font-light leading-relaxed">
                             Your spiritual journey continues. Here's what's happening today.
                         </p>
                     </div>
                 </div>
             </div>
 
-            <main className="flex-grow py-16 px-4 md:px-12 -mt-20 relative z-20">
-                <div className="max-w-7xl mx-auto space-y-16">
+            <main className="flex-growpy-16 px-4 md:px-12 -mt-20 relative z-20">
+                <div className="max-w-5xl mx-auto space-y-16">
 
                     {/* Top Highlights Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -167,13 +167,13 @@ export default function UserDashboard() {
                             </CardHeader>
                             <CardContent className="relative z-10 px-8 pb-8 pt-0 flex-grow flex flex-col justify-end">
                                 <div className="flex items-baseline gap-2 mb-6">
-                                    <span className="text-7xl font-black text-[#140152] tracking-tighter">{bibleProgress}%</span>
+                                    <span className="text-5xl font-black text-[#140152] tracking-tighter">{bibleProgress}%</span>
                                     <span className="text-gray-400 font-medium text-lg">completed</span>
                                 </div>
                                 <div className="w-full bg-gray-100 rounded-full h-4 mb-8 overflow-hidden">
                                     <div className="bg-gradient-to-r from-blue-600 to-[#140152] h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(20,1,82,0.3)]" style={{ width: `${bibleProgress}%` }} />
                                 </div>
-                                <PremiumButton href="/bible-reading" className="w-full justify-center py-6 text-lg rounded-xl">Continue Reading</PremiumButton>
+                                <PremiumButton href="/bible-reading" className="justify-center text-lg rounded-xl">Continue Reading</PremiumButton>
                             </CardContent>
                         </Card>
 
@@ -190,7 +190,7 @@ export default function UserDashboard() {
                                     <h3 className="text-4xl md:text-5xl font-black mb-3 tracking-tight">Sunday Service</h3>
                                     <p className="font-semibold opacity-80 text-xl border-l-4 border-[#140152]/20 pl-4 py-1">9:00 AM • Main Sanctuary</p>
                                 </div>
-                                <PremiumButton href="/services" className="w-full bg-[#140152] text-white hover:bg-[#140152]/90 border-none justify-center py-6 text-lg rounded-xl shadow-none">
+                                <PremiumButton href="/services" className="bg-[#140152] text-white hover:bg-[#140152]/90 border-none justify-center text-lg rounded-xl shadow-none">
                                     View Full Schedule
                                 </PremiumButton>
                             </CardContent>
@@ -286,7 +286,7 @@ export default function UserDashboard() {
                                         <p className="text-gray-500 font-medium text-lg mb-4">You haven't joined any ministries yet.</p>
                                         <PremiumButton
                                             href="/onboarding/services"
-                                            className="w-full justify-center py-6 text-lg rounded-xl mt-4"
+                                            className="justify-center py-6 text-lg rounded-xl mt-4"
                                         >
                                             Explore Available Ministries
                                         </PremiumButton>
