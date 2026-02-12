@@ -140,7 +140,7 @@ export default function SecondarySchoolPage() {
                 <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[#140152] rounded-full" />Parent & Student Interview</li>
                 <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[#140152] rounded-full" />Review of Past Reports</li>
               </ul>
-              <PremiumButton className="bg-[#140152] text-white hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6 border border-[#140152]">
+              <PremiumButton href="/education/secondary-school/coming-soon" className="bg-[#140152] text-white hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6 border border-[#140152]">
                 Visit Secondary School Website
               </PremiumButton>
             </div>
