@@ -27,4 +27,3 @@ env/
 .env/
 *.md
 *.db
-*txt
