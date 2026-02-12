@@ -138,7 +138,7 @@ export default function PrimarySchoolPage() {
                                     <span>Documentation</span>
                                 </div>
                             </div>
-                            <PremiumButton className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6">
+                            <PremiumButton href="/education/coming-soon" className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152] font-bold ">
                                 Apply Now
                             </PremiumButton>
                             <p className="text-center text-xs text-blue-300 mt-4">Limited spaces available.</p>
