@@ -15,7 +15,8 @@ import {
   Clock,
   Moon,
   Calendar,
-  Loader2
+  Loader2,
+  ExternalLink
 } from 'lucide-react'
 import { prayerApi, PrayerPageData } from '@/lib/api'
 import * as LucideIcons from 'lucide-react'
@@ -122,6 +123,29 @@ export default function PrayerPage() {
       </div>
 
       {/* Impact Stats */}
+      {stats.length > 0 && (
+        <SectionWrapper className="bg-gradient-to-br from-[#140152] via-[#1d0175] to-[#140152]">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <motion.div
+                key={stat.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="text-center"
+              >
+                <div className="text-5xl md:text-6xl font-black text-[#f5bb00] mb-2">
+                  {stat.value}
+                </div>
+                <div className="text-white/80 font-medium text-lg">
+                  {stat.label}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </SectionWrapper>
+      )}
 
 
       {/* Prayer Experience Section */}
@@ -167,6 +191,64 @@ export default function PrayerPage() {
       </SectionWrapper>
 
       {/* Prayer Schedule */}
+      {schedules.length > 0 && (
+        <SectionWrapper>
+          <div className="text-center mb-16 space-y-4">
+            <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">
+              Join Us in Prayer
+            </span>
+            <h2 className="text-4xl md:text-5xl font-black text-[#140152]">
+              Prayer Schedule
+            </h2>
+            <div className="w-24 h-1.5 bg-[#f5bb00] mx-auto rounded-full" />
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {schedules.map((schedule, index) => {
+              const ScheduleIcon = getIconComponent(schedule.icon)
+              return (
+                <motion.div
+                  key={schedule.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card className="h-full border-none shadow-lg hover:shadow-xl transition-all group">
+                    <CardContent className="p-8">
+                      <div className="w-14 h-14 bg-gradient-to-br from-[#f5bb00] to-[#d4a000] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <ScheduleIcon className="w-7 h-7 text-[#140152]" />
+                      </div>
+                      <h3 className="text-xl font-bold text-[#140152] mb-2">
+                        {schedule.program_name}
+                      </h3>
+                      <p className="text-[#f5bb00] font-semibold mb-3">
+                        {schedule.time_description}
+                      </p>
+                      {schedule.description && (
+                        <p className="text-gray-600 leading-relaxed mb-4">
+                          {schedule.description}
+                        </p>
+                      )}
+                      {schedule.meeting_link && (
+                        <a
+                          href={schedule.meeting_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-[#140152] font-semibold hover:text-[#f5bb00] transition-colors"
+                        >
+                          Join Meeting
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )
+            })}
+          </div>
+        </SectionWrapper>
+      )}
 
 
       {/* Final Call Section */}
