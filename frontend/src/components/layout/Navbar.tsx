@@ -243,12 +243,12 @@ export default function Navbar() {
 
               <motion.div custom={navLinks.length + 1} variants={linkVariants} className="mt-auto">
                 {isLoggedIn ? (
-                  <PremiumButton href="/dashboard" className="text-center justify-center text-lg mb-4">
+                  <PremiumButton href="/dashboard" className="text-center justify-center text-lg mb-4" onClick={() => setIsOpen(false)}>
                     My Dashboard
                   </PremiumButton>
                 ) : (
                   <>
-                    <PremiumButton href="/join" className="text-center justify-center text-lg">
+                    <PremiumButton href="/join" className="text-center justify-center text-lg" onClick={() => setIsOpen(false)}>
                       Join The Family
                     </PremiumButton>
                     <div className="mt-4 text-center">
