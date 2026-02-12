@@ -233,7 +233,9 @@ export const DEFAULT_SUNDAY_SERVICE_BLOCKS: Block[] = [
                 {
                     title: "Kids Ministry",
                     description: "Fun, safe, and engaging biblical learning for children of all ages.",
-                    icon: "Smile"
+                    icon: "Smile",
+                    link: "/kids-ministry",
+                    button_text: "Join Kids Ministry"
                 }
             ]
         }

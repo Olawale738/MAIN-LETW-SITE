@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 import Image from 'next/image';
+import PremiumButton from '@/components/ui/PremiumButton';
 
 interface FeatureItem {
     title: string;
@@ -11,6 +12,7 @@ interface FeatureItem {
     icon?: string;
     image?: string;
     link?: string;
+    button_text?: string;
 }
 
 interface FeaturesBlockProps {
@@ -38,6 +40,8 @@ export default function FeaturesBlock({ data }: FeaturesBlockProps) {
         columns = 3,
         style = 'cards'
     } = data;
+
+
 
     const gridCols = {
         2: 'md:grid-cols-2',
@@ -100,9 +104,15 @@ export default function FeaturesBlock({ data }: FeaturesBlockProps) {
                                     {feature.description}
                                 </p>
                                 {feature.link && (
-                                    <span className="text-[#140152] font-semibold mt-4 block text-sm group-hover:underline">
-                                        View Resource &rarr;
-                                    </span>
+                                    feature.button_text ? (
+                                        <div className="mt-6">
+                                            <PremiumButton>{feature.button_text}</PremiumButton>
+                                        </div>
+                                    ) : (
+                                        <span className="text-[#140152] font-semibold mt-4 block text-sm group-hover:underline">
+                                            View Resource &rarr;
+                                        </span>
+                                    )
                                 )}
                             </div>
                         );
