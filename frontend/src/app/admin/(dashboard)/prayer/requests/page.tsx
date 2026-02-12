@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { ArrowLeft, Loader2, X, Eye } from 'lucide-react'
+import { ArrowLeft, Loader2, X, Eye, User } from 'lucide-react'
 import { prayerApi, PrayerRequest } from '@/lib/api'
 import { useToast } from '@/components/ui/toast'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -141,7 +141,27 @@ export default function PrayerRequestsPage() {
                     </div>
                     <p className="text-gray-600 mb-3 line-clamp-2">{request.description}</p>
 
-
+                    {/* User Details */}
+                    {!request.is_anonymous && request.user ? (
+                      <div className="flex items-center gap-2 mb-3 text-sm">
+                        <div className="w-6 h-6 rounded-full bg-[#140152] text-white flex items-center justify-center">
+                          <User className="w-3 h-3" />
+                        </div>
+                        <span className="font-medium text-gray-800">
+                          {request.user.first_name} {request.user.last_name}
+                        </span>
+                        {request.user.email && (
+                          <span className="text-gray-400">• {request.user.email}</span>
+                        )}
+                      </div>
+                    ) : request.is_anonymous ? (
+                      <div className="flex items-center gap-2 mb-3 text-sm text-gray-400 italic">
+                        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                          <User className="w-3 h-3 text-gray-400" />
+                        </div>
+                        <span>Anonymous submission</span>
+                      </div>
+                    ) : null}
 
                     <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
                       <span>{request.prayer_count} prayers</span>
@@ -233,6 +253,25 @@ export default function PrayerRequestsPage() {
                     <p className="text-gray-700">{selectedRequest.category}</p>
                   </div>
                 )}
+
+                {/* User Details in Modal */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Submitted By</label>
+                  {selectedRequest.is_anonymous ? (
+                    <p className="text-gray-500 italic">Anonymous</p>
+                  ) : selectedRequest.user ? (
+                    <div className="bg-gray-50 rounded-lg p-3 space-y-1">
+                      <p className="text-gray-800 font-medium">
+                        {selectedRequest.user.first_name} {selectedRequest.user.last_name}
+                      </p>
+                      {selectedRequest.user.email && (
+                        <p className="text-gray-500 text-sm">{selectedRequest.user.email}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">User info unavailable</p>
+                  )}
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>

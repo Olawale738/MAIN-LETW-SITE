@@ -1510,6 +1510,12 @@ export interface PrayerRequest {
     status: 'pending' | 'praying' | 'answered' | 'archived';
     prayer_count: number;
     testimony?: string;
+    user?: {
+        id: string;
+        first_name?: string;
+        last_name?: string;
+        email?: string;
+    };
     created_at: string;
     updated_at: string;
 }

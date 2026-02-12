@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kids Ministry - Light Encounter Tabernacle</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #FF6B35;
+            --secondary: #004E89;
+            --accent: #FFD60A;
+            --success: #2ECC71;
+            --light-bg: #F8F9FA;
+            --text-dark: #1A1A1A;
+            --text-light: #FFFFFF;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+
+        /* NAVIGATION */
+        nav {
+            background: linear-gradient(135deg, var(--secondary) 0%, #003d70 100%);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0, 78, 137, 0.2);
+        }
+
+        nav .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        nav a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        nav a:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 3px;
+            bottom: -5px;
+            left: 0;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
+
+        nav a:hover:after {
+            width: 100%;
+        }
+
+        /* HERO SECTION */
+        .hero {
+            background: linear-gradient(135deg, var(--primary) 0%, #ff8a50 50%, var(--secondary) 100%);
+            color: var(--text-light);
+            padding: 100px 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 400px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -5%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+            animation: float 8s ease-in-out infinite reverse;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            margin: 0 auto;
+            animation: slideUp 0.8s ease;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--secondary);
+            box-shadow: 0 10px 30px rgba(255, 214, 10, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(255, 214, 10, 0.5);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-light);
+            border: 2px solid var(--text-light);
+        }
+
+        .btn-secondary:hover {
+            background: var(--text-light);
+            color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        /* FLOATING ELEMENTS */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-30px); }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* SECTION */
+        .section {
+            padding: 80px 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section h2 {
+            font-size: 2.8rem;
+            margin-bottom: 3rem;
+            text-align: center;
+            color: var(--secondary);
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .section h2::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 5px;
+            background: var(--primary);
+            margin: 1rem auto 0;
+            border-radius: 3px;
+        }
+
+        /* ABOUT SECTION */
+        .about-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .about-text h3 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .about-text p {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+            color: #555;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, var(--accent) 0%, #ffd60a80 100%);
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+            border-left: 5px solid var(--primary);
+        }
+
+        .highlight-box strong {
+            color: var(--secondary);
+        }
+
+        /* VISUAL ELEMENT */
+        .about-visual {
+            position: relative;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .visual-card {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            padding: 3rem;
+            border-radius: 20px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 78, 137, 0.3);
+            transform: rotate(-5deg);
+            animation: gentle-sway 4s ease-in-out infinite;
+        }
+
+        .visual-card h4 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes gentle-sway {
+            0%, 100% { transform: rotate(-5deg) translateY(0); }
+            50% { transform: rotate(-5deg) translateY(-15px); }
+        }
+
+        /* AGE GROUPS */
+        .age-groups {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .age-group-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .age-group-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .age-group-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* PROGRAMS SECTION */
+        .programs {
+            background: var(--light-bg);
+        }
+
+        .programs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .program-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2.5rem;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .program-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .program-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+
+        .program-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .program-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .program-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .program-card:nth-child(2) .program-icon {
+            animation-delay: 0.2s;
+        }
+
+        .program-card:nth-child(3) .program-icon {
+            animation-delay: 0.4s;
+        }
+
+        .program-card:nth-child(4) .program-icon {
+            animation-delay: 0.6s;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .program-card h4 {
+            font-size: 1.5rem;
+            color: var(--secondary);
+            margin-bottom: 1rem;
+        }
+
+        .program-card p {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        /* NEW CAMP SECTION */
+        .camp {
+            background: linear-gradient(135deg, var(--success) 0%, #27ae60 100%);
+            color: white;
+            padding: 80px 2rem;
+            text-align: center;
+        }
+
+        .camp h2 {
+            color: white;
+            margin-bottom: 2rem;
+            font-size: 2.8rem;
+        }
+
+        .camp p {
+            font-size: 1.2rem;
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .camp img {
+            width: 100%;
+            max-width: 800px;
+            border-radius: 15px;
+            margin: 2rem auto;
+            display: block;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        /* PARENT RESOURCES */
+        .resources {
+            background: var(--light-bg);
+        }
+
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .resource-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        /* TESTIMONIALS SECTION */
+        .testimonials {
+            background: linear-gradient(180deg, #f0f4ff 0%, #f8f9fa 100%);
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .testimonial-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
+
+        .stars {
+            color: var(--accent);
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .testimonial-text {
+            color: #555;
+            font-style: italic;
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+        }
+
+        .testimonial-author {
+            font-weight: 700;
+            color: var(--secondary);
+            font-size: 0.95rem;
+        }
+
+        .testimonial-role {
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        /* EVENTS SECTION */
+        .events {
+            background: white;
+        }
+
+        .events-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .event-card {
+            background: white;
+            border-left: 5px solid var(--primary);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .event-card:hover {
+            box-shadow: 0 10px 35px rgba(255, 107, 53, 0.2);
+            transform: translateX(5px);
+        }
+
+        .event-date {
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .event-card h4 {
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+
+        .event-card p {
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        /* JOIN SECTION */
+        .join {
+            background: linear-gradient(135deg, var(--secondary) 0%, #003d70 100%);
+            color: white;
+            padding: 80px 2rem;
+            text-align: center;
+        }
+
+        .join h2 {
+            color: white;
+            margin-bottom: 2rem;
+            font-size: 2.8rem;
+        }
+
+        .join p {
+            font-size: 1.2rem;
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .join h2::after {
+            background: var(--accent);
+        }
+
+        /* CONTACT & FOOTER */
+        footer {
+            background: #1a1a1a;
+            color: #ccc;
+            padding: 4rem 2rem 2rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+
+        .footer-section h4 {
+            color: white;
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+        }
+
+        .footer-section p, .footer-section a {
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: #aaa;
+            text-decoration: none;
+        }
+
+        .footer-section a:hover {
+            color: var(--accent);
+            transition: color 0.3s ease;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            border-top: 1px solid #333;
+            padding-top: 2rem;
+            color: #888;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .about-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            nav ul {
+                gap: 1rem;
+                font-size: 0.9rem;
+            }
+
+            .about-visual {
+                min-height: 300px;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .section h2 {
+                font-size: 2rem;
+            }
+        }
+
+        /* SLIDER FOR TESTIMONIALS */
+        .slider {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        .slides {
+            display: flex;
+            transition: transform 0.5s ease;
+        }
+
+        .slide {
+            min-width: 100%;
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVIGATION -->
+    <nav>
+        <div class="container">
+            <div class="logo">🌟 Kids Ministry</div>
+            <ul>
+                <li><a href="#about">About</a></li>
+                <li><a href="#programs">Programs</a></li>
+                <li><a href="#camp">Camp</a></li>
+                <li><a href="#resources">Resources</a></li>
+                <li><a href="#events">Events</a></li>
+                <li><a href="#join">Join Us</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>🌈 Shine Your Light</h1>
+            <p>Inspired by the vibrant children's ministry of Light of Encounter Tabernacle Worldwide, our program evangelizes, disciples, and empowers young hearts to encounter God's love in profound, joyful ways.</p>
+            <div class="cta-buttons">
+                <button class="btn btn-primary" onclick="openModal()">Register Now</button>
+           </div>
+        </div>
+    </section>
+
+    <!-- MODAL -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Registration Form</h2>
+            <form>
+                <label for="childName">Child's Name:</label><br>
+                <input type="text" id="childName" name="childName"><br><br>
+                <label for="age">Age:</label><br>
+                <input type="number" id="age" name="age"><br><br>
+                <label for="parentEmail">Parent's Email:</label><br>
+                <input type="email" id="parentEmail" name="parentEmail"><br><br>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ABOUT SECTION -->
+    <section class="section" id="about">
+        <h2>Our Mission</h2>
+        <div class="about-content">
+            <div class="about-text">
+                <h3>Empowering Young Hearts</h3>
+                <p>Drawing from commitment to evangelizing and discipling children, LETW's focus on encouraging parents and edifying servants, and Tabernacle's profound worship experiences, Light Encounter Tabernacle Kids Ministry serves children ages 2-17. We create transformative spaces where kids value God's Word through worship, lessons, games, and one-on-one guidance.</p>
+                
+                <div class="highlight-box">
+                    <strong>Our Promise:</strong> A safe, nurturing environment where children encounter God's love, build meaningful friendships, develop strong faith foundations, and discover their unique gifts—just like the joyful camps and outreaches that inspire us.
+                </div>
+
+                <p>We blend engaging worship inspired by Tabernacle traditions, biblical teaching from deeper revelation's Search-the-Scriptures, and community service from LETW's outreach to help children understand their purpose in God's plan.</p>
+            </div>
+
+            <div class="about-visual">
+                <div class="visual-card">
+                    <h4>🎯 Core Values</h4>
+                    <p style="margin-bottom: 1rem;">✨ Faith • 💪 Growth • 🤝 Community • 🎨 Creativity • 📖 Discipleship</p>
+                    <p style="font-size: 0.9rem;">Evangelizing, Teaching, and Equipping Tomorrow's Leaders</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- AGE GROUPS -->
+        <div class="age-groups">
+            <div class="age-group-card">
+                <div class="age-group-icon">👶</div>
+                <h4>Nursery (2-5)</h4>
+                <p>Play-based learning and basic Bible stories in a loving nursery setting.</p>
+            </div>
+            <div class="age-group-card">
+                <div class="age-group-icon">📚</div>
+                <h4>Elementary (6-12)</h4>
+                <p>Interactive lessons, games, and worship to build faith foundations.</p>
+            </div>
+            <div class="age-group-card">
+                <div class="age-group-icon">🧑‍🎓</div>
+                <h4>Youth (13-17)</h4>
+                <p>Discipleship, leadership training, and outreach for teens.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- PROGRAMS SECTION -->
+    <section class="section programs" id="programs">
+        <h2>Our Programs</h2>
+        <div class="programs-grid">
+            <div class="program-card">
+                <img src="https://images.squarespace-cdn.com/content/v1/52033caae4b0c1bcad8198e1/1445526659160-S4DI4JJJNJPQAASE7UV2/image-asset.jpeg" alt="Kids Choir">
+                <div class="program-icon">🎵</div>
+                <h4>Kids Choir & Worship</h4>
+                <p>Inspired by Tabernacle Choir, experience joyful worship through music, dance, and celebrations that bring God's presence alive.</p>
+            </div>
+
+            <div class="program-card">
+                <img src="https://cdn.prod.website-files.com/5f6b9a421d5a61e1d0cd9e3d/672c01ba1bfa15d5b4b7d5f1_62f10edecc0587049c323ec0_cdc-8LITuYkZRIo-unsplash.jpeg" alt="Bible Adventures">
+                <div class="program-icon">📖</div>
+                <h4>Bible Adventures</h4>
+                <p>Interactive storytelling like Christain Life's programs, bringing God's Word to life with engaging narratives, crafts, and discussions.</p>
+            </div>
+
+            <div class="program-card">
+                <img src="https://www.gracepointvegas.com/wp-content/uploads/2025/01/GracePointChurch-Elementary-age-kids-in-small-groups-1024x683.jpg" alt="Discipleship">
+                <div class="program-icon">🌱</div>
+                <h4>Discipleship & Growth</h4>
+                <p>Guided development programs, echoing LETW's edification, helping kids establish faith and discover their callings through mentorship.</p>
+            </div>
+
+            <div class="program-card">
+                <img src="https://kidactivities.net/wp-content/uploads/2015/12/37-community-service-projects-for-kids.jpg" alt="Outreach">
+                <div class="program-icon">🤝</div>
+                <h4>Community Outreach</h4>
+                <p>Hands-on service projects teaching the heart of compassion, making a difference in our community with real impact.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CAMP SECTION -->
+    <section class="camp" id="camp">
+        <h2>Summer Shine Camp</h2>
+        <p>Like BTKids Camp, our week-long adventure features games, laughter, Bible exploration, and worship. A blast of faith-building fun!</p>
+        <img src="https://www.guelphbiblecc.com/wp-content/uploads/2021/10/Christian-Youth-Camp-Games.jpg" alt="Kids Camp">
+        <button class="btn btn-primary">Stay Tune</button>
+    </section>
+
+    <!-- RESOURCES SECTION -->
+    <section class="section resources" id="resources">
+        <h2>Parent & Volunteer Resources</h2>
+        <p>Inspired by LETW's training programs, we offer tools to equip parents and volunteers for nurturing young faith at home and church.</p>
+        <div class="resources-grid">
+            <div class="resource-card">
+                <h4>Parent Guides</h4>
+                <p>Weekly devotionals and tips for family faith discussions.</p>
+            </div>
+            <div class="resource-card">
+                <h4>Volunteer Training</h4>
+                <p>Annual workshops on child safety, teaching, and discipleship.</p>
+            </div>
+            <div class="resource-card">
+                <h4>Bible Study Kits</h4>
+                <p>Downloadable materials for home Bible adventures.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS SECTION -->
+    <section class="section testimonials">
+        <h2>Hear From Our Families</h2>
+        <div class="slider">
+            <div class="slides">
+                <div class="slide">
+                    <div class="testimonials-grid">
+                        <div class="testimonial-card">
+                            <div class="stars">⭐⭐⭐⭐⭐</div>
+                            <div class="testimonial-text">"My daughter looks forward to every Sunday! She's made wonderful friends and her faith has deepened so much. This ministry truly cares."</div>
+                            <div class="testimonial-author">Sarah M.</div>
+                            <div class="testimonial-role">Parent</div>
+                        </div>
+                        <div class="testimonial-card">
+                            <div class="stars">⭐⭐⭐⭐⭐</div>
+                            <div class="testimonial-text">"The teachers are amazing! They make learning about God fun and relatable. My kids ask about it all week long!"</div>
+                            <div class="testimonial-author">David T.</div>
+                            <div class="testimonial-role">Parent</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="slide">
+                    <div class="testimonials-grid">
+                        <div class="testimonial-card">
+                            <div class="stars">⭐⭐⭐⭐⭐</div>
+                            <div class="testimonial-text">"I found my church family here. The kids ministry team is like second parents to us. Truly blessed!"</div>
+                            <div class="testimonial-author">Jennifer L.</div>
+                            <div class="testimonial-role">Parent</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- EVENTS SECTION -->
+    <section class="section" id="events">
+        <h2>Upcoming Events</h2>
+        <div class="events-list">
+            <div class="event-card">
+                <span class="event-date">March 15, 2025</span>
+                <h4>🎉 Kids Praise Party</h4>
+                <p>An afternoon of worship, games, and celebration! Inspired by LETW.</p>
+                <button class="btn btn-primary" style="padding: 10px 20px; font-size: 0.9rem;">Register</button>
+            </div>
+
+            <div class="event-card">
+                <span class="event-date">March 22, 2025</span>
+                <h4>📚 Bible Quest Adventure</h4>
+                <p>Embark on an exciting journey through biblical stories with interactive games, like Christain Life programs.</p>
+                <button class="btn btn-primary" style="padding: 10px 20px; font-size: 0.9rem;">Register</button>
+            </div>
+
+            <div class="event-card">
+                <span class="event-date">April 5, 2025</span>
+                <h4>🌍 Community Service Day</h4>
+                <p>Make a difference! Kids serve together in hands-on projects, LETW-style outreach.</p>
+                <button class="btn btn-primary" style="padding: 10px 20px; font-size: 0.9rem;">Register</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- JOIN SECTION -->
+    <section class="join" id="join">
+        <h2>Join Our Ministry Family</h2>
+        <p>Your child deserves a place where faith, friendship, and fun come together. We're ready to welcome your family with open hearts and open arms, just as in the inspiring ministries we draw from.</p>
+        <button class="btn btn-primary" onclick="openModal()">Start Your Journey Today</button>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Light Encounter Kids Ministry</h4>
+                <p>Creating a sanctuary where young hearts encounter God's love and discover their divine purpose, inspired by LETW.</p>
+            </div>
+
+            <div class="footer-section">
+                <h4>Contact Us</h4>
+                <p>📍 123 Faith Avenue, Grace City, Divine State, 10101</p>
+                <p>📞 +1 (234) 567-8901</p>
+                <p>📧 kids@letw.org</p>
+            </div>
+
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <a href="#about">About Ministry</a><br>
+                <a href="#programs">Programs</a><br>
+                <a href="#camp">Camp</a><br>
+                <a href="#events">Events</a><br>
+                <a href="#join">Join Us</a>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2025 Light Encounter Tabernacle Kids Ministry. All rights reserved.</p>
+            <p>Where Kids Shine and Faith Grows 🌟</p>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Modal
+        function openModal() {
+            document.getElementById('registerModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('registerModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('registerModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Form submission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Registration submitted! We\'ll contact you soon.');
+            closeModal();
+        });
+
+        // Simple slider for testimonials
+        let currentSlide = 0;
+        const slides = document.querySelector('.slides');
+        const totalSlides = document.querySelectorAll('.slide').length;
+
+        setInterval(() => {
+            currentSlide = (currentSlide + 1) % totalSlides;
+            slides.style.transform = `translateX(-${currentSlide * 100}%)`;
+        }, 5000);
+    </script>
+</body>
+</html>
