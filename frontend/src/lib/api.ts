@@ -829,6 +829,7 @@ export const sermonApi = {
         if (data.description) formData.append('description', data.description);
         if (data.series) formData.append('series', data.series);
         if (data.video_url) formData.append('video_url', data.video_url);
+        if (data.document_url) formData.append('document_url', data.document_url);
         formData.append('is_featured', String(data.is_featured || false));
         formData.append('is_published', String(data.is_published !== false));
         if (data.audio) formData.append('audio', data.audio);
@@ -857,6 +858,7 @@ export const sermonApi = {
         if (data.description !== undefined) formData.append('description', data.description || '');
         if (data.series !== undefined) formData.append('series', data.series || '');
         if (data.video_url !== undefined) formData.append('video_url', data.video_url || '');
+        if (data.document_url !== undefined) formData.append('document_url', data.document_url || '');
         if (data.is_featured !== undefined) formData.append('is_featured', String(data.is_featured));
         if (data.is_published !== undefined) formData.append('is_published', String(data.is_published));
         if (data.audio) formData.append('audio', data.audio);

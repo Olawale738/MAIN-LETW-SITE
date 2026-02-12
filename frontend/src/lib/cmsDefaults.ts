@@ -51,7 +51,7 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
                 {
                     title: "Pastoral Care",
                     description: "Guidance and support for every season of your life.",
-                    image: "https://images.unsplash.com/photo-1544427928-c49cdfebf494?w=800",
+                    image: "https://images.unsplash.com/photo-1507692049790-de58290a4334?w=800",
                     icon: "Shield"
                 },
                 {
