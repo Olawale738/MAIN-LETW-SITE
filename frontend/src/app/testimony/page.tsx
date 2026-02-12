@@ -1,6 +1,5 @@
 'use client'
 
-// ... imports
 import { useState, useEffect } from 'react'
 import Hero from '@/components/shared/Hero'
 import SectionWrapper from '@/components/shared/SectionWrapper'
@@ -8,48 +7,52 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { ArrowRight } from 'lucide-react'
-
-// Define Testimony Interface
-interface Testimony {
-  id: string
-  name: string
-  testimony: string
-  date: string
-  status: 'pending' | 'approved'
-}
+import { ArrowRight, Loader2, Quote } from 'lucide-react'
+import { testimonyApi, TestimonyItem } from '@/lib/api'
 
 export default function TestimonyPage() {
-  const [formData, setFormData] = useState({ name: '', email: '', testimony: '' })
-  const [approvedTestimonies, setApprovedTestimonies] = useState<Testimony[]>([])
+  const [formData, setFormData] = useState({ name: '', email: '', testimony_text: '' })
+  const [approvedTestimonies, setApprovedTestimonies] = useState<TestimonyItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
 
   useEffect(() => {
-    // Load approved testimonies
-    const stored = localStorage.getItem('testimonies')
-    if (stored) {
-      const all: Testimony[] = JSON.parse(stored)
-      setApprovedTestimonies(all.filter(t => t.status === 'approved'))
-    }
+    fetchApproved()
   }, [])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const fetchApproved = async () => {
+    try {
+      setLoading(true)
+      const data = await testimonyApi.getApproved()
+      setApprovedTestimonies(data)
+    } catch (error) {
+      console.error('Failed to fetch testimonies:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const newTestimony: Testimony = {
-      id: Date.now().toString(),
-      name: formData.name,
-      testimony: formData.testimony,
-      date: new Date().toLocaleDateString(),
-      status: 'pending' // Default status
+    try {
+      setSubmitting(true)
+      await testimonyApi.submit({
+        name: formData.name,
+        email: formData.email,
+        testimony_text: formData.testimony_text,
+      })
+      setSubmitted(true)
+      setFormData({ name: '', email: '', testimony_text: '' })
+      // Reset submitted message after 5 seconds
+      setTimeout(() => setSubmitted(false), 5000)
+    } catch (error) {
+      console.error('Failed to submit testimony:', error)
+      alert('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
     }
-
-    // Save to local storage
-    const stored = localStorage.getItem('testimonies')
-    const all = stored ? JSON.parse(stored) : []
-    localStorage.setItem('testimonies', JSON.stringify([...all, newTestimony]))
-
-    alert('Thank you! Your testimony has been submitted for review.')
-    setFormData({ name: '', email: '', testimony: '' })
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -67,7 +70,6 @@ export default function TestimonyPage() {
       {/* Share Testimony Form */}
       <SectionWrapper>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
-          {/* ... (Left side content details remain same, omitting for brevity in diff but logic preserves UI) ... */}
           <div className="space-y-6">
             <div className="space-y-2">
               <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Testify</span>
@@ -79,6 +81,11 @@ export default function TestimonyPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl shadow-gray-100 border border-gray-50">
+            {submitted && (
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-green-800 text-sm font-medium text-center">
+                ✅ Thank you! Your testimony has been submitted for review. It will appear on this page once approved.
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label htmlFor="name" className="text-xs font-bold text-[#140152] uppercase tracking-widest pl-2">Name</label>
@@ -90,13 +97,22 @@ export default function TestimonyPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <label htmlFor="testimony" className="text-xs font-bold text-[#140152] uppercase tracking-widest pl-2">Testimony</label>
-              <Textarea id="testimony" name="testimony" required value={formData.testimony} onChange={handleChange} rows={8} className="rounded-2xl border-gray-100" />
+              <label htmlFor="testimony_text" className="text-xs font-bold text-[#140152] uppercase tracking-widest pl-2">Testimony</label>
+              <Textarea id="testimony_text" name="testimony_text" required value={formData.testimony_text} onChange={handleChange} rows={8} className="rounded-2xl border-gray-100" />
             </div>
-            <Button type="submit" variant="primary" className="w-full h-14 rounded-full py-0.5 px-1 pl-5 shadow-[0_0_20px_rgba(245,187,0,0.5)]">
+            <Button type="submit" variant="primary" disabled={submitting} className="w-full h-14 rounded-full py-0.5 px-1 pl-5 shadow-[0_0_20px_rgba(245,187,0,0.5)]">
               <div className="flex items-center justify-between w-full px-4">
-                <p>Submit Testimony</p>
-                <ArrowRight className="w-4 h-4 text-[#140152] -rotate-45" />
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Submitting...</span>
+                  </>
+                ) : (
+                  <>
+                    <p>Submit Testimony</p>
+                    <ArrowRight className="w-4 h-4 text-[#140152] -rotate-45" />
+                  </>
+                )}
               </div>
             </Button>
           </form>
@@ -111,30 +127,42 @@ export default function TestimonyPage() {
           <div className="w-24 h-1.5 bg-[#f5bb00] mx-auto rounded-full" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {approvedTestimonies.length > 0 ? (
-            approvedTestimonies.map((t) => (
-              <Card key={t.id} className="hover:shadow-xl transition-all duration-300 border-none shadow-lg group">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-[#140152]/5 rounded-xl flex items-center justify-center text-[#140152] text-2xl font-black mb-4 group-hover:bg-[#f5bb00] group-hover:text-[#140152] transition-colors">"</div>
-                  <CardTitle className="text-[#140152] text-xl font-bold">{t.date}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 leading-relaxed font-medium italic">"{t.testimony}"</p>
-                  <div className="mt-6 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-200 rounded-full" />
-                    <div>
-                      <p className="text-[#140152] font-bold text-sm">{t.name}</p>
-                      <p className="text-xs text-[#f5bb00] font-bold uppercase tracking-wider">Member</p>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-[#140152]" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+            {approvedTestimonies.length > 0 ? (
+              approvedTestimonies.map((t) => (
+                <Card key={t.id} className="hover:shadow-xl transition-all duration-300 border-none shadow-lg group">
+                  <CardHeader>
+                    <div className="w-12 h-12 bg-[#140152]/5 rounded-xl flex items-center justify-center text-[#140152] text-2xl font-black mb-4 group-hover:bg-[#f5bb00] group-hover:text-[#140152] transition-colors">
+                      <Quote className="w-5 h-5" />
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <p className="text-center col-span-3 text-gray-500">No testimonies yet. Be the first to share!</p>
-          )}
-        </div>
+                    <CardTitle className="text-[#140152] text-xl font-bold">
+                      {new Date(t.created_at).toLocaleDateString()}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 leading-relaxed font-medium italic">&ldquo;{t.testimony_text}&rdquo;</p>
+                    <div className="mt-6 flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#140152] rounded-full flex items-center justify-center text-white font-bold text-sm">
+                        {t.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-[#140152] font-bold text-sm">{t.name}</p>
+                        <p className="text-xs text-[#f5bb00] font-bold uppercase tracking-wider">Member</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-center col-span-3 text-gray-500">No testimonies yet. Be the first to share!</p>
+            )}
+          </div>
+        )}
       </SectionWrapper>
     </>
   )

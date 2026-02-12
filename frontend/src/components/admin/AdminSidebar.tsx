@@ -2,10 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageSquareQuote } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager } from '@/lib/api'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const sidebarItems = [
     {
@@ -93,11 +93,26 @@ const sidebarItems = [
         href: '/admin/bible-study',
         icon: Book
     },
+    {
+        title: 'Testimonies',
+        href: '/admin/testimonies',
+        icon: MessageSquareQuote
+    },
 ]
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ externalOpen, onToggle }: { externalOpen?: boolean; onToggle?: () => void } = {}) {
     const pathname = usePathname()
-    const [mobileOpen, setMobileOpen] = useState(false)
+    const [internalOpen, setInternalOpen] = useState(false)
+
+    // Support both internal and external toggle control
+    const mobileOpen = externalOpen !== undefined ? externalOpen : internalOpen
+    const setMobileOpen = (open: boolean) => {
+        if (onToggle && externalOpen !== undefined) {
+            onToggle()
+        } else {
+            setInternalOpen(open)
+        }
+    }
 
     const handleLogout = () => {
         tokenManager.clearTokens()
@@ -163,13 +178,15 @@ export default function AdminSidebar() {
 
     return (
         <>
-            {/* Mobile Toggle Button */}
-            <button
-                onClick={() => setMobileOpen(!mobileOpen)}
-                className="md:hidden fixed top-4 left-4 z-[60] bg-[#140152] text-white p-2 rounded-lg shadow-lg"
-            >
-                {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+            {/* Mobile Toggle Button - only shown if not externally controlled */}
+            {externalOpen === undefined && (
+                <button
+                    onClick={() => setMobileOpen(!mobileOpen)}
+                    className="md:hidden fixed top-4 left-4 z-[60] bg-[#140152] text-white p-2 rounded-lg shadow-lg"
+                >
+                    {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                </button>
+            )}
 
             {/* Mobile Overlay */}
             {mobileOpen && (

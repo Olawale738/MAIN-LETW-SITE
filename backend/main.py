@@ -102,6 +102,9 @@ app.include_router(cms.router)
 from routers import live_stream
 app.include_router(live_stream.router)
 
+from routers import testimony
+app.include_router(testimony.router)
+
 # Mount static files for uploads
 # Create uploads directory if it doesn't exist
 UPLOADS_DIR = "uploads"

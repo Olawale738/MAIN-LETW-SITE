@@ -2175,6 +2175,61 @@ export const bibleStudyApi = {
     },
 };
 
+// ============================================================================
+// TESTIMONY API
+// ============================================================================
+
+export interface TestimonyItem {
+    id: string;
+    name: string;
+    email: string;
+    testimony_text: string;
+    status: 'pending' | 'approved' | 'rejected';
+    created_at: string;
+    updated_at: string;
+}
+
+export interface TestimonyCreate {
+    name: string;
+    email: string;
+    testimony_text: string;
+}
+
+export const testimonyApi = {
+    // Public endpoints (no auth)
+    submit: async (data: TestimonyCreate): Promise<TestimonyItem> => {
+        return fetchApi<TestimonyItem>('/testimonies/', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    getApproved: async (): Promise<TestimonyItem[]> => {
+        return fetchApi<TestimonyItem[]>('/testimonies/approved');
+    },
+
+    // Admin endpoints
+    admin: {
+        getAll: async (statusFilter?: string): Promise<TestimonyItem[]> => {
+            const params = statusFilter ? `?status_filter=${statusFilter}` : '';
+            return fetchApi<TestimonyItem[]>(`/testimonies/admin${params}`);
+        },
+
+        updateStatus: async (id: string, status: string): Promise<TestimonyItem> => {
+            return fetchApi<TestimonyItem>(`/testimonies/admin/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status }),
+            });
+        },
+
+        delete: async (id: string): Promise<void> => {
+            return fetchApi<void>(`/testimonies/admin/${id}`, {
+                method: 'DELETE',
+            });
+        },
+    },
+};
+
 // ============= Live Stream API =============
 
 export interface LiveStream {
