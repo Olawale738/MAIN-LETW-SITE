@@ -105,6 +105,9 @@ app.include_router(live_stream.router)
 from routers import testimony
 app.include_router(testimony.router)
 
+from routers import kids_ministry
+app.include_router(kids_ministry.router)
+
 # Mount static files for uploads
 # Create uploads directory if it doesn't exist
 UPLOADS_DIR = "uploads"

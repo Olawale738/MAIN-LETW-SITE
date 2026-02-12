@@ -2236,6 +2236,65 @@ export const testimonyApi = {
     },
 };
 
+// ============================================================================
+// KIDS MINISTRY API
+// ============================================================================
+
+export interface KidsMinistryRegistration {
+    id: string;
+    child_name: string;
+    child_age: number;
+    age_group: string;
+    parent_name: string;
+    parent_email: string;
+    parent_phone?: string;
+    special_needs?: string;
+    status: 'pending' | 'approved' | 'declined';
+    created_at: string;
+    updated_at: string;
+}
+
+export interface KidsMinistryRegistrationCreate {
+    child_name: string;
+    child_age: number;
+    age_group: string;
+    parent_name: string;
+    parent_email: string;
+    parent_phone?: string;
+    special_needs?: string;
+}
+
+export const kidsMinistryApi = {
+    // Public endpoint (no auth)
+    register: async (data: KidsMinistryRegistrationCreate): Promise<KidsMinistryRegistration> => {
+        return fetchApi<KidsMinistryRegistration>('/kids-ministry/register', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    // Admin endpoints
+    admin: {
+        getRegistrations: async (statusFilter?: string): Promise<KidsMinistryRegistration[]> => {
+            const params = statusFilter ? `?status_filter=${statusFilter}` : '';
+            return fetchApi<KidsMinistryRegistration[]>(`/kids-ministry/registrations${params}`);
+        },
+
+        updateRegistration: async (id: string, status: string): Promise<KidsMinistryRegistration> => {
+            return fetchApi<KidsMinistryRegistration>(`/kids-ministry/registrations/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ status }),
+            });
+        },
+
+        deleteRegistration: async (id: string): Promise<void> => {
+            return fetchApi<void>(`/kids-ministry/registrations/${id}`, {
+                method: 'DELETE',
+            });
+        },
+    },
+};
+
 // ============= Live Stream API =============
 
 export interface LiveStream {

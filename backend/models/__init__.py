@@ -26,6 +26,7 @@ from models.bible_study import (
 )
 from models.cms import CMSPage, CMSImage
 from models.testimony import Testimony, TestimonyStatus
+from models.kids_ministry import KidsMinistryRegistration, KidsRegistrationStatus
 
 __all__ = [
     "User",
@@ -76,6 +77,8 @@ __all__ = [
     "CMSImage",
     "Testimony",
     "TestimonyStatus",
+    "KidsMinistryRegistration",
+    "KidsRegistrationStatus",
 ]
 
 
