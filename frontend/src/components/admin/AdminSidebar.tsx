@@ -64,6 +64,11 @@ const sidebarItems = [
         icon: Church
     },
     {
+        title: 'Kids Ministry',
+        href: '/admin/pages/kids-ministry',
+        icon: Baby
+    },
+    {
         title: 'Users',
         href: '/admin/users',
         icon: Users
@@ -98,11 +103,7 @@ const sidebarItems = [
         href: '/admin/testimonies',
         icon: MessageSquareQuote
     },
-    {
-        title: 'Kids Ministry',
-        href: '/admin/kids-ministry',
-        icon: Baby
-    },
+
 ]
 
 export default function AdminSidebar({ externalOpen, onToggle }: { externalOpen?: boolean; onToggle?: () => void } = {}) {

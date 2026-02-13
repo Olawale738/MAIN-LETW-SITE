@@ -282,3 +282,121 @@ export const DEFAULT_SUNDAY_SERVICE_BLOCKS: Block[] = [
         }
     }
 ];
+
+export const DEFAULT_KIDS_MINISTRY_BLOCKS: Block[] = [
+    {
+        id: 'kids-hero',
+        type: 'hero',
+        data: {
+            title: "🌈 Shine Your <span class='text-[#f5bb00]'>Light</span>",
+            subtitle: "Evangelizing, discipling, and empowering young hearts to encounter God's love in profound, joyful ways.",
+            align: 'center',
+            bg_image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=1200"
+        }
+    },
+    {
+        id: 'kids-mission',
+        type: 'content',
+        data: {
+            title: "Our Mission",
+            content: `
+                <h3 class="text-2xl font-bold text-[#140152] mb-4">Empowering Young Hearts</h3>
+                <p class="text-lg text-gray-600 leading-relaxed mb-4">Drawing from our commitment to evangelizing and discipling children, Light Encounter Tabernacle Kids Ministry serves children ages 2–17. We create transformative spaces where kids value God's Word through worship, lessons, games, and one-on-one guidance.</p>
+                <div class="bg-[#f5bb00]/10 border-l-4 border-[#f5bb00] p-5 rounded-r-xl mb-4">
+                    <p class="text-gray-700"><strong class="text-[#140152]">Our Promise:</strong> A safe, nurturing environment where children encounter God's love, build meaningful friendships, develop strong faith foundations, and discover their unique gifts.</p>
+                </div>
+                <p class="text-lg text-gray-600 leading-relaxed">We blend engaging worship, biblical teaching, and community service to help children understand their purpose in God's plan.</p>
+            `,
+            width: 'standard',
+            bg_color: 'white',
+            padding: 'medium'
+        }
+    },
+    {
+        id: 'kids-age-groups',
+        type: 'features',
+        data: {
+            title: "Age Groups",
+            columns: 3,
+            style: 'cards',
+            features: [
+                { title: "👶 Nursery (2-5)", description: "Play-based learning and basic Bible stories in a loving nursery setting.", icon: "Baby" },
+                { title: "📚 Elementary (6-12)", description: "Interactive lessons, games, and worship to build faith foundations.", icon: "BookOpen" },
+                { title: "🧑‍🎓 Youth (13-17)", description: "Discipleship, leadership training, and outreach for teens.", icon: "GraduationCap" }
+            ]
+        }
+    },
+    {
+        id: 'kids-programs',
+        type: 'features',
+        data: {
+            title: "Our Programs",
+            columns: 4,
+            style: 'cards',
+            features: [
+                { title: "Kids Choir & Worship", description: "Experience joyful worship through music, dance, and celebrations that bring God's presence alive.", icon: "Music" },
+                { title: "Bible Adventures", description: "Interactive storytelling bringing God's Word to life with engaging narratives, crafts, and discussions.", icon: "BookOpen" },
+                { title: "Discipleship & Growth", description: "Guided development programs helping kids establish faith and discover their callings through mentorship.", icon: "Sprout" },
+                { title: "Community Outreach", description: "Hands-on service projects teaching the heart of compassion, making a difference in our community.", icon: "Heart" }
+            ]
+        }
+    },
+    {
+        id: 'kids-summer-camp',
+        type: 'cta',
+        data: {
+            title: "☀️ Summer Shine Camp",
+            text: "Our week-long adventure features games, laughter, Bible exploration, and worship. A blast of faith-building fun!",
+            button_text: "Stay Tuned",
+            button_link: "#",
+            style: 'banner'
+        }
+    },
+    {
+        id: 'kids-parent-resources',
+        type: 'features',
+        data: {
+            title: "Parent & Volunteer Resources",
+            subtitle: "We offer tools to equip parents and volunteers for nurturing young faith at home and church.",
+            columns: 3,
+            style: 'cards',
+            features: [
+                { title: "Parent Guides", description: "Weekly devotionals and tips for family faith discussions.", icon: "FileText" },
+                { title: "Volunteer Training", description: "Annual workshops on child safety, teaching, and discipleship.", icon: "Users" },
+                { title: "Bible Study Kits", description: "Downloadable materials for home Bible adventures.", icon: "BookMarked" }
+            ]
+        }
+    },
+    {
+        id: 'kids-testimonials',
+        type: 'features',
+        data: {
+            title: "Hear From Our Families",
+            columns: 2,
+            style: 'cards',
+            features: [
+                { title: "Sarah M. — Parent", description: "\"My daughter looks forward to every Sunday! She's made wonderful friends and her faith has deepened so much. This ministry truly cares.\"", icon: "Star" },
+                { title: "David T. — Parent", description: "\"The teachers are amazing! They make learning about God fun and relatable. My kids ask about it all week long!\"", icon: "Star" }
+            ]
+        }
+    },
+    {
+        id: 'kids-registration',
+        type: 'kids-registration',
+        data: {
+            title: "Register Your Child",
+            subtitle: "Join our ministry family! Fill out the form below and we'll be in touch."
+        }
+    },
+    {
+        id: 'kids-cta-footer',
+        type: 'cta',
+        data: {
+            title: "Join Our Ministry Family",
+            text: "Your child deserves a place where faith, friendship, and fun come together. We're ready to welcome your family with open hearts and open arms.",
+            button_text: "Start Your Journey Today",
+            button_link: "#register",
+            style: 'banner'
+        }
+    }
+];

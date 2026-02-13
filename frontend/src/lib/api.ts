@@ -2344,7 +2344,7 @@ export const liveStreamApi = {
 
 // ============= CMS Types =============
 
-export type BlockType = 'hero' | 'content' | 'features' | 'cta' | 'image' | 'video' | 'upcoming-events' | 'sermon-list' | 'leadership-list';
+export type BlockType = 'hero' | 'content' | 'features' | 'cta' | 'image' | 'video' | 'upcoming-events' | 'sermon-list' | 'leadership-list' | 'kids-registration';
 
 export interface Block {
     id: string;
