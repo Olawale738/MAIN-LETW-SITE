@@ -477,3 +477,30 @@ async def update_prayer_request_status(
     return prayer_request
 
 
+
+@router.delete("/admin/requests/{request_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_prayer_request(
+    request_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    """Delete a prayer request (admin only)"""
+    # Check if request exists
+    result = await db.execute(
+        select(PrayerRequest).where(PrayerRequest.id == request_id)
+    )
+    prayer_request = result.scalar_one_or_none()
+
+    if not prayer_request:
+        raise HTTPException(status_code=404, detail="Prayer request not found")
+
+    # Delete associated user prayers first (if cascade is not set up, but let's be safe)
+    await db.execute(
+        delete(UserPrayer).where(UserPrayer.prayer_request_id == request_id)
+    )
+
+    # Delete the request
+    await db.execute(
+        delete(PrayerRequest).where(PrayerRequest.id == request_id)
+    )
+    await db.commit()

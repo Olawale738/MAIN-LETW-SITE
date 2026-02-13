@@ -186,6 +186,10 @@ async function fetchApi<T>(
         throw new ApiError(response.status, errorData.detail || 'An error occurred');
     }
 
+    if (response.status === 204) {
+        return {} as T;
+    }
+
     return response.json();
 }
 
@@ -1796,6 +1800,12 @@ export const prayerApi = {
             return fetchApi<PrayerRequest>(`/prayer/admin/requests/${id}`, {
                 method: 'PATCH',
                 body: JSON.stringify(data),
+            });
+        },
+
+        deleteRequest: async (id: string): Promise<void> => {
+            return fetchApi<void>(`/prayer/admin/requests/${id}`, {
+                method: 'DELETE',
             });
         },
     },

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { ArrowLeft, Loader2, X, Eye, User } from 'lucide-react'
+import { ArrowLeft, Loader2, X, Eye, User, Trash2 } from 'lucide-react'
 import { prayerApi, PrayerRequest } from '@/lib/api'
 import { useToast } from '@/components/ui/toast'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -17,6 +17,7 @@ export default function PrayerRequestsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [selectedRequest, setSelectedRequest] = useState<PrayerRequest | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null)
 
   useEffect(() => {
     fetchRequests()
@@ -32,6 +33,30 @@ export default function PrayerRequestsPage() {
       showToast('Failed to load prayer requests', 'error')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDelete = (id: string) => {
+    setDeleteConfirmation(id)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation) return
+
+    try {
+      setUpdating(deleteConfirmation)
+      await prayerApi.admin.deleteRequest(deleteConfirmation)
+      showToast('Request deleted successfully', 'success')
+      fetchRequests()
+      if (selectedRequest?.id === deleteConfirmation) {
+        setSelectedRequest(null)
+      }
+    } catch (error) {
+      console.error('Failed to delete request:', error)
+      showToast('Failed to delete request', 'error')
+    } finally {
+      setUpdating(null)
+      setDeleteConfirmation(null)
     }
   }
 
@@ -314,6 +339,65 @@ export default function PrayerRequestsPage() {
                     <option value="answered">Answered</option>
                     <option value="archived">Archived</option>
                   </select>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <PremiumButton
+                    onClick={() => handleDelete(selectedRequest.id)}
+                    className="w-full bg-red-100 text-red-700 hover:bg-red-200"
+                    disabled={updating === selectedRequest.id}
+                  >
+                    {updating === selectedRequest.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 mr-2" />
+                    )}
+                    Delete Request
+                  </PremiumButton>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirmation && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+            >
+              <div className="text-center">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Prayer Request?</h3>
+                <p className="text-gray-500 mb-6">
+                  Are you sure you want to delete this prayer request? This action cannot be undone.
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDeleteConfirmation(null)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    disabled={updating === deleteConfirmation}
+                    className="flex-1 px-4 py-2 bg-red-600 rounded-lg text-white font-semibold hover:bg-red-700 transition-colors flex items-center justify-center"
+                  >
+                    {updating === deleteConfirmation ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      'Delete'
+                    )}
+                  </button>
                 </div>
               </div>
             </motion.div>
