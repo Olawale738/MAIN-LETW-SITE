@@ -2305,6 +2305,99 @@ export const kidsMinistryApi = {
     },
 };
 
+// ============================================================================
+// SERVICE RESOURCES API
+// ============================================================================
+
+export interface ServiceResourceItem {
+    id: string;
+    title: string;
+    description?: string;
+    icon?: string;
+    resource_type: 'file' | 'link' | 'page';
+    file_url?: string;
+    external_url?: string;
+    service_slug: string;
+    is_active: boolean;
+    display_order: number;
+    created_at: string;
+    updated_at?: string;
+}
+
+export interface ServiceResourceCreate {
+    title: string;
+    description?: string;
+    icon?: string;
+    resource_type: 'file' | 'link' | 'page';
+    file_url?: string;
+    external_url?: string;
+    service_slug: string;
+    is_active?: boolean;
+    display_order?: number;
+}
+
+export interface ServiceResourceListResponse {
+    resources: ServiceResourceItem[];
+    total: number;
+}
+
+export const serviceResourceApi = {
+    // Public: get active resources for a service page
+    getByService: async (slug: string): Promise<ServiceResourceListResponse> => {
+        return fetchApi<ServiceResourceListResponse>(`/service-resources/${slug}`);
+    },
+
+    // Admin: get all resources
+    getAll: async (): Promise<ServiceResourceListResponse> => {
+        return fetchApi<ServiceResourceListResponse>('/service-resources/admin/all');
+    },
+
+    // Admin: create resource
+    create: async (data: ServiceResourceCreate): Promise<ServiceResourceItem> => {
+        return fetchApi<ServiceResourceItem>('/service-resources', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    // Admin: update resource
+    update: async (id: string, data: Partial<ServiceResourceCreate>): Promise<ServiceResourceItem> => {
+        return fetchApi<ServiceResourceItem>(`/service-resources/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    // Admin: delete resource
+    delete: async (id: string): Promise<void> => {
+        return fetchApi<void>(`/service-resources/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // Admin: upload file
+    uploadFile: async (file: File): Promise<{ file_url: string; filename: string }> => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`${API_BASE_URL}/service-resources/upload`, {
+            method: 'POST',
+            headers: {
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+            throw new Error(error.detail || 'Upload failed');
+        }
+
+        return response.json();
+    },
+};
+
 // ============= Live Stream API =============
 
 export interface LiveStream {

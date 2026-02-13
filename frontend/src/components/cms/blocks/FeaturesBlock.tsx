@@ -118,6 +118,20 @@ export default function FeaturesBlock({ data }: FeaturesBlockProps) {
                         );
 
                         if (feature.link) {
+                            const isExternal = feature.link.startsWith('http') || feature.link.startsWith('/uploads') || (feature as any)._resourceType === 'file' || (feature as any)._resourceType === 'link';
+                            if (isExternal) {
+                                return (
+                                    <a
+                                        href={feature.link}
+                                        key={idx}
+                                        className="block group h-full"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        {content}
+                                    </a>
+                                );
+                            }
                             return (
                                 <Link href={feature.link} key={idx} className="block group h-full">
                                     {content}

@@ -27,6 +27,7 @@ from models.bible_study import (
 from models.cms import CMSPage, CMSImage
 from models.testimony import Testimony, TestimonyStatus
 from models.kids_ministry import KidsMinistryRegistration, KidsRegistrationStatus
+from models.service_resource import ServiceResource, ServiceResourceType
 
 __all__ = [
     "User",
@@ -79,6 +80,8 @@ __all__ = [
     "TestimonyStatus",
     "KidsMinistryRegistration",
     "KidsRegistrationStatus",
+    "ServiceResource",
+    "ServiceResourceType",
 ]
 
 

@@ -252,20 +252,17 @@ export const DEFAULT_SUNDAY_SERVICE_BLOCKS: Block[] = [
                 {
                     title: "Weekly Bulletin",
                     description: "Download this week's bulletin to stay updated with church announcements and events.",
-                    icon: "FileText",
-                    link: "/download/bulletin"
+                    icon: "FileText"
                 },
                 {
                     title: "Sermon Notes",
                     description: "Follow along with the message using our interactive sermon notes.",
-                    icon: "PenTool",
-                    link: "/sermons/notes"
+                    icon: "PenTool"
                 },
                 {
                     title: "First Time Guest?",
                     description: "Complete our connection card so we can welcome you properly.",
-                    icon: "Heart",
-                    link: "/connect"
+                    icon: "Heart"
                 }
             ]
         }
