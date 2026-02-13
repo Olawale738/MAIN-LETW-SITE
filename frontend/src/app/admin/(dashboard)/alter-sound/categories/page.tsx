@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Edit, Trash2, ArrowLeft, Music, Heart, Sparkles, Star, Mic, Radio } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { alterSoundApi, AudioCategory } from '@/lib/api'
 import * as LucideIcons from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
@@ -23,6 +24,7 @@ const AVAILABLE_ICONS = [
 ]
 
 export default function AlterSoundCategoriesPage() {
+    const router = useRouter()
     const [categories, setCategories] = useState<AudioCategory[]>([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
@@ -116,15 +118,15 @@ export default function AlterSoundCategoriesPage() {
     }
 
     return (
-        <div className="p-8">
-            <ToastComponent />
+        <div className="p-8 relative">
             <div className="mb-8 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Link href="/admin/alter-sound">
-                        <Button variant="outline" size="sm">
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Back
-                        </Button>
+                    <Link
+                        href="/admin/pages/alter-sound"
+                        className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all duration-300 h-9 px-4 border-2 border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white relative z-[100] cursor-pointer"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back
                     </Link>
                     <div>
                         <h1 className="text-3xl font-bold text-[#140152]">Audio Categories</h1>
@@ -235,9 +237,8 @@ export default function AlterSoundCategoriesPage() {
                                                 key={name}
                                                 type="button"
                                                 onClick={() => setFormData({ ...formData, icon: name })}
-                                                className={`p-3 border rounded-lg flex flex-col items-center gap-1 hover:bg-gray-50 ${
-                                                    formData.icon === name ? 'border-[#140152] bg-[#140152]/5' : 'border-gray-300'
-                                                }`}
+                                                className={`p-3 border rounded-lg flex flex-col items-center gap-1 hover:bg-gray-50 ${formData.icon === name ? 'border-[#140152] bg-[#140152]/5' : 'border-gray-300'
+                                                    }`}
                                             >
                                                 <Icon className="w-6 h-6 text-[#140152]" />
                                                 <span className="text-xs text-gray-900">{name}</span>
@@ -290,6 +291,7 @@ export default function AlterSoundCategoriesPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            <ToastComponent />
         </div>
     )
 }

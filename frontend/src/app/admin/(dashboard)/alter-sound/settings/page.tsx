@@ -8,10 +8,12 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Save, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { alterSoundApi, AlterSoundPageSettings } from '@/lib/api'
 import { useToast } from '@/components/ui/toast'
 
 export default function AlterSoundSettingsPage() {
+    const router = useRouter()
     const [settings, setSettings] = useState<AlterSoundPageSettings | null>(null)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -80,14 +82,14 @@ export default function AlterSoundSettingsPage() {
     }
 
     return (
-        <div className="p-8">
-            <ToastComponent />
+        <div className="p-8 relative">
             <div className="mb-8 flex items-center gap-4">
-                <Link href="/admin/alter-sound">
-                    <Button variant="outline" size="sm">
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back
-                    </Button>
+                <Link
+                    href="/admin/pages/alter-sound"
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all duration-300 h-9 px-4 border-2 border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white relative z-[100] cursor-pointer"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
                 </Link>
                 <div>
                     <h1 className="text-3xl font-bold text-[#140152]">Alter Sound Settings</h1>
@@ -189,6 +191,7 @@ export default function AlterSoundSettingsPage() {
                     </div>
                 </div>
             </form>
+            <ToastComponent />
         </div>
     )
 }

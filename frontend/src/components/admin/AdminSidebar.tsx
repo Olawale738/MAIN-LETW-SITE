@@ -90,7 +90,7 @@ const sidebarItems = [
     },
     {
         title: 'Alter Sound',
-        href: '/admin/alter-sound',
+        href: '/admin/pages/alter-sound',
         icon: Music
     },
     {

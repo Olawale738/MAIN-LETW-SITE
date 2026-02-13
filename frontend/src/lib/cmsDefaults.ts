@@ -400,3 +400,108 @@ export const DEFAULT_KIDS_MINISTRY_BLOCKS: Block[] = [
         }
     }
 ];
+
+export const DEFAULT_ALTER_SOUND_BLOCKS: Block[] = [
+    {
+        id: 'as-hero',
+        type: 'hero',
+        data: {
+            title: "Raising Sound That <span class='text-[#f5bb00]'>Carries Heaven's Intention</span>",
+            subtitle: "Not entertainment. A consecrated space where worship, prophetic sound, and spiritual alignment converge to release God's presence.",
+            align: 'center',
+            bg_image: "https://images.unsplash.com/photo-1525926477800-7a3be580c765?q=80&w=2670",
+            cta_text: "Explore Audio Library",
+            cta_link: "/services/alter-sound/library"
+        }
+    },
+    {
+        id: 'as-core-identity',
+        type: 'content',
+        data: {
+            title: "Not a Performance Choir",
+            content: `
+                <p class="text-lg text-gray-600 leading-relaxed mb-6">We are not built on talent alone, nor driven by applause or stage presence. Alter Sound exists as a ministry of consecrated servants who offer sound as spiritual sacrifice, releasing heaven's atmosphere through surrendered voices and instruments.</p>
+                <div class="space-y-4">
+                    <div class="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div class="w-12 h-12 bg-[#140152]/5 rounded-full flex items-center justify-center text-[#140152] flex-shrink-0">🔥</div>
+                        <div><h4 class="font-bold text-lg text-[#140152]">Sound as Spiritual Offering</h4><p class="text-sm text-gray-600">Every note is presented as worship unto the Lord.</p></div>
+                    </div>
+                    <div class="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div class="w-12 h-12 bg-[#140152]/5 rounded-full flex items-center justify-center text-[#140152] flex-shrink-0">🎵</div>
+                        <div><h4 class="font-bold text-lg text-[#140152]">Worship as Ministry</h4><p class="text-sm text-gray-600">We serve by creating space for divine encounter.</p></div>
+                    </div>
+                    <div class="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div class="w-12 h-12 bg-[#140152]/5 rounded-full flex items-center justify-center text-[#140152] flex-shrink-0">⛪</div>
+                        <div><h4 class="font-bold text-lg text-[#140152]">Servants at the Altar</h4><p class="text-sm text-gray-600">Our role is priestly—ministering to the Lord.</p></div>
+                    </div>
+                </div>
+            `,
+            width: 'standard',
+            bg_color: 'white',
+            padding: 'medium'
+        }
+    },
+    {
+        id: 'as-dimensions',
+        type: 'features',
+        data: {
+            title: "Dimensions of Sound Ministry",
+            subtitle: "Spiritual Depth",
+            columns: 2,
+            style: 'cards',
+            features: [
+                { title: "Worship Sound", description: "Hosts God's presence and leads into adoration.", icon: "Music" },
+                { title: "Prophetic Sound", description: "Spirit-led melodies aligning with divine instruction.", icon: "Mic" },
+                { title: "Healing Sound", description: "Anointed expressions for freedom and restoration.", icon: "Sparkles" },
+                { title: "Missional Sound", description: "Songs crafted for nations and global contexts.", icon: "Globe" }
+            ]
+        }
+    },
+    {
+        id: 'as-formation',
+        type: 'content',
+        data: {
+            title: "Sound Formation Journey",
+            content: `
+                <div class="grid lg:grid-cols-2 gap-12">
+                    <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-lg">
+                        <h3 class="text-2xl font-bold mb-6 text-[#140152]">Sound Formation Journey</h3>
+                        <div class="space-y-6">
+                            <div class="flex gap-4 items-center"><div class="w-10 h-10 bg-[#140152] rounded-full text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-lg">1</div><h4 class="font-bold text-lg text-[#140152]">Consecration (Heart alignment)</h4></div>
+                            <div class="flex gap-4 items-center"><div class="w-10 h-10 bg-[#140152] rounded-full text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-lg">2</div><h4 class="font-bold text-lg text-[#140152]">Vocal & Musical Formation</h4></div>
+                            <div class="flex gap-4 items-center"><div class="w-10 h-10 bg-[#140152] rounded-full text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-lg">3</div><h4 class="font-bold text-lg text-[#140152]">Spiritual Sensitivity</h4></div>
+                            <div class="flex gap-4 items-center"><div class="w-10 h-10 bg-[#140152] rounded-full text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-lg">4</div><h4 class="font-bold text-lg text-[#140152]">Corporate Sound Unity</h4></div>
+                            <div class="flex gap-4 items-center"><div class="w-10 h-10 bg-[#140152] rounded-full text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-lg">5</div><h4 class="font-bold text-lg text-[#140152]">Sound Release</h4></div>
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="bg-[#140152] text-white p-8 rounded-2xl shadow-xl">
+                            <h3 class="text-2xl font-bold mb-4">How We Operate</h3>
+                            <p class="mb-4 opacity-80 text-lg">Every gathering is prayer-led and Spirit-directed.</p>
+                            <ul class="space-y-3 font-medium">
+                                <li class="flex items-center gap-3"><span class="w-2 h-2 bg-[#f5bb00] rounded-full"></span>Formation rehearsals</li>
+                                <li class="flex items-center gap-3"><span class="w-2 h-2 bg-[#f5bb00] rounded-full"></span>Prayer-soaked sessions</li>
+                                <li class="flex items-center gap-3"><span class="w-2 h-2 bg-[#f5bb00] rounded-full"></span>Worship retreats</li>
+                                <li class="flex items-center gap-3"><span class="w-2 h-2 bg-[#f5bb00] rounded-full"></span>Ministry service</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `,
+            width: 'wide',
+            bg_color: 'gray',
+            padding: 'large'
+        }
+    },
+    {
+        id: 'as-audio-cta',
+        type: 'cta',
+        data: {
+            title: "Experience Worship Sound",
+            text: "Listen to anointed worship and prophetic sound that carries heaven's presence",
+            button_text: "Browse Audio Library",
+            button_link: "/services/alter-sound/library",
+            style: 'banner'
+        }
+    }
+];
