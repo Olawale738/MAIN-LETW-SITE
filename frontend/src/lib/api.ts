@@ -798,13 +798,7 @@ export const sermonApi = {
         if (series) params.append('series', series);
         if (limit) params.append('limit', limit.toString());
         if (offset) params.append('offset', offset.toString());
-        const queryString = params.toString();
-
-        const response = await fetch(`${API_BASE_URL}/sermons/public${queryString ? '?' + queryString : ''}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch sermons');
-        }
-        return response.json();
+        return fetchApi<SermonListResponse>(`/sermons?${params}`);
     },
 
     // Get sermon series list
@@ -815,6 +809,8 @@ export const sermonApi = {
         }
         return response.json();
     },
+
+
 
     // Admin endpoints
     getAllSermons: async (includeUnpublished: boolean = true): Promise<SermonListResponse> => {
@@ -2523,3 +2519,97 @@ export const cmsApi = {
         return `${API_BASE_URL}/cms/images/${id}`;
     }
 };
+
+// ============= Counselling Types =============
+
+export type CounsellingStatus = 'new' | 'in_progress' | 'resolved';
+
+export interface CounsellingRequest {
+    name: string;
+    email: string;
+    message: string;
+}
+
+export interface CounsellingResponse {
+    id: string;
+    name: string;
+    email: string;
+    message: string;
+    status: CounsellingStatus;
+    admin_notes?: string;
+    is_read: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CounsellingListResponse {
+    items: CounsellingResponse[];
+    total: number;
+}
+
+export interface CounsellingReply {
+    subject: string;
+    message: string;
+}
+
+// ============= Counselling API =============
+
+export const counsellingApi = {
+    /**
+     * Submit a counselling request (Public)
+     */
+    submit: async (data: CounsellingRequest): Promise<MessageResponse> => {
+        return fetchApi<MessageResponse>('/counselling', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    /**
+     * Get all counselling requests (Admin)
+     */
+    getAll: async (status?: CounsellingStatus, limit = 50, offset = 0): Promise<CounsellingListResponse> => {
+        const params = new URLSearchParams();
+        if (status) params.append('status_filter', status);
+        params.append('limit', limit.toString());
+        params.append('offset', offset.toString());
+        return fetchApi<CounsellingListResponse>(`/counselling?${params}`);
+    },
+
+    /**
+     * Get a specific request (Admin)
+     */
+    get: async (id: string): Promise<CounsellingResponse> => {
+        return fetchApi<CounsellingResponse>(`/counselling/${id}`);
+    },
+
+    /**
+     * Update request status/notes (Admin)
+     */
+    update: async (id: string, data: { status?: CounsellingStatus; admin_notes?: string; is_read?: boolean }): Promise<CounsellingResponse> => {
+        return fetchApi<CounsellingResponse>(`/counselling/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    /**
+     * Delete a request (Admin)
+     */
+    delete: async (id: string): Promise<void> => {
+        await fetchApi(`/counselling/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    /**
+     * Reply to a request via email (Admin)
+     */
+    reply: async (id: string, data: CounsellingReply): Promise<MessageResponse> => {
+        return fetchApi<MessageResponse>(`/counselling/${id}/reply`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+};
+

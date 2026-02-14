@@ -107,11 +107,12 @@ export default function CounsellingPage() {
                                         setLoading(true);
                                         setError('');
                                         try {
-                                            const { serviceRequestApi } = await import('@/lib/api');
-                                            // The backend expects "services" list. We can infer "Counselling" or ask user to pick specific ones.
-                                            // The prompt implies this form is generic for counselling.
-                                            // Let's send "Counselling" as the service.
-                                            await serviceRequestApi.submitRequests(["Counselling"], message);
+                                            const { counsellingApi } = await import('@/lib/api');
+                                            await counsellingApi.submit({
+                                                name,
+                                                email,
+                                                message
+                                            });
                                             setSuccess(true);
                                         } catch (err: any) {
                                             console.error(err);
@@ -133,28 +134,13 @@ export default function CounsellingPage() {
                                                 placeholder="Your Full Name"
                                                 value={name}
                                                 onChange={(e) => setName(e.target.value)}
-                                            // Note: Name and email are technically handled by auth in backend, 
-                                            // but good for the user to confirm/provide contextual info if different.
-                                            // Although backend uses current_user.
-                                            // If the user is NOT logged in, the API will fail (401).
-                                            // We should probably check auth status or handle 401.
+                                                required
+                                                minLength={2}
                                             />
                                             <p className="text-xs text-gray-400 mt-1">
-                                                * Submitting as your logged-in user account.
+                                                * Your information is kept strictly confidential.
                                             </p>
                                         </div>
-                                        {/* 
-                                            Since the backend uses `current_user`, email field here is purely cosmetic or redundant if they are logged in.
-                                            However, for the user explicitly seeing what email they are being contacted at, we might want to populate it from their profile if possible.
-                                            For now, let's keep it editable but know it won't change the user associated with the request in the DB.
-                                            Or we can remove it if it's confusing. 
-                                            But the screenshot had it. Let's keep it UI-wise but maybe disable it if we knew the user's email.
-                                            Actually, since I can't easily get the user context right here without fetching, I'll leave it as an input 
-                                            but maybe add a note or just ignore it in backend (backend uses token user).
-                                            Wait, backend DOES NOT take email/name from request body! It takes it from `current_user`.
-                                            So these fields are effectively "ignored" by the backend logic I implemented.
-                                            The `message` is what matters.
-                                         */}
                                         <div>
                                             <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
                                             <input
@@ -163,17 +149,22 @@ export default function CounsellingPage() {
                                                 placeholder="you@example.com"
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
+                                                required
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-bold text-gray-700 mb-1">Message</label>
                                             <textarea
                                                 className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f5bb00] outline-none transition-all h-32"
-                                                placeholder="How can we help you?"
+                                                placeholder="How can we help you? (Min 10 characters)"
                                                 value={message}
                                                 onChange={(e) => setMessage(e.target.value)}
                                                 required
+                                                minLength={10}
                                             />
+                                            <p className="text-xs text-gray-400 mt-1 text-right">
+                                                {message.length}/10 characters minimum
+                                            </p>
                                         </div>
                                         <Button
                                             type="submit"

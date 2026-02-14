@@ -24,6 +24,11 @@ const sidebarItems = [
         icon: ClipboardList
     },
     {
+        title: 'Counselling',
+        href: '/admin/counselling',
+        icon: HandHeart
+    },
+    {
         title: 'Announcements',
         href: '/admin/announcements',
         icon: Megaphone
