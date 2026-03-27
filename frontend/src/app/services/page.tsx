@@ -36,11 +36,14 @@ export default function ServicesPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
-      <Hero
-        title="Our Services"
-        subtitle="Serving God, Serving Community"
-        height="medium"
-      />
+      {/* Hero */}
+      <div className="w-full">
+        <img
+          src="/Services.png"
+          alt="Our Services"
+          className="w-full h-auto block"
+        />
+      </div>
 
       {/* OUR SERVICES */}
       <SectionWrapper>

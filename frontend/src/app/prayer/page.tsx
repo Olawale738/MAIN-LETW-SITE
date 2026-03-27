@@ -78,47 +78,12 @@ export default function PrayerPage() {
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Hero Section */}
-      <div className="relative h-[90vh] w-full overflow-hidden flex items-center justify-center bg-black">
+      <div className="w-full">
         <img
-          src={settings.hero_image_url || "https://images.unsplash.com/photo-1507692049790-de58290a4334?q=80&w=2670&auto=format&fit=crop"}
-          alt={settings.hero_title}
-          className="absolute inset-0 w-full h-full object-cover opacity-30"
+          src="/PrayerMeeting.png"
+          alt="Prayer Meeting"
+          className="w-full h-auto block"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="relative z-20 text-center text-white px-4 max-w-5xl mx-auto"
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="mb-6"
-          >
-            <h1 className="text-6xl md:text-8xl font-black mb-4 leading-none bg-gradient-to-r from-white via-[#f5bb00] to-white bg-clip-text text-transparent">
-              {settings.hero_title}
-            </h1>
-          </motion.div>
-          <p className="text-2xl md:text-3xl text-[#f5bb00] font-bold mb-6 tracking-wide">
-            {settings.hero_subtitle}
-          </p>
-          <p className="text-xl md:text-2xl text-gray-300 mb-12 font-light">
-            {settings.hero_description}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {settings.live_prayer_link && (
-              <a href={settings.live_prayer_link} target="_blank" rel="noopener noreferrer">
-                <PremiumButton className="px-10 py-6 text-lg bg-[#f5bb00] text-[#140152] hover:bg-white">
-                  Join Live Prayer
-                </PremiumButton>
-              </a>
-            )}
-
-          </div>
-        </motion.div>
       </div>
 
       {/* Impact Stats */}

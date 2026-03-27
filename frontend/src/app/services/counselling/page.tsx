@@ -25,11 +25,12 @@ export default function CounsellingPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Hero */}
-            <div className="bg-[#140152] text-white py-20">
-                <div className="max-w-7xl mx-auto px-4 text-center">
-                    <h1 className="text-4xl md:text-6xl font-black mb-4">Counselling Services</h1>
-                    <p className="text-xl text-blue-200 max-w-2xl mx-auto">Contact our counselors for guidance and support.</p>
-                </div>
+            <div className="w-full">
+                <img
+                    src="/Counselling.png"
+                    alt="Counselling Services"
+                    className="w-full h-auto block"
+                />
             </div>
 
             <SectionWrapper>

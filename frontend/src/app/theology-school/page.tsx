@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { motion } from 'framer-motion'
+import React, { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import {
     BookOpen,
@@ -12,9 +12,17 @@ import {
     Scroll,
     Flame,
     Heart,
-    Anchor
+    Anchor,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react'
 import SectionWrapper from '@/components/shared/SectionWrapper'
+
+const CAROUSEL_IMAGES = [
+    { src: '/theology1.png', alt: 'Theology Flyer 1' },
+    { src: '/theology2.png', alt: 'Theology Flyer 2' },
+    { src: '/theology3.png', alt: 'Theology Flyer 3' },
+]
 
 const IMPACT_POINTS = [
     {
@@ -68,56 +76,62 @@ const GAINS = [
 
 export default function TheologyDashboardPage() {
     const [activeLevel, setActiveLevel] = useState(1)
+    const [currentSlide, setCurrentSlide] = useState(0)
 
-    const scrollToPrograms = () => {
-        document.getElementById('programs-section')?.scrollIntoView({ behavior: 'smooth' })
-    }
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % CAROUSEL_IMAGES.length)
+        }, 4000)
+        return () => clearInterval(timer)
+    }, [])
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20">
-            <div className="bg-[#140152] text-white pt-32 pb-20 px-4 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#f5bb00] rounded-full blur-[120px] opacity-20 -translate-y-1/2 translate-x-1/4 pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500 rounded-full blur-[100px] opacity-20 translate-y-1/2 -translate-x-1/4 pointer-events-none" />
+            {/* Hero Carousel */}
+            <div className="w-full relative">
+                {/* All images stacked; only active one is visible */}
+                {CAROUSEL_IMAGES.map((img, i) => (
+                    <img
+                        key={img.src}
+                        src={img.src}
+                        alt={img.alt}
+                        className="w-full h-auto block transition-opacity duration-700"
+                        style={{
+                            position: i === 0 ? 'relative' : 'absolute',
+                            top: 0,
+                            left: 0,
+                            opacity: i === currentSlide ? 1 : 0,
+                            pointerEvents: i === currentSlide ? 'auto' : 'none',
+                        }}
+                    />
+                ))}
 
-                <div className="max-w-7xl mx-auto relative z-10 w-full text-center">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                    >
-                        <div className="inline-block px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-[#f5bb00] font-bold text-sm tracking-widest uppercase mb-6 backdrop-blur-sm">
-                            School of Theology
-                        </div>
-                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black mb-6 leading-tight">
-                            Transform Your Calling <br className="hidden md:block" />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-blue-200">
-                                Into Ministry
-                            </span>
-                        </h1>
-                        <p className="text-blue-100/80 max-w-2xl mx-auto text-lg md:text-xl mb-10 leading-relaxed">
-                            Comprehensive theological education designed to equip you for impactful ministry.
-                            From foundational biblical studies to advanced theological scholarship,
-                            journey through three progressive levels of ministry formation.
-                        </p>
+                {/* Prev / Next */}
+                <button
+                    onClick={() => setCurrentSlide((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length)}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/40 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors z-10"
+                    aria-label="Previous"
+                >
+                    <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                    onClick={() => setCurrentSlide((prev) => (prev + 1) % CAROUSEL_IMAGES.length)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/40 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors z-10"
+                    aria-label="Next"
+                >
+                    <ChevronRight className="w-5 h-5" />
+                </button>
 
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                            <Button
-                                onClick={scrollToPrograms}
-                                variant="outline"
-                                className="h-14 px-8 rounded-full border-white/20 text-white hover:bg-white hover:text-[#140152] bg-white/5 backdrop-blur-sm border-2 font-bold text-lg w-full sm:w-auto"
-                            >
-                                Explore Programs
-                            </Button>
-                            <Button
-                                asChild
-                                className="h-14 px-8 rounded-full bg-[#f5bb00] text-[#140152] hover:bg-[#f5bb00]/90 font-bold text-lg w-full sm:w-auto shadow-[0_0_20px_rgba(245,187,0,0.3)]"
-                            >
-                                <a href="https://live.letw.org" target="_blank" rel="noopener noreferrer">
-                                    Apply Now <ArrowRight className="ml-2 w-5 h-5" />
-                                </a>
-                            </Button>
-                        </div>
-                    </motion.div>
+                {/* Dot indicators */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                    {CAROUSEL_IMAGES.map((_, i) => (
+                        <button
+                            key={i}
+                            onClick={() => setCurrentSlide(i)}
+                            className={`w-2.5 h-2.5 rounded-full transition-all ${i === currentSlide ? 'bg-white scale-125' : 'bg-white/50'}`}
+                            aria-label={`Go to slide ${i + 1}`}
+                        />
+                    ))}
                 </div>
             </div>
 

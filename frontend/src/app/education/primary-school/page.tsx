@@ -10,24 +10,12 @@ export default function PrimarySchoolPage() {
     return (
         <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
             {/* Hero */}
-            <div className="relative h-[80vh] md:h-[60vh] w-full overflow-hidden flex items-center justify-center bg-[#3d0f0f] pt-24">
+            <div className="w-full">
                 <img
-                    src="https://images.unsplash.com/photo-1544928147-79a2dbc1f389?q=80&w=2574&auto=format&fit=crop"
-                    alt="Primary School" // Updated alt text
-                    className="absolute inset-0 w-full h-full object-cover opacity-40"
+                    src="/primary.png"
+                    alt="Primary School"
+                    className="w-full h-auto block"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#3d0f0f] via-transparent to-black/30" />
-
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8 }}
-                    className="relative z-20 text-center text-white px-4 max-w-4xl mx-auto"
-                >
-                    <div className="text-[#f5bb00] font-bold tracking-widest uppercase mb-4 text-sm md:text-base">A Foundation for Life</div>
-                    <h1 className="text-3xl md:text-5xl font-black mb-6 leading-tight">Primary School<br />Education</h1>
-                    <p className="text-lg md:text-xl text-orange-100 max-w-xl mx-auto font-medium">Nurturing young minds with faith, character, and academic excellence.</p>
-                </motion.div>
             </div>
 
             <div className="max-w-7xl mx-auto px-4 py-20">

@@ -75,7 +75,17 @@ export default function GivingPage() {
   }
 
   return (
-    <div className="min-h-screen relative bg-[#140152] overflow-hidden flex flex-col justify-center">
+    <div className="min-h-screen">
+      {/* Hero */}
+      <div className="w-full">
+        <img
+          src="/giving.png"
+          alt="Giving"
+          className="w-full h-auto block"
+        />
+      </div>
+
+      <div className="relative bg-[#140152] overflow-hidden flex flex-col justify-center">
       {/* Background Effects */}
       <div className="absolute inset-0 z-0">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#f5bb00]/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />

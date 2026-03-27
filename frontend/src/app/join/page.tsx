@@ -57,12 +57,14 @@ export default function JoinPage() {
 
   return (
     <>
-      <Hero
-        title="Join Our Family"
-        subtitle="Become a member of The Light Encounter Tabernacle"
-        height="medium"
-        backgroundImage="https://images.unsplash.com/photo-1543269865-cbf427effbad?w=1200"
-      />
+      {/* Hero */}
+      <div className="w-full">
+        <img
+          src="/Join.png"
+          alt="Join Our Family"
+          className="w-full h-auto block"
+        />
+      </div>
 
       <SectionWrapper>
         <div className="text-center mb-16 space-y-4">
