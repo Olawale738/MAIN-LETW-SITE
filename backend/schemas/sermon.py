@@ -17,6 +17,7 @@ class SermonCreate(BaseModel):
     sermon_date: date
     series: Optional[str] = Field(None, max_length=255)
     video_url: Optional[str] = None
+    document_url: Optional[str] = None
     is_featured: bool = False
     is_published: bool = True
 
@@ -29,6 +30,7 @@ class SermonUpdate(BaseModel):
     sermon_date: Optional[date] = None
     series: Optional[str] = None
     video_url: Optional[str] = None
+    document_url: Optional[str] = None
     is_featured: Optional[bool] = None
     is_published: Optional[bool] = None
 
@@ -51,6 +53,7 @@ class SermonResponse(BaseModel):
     has_document: bool = False
     document_filename: Optional[str] = None
     document_size: Optional[int] = None
+    document_url: Optional[str] = None
     has_thumbnail: bool = False
     is_featured: bool
     is_published: bool

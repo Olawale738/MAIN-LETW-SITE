@@ -186,6 +186,10 @@ async function fetchApi<T>(
         throw new ApiError(response.status, errorData.detail || 'An error occurred');
     }
 
+    if (response.status === 204) {
+        return {} as T;
+    }
+
     return response.json();
 }
 
@@ -794,13 +798,7 @@ export const sermonApi = {
         if (series) params.append('series', series);
         if (limit) params.append('limit', limit.toString());
         if (offset) params.append('offset', offset.toString());
-        const queryString = params.toString();
-
-        const response = await fetch(`${API_BASE_URL}/sermons/public${queryString ? '?' + queryString : ''}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch sermons');
-        }
-        return response.json();
+        return fetchApi<SermonListResponse>(`/sermons?${params}`);
     },
 
     // Get sermon series list
@@ -811,6 +809,8 @@ export const sermonApi = {
         }
         return response.json();
     },
+
+
 
     // Admin endpoints
     getAllSermons: async (includeUnpublished: boolean = true): Promise<SermonListResponse> => {
@@ -829,6 +829,7 @@ export const sermonApi = {
         if (data.description) formData.append('description', data.description);
         if (data.series) formData.append('series', data.series);
         if (data.video_url) formData.append('video_url', data.video_url);
+        if (data.document_url) formData.append('document_url', data.document_url);
         formData.append('is_featured', String(data.is_featured || false));
         formData.append('is_published', String(data.is_published !== false));
         if (data.audio) formData.append('audio', data.audio);
@@ -857,6 +858,7 @@ export const sermonApi = {
         if (data.description !== undefined) formData.append('description', data.description || '');
         if (data.series !== undefined) formData.append('series', data.series || '');
         if (data.video_url !== undefined) formData.append('video_url', data.video_url || '');
+        if (data.document_url !== undefined) formData.append('document_url', data.document_url || '');
         if (data.is_featured !== undefined) formData.append('is_featured', String(data.is_featured));
         if (data.is_published !== undefined) formData.append('is_published', String(data.is_published));
         if (data.audio) formData.append('audio', data.audio);
@@ -1508,6 +1510,12 @@ export interface PrayerRequest {
     status: 'pending' | 'praying' | 'answered' | 'archived';
     prayer_count: number;
     testimony?: string;
+    user?: {
+        id: string;
+        first_name?: string;
+        last_name?: string;
+        email?: string;
+    };
     created_at: string;
     updated_at: string;
 }
@@ -1788,6 +1796,12 @@ export const prayerApi = {
             return fetchApi<PrayerRequest>(`/prayer/admin/requests/${id}`, {
                 method: 'PATCH',
                 body: JSON.stringify(data),
+            });
+        },
+
+        deleteRequest: async (id: string): Promise<void> => {
+            return fetchApi<void>(`/prayer/admin/requests/${id}`, {
+                method: 'DELETE',
             });
         },
     },
@@ -2173,6 +2187,213 @@ export const bibleStudyApi = {
     },
 };
 
+// ============================================================================
+// TESTIMONY API
+// ============================================================================
+
+export interface TestimonyItem {
+    id: string;
+    name: string;
+    email: string;
+    testimony_text: string;
+    status: 'pending' | 'approved' | 'rejected';
+    created_at: string;
+    updated_at: string;
+}
+
+export interface TestimonyCreate {
+    name: string;
+    email: string;
+    testimony_text: string;
+}
+
+export const testimonyApi = {
+    // Public endpoints (no auth)
+    submit: async (data: TestimonyCreate): Promise<TestimonyItem> => {
+        return fetchApi<TestimonyItem>('/testimonies/', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    getApproved: async (): Promise<TestimonyItem[]> => {
+        return fetchApi<TestimonyItem[]>('/testimonies/approved');
+    },
+
+    // Admin endpoints
+    admin: {
+        getAll: async (statusFilter?: string): Promise<TestimonyItem[]> => {
+            const params = statusFilter ? `?status_filter=${statusFilter}` : '';
+            return fetchApi<TestimonyItem[]>(`/testimonies/admin${params}`);
+        },
+
+        updateStatus: async (id: string, status: string): Promise<TestimonyItem> => {
+            return fetchApi<TestimonyItem>(`/testimonies/admin/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status }),
+            });
+        },
+
+        delete: async (id: string): Promise<void> => {
+            return fetchApi<void>(`/testimonies/admin/${id}`, {
+                method: 'DELETE',
+            });
+        },
+    },
+};
+
+// ============================================================================
+// KIDS MINISTRY API
+// ============================================================================
+
+export interface KidsMinistryRegistration {
+    id: string;
+    child_name: string;
+    child_age: number;
+    age_group: string;
+    parent_name: string;
+    parent_email: string;
+    parent_phone?: string;
+    special_needs?: string;
+    status: 'pending' | 'approved' | 'declined';
+    created_at: string;
+    updated_at: string;
+}
+
+export interface KidsMinistryRegistrationCreate {
+    child_name: string;
+    child_age: number;
+    age_group: string;
+    parent_name: string;
+    parent_email: string;
+    parent_phone?: string;
+    special_needs?: string;
+}
+
+export const kidsMinistryApi = {
+    // Public endpoint (no auth)
+    register: async (data: KidsMinistryRegistrationCreate): Promise<KidsMinistryRegistration> => {
+        return fetchApi<KidsMinistryRegistration>('/kids-ministry/register', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    // Admin endpoints
+    admin: {
+        getRegistrations: async (statusFilter?: string): Promise<KidsMinistryRegistration[]> => {
+            const params = statusFilter ? `?status_filter=${statusFilter}` : '';
+            return fetchApi<KidsMinistryRegistration[]>(`/kids-ministry/registrations${params}`);
+        },
+
+        updateRegistration: async (id: string, status: string): Promise<KidsMinistryRegistration> => {
+            return fetchApi<KidsMinistryRegistration>(`/kids-ministry/registrations/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ status }),
+            });
+        },
+
+        deleteRegistration: async (id: string): Promise<void> => {
+            return fetchApi<void>(`/kids-ministry/registrations/${id}`, {
+                method: 'DELETE',
+            });
+        },
+    },
+};
+
+// ============================================================================
+// SERVICE RESOURCES API
+// ============================================================================
+
+export interface ServiceResourceItem {
+    id: string;
+    title: string;
+    description?: string;
+    icon?: string;
+    resource_type: 'file' | 'link' | 'page';
+    file_url?: string;
+    external_url?: string;
+    service_slug: string;
+    is_active: boolean;
+    display_order: number;
+    created_at: string;
+    updated_at?: string;
+}
+
+export interface ServiceResourceCreate {
+    title: string;
+    description?: string;
+    icon?: string;
+    resource_type: 'file' | 'link' | 'page';
+    file_url?: string;
+    external_url?: string;
+    service_slug: string;
+    is_active?: boolean;
+    display_order?: number;
+}
+
+export interface ServiceResourceListResponse {
+    resources: ServiceResourceItem[];
+    total: number;
+}
+
+export const serviceResourceApi = {
+    // Public: get active resources for a service page
+    getByService: async (slug: string): Promise<ServiceResourceListResponse> => {
+        return fetchApi<ServiceResourceListResponse>(`/service-resources/${slug}`);
+    },
+
+    // Admin: get all resources
+    getAll: async (): Promise<ServiceResourceListResponse> => {
+        return fetchApi<ServiceResourceListResponse>('/service-resources/admin/all');
+    },
+
+    // Admin: create resource
+    create: async (data: ServiceResourceCreate): Promise<ServiceResourceItem> => {
+        return fetchApi<ServiceResourceItem>('/service-resources', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    // Admin: update resource
+    update: async (id: string, data: Partial<ServiceResourceCreate>): Promise<ServiceResourceItem> => {
+        return fetchApi<ServiceResourceItem>(`/service-resources/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    // Admin: delete resource
+    delete: async (id: string): Promise<void> => {
+        return fetchApi<void>(`/service-resources/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // Admin: upload file
+    uploadFile: async (file: File): Promise<{ file_url: string; filename: string }> => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`${API_BASE_URL}/service-resources/upload`, {
+            method: 'POST',
+            headers: {
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+            throw new Error(error.detail || 'Upload failed');
+        }
+
+        return response.json();
+    },
+};
+
 // ============= Live Stream API =============
 
 export interface LiveStream {
@@ -2222,7 +2443,7 @@ export const liveStreamApi = {
 
 // ============= CMS Types =============
 
-export type BlockType = 'hero' | 'content' | 'features' | 'cta' | 'image' | 'video' | 'upcoming-events' | 'sermon-list' | 'leadership-list';
+export type BlockType = 'hero' | 'content' | 'features' | 'cta' | 'image' | 'video' | 'upcoming-events' | 'sermon-list' | 'leadership-list' | 'kids-registration';
 
 export interface Block {
     id: string;
@@ -2298,3 +2519,97 @@ export const cmsApi = {
         return `${API_BASE_URL}/cms/images/${id}`;
     }
 };
+
+// ============= Counselling Types =============
+
+export type CounsellingStatus = 'new' | 'in_progress' | 'resolved';
+
+export interface CounsellingRequest {
+    name: string;
+    email: string;
+    message: string;
+}
+
+export interface CounsellingResponse {
+    id: string;
+    name: string;
+    email: string;
+    message: string;
+    status: CounsellingStatus;
+    admin_notes?: string;
+    is_read: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CounsellingListResponse {
+    items: CounsellingResponse[];
+    total: number;
+}
+
+export interface CounsellingReply {
+    subject: string;
+    message: string;
+}
+
+// ============= Counselling API =============
+
+export const counsellingApi = {
+    /**
+     * Submit a counselling request (Public)
+     */
+    submit: async (data: CounsellingRequest): Promise<MessageResponse> => {
+        return fetchApi<MessageResponse>('/counselling', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    /**
+     * Get all counselling requests (Admin)
+     */
+    getAll: async (status?: CounsellingStatus, limit = 50, offset = 0): Promise<CounsellingListResponse> => {
+        const params = new URLSearchParams();
+        if (status) params.append('status_filter', status);
+        params.append('limit', limit.toString());
+        params.append('offset', offset.toString());
+        return fetchApi<CounsellingListResponse>(`/counselling?${params}`);
+    },
+
+    /**
+     * Get a specific request (Admin)
+     */
+    get: async (id: string): Promise<CounsellingResponse> => {
+        return fetchApi<CounsellingResponse>(`/counselling/${id}`);
+    },
+
+    /**
+     * Update request status/notes (Admin)
+     */
+    update: async (id: string, data: { status?: CounsellingStatus; admin_notes?: string; is_read?: boolean }): Promise<CounsellingResponse> => {
+        return fetchApi<CounsellingResponse>(`/counselling/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    /**
+     * Delete a request (Admin)
+     */
+    delete: async (id: string): Promise<void> => {
+        await fetchApi(`/counselling/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    /**
+     * Reply to a request via email (Admin)
+     */
+    reply: async (id: string, data: CounsellingReply): Promise<MessageResponse> => {
+        return fetchApi<MessageResponse>(`/counselling/${id}/reply`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+};
+

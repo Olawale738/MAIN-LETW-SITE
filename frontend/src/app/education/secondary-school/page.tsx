@@ -3,7 +3,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { ArrowLeft, BookOpen, Users, Star, Trophy, Globe } from 'lucide-react'
+import { ArrowLeft, BookOpen, Users, Star, Trophy, Globe, Heart, Shield } from 'lucide-react'
 import Link from 'next/link'
 
 export default function SecondarySchoolPage() {
@@ -125,7 +125,7 @@ export default function SecondarySchoolPage() {
                 <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[#140152] rounded-full" />Parent & Student Interview</li>
                 <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[#140152] rounded-full" />Review of Past Reports</li>
               </ul>
-              <PremiumButton href="/education/coming-soon" className="bg-[#140152] text-white hover:bg-white hover:text-[#140152] font-bold">
+              <PremiumButton href="/education/secondary-school/coming-soon" className="bg-[#140152] text-white hover:bg-white hover:text-[#140152] font-bold rounded-xl py-6 border border-[#140152]">
                 Visit Secondary School Website
               </PremiumButton>
             </div>
@@ -162,4 +162,3 @@ export default function SecondarySchoolPage() {
     </div>
   )
 }
-import { Heart, Shield } from 'lucide-react'

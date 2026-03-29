@@ -12,6 +12,7 @@ import ContentEditor from './editors/ContentEditor';
 import ImageEditor from './editors/ImageEditor';
 import FeaturesEditor from './editors/FeaturesEditor';
 import CTAEditor from './editors/CTAEditor';
+import KidsRegistrationEditor from './editors/KidsRegistrationEditor';
 
 interface BlockEditorProps {
     block: Block;
@@ -29,6 +30,7 @@ const EDITOR_COMPONENTS: Record<string, React.FC<any>> = {
     image: ImageEditor,
     features: FeaturesEditor,
     cta: CTAEditor,
+    'kids-registration': KidsRegistrationEditor,
 };
 
 export default function BlockEditor({

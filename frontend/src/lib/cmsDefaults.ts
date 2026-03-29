@@ -51,7 +51,7 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
                 {
                     title: "Pastoral Care",
                     description: "Guidance and support for every season of your life.",
-                    image: "https://images.unsplash.com/photo-1544427928-c49cdfebf494?w=800",
+                    image: "https://images.unsplash.com/photo-1507692049790-de58290a4334?w=800",
                     icon: "Shield"
                 },
                 {
@@ -233,7 +233,9 @@ export const DEFAULT_SUNDAY_SERVICE_BLOCKS: Block[] = [
                 {
                     title: "Kids Ministry",
                     description: "Fun, safe, and engaging biblical learning for children of all ages.",
-                    icon: "Smile"
+                    icon: "Smile",
+                    link: "/kids-ministry",
+                    button_text: "Join Kids Ministry"
                 }
             ]
         }
@@ -250,20 +252,17 @@ export const DEFAULT_SUNDAY_SERVICE_BLOCKS: Block[] = [
                 {
                     title: "Weekly Bulletin",
                     description: "Download this week's bulletin to stay updated with church announcements and events.",
-                    icon: "FileText",
-                    link: "/download/bulletin"
+                    icon: "FileText"
                 },
                 {
                     title: "Sermon Notes",
                     description: "Follow along with the message using our interactive sermon notes.",
-                    icon: "PenTool",
-                    link: "/sermons/notes"
+                    icon: "PenTool"
                 },
                 {
                     title: "First Time Guest?",
                     description: "Complete our connection card so we can welcome you properly.",
-                    icon: "Heart",
-                    link: "/connect"
+                    icon: "Heart"
                 }
             ]
         }
@@ -277,6 +276,229 @@ export const DEFAULT_SUNDAY_SERVICE_BLOCKS: Block[] = [
             button_text: "Get Directions",
             button_link: "/contact",
             style: 'simple'
+        }
+    }
+];
+
+export const DEFAULT_KIDS_MINISTRY_BLOCKS: Block[] = [
+    {
+        id: 'kids-hero',
+        type: 'hero',
+        data: {
+            title: "🌈 Shine Your <span class='text-[#f5bb00]'>Light</span>",
+            subtitle: "Evangelizing, discipling, and empowering young hearts to encounter God's love in profound, joyful ways.",
+            align: 'center',
+            bg_image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=1200"
+        }
+    },
+    {
+        id: 'kids-mission',
+        type: 'content',
+        data: {
+            title: "Our Mission",
+            content: `
+                <h3 class="text-2xl font-bold text-[#140152] mb-4">Empowering Young Hearts</h3>
+                <p class="text-lg text-gray-600 leading-relaxed mb-4">Drawing from our commitment to evangelizing and discipling children, Light Encounter Tabernacle Kids Ministry serves children ages 2–17. We create transformative spaces where kids value God's Word through worship, lessons, games, and one-on-one guidance.</p>
+                <div class="bg-[#f5bb00]/10 border-l-4 border-[#f5bb00] p-5 rounded-r-xl mb-4">
+                    <p class="text-gray-700"><strong class="text-[#140152]">Our Promise:</strong> A safe, nurturing environment where children encounter God's love, build meaningful friendships, develop strong faith foundations, and discover their unique gifts.</p>
+                </div>
+                <p class="text-lg text-gray-600 leading-relaxed">We blend engaging worship, biblical teaching, and community service to help children understand their purpose in God's plan.</p>
+            `,
+            width: 'standard',
+            bg_color: 'white',
+            padding: 'medium'
+        }
+    },
+    {
+        id: 'kids-age-groups',
+        type: 'features',
+        data: {
+            title: "Age Groups",
+            columns: 3,
+            style: 'cards',
+            features: [
+                { title: "👶 Nursery (2-5)", description: "Play-based learning and basic Bible stories in a loving nursery setting.", icon: "Baby" },
+                { title: "📚 Elementary (6-12)", description: "Interactive lessons, games, and worship to build faith foundations.", icon: "BookOpen" },
+                { title: "🧑‍🎓 Youth (13-17)", description: "Discipleship, leadership training, and outreach for teens.", icon: "GraduationCap" }
+            ]
+        }
+    },
+    {
+        id: 'kids-programs',
+        type: 'features',
+        data: {
+            title: "Our Programs",
+            columns: 4,
+            style: 'cards',
+            features: [
+                { title: "Kids Choir & Worship", description: "Experience joyful worship through music, dance, and celebrations that bring God's presence alive.", icon: "Music" },
+                { title: "Bible Adventures", description: "Interactive storytelling bringing God's Word to life with engaging narratives, crafts, and discussions.", icon: "BookOpen" },
+                { title: "Discipleship & Growth", description: "Guided development programs helping kids establish faith and discover their callings through mentorship.", icon: "Sprout" },
+                { title: "Community Outreach", description: "Hands-on service projects teaching the heart of compassion, making a difference in our community.", icon: "Heart" }
+            ]
+        }
+    },
+    {
+        id: 'kids-summer-camp',
+        type: 'cta',
+        data: {
+            title: "☀️ Summer Shine Camp",
+            text: "Our week-long adventure features games, laughter, Bible exploration, and worship. A blast of faith-building fun!",
+            button_text: "Stay Tuned",
+            button_link: "#",
+            style: 'banner'
+        }
+    },
+    {
+        id: 'kids-parent-resources',
+        type: 'features',
+        data: {
+            title: "Parent & Volunteer Resources",
+            subtitle: "We offer tools to equip parents and volunteers for nurturing young faith at home and church.",
+            columns: 3,
+            style: 'cards',
+            features: [
+                { title: "Parent Guides", description: "Weekly devotionals and tips for family faith discussions.", icon: "FileText" },
+                { title: "Volunteer Training", description: "Annual workshops on child safety, teaching, and discipleship.", icon: "Users" },
+                { title: "Bible Study Kits", description: "Downloadable materials for home Bible adventures.", icon: "BookMarked" }
+            ]
+        }
+    },
+    {
+        id: 'kids-testimonials',
+        type: 'features',
+        data: {
+            title: "Hear From Our Families",
+            columns: 2,
+            style: 'cards',
+            features: [
+                { title: "Sarah M. — Parent", description: "\"My daughter looks forward to every Sunday! She's made wonderful friends and her faith has deepened so much. This ministry truly cares.\"", icon: "Star" },
+                { title: "David T. — Parent", description: "\"The teachers are amazing! They make learning about God fun and relatable. My kids ask about it all week long!\"", icon: "Star" }
+            ]
+        }
+    },
+    {
+        id: 'kids-registration',
+        type: 'kids-registration',
+        data: {
+            title: "Register Your Child",
+            subtitle: "Join our ministry family! Fill out the form below and we'll be in touch."
+        }
+    },
+    {
+        id: 'kids-cta-footer',
+        type: 'cta',
+        data: {
+            title: "Join Our Ministry Family",
+            text: "Your child deserves a place where faith, friendship, and fun come together. We're ready to welcome your family with open hearts and open arms.",
+            button_text: "Start Your Journey Today",
+            button_link: "#register",
+            style: 'banner'
+        }
+    }
+];
+
+export const DEFAULT_ALTER_SOUND_BLOCKS: Block[] = [
+    {
+        id: 'as-hero',
+        type: 'hero',
+        data: {
+            title: "Raising Sound That <span class='text-[#f5bb00]'>Carries Heaven's Intention</span>",
+            subtitle: "Not entertainment. A consecrated space where worship, prophetic sound, and spiritual alignment converge to release God's presence.",
+            align: 'center',
+            bg_image: "https://images.unsplash.com/photo-1525926477800-7a3be580c765?q=80&w=2670",
+            cta_text: "Explore Audio Library",
+            cta_link: "/services/alter-sound/library"
+        }
+    },
+    {
+        id: 'as-core-identity',
+        type: 'content',
+        data: {
+            title: "Not a Performance Choir",
+            content: `
+                <p class="text-lg text-gray-600 leading-relaxed mb-6">We are not built on talent alone, nor driven by applause or stage presence. Alter Sound exists as a ministry of consecrated servants who offer sound as spiritual sacrifice, releasing heaven's atmosphere through surrendered voices and instruments.</p>
+                <div class="space-y-4">
+                    <div class="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div class="w-12 h-12 bg-[#140152]/5 rounded-full flex items-center justify-center text-[#140152] flex-shrink-0">🔥</div>
+                        <div><h4 class="font-bold text-lg text-[#140152]">Sound as Spiritual Offering</h4><p class="text-sm text-gray-600">Every note is presented as worship unto the Lord.</p></div>
+                    </div>
+                    <div class="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div class="w-12 h-12 bg-[#140152]/5 rounded-full flex items-center justify-center text-[#140152] flex-shrink-0">🎵</div>
+                        <div><h4 class="font-bold text-lg text-[#140152]">Worship as Ministry</h4><p class="text-sm text-gray-600">We serve by creating space for divine encounter.</p></div>
+                    </div>
+                    <div class="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div class="w-12 h-12 bg-[#140152]/5 rounded-full flex items-center justify-center text-[#140152] flex-shrink-0">⛪</div>
+                        <div><h4 class="font-bold text-lg text-[#140152]">Servants at the Altar</h4><p class="text-sm text-gray-600">Our role is priestly—ministering to the Lord.</p></div>
+                    </div>
+                </div>
+            `,
+            width: 'standard',
+            bg_color: 'white',
+            padding: 'medium'
+        }
+    },
+    {
+        id: 'as-dimensions',
+        type: 'features',
+        data: {
+            title: "Dimensions of Sound Ministry",
+            subtitle: "Spiritual Depth",
+            columns: 2,
+            style: 'cards',
+            features: [
+                { title: "Worship Sound", description: "Hosts God's presence and leads into adoration.", icon: "Music" },
+                { title: "Prophetic Sound", description: "Spirit-led melodies aligning with divine instruction.", icon: "Mic" },
+                { title: "Healing Sound", description: "Anointed expressions for freedom and restoration.", icon: "Sparkles" },
+                { title: "Missional Sound", description: "Songs crafted for nations and global contexts.", icon: "Globe" }
+            ]
+        }
+    },
+    {
+        id: 'as-formation',
+        type: 'content',
+        data: {
+            title: "Sound Formation Journey",
+            content: `
+                <div class="grid lg:grid-cols-2 gap-12">
+                    <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-lg">
+                        <h3 class="text-2xl font-bold mb-6 text-[#140152]">Sound Formation Journey</h3>
+                        <div class="space-y-6">
+                            <div class="flex gap-4 items-center"><div class="w-10 h-10 bg-[#140152] rounded-full text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-lg">1</div><h4 class="font-bold text-lg text-[#140152]">Consecration (Heart alignment)</h4></div>
+                            <div class="flex gap-4 items-center"><div class="w-10 h-10 bg-[#140152] rounded-full text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-lg">2</div><h4 class="font-bold text-lg text-[#140152]">Vocal & Musical Formation</h4></div>
+                            <div class="flex gap-4 items-center"><div class="w-10 h-10 bg-[#140152] rounded-full text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-lg">3</div><h4 class="font-bold text-lg text-[#140152]">Spiritual Sensitivity</h4></div>
+                            <div class="flex gap-4 items-center"><div class="w-10 h-10 bg-[#140152] rounded-full text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-lg">4</div><h4 class="font-bold text-lg text-[#140152]">Corporate Sound Unity</h4></div>
+                            <div class="flex gap-4 items-center"><div class="w-10 h-10 bg-[#140152] rounded-full text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-lg">5</div><h4 class="font-bold text-lg text-[#140152]">Sound Release</h4></div>
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="bg-[#140152] text-white p-8 rounded-2xl shadow-xl">
+                            <h3 class="text-2xl font-bold mb-4">How We Operate</h3>
+                            <p class="mb-4 opacity-80 text-lg">Every gathering is prayer-led and Spirit-directed.</p>
+                            <ul class="space-y-3 font-medium">
+                                <li class="flex items-center gap-3"><span class="w-2 h-2 bg-[#f5bb00] rounded-full"></span>Formation rehearsals</li>
+                                <li class="flex items-center gap-3"><span class="w-2 h-2 bg-[#f5bb00] rounded-full"></span>Prayer-soaked sessions</li>
+                                <li class="flex items-center gap-3"><span class="w-2 h-2 bg-[#f5bb00] rounded-full"></span>Worship retreats</li>
+                                <li class="flex items-center gap-3"><span class="w-2 h-2 bg-[#f5bb00] rounded-full"></span>Ministry service</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `,
+            width: 'wide',
+            bg_color: 'gray',
+            padding: 'large'
+        }
+    },
+    {
+        id: 'as-audio-cta',
+        type: 'cta',
+        data: {
+            title: "Experience Worship Sound",
+            text: "Listen to anointed worship and prophetic sound that carries heaven's presence",
+            button_text: "Browse Audio Library",
+            button_link: "/services/alter-sound/library",
+            style: 'banner'
         }
     }
 ];

@@ -71,6 +71,7 @@ def sermon_to_response(sermon: Sermon) -> SermonResponse:
         has_document=sermon.document_data is not None,
         document_filename=sermon.document_filename,
         document_size=sermon.document_size,
+        document_url=sermon.document_url,
         has_thumbnail=sermon.thumbnail_data is not None,
         is_featured=sermon.is_featured,
         is_published=sermon.is_published,
@@ -159,6 +160,7 @@ async def create_sermon(
     description: Optional[str] = Form(None),
     series: Optional[str] = Form(None),
     video_url: Optional[str] = Form(None),
+    document_url: Optional[str] = Form(None),
     is_featured: bool = Form(False),
     is_published: bool = Form(True),
     audio: Optional[UploadFile] = File(None),
@@ -175,6 +177,7 @@ async def create_sermon(
         sermon_date=sermon_date,
         series=series,
         video_url=video_url,
+        document_url=document_url,
         is_featured=is_featured,
         is_published=is_published
     )
@@ -244,6 +247,7 @@ async def update_sermon(
     description: Optional[str] = Form(None),
     series: Optional[str] = Form(None),
     video_url: Optional[str] = Form(None),
+    document_url: Optional[str] = Form(None),
     is_featured: Optional[bool] = Form(None),
     is_published: Optional[bool] = Form(None),
     audio: Optional[UploadFile] = File(None),
@@ -276,6 +280,8 @@ async def update_sermon(
         sermon.series = series
     if video_url is not None:
         sermon.video_url = video_url
+    if document_url is not None:
+        sermon.document_url = document_url
     if is_featured is not None:
         sermon.is_featured = is_featured
     if is_published is not None:

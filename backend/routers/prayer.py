@@ -19,7 +19,7 @@ from schemas.prayer import (
     PrayerStatCreate, PrayerStatUpdate, PrayerStatResponse,
     PrayerRequestCreate, PrayerRequestUpdate, PrayerRequestResponse,
     PrayerPageSettingsUpdate, PrayerPageSettingsResponse,
-    PrayerPageData
+    PrayerPageData, AdminPrayerRequestResponse
 )
 from utils.dependencies import get_current_user, get_admin_user
 
@@ -424,14 +424,14 @@ async def update_prayer_settings(
 # ADMIN ENDPOINTS - Prayer Requests Management
 # ============================================================================
 
-@router.get("/admin/requests", response_model=List[PrayerRequestResponse])
+@router.get("/admin/requests", response_model=List[AdminPrayerRequestResponse])
 async def get_all_prayer_requests(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_admin_user),
     status_filter: str = None
 ):
-    """Get all prayer requests (admin only)"""
-    query = select(PrayerRequest)
+    """Get all prayer requests (admin only) - includes user details for non-anonymous requests"""
+    query = select(PrayerRequest).options(selectinload(PrayerRequest.user))
 
     if status_filter:
         query = query.where(PrayerRequest.status == status_filter)
@@ -441,7 +441,15 @@ async def get_all_prayer_requests(
     result = await db.execute(query)
     requests = result.scalars().all()
 
-    return list(requests)
+    # Strip user info from anonymous requests
+    response = []
+    for req in requests:
+        req_dict = AdminPrayerRequestResponse.model_validate(req)
+        if req.is_anonymous:
+            req_dict.user = None
+        response.append(req_dict)
+
+    return response
 
 
 @router.patch("/admin/requests/{request_id}", response_model=PrayerRequestResponse)
@@ -469,3 +477,30 @@ async def update_prayer_request_status(
     return prayer_request
 
 
+
+@router.delete("/admin/requests/{request_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_prayer_request(
+    request_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    """Delete a prayer request (admin only)"""
+    # Check if request exists
+    result = await db.execute(
+        select(PrayerRequest).where(PrayerRequest.id == request_id)
+    )
+    prayer_request = result.scalar_one_or_none()
+
+    if not prayer_request:
+        raise HTTPException(status_code=404, detail="Prayer request not found")
+
+    # Delete associated user prayers first (if cascade is not set up, but let's be safe)
+    await db.execute(
+        delete(UserPrayer).where(UserPrayer.prayer_request_id == request_id)
+    )
+
+    # Delete the request
+    await db.execute(
+        delete(PrayerRequest).where(PrayerRequest.id == request_id)
+    )
+    await db.commit()
