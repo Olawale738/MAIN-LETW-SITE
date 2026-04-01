@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import PremiumButton from '@/components/ui/PremiumButton';
+import { cmsApi } from '@/lib/api';
 
 interface HeroBlockProps {
     data: {
@@ -25,6 +26,11 @@ export default function HeroBlock({ data }: HeroBlockProps) {
         align = 'center'
     } = data;
 
+    // Resolve image ID to full URL (handles both raw UUIDs from DB and already-resolved URLs)
+    const resolvedBgImage = bg_image
+        ? (bg_image.startsWith('http') || bg_image.startsWith('/') ? bg_image : cmsApi.getImageUrl(bg_image))
+        : null;
+
     const alignmentClasses = {
         left: 'text-left items-start',
         center: 'text-center items-center',
@@ -34,10 +40,10 @@ export default function HeroBlock({ data }: HeroBlockProps) {
     return (
         <section className="relative min-h-[600px] flex items-center justify-center overflow-hidden">
             {/* Background Image */}
-            {bg_image && (
+            {resolvedBgImage && (
                 <div
                     className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
-                    style={{ backgroundImage: `url(${bg_image})` }}
+                    style={{ backgroundImage: `url(${resolvedBgImage})` }}
                 >
                     <div className="absolute inset-0 bg-black/50" />
                 </div>

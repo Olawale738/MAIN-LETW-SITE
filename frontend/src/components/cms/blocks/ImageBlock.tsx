@@ -1,6 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { cmsApi } from '@/lib/api';
 
 interface ImageBlockProps {
     data: {
@@ -20,6 +21,11 @@ export default function ImageBlock({ data }: ImageBlockProps) {
         width = 'standard',
         aspect_ratio = '16:9'
     } = data;
+
+    // Resolve image ID to full URL (handles both raw UUIDs from DB and already-resolved URLs)
+    const resolvedImage = image
+        ? (image.startsWith('http') || image.startsWith('/') ? image : cmsApi.getImageUrl(image))
+        : '';
 
     const widthClasses = {
         full: 'max-w-full w-full',
@@ -43,13 +49,13 @@ export default function ImageBlock({ data }: ImageBlockProps) {
                 )}>
                     {aspect_ratio === 'auto' ? (
                         <img
-                            src={image}
+                            src={resolvedImage}
                             alt={alt}
                             className="w-full h-auto"
                         />
                     ) : (
                         <Image
-                            src={image}
+                            src={resolvedImage}
                             alt={alt}
                             fill
                             className="object-cover"
