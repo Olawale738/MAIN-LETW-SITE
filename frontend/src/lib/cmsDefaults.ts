@@ -151,7 +151,7 @@ export const DEFAULT_IMPACT_BLOCKS: Block[] = [
         data: {
             title: "Making Jesus <span class='text-[#f5bb00]'>Known</span>",
             subtitle: "Extending the love of Christ beyond the four walls of the church through service, missions, and community transformation.",
-            bg_image: "https://images.unsplash.com/photo-1593113598332-cd288d649433?q=80&w=2670",
+            bg_image: "/Impact.png",
             align: 'center'
         }
     },

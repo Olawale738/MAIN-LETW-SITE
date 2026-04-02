@@ -40,14 +40,6 @@ export default function ImpactPage() {
 
     return (
         <div className="bg-white dark:bg-black min-h-screen">
-            {/* Hero */}
-            <div className="w-full">
-                <img
-                    src="/Impact.png"
-                    alt="Impact"
-                    className="w-full h-auto block"
-                />
-            </div>
             <PageRenderer blocks={blocks} />
         </div>
     )
