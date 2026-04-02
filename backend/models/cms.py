@@ -8,7 +8,6 @@ from datetime import datetime
 from sqlalchemy import String, DateTime, Text, LargeBinary, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.sqlite import JSON
 
 from database import Base
 
