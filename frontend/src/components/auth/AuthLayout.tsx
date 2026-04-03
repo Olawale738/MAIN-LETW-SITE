@@ -30,7 +30,7 @@ export default function AuthLayout({ children, title, subtitle, imageSrc }: Auth
                 </div>
 
                 {/* Decorative Elements */}
-                <div className="absolute top-0 left-0 w-full h-full z-10 opacity-20 pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E")` }}></div>
+                <div className="absolute top-0 left-0 w-full h-full z-10 bg-[url('/noise.png')] opacity-20 pointer-events-none"></div>
                 <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#f5bb00] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
                 <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#4f46e5] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 

@@ -22,7 +22,6 @@ const BLOCK_TYPES: { type: BlockType; label: string }[] = [
     { type: 'features', label: 'Features (Grid)' },
     { type: 'image', label: 'Image' },
     { type: 'cta', label: 'Call to Action' },
-    { type: 'kids-registration', label: 'Kids Registration Form' },
     // { type: 'video', label: 'Video' },
 ];
 
@@ -63,7 +62,6 @@ export default function PageBuilder({ blocks, onChange }: PageBuilderProps) {
             case 'features': return { features: [{ title: 'Feature 1', description: 'Description' }], columns: 3, style: 'cards' };
             case 'image': return { image: '', width: 'standard', aspect_ratio: '16:9' };
             case 'cta': return { title: 'Ready to get started?', button_text: 'Click Here', button_link: '#', style: 'banner' };
-            case 'kids-registration': return { title: 'Register Your Child', subtitle: "Join our ministry family! Fill out the form below and we'll be in touch." };
             default: return {};
         }
     };

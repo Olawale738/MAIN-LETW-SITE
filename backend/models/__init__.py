@@ -1,6 +1,5 @@
 # Models package
 from models.user import User, UserStatus, UserRole
-from models.counselling import CounsellingRequest, CounsellingStatus
 from models.verification_token import VerificationToken, TokenType
 from models.service_request import ServiceRequest, ServiceRequestStatus
 from models.notification import Notification, NotificationType
@@ -26,9 +25,6 @@ from models.bible_study import (
     ReadingPlanType, ReadingStatus
 )
 from models.cms import CMSPage, CMSImage
-from models.testimony import Testimony, TestimonyStatus
-from models.kids_ministry import KidsMinistryRegistration, KidsRegistrationStatus
-from models.service_resource import ServiceResource, ServiceResourceType
 
 __all__ = [
     "User",
@@ -77,14 +73,6 @@ __all__ = [
     "ReadingStatus",
     "CMSPage",
     "CMSImage",
-    "Testimony",
-    "TestimonyStatus",
-    "KidsMinistryRegistration",
-    "KidsRegistrationStatus",
-    "ServiceResource",
-    "ServiceResourceType",
-    "CounsellingRequest",
-    "CounsellingStatus",
 ]
 
 

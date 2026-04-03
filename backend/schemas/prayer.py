@@ -135,24 +135,6 @@ class PrayerRequestResponse(PrayerRequestBase):
         from_attributes = True
 
 
-class UserBrief(BaseModel):
-    id: str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    email: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-
-class AdminPrayerRequestResponse(PrayerRequestResponse):
-    """Admin response that includes user details for non-anonymous requests"""
-    user: Optional[UserBrief] = None
-
-    class Config:
-        from_attributes = True
-
-
 # Prayer Page Settings Schemas
 class PrayerPageSettingsUpdate(BaseModel):
     hero_title: Optional[str] = None

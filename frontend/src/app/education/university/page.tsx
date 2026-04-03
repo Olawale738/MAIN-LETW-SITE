@@ -9,24 +9,12 @@ import Link from 'next/link'
 export default function UniversityPage() {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
-      <div className="relative h-[60vh] bg-emerald-900 overflow-hidden flex items-center justify-center pt-24">
+      <div className="w-full">
         <img
-          src="/UniversityHero.jpg"
-          alt="University Background"
-          className="absolute inset-0 w-full h-full object-cover opacity-50"
+          src="/university.png"
+          alt="University"
+          className="w-full h-auto block"
         />
-        <div className="absolute inset-0 bg-black/40 z-10" />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8 }}
-          className="relative z-20 text-center text-white px-4"
-        >
-          <h1 className="text-6xl md:text-8xl font-black mb-4 tracking-tight">THE LIGHT<br /><span className="text-emerald-400">UNIVERSITY</span></h1>
-          <p className="text-xl md:text-2xl text-gray-200 mt-4 max-w-3xl mx-auto">
-            Where Faith Meets Intellectual Pursuit
-          </p>
-        </motion.div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-20">

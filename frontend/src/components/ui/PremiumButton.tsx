@@ -33,7 +33,7 @@ export default function PremiumButton({ href, children, onClick, className, targ
     if (href) {
         return (
             <Button variant="primary" asChild className={buttonClass} disabled={disabled}>
-                <Link href={href} target={target} onClick={onClick}>
+                <Link href={href} target={target}>
                     {content}
                 </Link>
             </Button>

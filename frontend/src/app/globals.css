@@ -124,7 +124,37 @@
   --radius: 0.5rem;
 }
 
-/* Dark mode overrides removed — site is light-themed only */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+
+    --card: #0a0a0a;
+    --card-foreground: #ededed;
+
+    --popover: #0a0a0a;
+    --popover-foreground: #ededed;
+
+    --primary: #140152;
+    --primary-foreground: #FFFFFF;
+
+    --secondary: #27272a;
+    --secondary-foreground: #fafafa;
+
+    --muted: #27272a;
+    --muted-foreground: #a1a1aa;
+
+    --accent: #27272a;
+    --accent-foreground: #fafafa;
+
+    --destructive: #7f1d1d;
+    --destructive-foreground: #fafafa;
+
+    --border: #27272a;
+    --input: #27272a;
+    --ring: #d4d4d8;
+  }
+}
 
 body {
   background: var(--background);

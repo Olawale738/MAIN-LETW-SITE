@@ -102,18 +102,6 @@ app.include_router(cms.router)
 from routers import live_stream
 app.include_router(live_stream.router)
 
-from routers import testimony
-app.include_router(testimony.router)
-
-from routers import kids_ministry
-app.include_router(kids_ministry.router)
-
-from routers import service_resource_content
-app.include_router(service_resource_content.router, prefix="/api/service-resources", tags=["Service Resources"])
-
-from routers import counselling
-app.include_router(counselling.router, prefix="/api/counselling", tags=["Counselling"])
-
 # Mount static files for uploads
 # Create uploads directory if it doesn't exist
 UPLOADS_DIR = "uploads"

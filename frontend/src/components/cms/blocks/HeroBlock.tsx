@@ -66,11 +66,15 @@ export default function HeroBlock({ data }: HeroBlockProps) {
                 )}
 
                 {cta_text && cta_link && (
-                    <div className="mt-8">
-                        <PremiumButton href={cta_link} className="bg-yellow-500 hover:bg-yellow-600 text-black border-none shadow-none text-lg px-8 py-3">
+                    <Button
+                        asChild
+                        size="lg"
+                        className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold text-lg px-8 h-12 mt-4"
+                    >
+                        <Link href={cta_link}>
                             {cta_text}
-                        </PremiumButton>
-                    </div>
+                        </Link>
+                    </Button>
                 )}
             </div>
         </section>

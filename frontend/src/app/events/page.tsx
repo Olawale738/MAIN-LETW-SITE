@@ -46,8 +46,8 @@ export default function EventsPage() {
             <Hero
                 title="Upcoming Events"
                 subtitle="Connect, Serve, and Grow with Us"
-                height="medium"
-                backgroundImage="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1200"
+                height="full"
+                backgroundImage="/EVENTS.png"
             />
 
             <SectionWrapper>

@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Calendar, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import PremiumButton from '@/components/ui/PremiumButton';
 
 interface UpcomingEventsBlockProps {
     data: {
@@ -101,7 +100,9 @@ export default function UpcomingEventsBlock({ data }: UpcomingEventsBlockProps) 
                 </div>
 
                 <div className="text-center mt-16">
-                    <PremiumButton href="/events" className="bg-[#140152] hover:bg-blue-900 border-none shadow-none text-white px-8 py-3">View Full Calendar</PremiumButton>
+                    <Button asChild size="lg" className="bg-[#140152] hover:bg-blue-900">
+                        <Link href="/events">View Full Calendar</Link>
+                    </Button>
                 </div>
             </div>
         </section>

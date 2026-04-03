@@ -6,15 +6,13 @@ export default function EvangelismPage() {
     return (
         <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
             {/* Hero Section */}
-            <section className="relative h-[40vh] flex items-center justify-center bg-black overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1552664730-d307ca884978?w=1600&q=80")' }}>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-900/70 to-purple-900/70 z-10" />
-                <div className="relative z-20 text-center px-4">
-                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">Evangelism</h1>
-                    <p className="text-xl text-neutral-200 max-w-2xl mx-auto">
-                        Spreading the light of Christ through compassion and connection.
-                    </p>
-                </div>
-            </section>
+            <div className="w-full">
+                <img
+                    src="/evangelism.png"
+                    alt="Evangelism"
+                    className="w-full h-auto block"
+                />
+            </div>
 
             {/* Announcements */}
             <div className="max-w-7xl mx-auto px-4 py-8">

@@ -2,10 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageSquareQuote, Baby, FileBox } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager } from '@/lib/api'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 const sidebarItems = [
     {
@@ -22,11 +22,6 @@ const sidebarItems = [
         title: 'Service Requests',
         href: '/admin/service-requests',
         icon: ClipboardList
-    },
-    {
-        title: 'Counselling',
-        href: '/admin/counselling',
-        icon: HandHeart
     },
     {
         title: 'Announcements',
@@ -69,16 +64,6 @@ const sidebarItems = [
         icon: Church
     },
     {
-        title: 'Service Resources',
-        href: '/admin/service-resources',
-        icon: FileBox
-    },
-    {
-        title: 'Kids Ministry',
-        href: '/admin/pages/kids-ministry',
-        icon: Baby
-    },
-    {
         title: 'Users',
         href: '/admin/users',
         icon: Users
@@ -100,7 +85,7 @@ const sidebarItems = [
     },
     {
         title: 'Alter Sound',
-        href: '/admin/pages/alter-sound',
+        href: '/admin/alter-sound',
         icon: Music
     },
     {
@@ -108,27 +93,11 @@ const sidebarItems = [
         href: '/admin/bible-study',
         icon: Book
     },
-    {
-        title: 'Testimonies',
-        href: '/admin/testimonies',
-        icon: MessageSquareQuote
-    },
-
 ]
 
-export default function AdminSidebar({ externalOpen, onToggle }: { externalOpen?: boolean; onToggle?: () => void } = {}) {
+export default function AdminSidebar() {
     const pathname = usePathname()
-    const [internalOpen, setInternalOpen] = useState(false)
-
-    // Support both internal and external toggle control
-    const mobileOpen = externalOpen !== undefined ? externalOpen : internalOpen
-    const setMobileOpen = (open: boolean) => {
-        if (onToggle && externalOpen !== undefined) {
-            onToggle()
-        } else {
-            setInternalOpen(open)
-        }
-    }
+    const [mobileOpen, setMobileOpen] = useState(false)
 
     const handleLogout = () => {
         tokenManager.clearTokens()
@@ -194,15 +163,13 @@ export default function AdminSidebar({ externalOpen, onToggle }: { externalOpen?
 
     return (
         <>
-            {/* Mobile Toggle Button - only shown if not externally controlled */}
-            {externalOpen === undefined && (
-                <button
-                    onClick={() => setMobileOpen(!mobileOpen)}
-                    className="md:hidden fixed top-4 left-4 z-[60] bg-[#140152] text-white p-2 rounded-lg shadow-lg"
-                >
-                    {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                </button>
-            )}
+            {/* Mobile Toggle Button */}
+            <button
+                onClick={() => setMobileOpen(!mobileOpen)}
+                className="md:hidden fixed top-4 left-4 z-[60] bg-[#140152] text-white p-2 rounded-lg shadow-lg"
+            >
+                {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
 
             {/* Mobile Overlay */}
             {mobileOpen && (

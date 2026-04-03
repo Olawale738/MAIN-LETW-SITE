@@ -2,7 +2,6 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import PremiumButton from '@/components/ui/PremiumButton';
 
 interface CTABlockProps {
     data: {
@@ -31,7 +30,9 @@ export default function CTABlock({ data }: CTABlockProps) {
                 <div className="container mx-auto px-4 text-center">
                     <h2 className="text-3xl font-bold mb-6 text-[#140152]">{title}</h2>
                     {text && <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">{text}</p>}
-                    <PremiumButton href={button_link}>{button_text}</PremiumButton>
+                    <Button asChild size="lg" className="bg-[#140152] hover:bg-blue-900">
+                        <Link href={button_link}>{button_text}</Link>
+                    </Button>
                 </div>
             </section>
         );
@@ -54,7 +55,9 @@ export default function CTABlock({ data }: CTABlockProps) {
                     </div>
 
                     <div className="relative z-10 mt-8 md:mt-0 flex-shrink-0">
-                        <PremiumButton href={button_link} className="bg-yellow-500 hover:bg-yellow-600 text-black border-none shadow-none">{button_text}</PremiumButton>
+                        <Button asChild size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold h-12 px-8">
+                            <Link href={button_link}>{button_text}</Link>
+                        </Button>
                     </div>
                 </div>
             </div>

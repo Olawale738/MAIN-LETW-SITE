@@ -104,12 +104,6 @@ class Sermon(Base):
         nullable=True
     )
     
-    # External document URL (alternative to uploading)
-    document_url: Mapped[str] = mapped_column(
-        String(500),
-        nullable=True
-    )
-    
     # Thumbnail image (optional, stored in database)
     thumbnail_data: Mapped[bytes] = mapped_column(
         LargeBinary,

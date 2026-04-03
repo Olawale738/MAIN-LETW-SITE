@@ -122,6 +122,7 @@ async def get_all_announcements(
 @router.get("/service/{service_name}", response_model=AnnouncementListResponse)
 async def get_service_announcements(
     service_name: str,
+    current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """

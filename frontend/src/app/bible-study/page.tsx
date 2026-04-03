@@ -70,12 +70,14 @@ export default function BibleStudyPage() {
 
     return (
         <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
-            <Hero
-                title="Bible Study"
-                subtitle="Deepening our knowledge of God's Word together."
-                height="medium"
-                backgroundImage="https://images.unsplash.com/photo-1505682634904-d7c8d95cdc50?w=1200&auto=format&fit=crop&q=60"
-            />
+            {/* Hero */}
+            <div className="w-full">
+                <img
+                    src="/Bible-study.png"
+                    alt="Bible Study"
+                    className="w-full h-auto block"
+                />
+            </div>
 
             <SectionWrapper>
                 <div className="text-center mb-16 space-y-4">

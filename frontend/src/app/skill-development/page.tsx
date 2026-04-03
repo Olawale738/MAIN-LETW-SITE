@@ -107,8 +107,12 @@ export default function SkillDevelopmentPage() {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 p-8 md:ml-64 overflow-y-auto">
-                <div className="max-w-5xl mx-auto">
+            <div className="flex-1 md:ml-64 overflow-y-auto">
+                {/* Hero Banner */}
+                <div className="w-full">
+                    <img src="/Youth.png" alt="Skill Development" className="w-full h-auto block" />
+                </div>
+                <div className="p-8 max-w-5xl mx-auto">
                     <div className="flex justify-between items-center mb-8">
                         <div>
                             <h2 className="text-3xl font-bold text-gray-800">Hello, {user} 🚀</h2>
