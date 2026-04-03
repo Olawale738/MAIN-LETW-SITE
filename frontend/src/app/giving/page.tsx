@@ -338,6 +338,7 @@ export default function GivingPage() {
 
         </div>
       </div>
+      </div>
     </div>
   )
 }

@@ -83,8 +83,12 @@ export default function SermonsPage() {
     return (
         <div className="min-h-screen bg-gray-50 font-sans">
             {/* Spotlight Hero Section */}
-            <div className="relative bg-[#140152] pt-32 pb-24 px-4 md:px-12 overflow-hidden">
-                <Spotlight className="-top-10 left-0 md:left-60 md:-top-20" fill="white" />
+            <div 
+                className="relative bg-[#140152] pt-32 pb-24 px-4 md:px-12 overflow-hidden min-h-screen flex flex-col justify-center bg-cover bg-center" 
+                style={{ backgroundImage: 'url("/SERMONS.png")' }}
+            >
+                <div className="absolute inset-0 bg-[#140152]/60 pointer-events-none" />
+                <Spotlight className="-top-10 left-0 md:left-60 md:-top-20 z-0" fill="white" />
                 <div className="max-w-7xl mx-auto relative z-10 text-center">
                     <h1 className="text-4xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 mb-6 tracking-tight">
                         Sermons & Library

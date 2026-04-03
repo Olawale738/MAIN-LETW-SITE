@@ -57,7 +57,7 @@ export default function SoundAltarPage() {
                         </div>
 
                         <p className="text-lg text-gray-600 leading-relaxed">
-                            We are not built on talent alone, nor driven by applause or stage presence. Alter Sound exists as a ministry of consecrated servants who offer sound as spiritual sacrifice, releasing heaven&apos;s atmosphere through surrendered voices and instruments.
+                            We are not built on talent alone, nor driven by applause or stage presence. Alter Sound exists as a ministry of consecrated servants who offer sound as spiritual sacrifice, releasing heaven’s atmosphere through surrendered voices and instruments.
                         </p>
                         <div className="space-y-6">
                             {[
@@ -184,7 +184,7 @@ export default function SoundAltarPage() {
 
                         <div className="bg-[#140152] text-white p-10 rounded-[2.5rem] text-center shadow-xl" id="audio-library">
                             <h3 className="text-2xl font-black mb-4">Experience Worship Sound</h3>
-                            <p className="mb-8 font-bold opacity-90">Listen to anointed worship and prophetic sound that carries heaven&apos;s presence</p>
+                            <p className="mb-8 font-bold opacity-90">Listen to anointed worship and prophetic sound that carries heaven's presence</p>
                             <div className="flex flex-col sm:flex-row gap-4">
                                 <Link href="/services/alter-sound/library" className="flex-1">
                                     <Button className="w-full bg-[#f5bb00] text-white hover:bg-[#140152]/90 py-6 rounded-xl font-bold shadow-lg">

@@ -42,7 +42,7 @@ export default function UniversityPage() {
 
         <div className="mt-20 text-center">
           <h2 className="text-3xl font-bold text-[#140152] mb-8">Ready to higher heights?</h2>
-          <PremiumButton href="/education/coming-soon" className="bg-[#140152] text-white hover:bg-[#140152]/90 ">
+          <PremiumButton href="/education/university/coming-soon" className="bg-[#140152] text-white hover:bg-[#140152]/90 rounded-full px-10 py-7 text-lg">
             Visit University Website
           </PremiumButton>
         </div>

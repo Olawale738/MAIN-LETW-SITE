@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 import Image from 'next/image';
+import PremiumButton from '@/components/ui/PremiumButton';
+import { cmsApi } from '@/lib/api';
 
 interface FeatureItem {
     title: string;
@@ -77,7 +79,7 @@ export default function FeaturesBlock({ data }: FeaturesBlockProps) {
                                 {feature.image ? (
                                     <div className="mb-6 relative h-48 w-full rounded-lg overflow-hidden flex-shrink-0">
                                         <Image
-                                            src={feature.image}
+                                            src={feature.image.startsWith('http') || feature.image.startsWith('/') ? feature.image : cmsApi.getImageUrl(feature.image)}
                                             alt={feature.title}
                                             fill
                                             className="object-cover"
