@@ -111,7 +111,9 @@ async def get_image(image_id: str, db: AsyncSession = Depends(get_db)):
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     
-    return Response(content=image.data, media_type=image.mime_type)
+    # asyncpg returns memoryview for BYTEA columns in PostgreSQL.
+    # Must convert to bytes explicitly, otherwise the response body is corrupted.
+    return Response(content=bytes(image.data), media_type=image.mime_type)
 
 @router.delete("/images/{image_id}")
 async def delete_image(
