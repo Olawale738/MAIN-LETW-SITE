@@ -34,7 +34,7 @@ const SERVICE_CONFIG: Record<string, { icon: React.ReactNode; description: strin
         icon: <Music className="w-8 h-8" />,
         description: "Join our worship team and use your musical gifts to glorify God.",
         buttonText: "View Choir",
-        buttonLink: "/services/alter-sound"
+        buttonLink: "/dashboard/alter-sound"
     },
     "Counselling": {
         icon: <MessageCircle className="w-8 h-8" />,
