@@ -195,7 +195,7 @@ export default function UserDashboard() {
                                     <h3 className="text-4xl md:text-5xl font-black mb-3 tracking-tight">Sunday Service</h3>
                                     <p className="font-semibold opacity-80 text-xl border-l-4 border-[#140152]/20 pl-4 py-1">9:00 AM • Main Sanctuary</p>
                                 </div>
-                                <PremiumButton href="/services" className="bg-[#140152] text-white hover:bg-[#140152]/90 border-none justify-center text-lg rounded-xl shadow-none">
+                                <PremiumButton href="/events" className="bg-[#140152] text-white hover:bg-[#140152]/90 border-none justify-center text-lg rounded-xl shadow-none">
                                     View Full Schedule
                                 </PremiumButton>
                             </CardContent>
