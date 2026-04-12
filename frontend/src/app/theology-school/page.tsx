@@ -60,7 +60,7 @@ const IMPACT_POINTS = [
     {
         id: "06",
         title: "Mission & Impact",
-        desc: "Graduate equipped for evangelism, apologetics, social transformation, and kingdom advancement. Whether in local churches or global missions, make an eternal impact for Christ.",
+        desc: "Graduate equipped for evangelism, missions, social transformation, and kingdom advancement. Whether in local churches or global missions, make an eternal impact for Christ.",
         icon: Anchor
     }
 ]
