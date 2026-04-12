@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button'
 import {
     FileText, Calendar, Video, CheckCircle, BookOpen, Target,
     TrendingUp, Menu, X, Loader2, ExternalLink, PlayCircle,
-    FileDown, Link as LinkIcon, Clock, MapPin
+    FileDown, Link as LinkIcon, Clock, MapPin, Bell
 } from 'lucide-react'
 import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
+import ServiceAnnouncementsList from '@/components/shared/ServiceAnnouncementsList'
 import { careerApi, UserCareerDashboard, CareerModule, CareerResource } from '@/lib/api'
 import { format } from 'date-fns'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -22,6 +23,7 @@ export default function CareerGuidancePage() {
     const [loading, setLoading] = useState(true)
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [completingTask, setCompletingTask] = useState<string | null>(null)
+    const [activeView, setActiveView] = useState<'dashboard' | 'announcements'>('dashboard')
 
     useEffect(() => {
         loadDashboard()
@@ -85,6 +87,7 @@ export default function CareerGuidancePage() {
     if (!dashboard) return null
 
     return (
+        <>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex">
             {/* Mobile Menu Button */}
             <button
@@ -152,14 +155,28 @@ export default function CareerGuidancePage() {
                                     )}
                                 </button>
                             ))}
-                        </nav>
+
+                            <button
+                                onClick={() => { setActiveView(v => v === 'announcements' ? 'dashboard' : 'announcements'); setSidebarOpen(false) }}
+                                className={cn(
+                                    "w-full text-left py-2 px-4 rounded-lg transition-colors",
+                                    activeView === 'announcements' ? "bg-white/10" : "hover:bg-white/5 opacity-70"
+                                )}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Bell className="w-4 h-4" />
+                                    Announcements
+                                </div>
+                            </button>                        </nav>
                     </motion.div>
                 )}
             </AnimatePresence>
 
             {/* Main Content */}
             <div className="flex-1 p-4 md:p-8 overflow-y-auto">
-                {!selectedModule ? (
+                {activeView === 'announcements' ? (
+                    <ServiceAnnouncementsList serviceName="Career Guidance" />
+                ) : !selectedModule ? (
                     <>
                         {/* Dashboard View */}
                         <div className="mb-8">
@@ -298,5 +315,6 @@ export default function CareerGuidancePage() {
                 )}
             </div>
         </div>
+        </>
     )
 }

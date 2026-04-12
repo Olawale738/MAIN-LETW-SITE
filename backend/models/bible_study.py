@@ -4,7 +4,7 @@ Bible Study models for reading plans and progress tracking
 import uuid
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import String, Text, Integer, Boolean, DateTime, ForeignKey, Date, Enum as SQLEnum
+from sqlalchemy import String, Text, Integer, Boolean, DateTime, ForeignKey, Date, Enum as SQLEnum, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 import enum
@@ -120,6 +120,22 @@ class BibleStudyResource(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class UserBibleWeekProgress(Base):
+    """Tracks which weeks of the hardcoded 54-week reading plan a user has completed."""
+    __tablename__ = "user_bible_week_progress"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    week_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    completed: Mapped[bool] = mapped_column(Boolean, default=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, default=datetime.utcnow)
+    registered: Mapped[bool] = mapped_column(Boolean, default=True)  # Whether user opted in to the plan
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'week_number', name='unique_user_week_progress'),
+    )
+
+
 class BibleStudyPageSettings(Base):
     """Settings for the Bible Study page"""
     __tablename__ = "bible_study_page_settings"
@@ -132,6 +148,39 @@ class BibleStudyPageSettings(Base):
     hero_description: Mapped[str] = mapped_column(Text, default="Join us in reading through the Bible systematically")
     hero_background_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     
+    # Plan identity
+    year_label: Mapped[str] = mapped_column(String(20), default="2026")
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class WeekReflection(Base):
+    """Admin-authored key verse and reflection prompt for a specific week of the 54-week plan."""
+    __tablename__ = "week_reflections"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    week_number: Mapped[int] = mapped_column(Integer, nullable=False, unique=True, index=True)
+    key_verse: Mapped[str] = mapped_column(Text, nullable=False)
+    verse_ref: Mapped[str] = mapped_column(String(100), nullable=False)
+    reflection: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class QuarterlyTheme(Base):
+    """The 4 quarterly themes that frame the annual 54-week reading plan."""
+    __tablename__ = "quarterly_themes"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    quarter_number: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)  # 1–4
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    theme: Mapped[str] = mapped_column(String(255), nullable=False)
+    scripture: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    accent_color: Mapped[str] = mapped_column(String(20), default="#f5bb00")
+    week_start: Mapped[int] = mapped_column(Integer, nullable=False)
+    week_end: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

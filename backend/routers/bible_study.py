@@ -4,6 +4,7 @@ Bible Study API endpoints for reading plans and progress tracking
 from typing import List, Optional
 from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -505,3 +506,293 @@ async def update_page_settings(
     await db.refresh(settings)
     return settings
 
+
+# ============================================================================
+# USER ENDPOINTS - 54-Week Reading Plan Progress
+# ============================================================================
+
+from models.bible_study import UserBibleWeekProgress  # noqa: E402
+
+
+@router.get("/weekly-progress")
+async def get_weekly_progress(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get the current user's progress for the hardcoded 54-week reading plan.
+    Returns: { "registered": bool, "completed_weeks": { "1": true, "3": true, ... } }
+    """
+    result = await db.execute(
+        select(UserBibleWeekProgress)
+        .where(UserBibleWeekProgress.user_id == current_user.id)
+    )
+    rows = result.scalars().all()
+
+    completed_weeks: dict = {}
+    registered = False
+    for row in rows:
+        if row.registered:
+            registered = True
+        if row.week_number > 0:
+            completed_weeks[str(row.week_number)] = row.completed
+
+    return {"registered": registered, "completed_weeks": completed_weeks}
+
+
+@router.post("/weekly-progress/register")
+async def register_for_reading_plan(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Register the user for the 54-week reading plan.
+    Uses week_number = 0 as a registration sentinel row.
+    """
+    existing_result = await db.execute(
+        select(UserBibleWeekProgress)
+        .where(
+            UserBibleWeekProgress.user_id == current_user.id,
+            UserBibleWeekProgress.week_number == 0
+        )
+    )
+    existing = existing_result.scalar_one_or_none()
+
+    if not existing:
+        sentinel = UserBibleWeekProgress(
+            user_id=current_user.id,
+            week_number=0,
+            completed=False,
+            registered=True
+        )
+        db.add(sentinel)
+        await db.commit()
+
+    return {"registered": True, "message": "Registered for the 54-week reading plan"}
+
+
+@router.put("/weekly-progress/week/{week_number}")
+async def toggle_week_completion(
+    week_number: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Toggle the completion status for a specific week (1-54).
+    First touch = mark complete. Second touch = mark incomplete.
+    """
+    if week_number < 1 or week_number > 54:
+        raise HTTPException(status_code=400, detail="Week number must be between 1 and 54")
+
+    existing_result = await db.execute(
+        select(UserBibleWeekProgress)
+        .where(
+            UserBibleWeekProgress.user_id == current_user.id,
+            UserBibleWeekProgress.week_number == week_number
+        )
+    )
+    existing = existing_result.scalar_one_or_none()
+
+    if existing:
+        existing.completed = not existing.completed
+        existing.completed_at = datetime.utcnow() if existing.completed else None
+    else:
+        existing = UserBibleWeekProgress(
+            user_id=current_user.id,
+            week_number=week_number,
+            completed=True,
+            completed_at=datetime.utcnow(),
+            registered=True
+        )
+        db.add(existing)
+
+    await db.commit()
+    await db.refresh(existing)
+
+    return {"week_number": week_number, "completed": existing.completed}
+
+
+# ============================================================================
+# ADMIN ENDPOINTS - Week Reflections & Quarterly Themes
+# ============================================================================
+
+from models.bible_study import WeekReflection, QuarterlyTheme  # noqa: E402
+
+
+# ─── Public: read reflections & themes (used by bible-reading page) ─────────
+
+@router.get("/week-reflections")
+async def get_all_week_reflections(db: AsyncSession = Depends(get_db)):
+    """Public endpoint — returns all admin-authored week reflections."""
+    result = await db.execute(select(WeekReflection).order_by(WeekReflection.week_number))
+    return result.scalars().all()
+
+
+@router.get("/quarterly-themes")
+async def get_quarterly_themes(db: AsyncSession = Depends(get_db)):
+    """Public endpoint — returns all 4 quarterly themes."""
+    result = await db.execute(select(QuarterlyTheme).order_by(QuarterlyTheme.quarter_number))
+    themes = result.scalars().all()
+    return themes
+
+
+# ─── Admin: Week Reflections CRUD ────────────────────────────────────────────
+
+class WeekReflectionInput(BaseModel):
+    key_verse: str
+    verse_ref: str
+    reflection: str
+
+@router.get("/admin/week-reflections")
+async def admin_get_week_reflections(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    """Get all week reflections (admin)."""
+    result = await db.execute(select(WeekReflection).order_by(WeekReflection.week_number))
+    return result.scalars().all()
+
+
+@router.put("/admin/week-reflections/{week_number}")
+async def admin_upsert_week_reflection(
+    week_number: int,
+    data: WeekReflectionInput,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    """Create or update a week reflection (upsert by week_number)."""
+    if week_number < 1 or week_number > 54:
+        raise HTTPException(status_code=400, detail="Week number must be between 1 and 54")
+
+    result = await db.execute(
+        select(WeekReflection).where(WeekReflection.week_number == week_number)
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        existing.key_verse = data.key_verse
+        existing.verse_ref = data.verse_ref
+        existing.reflection = data.reflection
+    else:
+        existing = WeekReflection(
+            week_number=week_number,
+            key_verse=data.key_verse,
+            verse_ref=data.verse_ref,
+            reflection=data.reflection,
+        )
+        db.add(existing)
+
+    await db.commit()
+    await db.refresh(existing)
+    return existing
+
+
+@router.delete("/admin/week-reflections/{week_number}")
+async def admin_delete_week_reflection(
+    week_number: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    """Delete a week reflection."""
+    result = await db.execute(
+        select(WeekReflection).where(WeekReflection.week_number == week_number)
+    )
+    existing = result.scalar_one_or_none()
+    if not existing:
+        raise HTTPException(status_code=404, detail="Week reflection not found")
+    await db.delete(existing)
+    await db.commit()
+    return {"message": f"Week {week_number} reflection deleted"}
+
+
+# ─── Admin: Quarterly Themes CRUD ────────────────────────────────────────────
+
+class QuarterlyThemeInput(BaseModel):
+    title: str
+    theme: str
+    scripture: str
+    description: Optional[str] = None
+    accent_color: str = "#f5bb00"
+    week_start: int
+    week_end: int
+
+@router.get("/admin/quarterly-themes")
+async def admin_get_quarterly_themes(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    """Get all quarterly themes (admin)."""
+    result = await db.execute(select(QuarterlyTheme).order_by(QuarterlyTheme.quarter_number))
+    return result.scalars().all()
+
+
+@router.put("/admin/quarterly-themes/{quarter_number}")
+async def admin_upsert_quarterly_theme(
+    quarter_number: int,
+    data: QuarterlyThemeInput,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    """Create or update a quarterly theme (upsert by quarter_number)."""
+    if quarter_number < 1 or quarter_number > 4:
+        raise HTTPException(status_code=400, detail="Quarter number must be between 1 and 4")
+
+    result = await db.execute(
+        select(QuarterlyTheme).where(QuarterlyTheme.quarter_number == quarter_number)
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        existing.title = data.title
+        existing.theme = data.theme
+        existing.scripture = data.scripture
+        existing.description = data.description
+        existing.accent_color = data.accent_color
+        existing.week_start = data.week_start
+        existing.week_end = data.week_end
+    else:
+        existing = QuarterlyTheme(
+            quarter_number=quarter_number,
+            title=data.title,
+            theme=data.theme,
+            scripture=data.scripture,
+            description=data.description,
+            accent_color=data.accent_color,
+            week_start=data.week_start,
+            week_end=data.week_end,
+        )
+        db.add(existing)
+
+    await db.commit()
+    await db.refresh(existing)
+    return existing
+
+
+@router.post("/admin/quarterly-themes/seed-defaults")
+async def seed_default_quarterly_themes(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user)
+):
+    """Seed the default 4 quarterly themes if none exist."""
+    result = await db.execute(select(QuarterlyTheme))
+    if result.scalars().first():
+        return {"message": "Themes already seeded"}
+
+    defaults = [
+        QuarterlyTheme(quarter_number=1, title="Foundations of Faith", theme="Creation, Call & Covenant",
+                       scripture="In the beginning God created…", accent_color="#f5bb00",
+                       week_start=1, week_end=13),
+        QuarterlyTheme(quarter_number=2, title="Laws, Lessons & Liberation", theme="The Law & the Prophets",
+                       scripture="Your word is a lamp to my feet", accent_color="#4ade80",
+                       week_start=14, week_end=27),
+        QuarterlyTheme(quarter_number=3, title="The Living Word", theme="Gospels, Acts & Letters",
+                       scripture="The Word became flesh", accent_color="#60a5fa",
+                       week_start=28, week_end=40),
+        QuarterlyTheme(quarter_number=4, title="Faithful to the End", theme="Epistles & Revelation",
+                       scripture="Be strong and courageous", accent_color="#f472b6",
+                       week_start=41, week_end=54),
+    ]
+    for theme in defaults:
+        db.add(theme)
+    await db.commit()
+    return {"message": "Default quarterly themes seeded successfully", "count": 4}

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { prayerApi, PrayerPageData } from '@/lib/api'
 import * as LucideIcons from 'lucide-react'
+import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
 
 // Helper function to get icon component from string name
 const getIconComponent = (iconName?: string) => {
@@ -86,8 +87,10 @@ export default function PrayerPage() {
         />
       </div>
 
-      {/* Impact Stats */}
-
+      {/* Service Announcements */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <ServiceAnnouncements serviceName="Prayer meeting" />
+      </div>
 
       {/* Prayer Experience Section */}
       <SectionWrapper>

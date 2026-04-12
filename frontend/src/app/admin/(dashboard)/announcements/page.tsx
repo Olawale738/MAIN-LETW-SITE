@@ -10,6 +10,7 @@ const AVAILABLE_SERVICES = [
     "Bible study",
     "Prayer meeting",
     "Evangelism",
+    "Alter Sound",
     "Choir",
     "Theology school",
     "Counselling",

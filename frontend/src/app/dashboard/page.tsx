@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
 import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
-import { serviceRequestApi, notificationApi, Notification } from '@/lib/api'
+import { serviceRequestApi, notificationApi, Notification, bibleReadingApi } from '@/lib/api'
 import { Spotlight } from '@/components/ui/spotlight'
 
 // Service configuration for cards
@@ -85,11 +85,16 @@ export default function UserDashboard() {
             }
             setUserName(localStorage.getItem('userName') || 'User')
 
-            // Bible Reading Progress
-            const completed = JSON.parse(localStorage.getItem('bibleReadingCompleted') || '{}')
-            const totalWeeks = 54 // Based on the plan length in bible-reading page
-            const completedCount = Object.values(completed).filter(Boolean).length
-            setBibleProgress(Math.round((completedCount / totalWeeks) * 100))
+            // Bible Reading Progress – try backend first, fall back to localStorage
+            try {
+                const progressData = await bibleReadingApi.getProgress()
+                const completedCount = Object.values(progressData.completed_weeks).filter(Boolean).length
+                setBibleProgress(Math.round((completedCount / 54) * 100))
+            } catch {
+                const completed = JSON.parse(localStorage.getItem('bibleReadingCompleted') || '{}')
+                const completedCount = Object.values(completed).filter(Boolean).length
+                setBibleProgress(Math.round((completedCount / 54) * 100))
+            }
 
             // Fetch My Services from service requests
             try {

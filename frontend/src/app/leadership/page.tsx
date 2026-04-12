@@ -8,6 +8,8 @@ import {
   Youtube, X, Loader2, CheckCircle2, Circle, Trophy, ArrowLeft, Home
 } from 'lucide-react'
 import { leadershipApi, LeadershipModule, LeadershipContent } from '@/lib/api'
+import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
+import ServicePageLayout from '@/components/shared/ServicePageLayout'
 
 export default function LeadershipPage() {
   const router = useRouter()
@@ -128,6 +130,7 @@ export default function LeadershipPage() {
   if (!user) return null
 
   return (
+    <ServicePageLayout serviceName="Leadership Training" brandTitle="Leadership Training" brandColor="#f5bb00">
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Welcome & Progress Section */}
@@ -135,6 +138,9 @@ export default function LeadershipPage() {
           <h2 className="text-3xl font-bold text-[#140152] mb-2">Welcome back, {user}!</h2>
           <p className="text-gray-600">Continue your journey to becoming an effective servant leader.</p>
         </div>
+
+        {/* Service Announcements */}
+        <ServiceAnnouncements serviceName="Leadership Training" />
 
         {/* Progress Stats Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-10">
@@ -405,5 +411,6 @@ export default function LeadershipPage() {
         </div>
       )}
     </div>
+    </ServicePageLayout>
   )
 }
