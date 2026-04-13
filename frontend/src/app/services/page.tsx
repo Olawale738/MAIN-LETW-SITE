@@ -36,14 +36,41 @@ export default function ServicesPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
-      {/* Hero */}
-      <div className="w-full">
-        <img
-          src="/Services.png"
-          alt="Our Services"
-          className="w-full h-auto block"
+      {/* Super Hero Section */}
+      <section className="relative w-full h-[75vh] md:h-[85vh] flex items-center justify-center overflow-hidden">
+        {/* Background Image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
+          style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=1600&q=80")' }}
         />
-      </div>
+        {/* Dynamic Dark Gradient Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#140152]/95 via-[#140152]/80 to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
+
+        {/* Content */}
+        <div className="relative z-20 text-center px-4 max-w-5xl mx-auto flex flex-col items-center">
+
+
+          <motion.h1
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+            className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[1.1] mb-6 tracking-tight drop-shadow-2xl"
+          >
+            A Place to <br className="hidden md:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f5bb00] to-yellow-200">Encounter Light</span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+            className="text-lg md:text-2xl text-blue-50/90 font-medium max-w-3xl mb-10 drop-shadow-md"
+          >
+            Join our diverse ministries, dynamic worship, and profound teachings designed to empower your spiritual journey every single week.
+          </motion.p>
+        </div>
+      </section>
 
       {/* OUR SERVICES */}
       <SectionWrapper>

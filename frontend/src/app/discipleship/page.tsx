@@ -11,27 +11,26 @@ import { Card, CardContent } from '@/components/ui/card'
 export default function DiscipleshipPage() {
     return (
         <>
-            {/* Mobile-Optimized Hero */}
-            <div className="relative h-[100vh] md:h-[70vh] w-full overflow-hidden flex items-center justify-center bg-black">
-                <img
-                    src="https://images.unsplash.com/photo-1504052434569-70ad5836ab65?q=80&w=2670&auto=format&fit=crop"
-                    alt="Discipleship"
-                    className="absolute inset-0 w-full h-full object-cover opacity-60"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-
+            {/* Spotlight Hero Section */}
+            <div 
+                className="relative bg-[#140152] pt-32 pb-24 px-4 md:px-12 overflow-hidden min-h-screen flex flex-col justify-center bg-cover bg-center" 
+                style={{ backgroundImage: 'url("/Discipleship.png")' }}
+            >
+                <div className="absolute inset-0 bg-[#140152]/60 pointer-events-none" />
+                
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8 }}
-                    className="relative z-20 text-center text-white px-4 pt=6 max-w-4xl"
+                    className="max-w-7xl mx-auto relative z-10 text-center"
                 >
-                    <span className="text-[#f5bb00] font-bold tracking-[0.2em] uppercase text-sm md:text-base mb-1 block">Walk with Christ</span>
-                    <h1 className="text-5xl md:text-6xl font-black mb-6 leading-tight">Follow. Learn. Lead.</h1>
-                    <p className="text-lg md:text-2xl text-gray-200 mt-4 max-w-2xl mx-auto font-light">
+                    <span className="text-[#f5bb00] font-bold tracking-[0.2em] uppercase text-sm md:text-base mb-4 block">Walk with Christ</span>
+                    <h1 className="text-4xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 mb-6 tracking-tight">
+                        Follow. Learn. Lead.
+                    </h1>
+                    <p className="text-blue-200 text-lg md:text-xl max-w-2xl mx-auto font-light leading-relaxed">
                         The journey of a disciple is a lifelong pursuit of knowing Jesus and making Him known.
                     </p>
-
                 </motion.div>
             </div>
 
