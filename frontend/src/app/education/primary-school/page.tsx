@@ -1,10 +1,7 @@
 'use client'
 import React from 'react'
-import { motion } from 'framer-motion'
-import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { ArrowLeft, BookOpen, Heart, Shield, Star, Users } from 'lucide-react'
-import Link from 'next/link'
+import { BookOpen, Heart, Shield, Star, Users } from 'lucide-react'
 
 export default function PrimarySchoolPage() {
     return (

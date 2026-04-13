@@ -1,10 +1,7 @@
 'use client'
 import React from 'react'
-import { motion } from 'framer-motion'
-import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { ArrowLeft, BookOpen, Users, Star, Trophy, Globe, Heart, Shield } from 'lucide-react'
-import Link from 'next/link'
+import { Users, Star, Trophy, Globe, Heart, Shield } from 'lucide-react'
 
 export default function SecondarySchoolPage() {
   return (
@@ -12,7 +9,7 @@ export default function SecondarySchoolPage() {
       {/* Hero Section – Secondary School */}
       <div className="w-full">
         <img
-          src="/secondary.png"
+          src="/Secondary.png"
           alt="Secondary School"
           className="w-full h-auto block"
         />

@@ -64,6 +64,28 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         }
     },
     {
+        id: 'home-actions',
+        type: 'button-group',
+        data: {
+            bg_color: 'white',
+            buttons: [
+                {
+                    text: 'Visit our Devotion web app',
+                    link: 'https://devotion.letw.org',
+                    type: 'solid'
+                },
+                {
+                    text: 'Stream via our Radio',
+                    type: 'dropdown',
+                    options: [
+                        { title: 'Stream', link: 'https://radio.letw.org/stream' },
+                        { title: 'Listen', link: 'https://radio.letw.org/listen' }
+                    ]
+                }
+            ]
+        }
+    },
+    {
         id: 'latest-sermons',
         type: 'sermon-list',
         data: {
@@ -149,8 +171,8 @@ export const DEFAULT_IMPACT_BLOCKS: Block[] = [
         id: 'impact-hero',
         type: 'hero',
         data: {
-            title: "Making Jesus <span class='text-[#f5bb00]'>Known</span>",
-            subtitle: "Extending the love of Christ beyond the four walls of the church through service, missions, and community transformation.",
+            title: "",
+            subtitle: "",
             bg_image: "/Impact.png",
             align: 'center'
         }

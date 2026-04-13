@@ -2,7 +2,7 @@
 
 // ... imports
 import { useState, useEffect } from 'react'
-import Hero from '@/components/shared/Hero'
+
 import SectionWrapper from '@/components/shared/SectionWrapper'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -58,11 +58,14 @@ export default function TestimonyPage() {
 
   return (
     <>
-      <Hero
-        title="Share Your Testimony"
-        subtitle="We would love to hear what GOD has done in your life"
-        backgroundImage="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200"
-      />
+      {/* Hero */}
+      <div className="w-full">
+        <img
+          src="/Testimonies.png"
+          alt="Testimonies"
+          className="w-full h-auto block"
+        />
+      </div>
 
       {/* Share Testimony Form */}
       <SectionWrapper>
