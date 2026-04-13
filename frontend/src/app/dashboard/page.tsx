@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
 import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
-import { serviceRequestApi, notificationApi, Notification } from '@/lib/api'
+import { serviceRequestApi, notificationApi, Notification, bibleReadingApi } from '@/lib/api'
 import { Spotlight } from '@/components/ui/spotlight'
 
 // Service configuration for cards
@@ -34,7 +34,7 @@ const SERVICE_CONFIG: Record<string, { icon: React.ReactNode; description: strin
         icon: <Music className="w-8 h-8" />,
         description: "Join our worship team and use your musical gifts to glorify God.",
         buttonText: "View Choir",
-        buttonLink: "/services/alter-sound"
+        buttonLink: "/dashboard/alter-sound"
     },
     "Counselling": {
         icon: <MessageCircle className="w-8 h-8" />,
@@ -85,11 +85,16 @@ export default function UserDashboard() {
             }
             setUserName(localStorage.getItem('userName') || 'User')
 
-            // Bible Reading Progress
-            const completed = JSON.parse(localStorage.getItem('bibleReadingCompleted') || '{}')
-            const totalWeeks = 54 // Based on the plan length in bible-reading page
-            const completedCount = Object.values(completed).filter(Boolean).length
-            setBibleProgress(Math.round((completedCount / totalWeeks) * 100))
+            // Bible Reading Progress – try backend first, fall back to localStorage
+            try {
+                const progressData = await bibleReadingApi.getProgress()
+                const completedCount = Object.values(progressData.completed_weeks).filter(Boolean).length
+                setBibleProgress(Math.round((completedCount / 54) * 100))
+            } catch {
+                const completed = JSON.parse(localStorage.getItem('bibleReadingCompleted') || '{}')
+                const completedCount = Object.values(completed).filter(Boolean).length
+                setBibleProgress(Math.round((completedCount / 54) * 100))
+            }
 
             // Fetch My Services from service requests
             try {
@@ -190,7 +195,7 @@ export default function UserDashboard() {
                                     <h3 className="text-4xl md:text-5xl font-black mb-3 tracking-tight">Sunday Service</h3>
                                     <p className="font-semibold opacity-80 text-xl border-l-4 border-[#140152]/20 pl-4 py-1">9:00 AM • Main Sanctuary</p>
                                 </div>
-                                <PremiumButton href="/services" className="bg-[#140152] text-white hover:bg-[#140152]/90 border-none justify-center text-lg rounded-xl shadow-none">
+                                <PremiumButton href="/events" className="bg-[#140152] text-white hover:bg-[#140152]/90 border-none justify-center text-lg rounded-xl shadow-none">
                                     View Full Schedule
                                 </PremiumButton>
                             </CardContent>

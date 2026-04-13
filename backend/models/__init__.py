@@ -22,7 +22,8 @@ from models.alter_sound import (
 from models.bible_study import (
     BibleReadingPlan, DailyReading, UserReadingProgress,
     UserDailyReading, BibleStudyResource, BibleStudyPageSettings,
-    ReadingPlanType, ReadingStatus
+    ReadingPlanType, ReadingStatus, UserBibleWeekProgress,
+    WeekReflection, QuarterlyTheme
 )
 from models.cms import CMSPage, CMSImage
 
@@ -71,6 +72,9 @@ __all__ = [
     "BibleStudyPageSettings",
     "ReadingPlanType",
     "ReadingStatus",
+    "UserBibleWeekProgress",
+    "WeekReflection",
+    "QuarterlyTheme",
     "CMSPage",
     "CMSImage",
 ]

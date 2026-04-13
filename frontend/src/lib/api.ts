@@ -1986,6 +1986,7 @@ export interface BibleStudyPageSettings {
     hero_subtitle: string;
     hero_description: string;
     hero_background_url?: string;
+    year_label: string;
     created_at: string;
     updated_at: string;
 }
@@ -2042,6 +2043,31 @@ export interface BibleStudyPageSettingsUpdate {
     hero_subtitle?: string;
     hero_description?: string;
     hero_background_url?: string;
+    year_label?: string;
+}
+
+export interface WeekReflection {
+    id: string;
+    week_number: number;
+    key_verse: string;
+    verse_ref: string;
+    reflection: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface QuarterlyTheme {
+    id: string;
+    quarter_number: number;
+    title: string;
+    theme: string;
+    scripture: string;
+    description?: string;
+    accent_color: string;
+    week_start: number;
+    week_end: number;
+    created_at: string;
+    updated_at: string;
 }
 
 export const bibleStudyApi = {
@@ -2171,6 +2197,57 @@ export const bibleStudyApi = {
             body: JSON.stringify(data),
         });
     },
+
+    // Public - Week Reflections & Quarterly Themes
+    getWeekReflections: async (): Promise<WeekReflection[]> => {
+        return fetchApi<WeekReflection[]>('/bible-study/week-reflections');
+    },
+
+    getQuarterlyThemes: async (): Promise<QuarterlyTheme[]> => {
+        return fetchApi<QuarterlyTheme[]>('/bible-study/quarterly-themes');
+    },
+
+    // Admin - Week Reflections
+    adminGetWeekReflections: async (): Promise<WeekReflection[]> => {
+        return fetchApi<WeekReflection[]>('/bible-study/admin/week-reflections');
+    },
+
+    adminUpsertWeekReflection: async (
+        weekNumber: number,
+        data: { key_verse: string; verse_ref: string; reflection: string }
+    ): Promise<WeekReflection> => {
+        return fetchApi<WeekReflection>(`/bible-study/admin/week-reflections/${weekNumber}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    adminDeleteWeekReflection: async (weekNumber: number): Promise<{ message: string }> => {
+        return fetchApi<{ message: string }>(`/bible-study/admin/week-reflections/${weekNumber}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // Admin - Quarterly Themes
+    adminGetQuarterlyThemes: async (): Promise<QuarterlyTheme[]> => {
+        return fetchApi<QuarterlyTheme[]>('/bible-study/admin/quarterly-themes');
+    },
+
+    adminUpsertQuarterlyTheme: async (
+        quarterNumber: number,
+        data: Partial<Omit<QuarterlyTheme, 'id' | 'created_at' | 'updated_at' | 'quarter_number'>>
+    ): Promise<QuarterlyTheme> => {
+        return fetchApi<QuarterlyTheme>(`/bible-study/admin/quarterly-themes/${quarterNumber}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    adminSeedDefaultThemes: async (): Promise<{ message: string; count?: number }> => {
+        return fetchApi<{ message: string; count?: number }>('/bible-study/admin/quarterly-themes/seed-defaults', {
+            method: 'POST',
+        });
+    },
 };
 
 // ============= Live Stream API =============
@@ -2297,4 +2374,40 @@ export const cmsApi = {
         if (id.startsWith('http')) return id;
         return `${API_BASE_URL}/cms/images/${id}`;
     }
+};
+
+// ============= Bible Reading Progress API =============
+
+export interface BibleReadingProgressResponse {
+    registered: boolean;
+    completed_weeks: Record<string, boolean>;
+}
+
+export const bibleReadingApi = {
+    /**
+     * Load the user's saved progress for the 54-week reading plan.
+     * Returns { registered, completed_weeks: { "1": true, "3": false, ... } }
+     */
+    getProgress: async (): Promise<BibleReadingProgressResponse> => {
+        return fetchApi<BibleReadingProgressResponse>('/bible-study/weekly-progress');
+    },
+
+    /**
+     * Register the user for the reading plan.
+     */
+    register: async (): Promise<{ registered: boolean; message: string }> => {
+        return fetchApi<{ registered: boolean; message: string }>('/bible-study/weekly-progress/register', {
+            method: 'POST',
+        });
+    },
+
+    /**
+     * Toggle a specific week's completion. Returns the new state.
+     */
+    toggleWeek: async (weekNumber: number): Promise<{ week_number: number; completed: boolean }> => {
+        return fetchApi<{ week_number: number; completed: boolean }>(
+            `/bible-study/weekly-progress/week/${weekNumber}`,
+            { method: 'PUT' }
+        );
+    },
 };

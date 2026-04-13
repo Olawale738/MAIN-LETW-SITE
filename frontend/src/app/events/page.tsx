@@ -46,6 +46,7 @@ export default function EventsPage() {
             <Hero
                 title="Upcoming Events"
                 subtitle="Connect, Serve, and Grow with Us"
+                height="large"
                 backgroundImage="/EVENTS.png"
             />
 

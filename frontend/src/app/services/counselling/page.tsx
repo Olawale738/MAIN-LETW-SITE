@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import SectionWrapper from '@/components/shared/SectionWrapper'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { User, Users, Heart, ArrowRight } from 'lucide-react'
+import { User, Users, Heart } from 'lucide-react'
 import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
 
 export default function CounsellingPage() {
