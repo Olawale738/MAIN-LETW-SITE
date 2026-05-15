@@ -25,7 +25,7 @@ export default function Footer() {
           <div className="space-y-6">
             <Link href="/" className="flex-shrink-0 flex items-center gap-2 group">
               <div className="w-18 h-18 flex items-center justify-center">
-                <img src="/LETWlogo.png" alt="LETWlogo" className="w-full h-full object-contain" />
+                <img src="/NewLETWlogo.png" alt="LETWlogo" className="w-full h-full object-contain" />
               </div>
               <span className="font-bold text-[12px] tracking-tight text-[#fff] block leading-tight">
                 Light<span><br />Encounter</span> <br /> Tabernacle <span> Worldwide</span>
