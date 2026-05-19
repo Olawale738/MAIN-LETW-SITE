@@ -125,7 +125,7 @@ const PROGRAMS = [
     },
     {
         level: 2,
-        title: "Diploma in Ministry and Divinity",
+        title: "Diplomas in Ministry and Divinity",
         subtitle: "Intermediate Program - Deeper academic and practical ministry formation",
         duration: "1 Year Duration",
         credits: "36-40 Credit Hours",
