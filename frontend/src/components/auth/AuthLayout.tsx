@@ -67,7 +67,7 @@ export default function AuthLayout({ children, title, subtitle, imageSrc }: Auth
                     <div className="mb-8">
                         <div className="inline-block mb-6">
                             <Image
-                                src="/LETWlogo.png"
+                                src="/NewLETWlogo1.jpg"
                                 alt="Light Encounter Logo"
                                 width={80}
                                 height={80}
