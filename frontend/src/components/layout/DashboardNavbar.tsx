@@ -175,7 +175,7 @@ export default function DashboardNavbar() {
                                 whileTap={{ scale: 0.95 }}
                                 className="w-12 h-12 flex items-center justify-center"
                             >
-                                <img src="/LETWlogo.png" alt="LETW" className="w-full h-full object-cover rounded-2xl" />
+                                <img src="/NewLETWlogo1.jpg" alt="LETW" className="w-full h-full object-cover rounded-2xl" />
                             </motion.div>
                             <div className="hidden sm:block">
 
