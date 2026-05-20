@@ -26,6 +26,7 @@ from models.bible_study import (
     WeekReflection, QuarterlyTheme
 )
 from models.cms import CMSPage, CMSImage
+from models.message import Conversation, Message, ConversationStatus
 
 __all__ = [
     "User",
@@ -77,7 +78,7 @@ __all__ = [
     "QuarterlyTheme",
     "CMSPage",
     "CMSImage",
+    "Conversation",
+    "Message",
+    "ConversationStatus",
 ]
-
-
-

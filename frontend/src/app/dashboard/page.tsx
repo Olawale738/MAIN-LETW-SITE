@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone } from 'lucide-react'
+import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone, Bell, HandHeart, History as HistoryIcon, MessageSquare, UserCircle2 } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
 import { serviceRequestApi, notificationApi, Notification, bibleReadingApi } from '@/lib/api'
 import { Spotlight } from '@/components/ui/spotlight'
@@ -200,6 +200,30 @@ export default function UserDashboard() {
                                 </PremiumButton>
                             </CardContent>
                         </Card>
+                    </div>
+
+                    {/* Quick links - new dashboard features */}
+                    <div>
+                        <h2 className="text-3xl font-black text-[#140152] tracking-tight mb-6">Quick Access</h2>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            {[
+                                { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare, badge: 'NEW' },
+                                { href: '/dashboard/notifications', label: 'Notifications', icon: Bell, badge: unreadCount > 0 ? String(unreadCount) : '' },
+                                { href: '/dashboard/prayer-wall', label: 'Prayer Wall', icon: HandHeart, badge: '' },
+                                { href: '/dashboard/activity', label: 'My Activity', icon: HistoryIcon, badge: '' },
+                                { href: '/dashboard/profile', label: 'Profile', icon: UserCircle2, badge: '' },
+                            ].map(({ href, label, icon: Icon, badge }) => (
+                                <Link key={href} href={href} className="group bg-white rounded-3xl p-5 shadow-md hover:shadow-2xl hover:-translate-y-1 transition-all border border-gray-100 flex flex-col items-center text-center relative">
+                                    {badge && (
+                                        <span className="absolute top-2 right-2 text-[10px] font-bold bg-[#f5bb00] text-[#140152] px-2 py-0.5 rounded-full">{badge}</span>
+                                    )}
+                                    <div className="w-12 h-12 rounded-2xl bg-[#140152]/10 text-[#140152] flex items-center justify-center mb-3 group-hover:bg-[#140152] group-hover:text-white transition-colors">
+                                        <Icon className="w-6 h-6" />
+                                    </div>
+                                    <div className="text-sm font-bold text-[#140152]">{label}</div>
+                                </Link>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Ministries Section */}

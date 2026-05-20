@@ -102,6 +102,18 @@ app.include_router(cms.router)
 from routers import live_stream
 app.include_router(live_stream.router)
 
+# Chat / messaging
+from routers import messages
+app.include_router(messages.router)
+
+# User profile, activity, prayer wall
+from routers import profile as profile_router
+from routers import activity as activity_router
+from routers import prayer_wall as prayer_wall_router
+app.include_router(profile_router.router)
+app.include_router(activity_router.router)
+app.include_router(prayer_wall_router.router)
+
 # Mount static files for uploads
 # Create uploads directory if it doesn't exist
 UPLOADS_DIR = "uploads"
