@@ -2259,6 +2259,69 @@ export interface CMSImageResponse {
     created_at: string;
 }
 
+// ============= Chat Types =============
+
+export interface ChatMessage {
+    id: string;
+    conversation_id: string;
+    sender_id: string;
+    is_admin: boolean;
+    content: string;
+    is_read: boolean;
+    created_at: string;
+}
+
+export interface ChatConversation {
+    id: string;
+    user_id: string;
+    user_name?: string;
+    user_email?: string;
+    is_open: boolean;
+    unread_count: number;
+    last_message?: string;
+    updated_at: string;
+}
+
+// ============= Chat API =============
+
+export const chatApi = {
+    getMessages: async (): Promise<ChatMessage[]> => {
+        return fetchApi<ChatMessage[]>('/chat/messages');
+    },
+
+    sendMessage: async (content: string): Promise<ChatMessage> => {
+        return fetchApi<ChatMessage>('/chat/messages', {
+            method: 'POST',
+            body: JSON.stringify({ content }),
+        });
+    },
+
+    getUnreadCount: async (): Promise<{ unread_count: number }> => {
+        return fetchApi<{ unread_count: number }>('/chat/unread-count');
+    },
+
+    admin: {
+        getConversations: async (): Promise<ChatConversation[]> => {
+            return fetchApi<ChatConversation[]>('/chat/admin/conversations');
+        },
+
+        getUserMessages: async (userId: string): Promise<ChatMessage[]> => {
+            return fetchApi<ChatMessage[]>(`/chat/admin/conversations/${userId}/messages`);
+        },
+
+        reply: async (userId: string, content: string): Promise<ChatMessage> => {
+            return fetchApi<ChatMessage>(`/chat/admin/conversations/${userId}/messages`, {
+                method: 'POST',
+                body: JSON.stringify({ content }),
+            });
+        },
+
+        getTotalUnread: async (): Promise<{ unread_count: number }> => {
+            return fetchApi<{ unread_count: number }>('/chat/admin/unread-total');
+        },
+    },
+};
+
 export const cmsApi = {
     getPage: async (slug: string): Promise<CMSPageResponse> => {
         return fetchApi<CMSPageResponse>(`/cms/pages/${slug}`, { cache: 'no-store' });

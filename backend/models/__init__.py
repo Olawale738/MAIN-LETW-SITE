@@ -25,6 +25,7 @@ from models.bible_study import (
     ReadingPlanType, ReadingStatus
 )
 from models.cms import CMSPage, CMSImage
+from models.chat import ChatConversation, ChatMessage
 
 __all__ = [
     "User",
@@ -73,6 +74,8 @@ __all__ = [
     "ReadingStatus",
     "CMSPage",
     "CMSImage",
+    "ChatConversation",
+    "ChatMessage",
 ]
 
 

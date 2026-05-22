@@ -1,14 +1,32 @@
 'use client'
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { BookOpen, Users, TrendingUp, ArrowRight, Heart } from 'lucide-react'
-import Hero from '@/components/shared/Hero'
+import { BookOpen, Users, TrendingUp, ArrowRight, Heart, CheckCircle, Loader2 } from 'lucide-react'
 import SectionWrapper from '@/components/shared/SectionWrapper'
 import { Card, CardContent } from '@/components/ui/card'
 
 export default function DiscipleshipPage() {
+    const [enrolled, setEnrolled] = useState(false)
+    const [enrollLoading, setEnrollLoading] = useState(false)
+    const [enrollError, setEnrollError] = useState('')
+
+    const handleEnroll = async () => {
+        setEnrollLoading(true)
+        setEnrollError('')
+        try {
+            const { serviceRequestApi } = await import('@/lib/api')
+            await serviceRequestApi.submitRequests(['Discipleship Training'], 'I would like to join the Discipleship Training program.')
+            setEnrolled(true)
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Please log in to enroll.'
+            setEnrollError(msg)
+        } finally {
+            setEnrollLoading(false)
+        }
+    }
+
     return (
         <>
             {/* Mobile-Optimized Hero */}
@@ -118,11 +136,28 @@ export default function DiscipleshipPage() {
                     <p className="text-xl text-black mb-12 max-w-2xl mx-auto relative z-10">
                         Sign up for our next 'Foundations' class. Your journey starts today.
                     </p>
-                    <div className="relative z-10 flex flex-col md:flex-row gap-4 justify-center">
-                        <PremiumButton href="/auth/login" className="bg-[#f5bb00] text-[#140152] hover:bg-white hover:text-[#140152]">
-                            Join Now
-                        </PremiumButton>
-
+                    <div className="relative z-10 flex flex-col items-center gap-4">
+                        {enrolled ? (
+                            <div className="flex items-center gap-3 bg-green-100 text-green-700 px-6 py-3 rounded-full font-semibold">
+                                <CheckCircle className="w-5 h-5" />
+                                Enrollment request submitted! We'll be in touch.
+                            </div>
+                        ) : (
+                            <>
+                                {enrollError && (
+                                    <p className="text-red-400 text-sm">{enrollError}</p>
+                                )}
+                                <Button
+                                    onClick={handleEnroll}
+                                    disabled={enrollLoading}
+                                    className="bg-[#f5bb00] text-[#140152] hover:bg-white font-black text-lg px-10 py-6 rounded-full"
+                                >
+                                    {enrollLoading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                                    Enroll in Foundations Class
+                                </Button>
+                                <p className="text-gray-400 text-sm">Must be logged in to enroll</p>
+                            </>
+                        )}
                     </div>
                 </div>
             </SectionWrapper>

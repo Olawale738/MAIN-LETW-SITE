@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone } from 'lucide-react'
+import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone, Send } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
 import { serviceRequestApi, notificationApi, Notification } from '@/lib/api'
 import { Spotlight } from '@/components/ui/spotlight'
@@ -151,7 +151,7 @@ export default function UserDashboard() {
                 </div>
             </div>
 
-            <main className="flex-growpy-16 px-4 md:px-12 -mt-20 relative z-20">
+            <main className="flex-grow py-16 px-4 md:px-12 -mt-20 relative z-20">
                 <div className="max-w-5xl mx-auto space-y-16">
 
                     {/* Top Highlights Grid */}
@@ -195,6 +195,43 @@ export default function UserDashboard() {
                                 </PremiumButton>
                             </CardContent>
                         </Card>
+                    </div>
+
+                    {/* Quick Actions Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button
+                            onClick={() => {
+                                const chatBtn = document.querySelector('[aria-label="Open chat"]') as HTMLButtonElement
+                                chatBtn?.click()
+                            }}
+                            className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all text-left flex items-center gap-4 group"
+                        >
+                            <div className="w-12 h-12 bg-[#140152] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                                <MessageCircle className="w-6 h-6 text-[#f5bb00]" />
+                            </div>
+                            <div>
+                                <p className="font-bold text-[#140152]">Chat with Admin</p>
+                                <p className="text-xs text-gray-400">Get support or ask a question</p>
+                            </div>
+                        </button>
+                        <Link href="/prayer-request" className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4 group">
+                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                                <Heart className="w-6 h-6 text-blue-600" />
+                            </div>
+                            <div>
+                                <p className="font-bold text-[#140152]">Prayer Request</p>
+                                <p className="text-xs text-gray-400">Submit a prayer request</p>
+                            </div>
+                        </Link>
+                        <Link href="/events" className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4 group">
+                            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                                <Clock className="w-6 h-6 text-amber-600" />
+                            </div>
+                            <div>
+                                <p className="font-bold text-[#140152]">Upcoming Events</p>
+                                <p className="text-xs text-gray-400">See what's happening</p>
+                            </div>
+                        </Link>
                     </div>
 
                     {/* Ministries Section */}

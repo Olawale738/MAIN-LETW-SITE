@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import DashboardNavbar from '@/components/layout/DashboardNavbar'
+import ChatWidget from '@/components/chat/ChatWidget'
 
 /**
  * Conditionally renders Navbar and Footer based on the current route.
@@ -40,7 +41,7 @@ export default function ConditionalLayout({
     const isExcluded = excludedRoutes.some(route => pathname?.startsWith(route))
 
     if (isExcluded) {
-        // Auth/Admin routes - no navbar/footer
+        // Auth/Admin routes - no navbar/footer, no chat widget
         return <main>{children}</main>
     }
 
@@ -50,6 +51,7 @@ export default function ConditionalLayout({
             <>
                 <DashboardNavbar />
                 <main>{children}</main>
+                <ChatWidget />
             </>
         )
     }
@@ -60,6 +62,7 @@ export default function ConditionalLayout({
             <Navbar />
             <main>{children}</main>
             <Footer />
+            <ChatWidget />
         </>
     )
 }

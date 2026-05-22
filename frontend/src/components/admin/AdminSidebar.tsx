@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager } from '@/lib/api'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { chatApi } from '@/lib/api'
 
 const sidebarItems = [
     {
@@ -93,11 +94,29 @@ const sidebarItems = [
         href: '/admin/bible-study',
         icon: Book
     },
+    {
+        title: 'Live Chat',
+        href: '/admin/chat',
+        icon: MessageCircle
+    },
 ]
 
 export default function AdminSidebar() {
     const pathname = usePathname()
     const [mobileOpen, setMobileOpen] = useState(false)
+    const [chatUnread, setChatUnread] = useState(0)
+
+    useEffect(() => {
+        const fetchUnread = async () => {
+            try {
+                const data = await chatApi.admin.getTotalUnread()
+                setChatUnread(data.unread_count)
+            } catch { /* not an admin or not logged in */ }
+        }
+        fetchUnread()
+        const interval = setInterval(fetchUnread, 30000)
+        return () => clearInterval(interval)
+    }, [])
 
     const handleLogout = () => {
         tokenManager.clearTokens()
@@ -128,7 +147,12 @@ export default function AdminSidebar() {
                             )}
                         >
                             <item.icon className={cn("w-4 h-4", isActive ? "text-[#140152]" : "text-white/70 group-hover:text-white")} />
-                            <span>{item.title}</span>
+                            <span className="flex-1">{item.title}</span>
+                            {item.href === '/admin/chat' && chatUnread > 0 && (
+                                <span className="bg-[#f5bb00] text-[#140152] text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
+                                    {chatUnread > 9 ? '9+' : chatUnread}
+                                </span>
+                            )}
                         </Link>
                     )
                 })}
