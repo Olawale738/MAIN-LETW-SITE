@@ -84,6 +84,8 @@ export default function Footer() {
               {[
                 { name: 'About Us', href: '/about' },
                 { name: 'Youth Ministry', href: '/youth' },
+                { name: "Children's Ministry", href: '/children' },
+                { name: 'Volunteer', href: '/volunteer' },
                 { name: 'Sermons', href: '/sermons' },
                 { name: 'Events', href: '/events' },
                 { name: 'Give', href: '/giving' },

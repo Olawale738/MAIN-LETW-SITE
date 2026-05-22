@@ -220,6 +220,31 @@ export default function ServicesPage() {
         </div>
       </SectionWrapper>
 
+      {/* CHILDREN & VOLUNTEER */}
+      <SectionWrapper background="gray">
+        <div className="text-center mb-16 space-y-4">
+          <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Family & Service</span>
+          <h2 className="text-4xl md:text-5xl font-black text-[#140152]">Children & Volunteer</h2>
+          <div className="w-24 h-1.5 bg-[#f5bb00] mx-auto rounded-full" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <ServiceCard
+            icon={<Heart className="w-8 h-8" />}
+            title="Children's Ministry"
+            description="A safe, vibrant, and faith-filled space for children aged 0–12. Sunday School, Kids Worship, Bible Quiz, and more."
+            buttonText="Enrol Your Child"
+            buttonLink="/children"
+          />
+          <ServiceCard
+            icon={<Users className="w-8 h-8" />}
+            title="Volunteer"
+            description="Use your gifts to serve God's house. Join the worship team, ushering, children's ministry, media, and more."
+            buttonText="Apply to Serve"
+            buttonLink="/volunteer"
+          />
+        </div>
+      </SectionWrapper>
+
       {/* Recent Sermons Section - Dynamic */}
       <section className="py-24 bg-white">
         <SectionWrapper>
