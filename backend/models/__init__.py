@@ -22,10 +22,18 @@ from models.alter_sound import (
 from models.bible_study import (
     BibleReadingPlan, DailyReading, UserReadingProgress,
     UserDailyReading, BibleStudyResource, BibleStudyPageSettings,
-    ReadingPlanType, ReadingStatus
+    ReadingPlanType, ReadingStatus, UserBibleWeekProgress,
+    WeekReflection, QuarterlyTheme
 )
 from models.cms import CMSPage, CMSImage
 from models.chat import ChatConversation, ChatMessage
+
+# Legacy message model (may or may not exist)
+try:
+    from models.message import Conversation, Message, ConversationStatus
+    _has_message_model = True
+except ImportError:
+    _has_message_model = False
 
 __all__ = [
     "User",
@@ -72,11 +80,11 @@ __all__ = [
     "BibleStudyPageSettings",
     "ReadingPlanType",
     "ReadingStatus",
+    "UserBibleWeekProgress",
+    "WeekReflection",
+    "QuarterlyTheme",
     "CMSPage",
     "CMSImage",
     "ChatConversation",
     "ChatMessage",
 ]
-
-
-

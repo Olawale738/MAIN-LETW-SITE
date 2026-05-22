@@ -12,29 +12,14 @@ export const metadata: Metadata = {
 export default function CharityPage() {
     return (
         <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
-            {/* Hero Section */}
-            <section className="relative h-[70vh] flex items-center justify-center bg-black overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=1600&q=80")' }}>
-                {/* Dark Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-black/50 z-10" />
-                <div className="relative z-20 text-center px-8 pt-24 md:pt-32 max-w-3xl">
-                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">Charity & Compassion</h1>
-                    <p className="text-xl text-neutral-100 mb-8">
-                        "Our charity initiatives are dedicated to expressing the love of Christ through compassion, relief, and practical support for vulnerable individuals and communities."
-                    </p>
-                    <div className="flex gap-4 justify-center">
-                        <Link href="/giving">
-                            <Button size="lg" className="bg-white text-black hover:bg-neutral-200">
-                                Contribute
-                            </Button>
-                        </Link>
-                        <Link href="/impact">
-                            <Button size="lg" variant="outline" className="text-white border-white hover:bg-white/10">
-                                See Our Impact
-                            </Button>
-                        </Link>
-                    </div>
-                </div>
-            </section>
+            {/* Hero */}
+            <div className="w-full">
+                <img
+                    src="/Charity.png"
+                    alt="Charity"
+                    className="w-full h-auto block"
+                />
+            </div>
 
             {/* Focus Areas */}
             <section className="py-20 px-4 max-w-7xl mx-auto">

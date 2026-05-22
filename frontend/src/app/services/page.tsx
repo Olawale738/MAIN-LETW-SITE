@@ -1,14 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { ArrowRight, Music, Users, BookOpen, Heart, Sparkles, Mic2, Globe, TrendingUp, Church, Briefcase, PlayCircle } from 'lucide-react'
+import { ArrowRight, Users, BookOpen, Heart, TrendingUp, Church, Briefcase, PlayCircle } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
 import SectionWrapper from '@/components/shared/SectionWrapper'
-import Hero from '@/components/shared/Hero'
 import { sermonApi, Sermon } from '@/lib/api'
 
 export default function ServicesPage() {
@@ -35,11 +32,11 @@ export default function ServicesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
+    <>
       {/* Hero */}
       <div className="w-full">
         <img
-          src="/Services.png"
+          src="/service.png"
           alt="Our Services"
           className="w-full h-auto block"
         />
@@ -278,6 +275,6 @@ export default function ServicesPage() {
           </div>
         </SectionWrapper>
       </section>
-    </div>
+    </>
   )
 }

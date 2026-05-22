@@ -17,6 +17,8 @@ import {
     ChevronRight
 } from 'lucide-react'
 import SectionWrapper from '@/components/shared/SectionWrapper'
+import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
+import ServicePageLayout from '@/components/shared/ServicePageLayout'
 
 const CAROUSEL_IMAGES = [
     { src: '/theology1.png', alt: 'Theology Flyer 1' },
@@ -86,7 +88,8 @@ export default function TheologyDashboardPage() {
     }, [])
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <ServicePageLayout serviceName="Theology school" brandTitle="Theology School" brandColor="#f5bb00">
+        <div className="bg-gray-50 pb-20">
             {/* Hero Carousel */}
             <div className="w-full relative">
                 {/* All images stacked; only active one is visible */}
@@ -134,6 +137,9 @@ export default function TheologyDashboardPage() {
                     ))}
                 </div>
             </div>
+
+            {/* Service Announcements */}
+            <ServiceAnnouncements serviceName="Theology school" />
 
             <SectionWrapper>
                 <div className="max-w-7xl mx-auto space-y-24">
@@ -238,5 +244,6 @@ export default function TheologyDashboardPage() {
                 </div>
             </SectionWrapper>
         </div>
+        </ServicePageLayout>
     )
 }

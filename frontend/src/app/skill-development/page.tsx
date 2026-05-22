@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { PlayCircle, Award, BookOpen, Loader2, ArrowRight, BarChart } from 'lucide-react'
+import { PlayCircle, Award, BookOpen, Loader2, ArrowRight, BarChart, Bell } from 'lucide-react'
 import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
+import ServiceAnnouncementsList from '@/components/shared/ServiceAnnouncementsList'
 import { skillsApi, Course } from '@/lib/api'
 
 export default function SkillDevelopmentPage() {
@@ -11,6 +12,7 @@ export default function SkillDevelopmentPage() {
     const [user, setUser] = useState<string | null>(null)
     const [courses, setCourses] = useState<Course[]>([])
     const [loading, setLoading] = useState(true)
+    const [activeView, setActiveView] = useState<'dashboard' | 'announcements'>('dashboard')
 
     useEffect(() => {
         // Simulate Auth Check
@@ -54,6 +56,7 @@ export default function SkillDevelopmentPage() {
     }
 
     return (
+        <>
         <div className="min-h-screen bg-neutral-50 flex">
             {/* Sidebar */}
             <div className="w-64 bg-neutral-900 text-white hidden md:block p-6 fixed h-full z-10">
@@ -77,6 +80,15 @@ export default function SkillDevelopmentPage() {
                         >
                             <BookOpen className="w-5 h-5" />
                             Browse Courses
+                        </button>
+                        <button
+                            onClick={() => setActiveView(activeView === 'announcements' ? 'dashboard' : 'announcements')}
+                            className={`w-full flex items-center gap-3 py-2 px-4 rounded-lg transition-all text-left ${
+                                activeView === 'announcements' ? 'bg-orange-500/20 text-orange-400' : 'hover:bg-white/10 text-gray-300 hover:text-white'
+                            }`}
+                        >
+                            <Bell className="w-5 h-5" />
+                            Announcements
                         </button>
                     </nav>
                 </div>
@@ -120,10 +132,19 @@ export default function SkillDevelopmentPage() {
                         </div>
                     </div>
 
-                    {/* Announcements */}
-                    <ServiceAnnouncements serviceName="Skill Development" />
+                    {/* Announcements Banner (dashboard view only) */}
+                    {activeView === 'dashboard' && (
+                        <div className="px-8 pt-6">
+                            <ServiceAnnouncements serviceName="Skill Development" />
+                        </div>
+                    )}
 
-                    {/* My Learning Section */}
+                    {/* Announcements Full View */}
+                    {activeView === 'announcements' ? (
+                        <div className="p-8">
+                            <ServiceAnnouncementsList serviceName="Skill Development" />
+                        </div>
+                    ) : (<>
                     <div id="my-learning" className="scroll-mt-8">
                         <h3 className="text-xl font-bold text-[#140152] mb-6 flex items-center gap-2">
                             <PlayCircle className="w-6 h-6" />
@@ -215,8 +236,10 @@ export default function SkillDevelopmentPage() {
                             )}
                         </div>
                     </div>
+                    </>)}
                 </div>
             </div>
         </div>
+        </>
     )
 }

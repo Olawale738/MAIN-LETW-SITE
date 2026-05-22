@@ -1986,6 +1986,7 @@ export interface BibleStudyPageSettings {
     hero_subtitle: string;
     hero_description: string;
     hero_background_url?: string;
+    year_label: string;
     created_at: string;
     updated_at: string;
 }
@@ -2042,6 +2043,31 @@ export interface BibleStudyPageSettingsUpdate {
     hero_subtitle?: string;
     hero_description?: string;
     hero_background_url?: string;
+    year_label?: string;
+}
+
+export interface WeekReflection {
+    id: string;
+    week_number: number;
+    key_verse: string;
+    verse_ref: string;
+    reflection: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface QuarterlyTheme {
+    id: string;
+    quarter_number: number;
+    title: string;
+    theme: string;
+    scripture: string;
+    description?: string;
+    accent_color: string;
+    week_start: number;
+    week_end: number;
+    created_at: string;
+    updated_at: string;
 }
 
 export const bibleStudyApi = {
@@ -2171,6 +2197,57 @@ export const bibleStudyApi = {
             body: JSON.stringify(data),
         });
     },
+
+    // Public - Week Reflections & Quarterly Themes
+    getWeekReflections: async (): Promise<WeekReflection[]> => {
+        return fetchApi<WeekReflection[]>('/bible-study/week-reflections');
+    },
+
+    getQuarterlyThemes: async (): Promise<QuarterlyTheme[]> => {
+        return fetchApi<QuarterlyTheme[]>('/bible-study/quarterly-themes');
+    },
+
+    // Admin - Week Reflections
+    adminGetWeekReflections: async (): Promise<WeekReflection[]> => {
+        return fetchApi<WeekReflection[]>('/bible-study/admin/week-reflections');
+    },
+
+    adminUpsertWeekReflection: async (
+        weekNumber: number,
+        data: { key_verse: string; verse_ref: string; reflection: string }
+    ): Promise<WeekReflection> => {
+        return fetchApi<WeekReflection>(`/bible-study/admin/week-reflections/${weekNumber}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    adminDeleteWeekReflection: async (weekNumber: number): Promise<{ message: string }> => {
+        return fetchApi<{ message: string }>(`/bible-study/admin/week-reflections/${weekNumber}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // Admin - Quarterly Themes
+    adminGetQuarterlyThemes: async (): Promise<QuarterlyTheme[]> => {
+        return fetchApi<QuarterlyTheme[]>('/bible-study/admin/quarterly-themes');
+    },
+
+    adminUpsertQuarterlyTheme: async (
+        quarterNumber: number,
+        data: Partial<Omit<QuarterlyTheme, 'id' | 'created_at' | 'updated_at' | 'quarter_number'>>
+    ): Promise<QuarterlyTheme> => {
+        return fetchApi<QuarterlyTheme>(`/bible-study/admin/quarterly-themes/${quarterNumber}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    adminSeedDefaultThemes: async (): Promise<{ message: string; count?: number }> => {
+        return fetchApi<{ message: string; count?: number }>('/bible-study/admin/quarterly-themes/seed-defaults', {
+            method: 'POST',
+        });
+    },
 };
 
 // ============= Live Stream API =============
@@ -2222,7 +2299,7 @@ export const liveStreamApi = {
 
 // ============= CMS Types =============
 
-export type BlockType = 'hero' | 'content' | 'features' | 'cta' | 'image' | 'video' | 'upcoming-events' | 'sermon-list' | 'leadership-list';
+export type BlockType = 'hero' | 'content' | 'features' | 'cta' | 'image' | 'video' | 'upcoming-events' | 'sermon-list' | 'leadership-list' | 'button-group';
 
 export interface Block {
     id: string;
@@ -2360,4 +2437,260 @@ export const cmsApi = {
         if (id.startsWith('http')) return id;
         return `${API_BASE_URL}/cms/images/${id}`;
     }
+};
+
+// ============= Bible Reading Progress API =============
+
+export interface BibleReadingProgressResponse {
+    registered: boolean;
+    completed_weeks: Record<string, boolean>;
+}
+
+export const bibleReadingApi = {
+    /**
+     * Load the user's saved progress for the 54-week reading plan.
+     * Returns { registered, completed_weeks: { "1": true, "3": false, ... } }
+     */
+    getProgress: async (): Promise<BibleReadingProgressResponse> => {
+        return fetchApi<BibleReadingProgressResponse>('/bible-study/weekly-progress');
+    },
+
+    /**
+     * Register the user for the reading plan.
+     */
+    register: async (): Promise<{ registered: boolean; message: string }> => {
+        return fetchApi<{ registered: boolean; message: string }>('/bible-study/weekly-progress/register', {
+            method: 'POST',
+        });
+    },
+
+    /**
+     * Toggle a specific week's completion. Returns the new state.
+     */
+    toggleWeek: async (weekNumber: number): Promise<{ week_number: number; completed: boolean }> => {
+        return fetchApi<{ week_number: number; completed: boolean }>(
+            `/bible-study/weekly-progress/week/${weekNumber}`,
+            { method: 'PUT' }
+        );
+    },
+};
+
+
+// ============================================================
+// Messages / Chat API
+// ============================================================
+
+export interface ChatParticipant {
+    id: string;
+    name: string;
+    role: string;
+    avatar_url?: string | null;
+}
+
+export interface ChatMessage {
+    id: string;
+    conversation_id: string;
+    sender_id: string;
+    sender?: ChatParticipant | null;
+    body: string;
+    attachment_url?: string | null;
+    is_read: boolean;
+    edited_at?: string | null;
+    created_at: string;
+}
+
+export interface ChatConversation {
+    id: string;
+    subject?: string | null;
+    status: string;
+    user?: ChatParticipant | null;
+    admin?: ChatParticipant | null;
+    last_message_preview?: string | null;
+    last_message_at?: string | null;
+    unread_for_user: number;
+    unread_for_admin: number;
+    my_unread: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ChatConversationDetail extends ChatConversation {
+    messages: ChatMessage[];
+}
+
+export interface ChatListResponse {
+    conversations: ChatConversation[];
+    total: number;
+    total_unread: number;
+}
+
+export const messageApi = {
+    listAdmins: async (): Promise<ChatParticipant[]> =>
+        fetchApi<ChatParticipant[]>('/messages/admins'),
+
+    listConversations: async (): Promise<ChatListResponse> =>
+        fetchApi<ChatListResponse>('/messages/conversations'),
+
+    getConversation: async (id: string): Promise<ChatConversationDetail> =>
+        fetchApi<ChatConversationDetail>(`/messages/conversations/${id}`),
+
+    createConversation: async (
+        body: { subject?: string; initial_message: string; admin_id?: string }
+    ): Promise<ChatConversationDetail> =>
+        fetchApi<ChatConversationDetail>('/messages/conversations', {
+            method: 'POST',
+            body: JSON.stringify(body),
+        }),
+
+    sendMessage: async (
+        conversationId: string,
+        body: { body: string; attachment_url?: string }
+    ): Promise<ChatMessage> =>
+        fetchApi<ChatMessage>(`/messages/conversations/${conversationId}/messages`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+        }),
+
+    markRead: async (conversationId: string): Promise<MessageResponse> =>
+        fetchApi<MessageResponse>(`/messages/conversations/${conversationId}/read`, {
+            method: 'POST',
+        }),
+
+    closeConversation: async (conversationId: string): Promise<MessageResponse> =>
+        fetchApi<MessageResponse>(`/messages/conversations/${conversationId}/close`, {
+            method: 'POST',
+        }),
+
+    unreadCount: async (): Promise<{ unread_count: number }> =>
+        fetchApi<{ unread_count: number }>('/messages/unread-count'),
+
+    /**
+     * Build a WebSocket URL that includes the JWT token.
+     * Returns null when running on the server.
+     */
+    wsUrl: (): string | null => {
+        if (typeof window === 'undefined') return null;
+        const token = localStorage.getItem('access_token');
+        if (!token) return null;
+        // Derive ws(s) from API base URL
+        const base = API_BASE_URL.replace(/\/api\/?$/, '');
+        const ws = base.replace(/^http/, 'ws');
+        return `${ws}/api/messages/ws?token=${encodeURIComponent(token)}`;
+    },
+};
+
+// ============================================================
+// Profile API (extended profile + password change + avatar upload)
+// ============================================================
+
+export interface UserProfile {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    status: string;
+    avatar_url?: string | null;
+    bio?: string | null;
+    phone?: string | null;
+    location?: string | null;
+    services: string[];
+    created_at: string;
+    updated_at: string;
+}
+
+export const profileApi = {
+    me: async (): Promise<UserProfile> => fetchApi<UserProfile>('/profile/me'),
+
+    update: async (data: Partial<Pick<UserProfile, 'name' | 'bio' | 'phone' | 'location' | 'avatar_url'>>): Promise<UserProfile> =>
+        fetchApi<UserProfile>('/profile/me', {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }),
+
+    changePassword: async (current_password: string, new_password: string): Promise<MessageResponse> =>
+        fetchApi<MessageResponse>('/profile/me/password', {
+            method: 'POST',
+            body: JSON.stringify({ current_password, new_password }),
+        }),
+
+    uploadAvatar: async (file: File): Promise<UserProfile> => {
+        const form = new FormData();
+        form.append('file', file);
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+        const res = await fetch(`${API_BASE_URL}/profile/me/avatar`, {
+            method: 'POST',
+            body: form,
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
+            throw new ApiError(res.status, err.detail || 'Upload failed');
+        }
+        return res.json();
+    },
+};
+
+// ============================================================
+// Activity / History API
+// ============================================================
+
+export interface ActivityItem {
+    kind: string;
+    title: string;
+    description?: string | null;
+    status?: string | null;
+    happened_at: string;
+    link?: string | null;
+}
+
+export interface ActivityResponse {
+    items: ActivityItem[];
+    counts: Record<string, number>;
+}
+
+export const activityApi = {
+    me: async (limit = 50): Promise<ActivityResponse> =>
+        fetchApi<ActivityResponse>(`/activity/me?limit=${limit}`),
+};
+
+// ============================================================
+// Prayer Wall API
+// ============================================================
+
+export interface PrayerWallItem {
+    id: string;
+    title: string;
+    description: string;
+    category?: string | null;
+    author_name: string;
+    is_anonymous: boolean;
+    prayer_count: number;
+    has_prayed: boolean;
+    status: string;
+    created_at: string;
+}
+
+export interface PrayerWallResponse {
+    requests: PrayerWallItem[];
+    total: number;
+}
+
+export const prayerWallApi = {
+    list: async (limit = 20, offset = 0, category?: string): Promise<PrayerWallResponse> => {
+        const params = new URLSearchParams({
+            limit: limit.toString(),
+            offset: offset.toString(),
+        });
+        if (category) params.set('category', category);
+        return fetchApi<PrayerWallResponse>(`/prayer-wall?${params}`);
+    },
+    create: async (body: { title: string; description: string; category?: string; is_anonymous?: boolean }): Promise<PrayerWallItem> =>
+        fetchApi<PrayerWallItem>('/prayer-wall', {
+            method: 'POST',
+            body: JSON.stringify(body),
+        }),
+    pray: async (id: string): Promise<PrayerWallItem> =>
+        fetchApi<PrayerWallItem>(`/prayer-wall/${id}/pray`, { method: 'POST' }),
+    remove: async (id: string): Promise<MessageResponse> =>
+        fetchApi<MessageResponse>(`/prayer-wall/${id}`, { method: 'DELETE' }),
 };
