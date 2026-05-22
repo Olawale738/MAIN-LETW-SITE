@@ -83,6 +83,7 @@ export default function Footer() {
             <ul className="space-y-3">
               {[
                 { name: 'About Us', href: '/about' },
+                { name: 'Youth Ministry', href: '/youth' },
                 { name: 'Sermons', href: '/sermons' },
                 { name: 'Events', href: '/events' },
                 { name: 'Give', href: '/giving' },
