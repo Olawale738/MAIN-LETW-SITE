@@ -11,7 +11,7 @@ import {
   Search, Users, Star, Award, TrendingUp, MapPin, Phone,
   CheckSquare, Square, Zap, Crown, Shield, Target, ArrowRight,
   PlusCircle, BarChart2, Image, Video, Quote, RefreshCw, Home,
-  Menu, Filter, Loader2, ThumbsUp, Mail
+  Menu, Filter, Loader2, ThumbsUp, Mail, Smile, Paperclip, Pin
 } from 'lucide-react'
 import { alterSoundApi, AudioTrack, AudioCategory } from '@/lib/api'
 
@@ -67,6 +67,18 @@ interface Announcement {
   pinned?: boolean
 }
 
+interface ChatMessage {
+  id: string
+  senderId: string
+  senderName: string
+  senderInitials: string
+  senderVoice: 'Soprano' | 'Alto' | 'Tenor' | 'Bass'
+  text: string
+  time: string
+  isMine: boolean
+  reactions?: { emoji: string; count: number }[]
+}
+
 /* ─── Mock Data ──────────────────────────────────────────────── */
 const MEMBER_INFO = { name: 'Sister Jane', initials: 'SJ', voice: 'Soprano', role: 'Section Leader', avatar: '#7c3aed' }
 
@@ -116,6 +128,26 @@ const ATTENDANCE = [
   { week: 'Week 3', attended: false }, { week: 'Week 4', attended: true },
 ]
 
+const MOCK_CHAT: ChatMessage[] = [
+  { id: '1', senderId: '9', senderName: 'Samuel A.', senderInitials: 'SA', senderVoice: 'Bass', text: 'Good morning everyone! 🎶 Please remember rehearsal is this Thursday at 7 PM. Let\'s all come prepared!', time: '8:02 AM', isMine: false, reactions: [{ emoji: '🙌', count: 5 }, { emoji: '✅', count: 4 }] },
+  { id: '2', senderId: '4', senderName: 'Chidera A.', senderInitials: 'CA', senderVoice: 'Alto', text: 'Noted! I\'ve been practising the alto harmony for "Great Are You Lord". Really loving the arrangement.', time: '8:15 AM', isMine: false, reactions: [{ emoji: '❤️', count: 3 }] },
+  { id: '3', senderId: '7', senderName: 'Emeka B.', senderInitials: 'EB', senderVoice: 'Tenor', text: 'Same here! Bro Daniel and I are running the tenor lines together tonight. We\'ll be ready 💪', time: '8:20 AM', isMine: false },
+  { id: '4', senderId: '1', senderName: 'Sister Jane', senderInitials: 'SJ', senderVoice: 'Soprano', text: 'That\'s great news! Soprano section also had a mini practice yesterday. We\'re sounding really good. God is with us!', time: '8:35 AM', isMine: true, reactions: [{ emoji: '🔥', count: 6 }] },
+  { id: '5', senderId: '2', senderName: 'Adaeze O.', senderInitials: 'AO', senderVoice: 'Soprano', text: 'Has anyone downloaded the new sheet music for the Easter medley? The director said it\'s in the library.', time: '9:10 AM', isMine: false },
+  { id: '6', senderId: '5', senderName: 'Funke M.', senderInitials: 'FM', senderVoice: 'Alto', text: 'Yes I did! It\'s beautiful. The arrangement in the bridge section is going to hit different when all 4 parts come together 😭', time: '9:18 AM', isMine: false, reactions: [{ emoji: '😭', count: 4 }, { emoji: '🎵', count: 3 }] },
+  { id: '7', senderId: '1', senderName: 'Sister Jane', senderInitials: 'SJ', senderVoice: 'Soprano', text: 'Downloading it now! Also reminder — please mark your attendance for last Sunday\'s service if you haven\'t done so.', time: '9:25 AM', isMine: true },
+  { id: '8', senderId: '8', senderName: 'Daniel O.', senderInitials: 'DO', senderVoice: 'Tenor', text: 'Done ✅ Also, can we start 15 mins early on Thursday for warm-ups? Last week we went straight into song and some voices weren\'t ready.', time: '10:05 AM', isMine: false, reactions: [{ emoji: '👍', count: 7 }] },
+  { id: '9', senderId: '9', senderName: 'Samuel A.', senderInitials: 'SA', senderVoice: 'Bass', text: 'Great idea Daniel! I\'ll inform the director. Let\'s aim for 6:45 PM arrival then.', time: '10:12 AM', isMine: false },
+  { id: '10', senderId: '3', senderName: 'Grace E.', senderInitials: 'GE', senderVoice: 'Soprano', text: 'Works for me! Can\'t wait. The Anniversary Concert is going to be something special. Let\'s give God our absolute best 🙏✨', time: '10:30 AM', isMine: false, reactions: [{ emoji: '🙏', count: 8 }, { emoji: '✨', count: 5 }] },
+]
+
+const VOICE_AVATAR: Record<string, string> = {
+  Soprano: '#7c3aed',
+  Alto: '#db2777',
+  Tenor: '#2563eb',
+  Bass: '#16a34a',
+}
+
 const VOICE_COLORS: Record<string, string> = {
   Soprano: 'bg-purple-100 text-purple-700',
   Alto: 'bg-pink-100 text-pink-700',
@@ -134,6 +166,7 @@ const NAV_ITEMS = [
   { id: 'songs', label: 'Songs', icon: Music },
   { id: 'events', label: 'Events', icon: Calendar },
   { id: 'tasks', label: 'My Tasks', icon: CheckSquare },
+  { id: 'chat', label: 'Group Chat', icon: MessageSquare },
   { id: 'announcements', label: 'Notices', icon: Bell },
   { id: 'attendance', label: 'Attendance', icon: BarChart2 },
   { id: 'members', label: 'Members', icon: Users },
@@ -153,6 +186,9 @@ export default function ChoirDashboard() {
   const [tracks, setTracks] = useState<AudioTrack[]>([])
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
   const [msgInput, setMsgInput] = useState('')
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(MOCK_CHAT)
+  const [chatInput, setChatInput] = useState('')
+  const chatBottomRef = useRef<HTMLDivElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   /* Countdown to next major event (Anniversary Concert) */
@@ -200,6 +236,41 @@ export default function ChoirDashboard() {
 
   const updateSongStatus = (id: string, status: Song['status']) =>
     setSongs(prev => prev.map(s => s.id === id ? { ...s, status } : s))
+
+  const sendChatMessage = () => {
+    const text = chatInput.trim()
+    if (!text) return
+    const now = new Date()
+    const time = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    setChatMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      senderId: '1',
+      senderName: MEMBER_INFO.name,
+      senderInitials: MEMBER_INFO.initials,
+      senderVoice: MEMBER_INFO.voice as 'Soprano',
+      text,
+      time,
+      isMine: true,
+    }])
+    setChatInput('')
+    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 60)
+  }
+
+  const addReaction = (msgId: string, emoji: string) => {
+    setChatMessages(prev => prev.map(m => {
+      if (m.id !== msgId) return m
+      const existing = m.reactions?.find(r => r.emoji === emoji)
+      if (existing) {
+        return { ...m, reactions: m.reactions!.map(r => r.emoji === emoji ? { ...r, count: r.count + 1 } : r) }
+      }
+      return { ...m, reactions: [...(m.reactions || []), { emoji, count: 1 }] }
+    }))
+  }
+
+  /* Auto-scroll chat to bottom on mount */
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView()
+  }, [])
 
   const filteredSongs = songs.filter(s => {
     const matchSearch = s.title.toLowerCase().includes(songSearch.toLowerCase())
@@ -259,6 +330,9 @@ export default function ChoirDashboard() {
               {label}
               {id === 'tasks' && pendingTasks > 0 && (
                 <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{pendingTasks}</span>
+              )}
+              {id === 'chat' && (
+                <span className="ml-auto bg-green-500 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">Live</span>
               )}
             </button>
           ))}
@@ -523,6 +597,137 @@ export default function ChoirDashboard() {
                     </div>
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {/* ══════════ GROUP CHAT ══════════ */}
+            {activeNav === 'chat' && (
+              <motion.div key="chat" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+                className="flex flex-col h-[calc(100vh-130px)]">
+
+                {/* Chat header */}
+                <div className="flex items-center gap-3 bg-white border border-gray-100 rounded-2xl px-5 py-3.5 mb-4 shadow-sm flex-shrink-0">
+                  <div className="w-10 h-10 bg-[#140152] rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Music2 className="w-5 h-5 text-[#f5bb00]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-black text-[#140152] text-sm">Alter Sound — Group Chat</h2>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="w-2 h-2 bg-green-500 rounded-full" />
+                      <span className="text-xs text-gray-400">{MOCK_MEMBERS.filter(m => m.active).length} members online · Choir members only</span>
+                    </div>
+                  </div>
+                  {/* Online member avatars */}
+                  <div className="flex -space-x-2 flex-shrink-0">
+                    {MOCK_MEMBERS.filter(m => m.active).slice(0, 5).map(m => (
+                      <div key={m.id} className="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] font-bold"
+                        style={{ backgroundColor: VOICE_AVATAR[m.voice] }}>
+                        {m.initials}
+                      </div>
+                    ))}
+                    <div className="w-7 h-7 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-gray-500 text-[9px] font-bold">
+                      +{MOCK_MEMBERS.filter(m => m.active).length - 5}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Voice legend */}
+                <div className="flex gap-2 flex-wrap mb-3 flex-shrink-0">
+                  {Object.entries(VOICE_COLORS).map(([v, cls]) => (
+                    <span key={v} className={`text-xs font-bold px-2.5 py-1 rounded-full ${cls}`}>{v}</span>
+                  ))}
+                  <span className="text-xs text-gray-400 ml-auto self-center">Tap a message to react</span>
+                </div>
+
+                {/* Messages area */}
+                <div className="flex-1 overflow-y-auto space-y-4 pr-1 pb-2"
+                  style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}>
+
+                  {/* Date divider */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-gray-100" />
+                    <span className="text-xs text-gray-400 font-semibold px-3 py-1 bg-gray-50 rounded-full">Today</span>
+                    <div className="flex-1 h-px bg-gray-100" />
+                  </div>
+
+                  {chatMessages.map((msg, i) => {
+                    const prevMsg = chatMessages[i - 1]
+                    const showSender = !prevMsg || prevMsg.senderId !== msg.senderId
+                    return (
+                      <div key={msg.id} className={`flex items-end gap-2 group ${msg.isMine ? 'flex-row-reverse' : 'flex-row'}`}>
+
+                        {/* Avatar — only show for first message in cluster */}
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mb-1"
+                          style={{ backgroundColor: showSender ? VOICE_AVATAR[msg.senderVoice] : 'transparent', opacity: showSender ? 1 : 0 }}>
+                          {showSender ? msg.senderInitials : ''}
+                        </div>
+
+                        <div className={`flex flex-col max-w-[72%] ${msg.isMine ? 'items-end' : 'items-start'}`}>
+                          {/* Sender name */}
+                          {showSender && !msg.isMine && (
+                            <div className="flex items-center gap-2 mb-1 ml-1">
+                              <span className="text-xs font-bold text-gray-700">{msg.senderName}</span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${VOICE_COLORS[msg.senderVoice]}`}>{msg.senderVoice}</span>
+                            </div>
+                          )}
+
+                          {/* Bubble */}
+                          <div
+                            className={`relative px-4 py-2.5 rounded-2xl text-sm leading-relaxed cursor-pointer transition-all hover:opacity-90 ${
+                              msg.isMine
+                                ? 'bg-[#140152] text-white rounded-br-sm'
+                                : 'bg-white border border-gray-100 text-gray-800 rounded-bl-sm shadow-sm'
+                            }`}
+                            onClick={() => {
+                              const emojis = ['❤️', '🔥', '🙌', '😂', '👍']
+                              addReaction(msg.id, emojis[Math.floor(Math.random() * emojis.length)])
+                            }}
+                          >
+                            {msg.text}
+                          </div>
+
+                          {/* Reactions */}
+                          {msg.reactions && msg.reactions.length > 0 && (
+                            <div className="flex gap-1 mt-1 flex-wrap">
+                              {msg.reactions.map(r => (
+                                <button key={r.emoji}
+                                  onClick={() => addReaction(msg.id, r.emoji)}
+                                  className="flex items-center gap-1 bg-white border border-gray-100 rounded-full px-2 py-0.5 text-xs hover:bg-gray-50 shadow-sm transition-all hover:scale-105">
+                                  <span>{r.emoji}</span>
+                                  <span className="text-gray-500 font-semibold">{r.count}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Time */}
+                          <span className="text-[10px] text-gray-400 mt-1 px-1">{msg.time}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  <div ref={chatBottomRef} />
+                </div>
+
+                {/* Input bar */}
+                <div className="flex-shrink-0 mt-3">
+                  <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-2xl px-4 py-2 shadow-sm focus-within:border-[#140152] focus-within:ring-2 focus-within:ring-[#140152]/10 transition-all">
+                    <input
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendChatMessage()}
+                      placeholder="Message the choir…"
+                      className="flex-1 text-sm text-gray-700 placeholder-gray-400 outline-none bg-transparent"
+                    />
+                    <button onClick={sendChatMessage} disabled={!chatInput.trim()}
+                      className="w-9 h-9 bg-[#140152] rounded-xl flex items-center justify-center text-white disabled:opacity-30 hover:bg-[#1a0270] transition-all disabled:cursor-not-allowed flex-shrink-0">
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-center text-[10px] text-gray-400 mt-1.5">
+                    Only verified Alter Sound members can see this chat · Choir members: {MOCK_MEMBERS.filter(m => m.active).length} active
+                  </p>
+                </div>
               </motion.div>
             )}
 
