@@ -203,6 +203,12 @@ export default function ChildrenMinistryPage() {
               >
                 Explore Programs
               </a>
+              <Link
+                href="/children/dashboard"
+                className="inline-flex items-center gap-2 border-2 border-[#f5bb00]/60 text-[#f5bb00] font-bold px-8 py-4 rounded-full text-lg hover:bg-[#f5bb00]/10 transition-all"
+              >
+                <Shield className="w-5 h-5" /> Enter Dashboard
+              </Link>
             </div>
           </motion.div>
 
