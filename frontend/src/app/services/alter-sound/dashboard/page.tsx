@@ -4,1657 +4,896 @@ import React, { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
-  Play,
-  Pause,
-  Music,
-  Bell,
-  MessageSquare,
-  ChevronRight,
-  Flame,
-  Mic2,
-  Globe,
-  Sparkles,
-  Music2,
-  LogOut,
-  User,
-  Settings,
-  BookOpen,
-  Calendar,
-  Heart,
-  LayoutDashboard,
-  Library,
-  Volume2,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Send,
-  X,
-  ChevronDown,
+  Play, Pause, Music, Bell, MessageSquare, Flame, Mic2, Globe,
+  Sparkles, Music2, LogOut, User, Settings, BookOpen, Calendar,
+  Heart, LayoutDashboard, Library, Volume2, Clock, CheckCircle2,
+  AlertCircle, Send, X, ChevronDown, ChevronRight, Download,
+  Search, Users, Star, Award, TrendingUp, MapPin, Phone,
+  CheckSquare, Square, Zap, Crown, Shield, Target, ArrowRight,
+  PlusCircle, BarChart2, Image, Video, Quote, RefreshCw, Home,
+  Menu, Filter, Loader2, ThumbsUp, Mail
 } from 'lucide-react'
 import { alterSoundApi, AudioTrack, AudioCategory } from '@/lib/api'
 
-/* ─── Types ───────────────────────────────────────────────── */
-interface Announcement {
+/* ─── Types ─────────────────────────────────────────────────── */
+interface Task {
   id: string
-  title: string
-  description: string
-  type: 'event' | 'update' | 'worship' | 'global'
-  date: string
-  pinned?: boolean
-  badge?: string
+  text: string
+  category: 'practice' | 'admin' | 'service'
+  done: boolean
+  due?: string
 }
 
-interface FormationStage {
-  step: number
-  label: string
-  completed: boolean
+interface Song {
+  id: string
+  title: string
+  key: string
+  tempo: string
+  voicePart: string
+  status: 'not-started' | 'practicing' | 'ready'
+  hasLyrics: boolean
+  hasSheet: boolean
+  hasTrack: boolean
+  category: string
+}
+
+interface Member {
+  id: string
+  name: string
+  initials: string
+  voice: 'Soprano' | 'Alto' | 'Tenor' | 'Bass'
+  role?: string
   active: boolean
 }
 
-interface Message {
+interface Event {
   id: string
-  from: 'admin' | 'user'
-  text: string
+  title: string
+  type: 'rehearsal' | 'service' | 'special'
+  date: string
   time: string
+  venue: string
+  daysLeft: number
+  color: string
 }
 
-/* ─── Mock data (replace with real API calls) ──────────────── */
+interface Announcement {
+  id: string
+  title: string
+  body: string
+  author: string
+  time: string
+  urgent: boolean
+  pinned?: boolean
+}
+
+/* ─── Mock Data ──────────────────────────────────────────────── */
+const MEMBER_INFO = { name: 'Sister Jane', initials: 'SJ', voice: 'Soprano', role: 'Section Leader', avatar: '#7c3aed' }
+
+const MOCK_TASKS: Task[] = [
+  { id: '1', text: 'Practice Alto harmony for "Great Are You Lord"', category: 'practice', done: false, due: 'Today' },
+  { id: '2', text: 'Confirm Sunday availability with choir director', category: 'admin', done: false, due: 'Tomorrow' },
+  { id: '3', text: 'Download new lyrics for Easter medley', category: 'practice', done: false, due: 'Fri' },
+  { id: '4', text: 'Attend Thursday rehearsal (7pm)', category: 'service', done: true },
+  { id: '5', text: 'Submit voice warm-up feedback form', category: 'admin', done: true },
+]
+
+const MOCK_SONGS: Song[] = [
+  { id: '1', title: 'Great Are You Lord', key: 'G Major', tempo: '72 BPM', voicePart: 'All Parts', status: 'ready', hasLyrics: true, hasSheet: true, hasTrack: true, category: 'Worship' },
+  { id: '2', title: 'Way Maker', key: 'Ab Major', tempo: '68 BPM', voicePart: 'Soprano Lead', status: 'practicing', hasLyrics: true, hasSheet: true, hasTrack: false, category: 'Praise' },
+  { id: '3', title: 'Reckless Love', key: 'E Major', tempo: '75 BPM', voicePart: 'All Parts', status: 'practicing', hasLyrics: true, hasSheet: false, hasTrack: true, category: 'Worship' },
+  { id: '4', title: 'Goodness of God', key: 'B Major', tempo: '65 BPM', voicePart: 'Alto Harmony', status: 'not-started', hasLyrics: false, hasSheet: false, hasTrack: false, category: 'Praise' },
+  { id: '5', title: 'Holy Spirit (You Are Welcome)', key: 'D Major', tempo: '60 BPM', voicePart: 'All Parts', status: 'not-started', hasLyrics: true, hasSheet: false, hasTrack: false, category: 'Prophetic' },
+]
+
+const MOCK_EVENTS: Event[] = [
+  { id: '1', title: 'Weekly Rehearsal', type: 'rehearsal', date: 'Thursday, May 29', time: '7:00 PM', venue: 'Church Hall B', daysLeft: 6, color: '#7c3aed' },
+  { id: '2', title: 'Sunday Morning Service', type: 'service', date: 'Sunday, June 1', time: '9:00 AM', venue: 'Main Sanctuary', daysLeft: 9, color: '#0284c7' },
+  { id: '3', title: 'LETW Anniversary Concert', type: 'special', date: 'Saturday, June 28', time: '5:00 PM', venue: 'Main Auditorium', daysLeft: 36, color: '#f5bb00' },
+]
+
 const MOCK_ANNOUNCEMENTS: Announcement[] = [
-  {
-    id: '1',
-    title: 'Worship Retreat 2025 — Save the Date',
-    description: 'All Alter Sound members are required to attend. Aug 14–16, Countryside Retreat Centre.',
-    type: 'event',
-    date: 'Aug 14–16',
-    pinned: true,
-    badge: 'Pinned',
-  },
-  {
-    id: '2',
-    title: 'Prophetic Sound Workshop — This Saturday',
-    description: 'Members-only session starting at 10am. Please RSVP via the portal.',
-    type: 'worship',
-    date: 'Sat 10am',
-    badge: '2 days left',
-  },
-  {
-    id: '3',
-    title: 'Nations Sound Recording — Call for Participants',
-    description: 'Open to all voice types. A missional track project releasing this quarter.',
-    type: 'global',
-    date: 'Open',
-    badge: 'Open',
-  },
+  { id: '1', title: '⚠️ Mandatory Rehearsal This Thursday', body: 'All members are required to attend. We will be running through all 5 songs for the anniversary. No absences unless pre-approved.', author: 'Choir Director', time: '2 hours ago', urgent: true, pinned: true },
+  { id: '2', title: 'New Sheet Music Available', body: 'Sheet music for the Easter medley has been uploaded to the library. Please download before Friday\'s session.', author: 'Choir Director', time: '1 day ago', urgent: false },
+  { id: '3', title: 'Congratulations to the Soprano Section!', body: 'Excellent performance last Sunday. The congregation was truly blessed. Keep up the excellent work!', author: 'Pastor Wale', time: '3 days ago', urgent: false },
 ]
 
-const MOCK_FORMATION: FormationStage[] = [
-  { step: 1, label: 'Consecration', completed: true, active: false },
-  { step: 2, label: 'Vocal Formation', completed: true, active: false },
-  { step: 3, label: 'Spiritual Sensitivity', completed: false, active: true },
-  { step: 4, label: 'Corporate Unity', completed: false, active: false },
-  { step: 5, label: 'Sound Release', completed: false, active: false },
+const MOCK_MEMBERS: Member[] = [
+  { id: '1', name: 'Sister Jane', initials: 'SJ', voice: 'Soprano', role: 'Section Leader', active: true },
+  { id: '2', name: 'Adaeze O.', initials: 'AO', voice: 'Soprano', active: true },
+  { id: '3', name: 'Grace E.', initials: 'GE', voice: 'Soprano', active: true },
+  { id: '4', name: 'Chidera A.', initials: 'CA', voice: 'Alto', role: 'Section Leader', active: true },
+  { id: '5', name: 'Funke M.', initials: 'FM', voice: 'Alto', active: true },
+  { id: '6', name: 'Bola K.', initials: 'BK', voice: 'Alto', active: false },
+  { id: '7', name: 'Emeka B.', initials: 'EB', voice: 'Tenor', role: 'Section Leader', active: true },
+  { id: '8', name: 'Daniel O.', initials: 'DO', voice: 'Tenor', active: true },
+  { id: '9', name: 'Samuel A.', initials: 'SA', voice: 'Bass', role: 'Section Leader', active: true },
+  { id: '10', name: 'Tunde R.', initials: 'TR', voice: 'Bass', active: true },
 ]
 
-const MOCK_MESSAGES: Message[] = [
-  { id: '1', from: 'admin', text: 'Welcome to Alter Sound! Your membership has been approved.', time: '2 days ago' },
-  { id: '2', from: 'admin', text: 'Please review the formation guidelines in the library before Saturday\'s session.', time: '1 day ago' },
+const ATTENDANCE = [
+  { week: 'Week 1', attended: true }, { week: 'Week 2', attended: true },
+  { week: 'Week 3', attended: false }, { week: 'Week 4', attended: true },
 ]
 
-const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  'Worship Sound': Music2,
-  'Prophetic Sound': Mic2,
-  'Healing Sound': Sparkles,
-  'Missional Sound': Globe,
+const VOICE_COLORS: Record<string, string> = {
+  Soprano: 'bg-purple-100 text-purple-700',
+  Alto: 'bg-pink-100 text-pink-700',
+  Tenor: 'bg-blue-100 text-blue-700',
+  Bass: 'bg-green-100 text-green-700',
 }
 
-const ANNOUNCEMENT_COLORS: Record<string, string> = {
-  event: '#f5bb00',
-  worship: '#a78bfa',
-  update: '#34d399',
-  global: '#60a5fa',
+const STATUS_CONFIG = {
+  'not-started': { label: 'Not Started', color: 'bg-gray-100 text-gray-500', dot: 'bg-gray-400' },
+  'practicing': { label: 'Practicing', color: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
+  'ready': { label: 'Ready', color: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
 }
 
-/* ─── Sidebar nav items ────────────────────────────────────── */
-const NAV = [
-  { id: 'home', label: 'My Dashboard', icon: LayoutDashboard },
-  { id: 'library', label: 'Audio Library', icon: Library },
-  { id: 'formation', label: 'My Formation', icon: Flame },
-  { id: 'announcements', label: 'Announcements', icon: Bell, badge: 3 },
-  { id: 'messages', label: 'Messages', icon: MessageSquare, badge: 2 },
-  { id: 'profile', label: 'Profile & Settings', icon: Settings },
+const NAV_ITEMS = [
+  { id: 'home', label: 'Dashboard', icon: Home },
+  { id: 'songs', label: 'Songs', icon: Music },
+  { id: 'events', label: 'Events', icon: Calendar },
+  { id: 'tasks', label: 'My Tasks', icon: CheckSquare },
+  { id: 'announcements', label: 'Notices', icon: Bell },
+  { id: 'attendance', label: 'Attendance', icon: BarChart2 },
+  { id: 'members', label: 'Members', icon: Users },
+  { id: 'highlights', label: 'Highlights', icon: Star },
 ]
 
-/* ═══════════════════════════════════════════════════════════ */
-export default function UserDashboardPage() {
+/* ═══════════════════════════════════════════════════════════════ */
+export default function ChoirDashboard() {
   const [activeNav, setActiveNav] = useState('home')
-  const [tracks, setTracks] = useState<AudioTrack[]>([])
-  const [categories, setCategories] = useState<AudioCategory[]>([])
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES)
-  const [msgInput, setMsgInput] = useState('')
-  const [likedTracks, setLikedTracks] = useState<Set<string>>(new Set())
+  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS)
+  const [songs, setSongs] = useState<Song[]>(MOCK_SONGS)
+  const [songSearch, setSongSearch] = useState('')
+  const [songFilter, setSongFilter] = useState('all')
+  const [memberFilter, setMemberFilter] = useState('All')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
+  const [tracks, setTracks] = useState<AudioTrack[]>([])
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
+  const [msgInput, setMsgInput] = useState('')
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
-  /* Fetch audio data */
+  /* Countdown to next major event (Anniversary Concert) */
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await alterSoundApi.getPageData()
-        setTracks(data.all_tracks.filter((t) => t.is_active))
-        setCategories(data.categories.filter((c) => c.is_active))
-      } catch (err) {
-        console.error('Failed to load audio data:', err)
-      } finally {
-        setLoading(false)
-      }
+    const target = new Date('2026-06-28T17:00:00')
+    const tick = () => {
+      const diff = target.getTime() - Date.now()
+      if (diff <= 0) return
+      setCountdown({
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        mins: Math.floor((diff % 3600000) / 60000),
+        secs: Math.floor((diff % 60000) / 1000),
+      })
     }
-    fetchData()
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
   }, [])
 
-  /* Audio playback */
-  const handlePlay = async (trackId: string) => {
-    const track = tracks.find((t) => t.id === trackId)
-    if (!track) return
+  /* Load audio tracks */
+  useEffect(() => {
+    alterSoundApi.getPageData().then(d => setTracks(d.all_tracks.filter(t => t.is_active))).catch(() => {})
+  }, [])
 
-    if (currentlyPlaying === trackId && audioRef.current) {
-      audioRef.current.pause()
+  const handlePlay = async (trackId: string) => {
+    if (currentlyPlaying === trackId) {
+      audioRef.current?.pause()
       setCurrentlyPlaying(null)
       return
     }
-
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
-    }
-
+    audioRef.current?.pause()
     try {
       const audio = new Audio(alterSoundApi.getAudioUrl(trackId))
       audioRef.current = audio
       audio.addEventListener('ended', () => setCurrentlyPlaying(null))
-      audio.addEventListener('error', () => setCurrentlyPlaying(null))
       await audio.play()
       setCurrentlyPlaying(trackId)
       await alterSoundApi.incrementPlayCount(trackId)
-    } catch (err) {
-      console.error('Playback failed:', err)
-      setCurrentlyPlaying(null)
-    }
+    } catch { setCurrentlyPlaying(null) }
   }
 
-  useEffect(() => {
-    return () => {
-      audioRef.current?.pause()
-      audioRef.current = null
-    }
-  }, [])
+  const toggleTask = (id: string) =>
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
 
-  const toggleLike = (id: string) => {
-    setLikedTracks((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
+  const updateSongStatus = (id: string, status: Song['status']) =>
+    setSongs(prev => prev.map(s => s.id === id ? { ...s, status } : s))
 
-  const sendMessage = () => {
-    if (!msgInput.trim()) return
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now().toString(), from: 'user', text: msgInput.trim(), time: 'Just now' },
-    ])
-    setMsgInput('')
-  }
+  const filteredSongs = songs.filter(s => {
+    const matchSearch = s.title.toLowerCase().includes(songSearch.toLowerCase())
+    const matchFilter = songFilter === 'all' || s.status === songFilter
+    return matchSearch && matchFilter
+  })
 
-  const filteredTracks =
-    selectedCategory === 'all'
-      ? tracks
-      : tracks.filter((t) => t.category_id === selectedCategory)
+  const filteredMembers = memberFilter === 'All' ? MOCK_MEMBERS : MOCK_MEMBERS.filter(m => m.voice === memberFilter)
 
-  /* ── Completed formation steps ── */
-  const completedSteps = MOCK_FORMATION.filter((s) => s.completed).length
-  const activeStage = MOCK_FORMATION.find((s) => s.active)
+  const attendancePct = Math.round((ATTENDANCE.filter(a => a.attended).length / ATTENDANCE.length) * 100)
+  const pendingTasks = tasks.filter(t => !t.done).length
+  const readySongs = songs.filter(s => s.status === 'ready').length
+  const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+  const navigate = (id: string) => { setActiveNav(id); setSidebarOpen(false) }
 
   return (
-    <div className="as-shell">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+
       {/* ── Mobile overlay ── */}
       {sidebarOpen && (
-        <div
-          className="as-overlay"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* ════ SIDEBAR ════ */}
-      <aside className={`as-sidebar ${sidebarOpen ? 'as-sidebar--open' : ''}`}>
+      <aside className={`fixed md:sticky top-0 left-0 h-full w-64 bg-[#140152] text-white flex flex-col z-50 transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         {/* Brand */}
-        <div className="as-brand">
-          <div className="as-brand__logo">
-            <Flame size={16} strokeWidth={2.5} />
+        <div className="flex items-center gap-3 p-5 border-b border-white/10">
+          <div className="w-9 h-9 bg-[#f5bb00] rounded-xl flex items-center justify-center flex-shrink-0">
+            <Flame className="w-5 h-5 text-[#140152]" />
           </div>
           <div>
-            <div className="as-brand__name">ALTER SOUND</div>
-            <div className="as-brand__sub">Ministry Portal</div>
+            <div className="font-black text-sm tracking-widest">ALTER SOUND</div>
+            <div className="text-white/50 text-xs">Choir Portal</div>
           </div>
+          <button className="md:hidden ml-auto" onClick={() => setSidebarOpen(false)}><X className="w-5 h-5 text-white/60" /></button>
         </div>
 
-        {/* User chip */}
-        <div className="as-user-chip">
-          <div className="as-user-chip__avatar">EM</div>
-          <div className="as-user-chip__info">
-            <span className="as-user-chip__name">Esther M.</span>
-            <span className="as-user-chip__role">Soprano · Vocalist</span>
+        {/* Member chip */}
+        <div className="mx-4 my-4 p-3 bg-white/5 rounded-2xl flex items-center gap-3 border border-white/10">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background: MEMBER_INFO.avatar }}>
+            {MEMBER_INFO.initials}
           </div>
-          <div className="as-status-dot" title="Active member" />
+          <div className="min-w-0">
+            <div className="font-semibold text-sm truncate">{MEMBER_INFO.name}</div>
+            <div className="text-white/50 text-xs">{MEMBER_INFO.voice} · {MEMBER_INFO.role}</div>
+          </div>
+          <div className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0" />
         </div>
 
         {/* Nav */}
-        <nav className="as-nav">
-          {NAV.map(({ id, label, icon: Icon, badge }) => (
-            <button
-              key={id}
-              className={`as-nav__item ${activeNav === id ? 'as-nav__item--active' : ''}`}
-              onClick={() => {
-                setActiveNav(id)
-                setSidebarOpen(false)
-              }}
-            >
-              <Icon size={15} strokeWidth={1.8} />
-              <span>{label}</span>
-              {badge && <span className="as-nav__badge">{badge}</span>}
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+          {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+            <button key={id} onClick={() => navigate(id)}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeNav === id ? 'bg-[#f5bb00] text-[#140152] font-bold' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}>
+              <Icon className="w-4 h-4 flex-shrink-0" />
+              {label}
+              {id === 'tasks' && pendingTasks > 0 && (
+                <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{pendingTasks}</span>
+              )}
             </button>
           ))}
         </nav>
 
-        {/* Bottom links */}
-        <div className="as-sidebar__bottom">
-          <Link href="/services/alter-sound" className="as-sidebar-link">
-            <Globe size={13} /> Visit Alter Sound
-          </Link>
-          <Link href="/logout" className="as-sidebar-link as-sidebar-link--danger">
-            <LogOut size={13} /> Sign Out
+        {/* Bottom */}
+        <div className="p-4 border-t border-white/10 space-y-1">
+          <button onClick={() => navigate('home')} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-white/60 hover:bg-white/10 hover:text-white transition-all">
+            <Settings className="w-4 h-4" /> Settings
+          </button>
+          <Link href="/services/alter-sound" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-white/60 hover:bg-white/10 hover:text-white transition-all">
+            <Globe className="w-4 h-4" /> Back to Alter Sound
           </Link>
         </div>
       </aside>
 
       {/* ════ MAIN ════ */}
-      <main className="as-main">
+      <div className="flex-1 flex flex-col overflow-hidden">
+
         {/* Topbar */}
-        <header className="as-topbar">
-          <button className="as-hamburger" onClick={() => setSidebarOpen(true)}>
-            <span /><span /><span />
+        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-4 flex-shrink-0">
+          <button className="md:hidden p-2 rounded-lg hover:bg-gray-100" onClick={() => setSidebarOpen(true)}>
+            <Menu className="w-5 h-5 text-gray-600" />
           </button>
-          <div className="as-topbar__title">
-            {NAV.find((n) => n.id === activeNav)?.label ?? 'Dashboard'}
+          <div className="flex-1">
+            <h1 className="font-black text-[#140152] text-lg">{NAV_ITEMS.find(n => n.id === activeNav)?.label}</h1>
+            <p className="text-gray-400 text-xs hidden sm:block">{today}</p>
           </div>
-          <div className="as-topbar__actions">
-            <button className="as-icon-btn" onClick={() => setActiveNav('announcements')}>
-              <Bell size={16} />
-              <span className="as-icon-btn__dot" />
-            </button>
-            <button className="as-icon-btn" onClick={() => setActiveNav('messages')}>
-              <MessageSquare size={16} />
-            </button>
+          <button className="relative p-2 rounded-lg hover:bg-gray-100" onClick={() => navigate('announcements')}>
+            <Bell className="w-5 h-5 text-gray-600" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+          </button>
+          <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm text-white flex-shrink-0" style={{ background: MEMBER_INFO.avatar }}>
+            {MEMBER_INFO.initials}
           </div>
         </header>
 
         {/* Content */}
-        <div className="as-content">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <AnimatePresence mode="wait">
 
-            {/* ── HOME ── */}
+            {/* ══════════ HOME ══════════ */}
             {activeNav === 'home' && (
-              <motion.div
-                key="home"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25 }}
-              >
+              <motion.div key="home" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-6">
+
                 {/* Welcome banner */}
-                <div className="as-welcome-banner">
-                  <div className="as-welcome-banner__bg" />
-                  <div className="as-welcome-banner__content">
-                    <div className="as-welcome-banner__eyebrow">
-                      <Flame size={12} /> Sound Ministry
-                    </div>
-                    <h1 className="as-welcome-banner__heading">
-                      Welcome back, Esther
-                    </h1>
-                    <p className="as-welcome-banner__sub">
-                      You are a consecrated servant releasing heaven's sound.
-                    </p>
-                    <div className="as-welcome-banner__actions">
-                      <button
-                        className="as-btn as-btn--gold"
-                        onClick={() => setActiveNav('library')}
-                      >
-                        <Volume2 size={13} /> Open Library
+                <div className="relative bg-gradient-to-br from-[#140152] to-[#2d0a6e] rounded-3xl p-6 text-white overflow-hidden">
+                  <div className="absolute top-0 right-0 w-48 h-48 opacity-10"><Music2 className="w-full h-full" /></div>
+                  <div className="relative z-10">
+                    <p className="text-white/60 text-sm mb-1">{today}</p>
+                    <h2 className="text-2xl font-black mb-1">Welcome back, {MEMBER_INFO.name}! 🎶</h2>
+                    <p className="text-white/70 text-sm mb-5">You are a consecrated servant releasing heaven's sound.</p>
+                    <div className="flex flex-wrap gap-3">
+                      <button onClick={() => navigate('songs')} className="flex items-center gap-2 bg-[#f5bb00] text-[#140152] px-4 py-2 rounded-xl font-bold text-sm hover:bg-[#f5bb00]/90 transition-all">
+                        <Music className="w-4 h-4" /> This Week's Songs
                       </button>
-                      <button
-                        className="as-btn as-btn--ghost"
-                        onClick={() => setActiveNav('formation')}
-                      >
-                        My Formation <ChevronRight size={13} />
+                      <button onClick={() => navigate('events')} className="flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-xl font-semibold text-sm hover:bg-white/20 transition-all border border-white/20">
+                        <Calendar className="w-4 h-4" /> Next Rehearsal
                       </button>
                     </div>
-                  </div>
-                  <div className="as-welcome-banner__ornament">
-                    <Music2 size={100} strokeWidth={0.6} />
                   </div>
                 </div>
 
-                {/* Stats row */}
-                <div className="as-stats">
+                {/* Quick stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { label: 'Formation Stage', value: `${completedSteps}/5`, icon: Flame, color: '#f5bb00' },
-                    { label: 'Tracks Listened', value: '24', icon: Volume2, color: '#a78bfa' },
-                    { label: 'Days Active', value: '18', icon: Clock, color: '#34d399' },
-                    { label: 'Messages', value: `${messages.length}`, icon: MessageSquare, color: '#60a5fa' },
-                  ].map(({ label, value, icon: Icon, color }) => (
-                    <div key={label} className="as-stat">
-                      <div className="as-stat__icon" style={{ background: color + '22', color }}>
-                        <Icon size={14} />
+                    { label: 'Attendance', value: `${attendancePct}%`, icon: BarChart2, color: 'text-green-600', bg: 'bg-green-50' },
+                    { label: 'Songs to Practice', value: `${songs.filter(s => s.status !== 'ready').length}`, icon: Music, color: 'text-blue-600', bg: 'bg-blue-50' },
+                    { label: 'Pending Tasks', value: `${pendingTasks}`, icon: CheckSquare, color: 'text-red-600', bg: 'bg-red-50' },
+                    { label: 'Songs Ready', value: `${readySongs}/${songs.length}`, icon: CheckCircle2, color: 'text-purple-600', bg: 'bg-purple-50' },
+                  ].map((s, i) => (
+                    <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                      <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center mb-3`}>
+                        <s.icon className={`w-5 h-5 ${s.color}`} />
                       </div>
-                      <div>
-                        <div className="as-stat__value">{value}</div>
-                        <div className="as-stat__label">{label}</div>
-                      </div>
+                      <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
+                      <div className="text-gray-500 text-xs mt-1">{s.label}</div>
                     </div>
                   ))}
                 </div>
 
-                <div className="as-home-grid">
-                  {/* Formation progress */}
-                  <div className="as-card">
-                    <div className="as-card__head">
-                      <span className="as-card__title">Formation Journey</span>
-                      <button className="as-card__link" onClick={() => setActiveNav('formation')}>
-                        Details →
-                      </button>
-                    </div>
-                    <div className="as-formation-list">
-                      {MOCK_FORMATION.map((stage) => (
-                        <div
-                          key={stage.step}
-                          className={`as-formation-item ${stage.active ? 'as-formation-item--active' : ''} ${stage.completed ? 'as-formation-item--done' : ''}`}
-                        >
-                          <div className="as-formation-item__num">
-                            {stage.completed ? <CheckCircle2 size={14} /> : stage.step}
-                          </div>
-                          <span>{stage.label}</span>
-                          {stage.active && (
-                            <span className="as-pill as-pill--gold">Current</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                {/* Next rehearsal reminder */}
+                <div className="bg-purple-50 border border-purple-200 rounded-2xl p-5 flex items-start gap-4">
+                  <div className="w-12 h-12 bg-purple-600 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <Calendar className="w-6 h-6 text-white" />
                   </div>
-
-                  {/* Announcements preview */}
-                  <div className="as-card">
-                    <div className="as-card__head">
-                      <span className="as-card__title">Announcements</span>
-                      <button className="as-card__link" onClick={() => setActiveNav('announcements')}>
-                        All →
-                      </button>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-purple-800">Next Rehearsal</span>
+                      <span className="text-xs bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full font-semibold">In {MOCK_EVENTS[0].daysLeft} days</span>
                     </div>
-                    <div className="as-ann-list">
-                      {MOCK_ANNOUNCEMENTS.slice(0, 3).map((ann) => (
-                        <div key={ann.id} className="as-ann-item">
-                          <div
-                            className="as-ann-item__dot"
-                            style={{ background: ANNOUNCEMENT_COLORS[ann.type] }}
-                          />
-                          <div className="as-ann-item__body">
-                            <div className="as-ann-item__title">{ann.title}</div>
-                            <div className="as-ann-item__date">{ann.date}</div>
+                    <p className="text-purple-700 font-semibold">{MOCK_EVENTS[0].date} · {MOCK_EVENTS[0].time}</p>
+                    <p className="text-purple-500 text-sm flex items-center gap-1 mt-1"><MapPin className="w-3.5 h-3.5" /> {MOCK_EVENTS[0].venue}</p>
+                  </div>
+                  <button onClick={() => navigate('events')} className="text-purple-600 hover:text-purple-800 transition-colors"><ChevronRight className="w-5 h-5" /></button>
+                </div>
+
+                {/* Quick Actions */}
+                <div>
+                  <h3 className="font-bold text-[#140152] mb-4 text-lg">Quick Actions</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {[
+                      { label: 'Mark Attendance', icon: CheckCircle2, color: 'bg-green-500', action: () => navigate('attendance') },
+                      { label: 'View Song Library', icon: Music, color: 'bg-purple-600', action: () => navigate('songs') },
+                      { label: 'Download Music', icon: Download, color: 'bg-blue-600', action: () => navigate('songs') },
+                      { label: 'Confirm Availability', icon: ThumbsUp, color: 'bg-amber-500', action: () => navigate('tasks') },
+                      { label: 'Rehearsal Schedule', icon: Calendar, color: 'bg-red-500', action: () => navigate('events') },
+                      { label: 'View Announcements', icon: Bell, color: 'bg-indigo-600', action: () => navigate('announcements') },
+                    ].map((a, i) => (
+                      <button key={i} onClick={a.action}
+                        className="flex flex-col items-center gap-3 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#140152]/20 transition-all group text-center">
+                        <div className={`w-12 h-12 ${a.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                          <a.icon className="w-6 h-6 text-white" />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-700 leading-tight">{a.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Countdown to anniversary */}
+                <div className="bg-gradient-to-r from-[#f5bb00] to-[#f59e0b] rounded-3xl p-6 text-[#140152]">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Star className="w-5 h-5" />
+                    <span className="font-black text-sm uppercase tracking-wider">LETW Anniversary Concert</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-3">
+                    {[
+                      { val: countdown.days, label: 'Days' },
+                      { val: countdown.hours, label: 'Hours' },
+                      { val: countdown.mins, label: 'Mins' },
+                      { val: countdown.secs, label: 'Secs' },
+                    ].map((c, i) => (
+                      <div key={i} className="bg-[#140152]/10 rounded-2xl p-3 text-center">
+                        <div className="text-3xl font-black tabular-nums">{String(c.val).padStart(2, '0')}</div>
+                        <div className="text-xs font-semibold opacity-70 mt-1">{c.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-sm mt-4 opacity-70">📍 Main Auditorium · Saturday, June 28 · 5:00 PM</p>
+                </div>
+
+                {/* Recent announcements preview */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-[#140152] text-lg">Latest Notices</h3>
+                    <button onClick={() => navigate('announcements')} className="text-sm text-[#140152] font-semibold hover:underline">View all</button>
+                  </div>
+                  <div className="space-y-3">
+                    {MOCK_ANNOUNCEMENTS.slice(0, 2).map(a => (
+                      <div key={a.id} className={`p-4 rounded-2xl border ${a.urgent ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
+                        <div className="flex items-start gap-3">
+                          {a.urgent && <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />}
+                          <div>
+                            <p className="font-semibold text-gray-900 text-sm">{a.title}</p>
+                            <p className="text-gray-500 text-xs mt-1 line-clamp-2">{a.body}</p>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Quick message preview */}
-                  <div className="as-card">
-                    <div className="as-card__head">
-                      <span className="as-card__title">Latest Message</span>
-                      <button className="as-card__link" onClick={() => setActiveNav('messages')}>
-                        Open →
-                      </button>
-                    </div>
-                    <div className="as-latest-msg">
-                      <div className="as-msg-bubble as-msg-bubble--admin">
-                        {messages[messages.length - 1]?.text}
                       </div>
-                      <div className="as-latest-msg__time">
-                        {messages[messages.length - 1]?.time} · from Ministry Admin
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
               </motion.div>
             )}
 
-            {/* ── AUDIO LIBRARY ── */}
-            {activeNav === 'library' && (
-              <motion.div
-                key="library"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25 }}
-              >
-                {/* Category filter */}
-                <div className="as-filter-row">
-                  <button
-                    className={`as-filter-btn ${selectedCategory === 'all' ? 'as-filter-btn--active' : ''}`}
-                    onClick={() => setSelectedCategory('all')}
-                  >
-                    All Sound
-                  </button>
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.id}
-                      className={`as-filter-btn ${selectedCategory === cat.id ? 'as-filter-btn--active' : ''}`}
-                      onClick={() => setSelectedCategory(cat.id)}
-                    >
-                      {cat.name}
-                    </button>
-                  ))}
+            {/* ══════════ SONGS ══════════ */}
+            {activeNav === 'songs' && (
+              <motion.div key="songs" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-6">
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input value={songSearch} onChange={e => setSongSearch(e.target.value)}
+                      placeholder="Search songs…" className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#140152]/20 text-sm" />
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {['all', 'not-started', 'practicing', 'ready'].map(f => (
+                      <button key={f} onClick={() => setSongFilter(f)}
+                        className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all capitalize ${songFilter === f ? 'bg-[#140152] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-[#140152]'}`}>
+                        {f === 'all' ? 'All' : STATUS_CONFIG[f as Song['status']].label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                {loading ? (
-                  <div className="as-empty-state">
-                    <Music size={36} className="as-empty-state__icon as-pulse" />
-                    <p>Loading the sound library…</p>
-                  </div>
-                ) : filteredTracks.length === 0 ? (
-                  <div className="as-empty-state">
-                    <Music size={36} className="as-empty-state__icon" />
-                    <p>No tracks found in this category.</p>
-                  </div>
-                ) : (
-                  <div className="as-tracks-grid">
-                    <AnimatePresence>
-                      {filteredTracks.map((track, i) => {
-                        const CatIcon = CATEGORY_ICONS[track.category?.name] ?? Music2
-                        const isPlaying = currentlyPlaying === track.id
-                        return (
-                          <motion.div
-                            key={track.id}
-                            className={`as-track-card ${isPlaying ? 'as-track-card--playing' : ''}`}
-                            initial={{ opacity: 0, scale: 0.96 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.96 }}
-                            transition={{ delay: i * 0.04 }}
-                          >
-                            {/* Cover art */}
-                            <div className="as-track-cover">
-                              <img
-                                src={alterSoundApi.getCoverUrl(track.id)}
-                                alt={track.title}
-                                className="as-track-cover__img"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none'
-                                  const fb = e.currentTarget.nextElementSibling as HTMLElement
-                                  if (fb) fb.style.display = 'flex'
-                                }}
-                              />
-                              <div className="as-track-cover__fallback" style={{ display: 'none' }}>
-                                <CatIcon size={28} strokeWidth={1.2} />
+                <div className="space-y-4">
+                  {filteredSongs.length === 0 && (
+                    <div className="text-center py-16 text-gray-400">
+                      <Music className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p>No songs found</p>
+                    </div>
+                  )}
+                  {filteredSongs.map(song => {
+                    const cfg = STATUS_CONFIG[song.status]
+                    return (
+                      <div key={song.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all">
+                        <div className="p-5">
+                          <div className="flex items-start justify-between gap-4 mb-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${cfg.color}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                  {cfg.label}
+                                </span>
+                                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{song.category}</span>
                               </div>
-                              {isPlaying && (
-                                <div className="as-track-cover__eq">
-                                  <span /><span /><span /><span />
-                                </div>
-                              )}
-                              <button
-                                className="as-track-play-btn"
-                                onClick={() => handlePlay(track.id)}
-                                aria-label={isPlaying ? 'Pause' : 'Play'}
-                              >
-                                {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-                              </button>
+                              <h3 className="font-bold text-[#140152] text-lg">{song.title}</h3>
+                              <p className="text-gray-500 text-sm">{song.voicePart} · {song.key} · {song.tempo}</p>
                             </div>
+                            <div className="w-12 h-12 bg-[#140152]/5 rounded-xl flex items-center justify-center flex-shrink-0">
+                              <Music2 className="w-6 h-6 text-[#140152]" />
+                            </div>
+                          </div>
 
-                            {/* Info */}
-                            <div className="as-track-info">
-                              <div className="as-track-info__title">{track.title}</div>
-                              <div className="as-track-info__artist">{track.artist ?? 'Alter Sound'}</div>
-                              <div className="as-track-info__meta">
-                                <span className="as-pill as-pill--dim">{track.category?.name}</span>
-                                <button
-                                  className={`as-like-btn ${likedTracks.has(track.id) ? 'as-like-btn--liked' : ''}`}
-                                  onClick={() => toggleLike(track.id)}
-                                  aria-label="Like"
-                                >
-                                  <Heart size={13} />
-                                </button>
-                                <span className="as-track-info__plays">{track.play_count} plays</span>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )
-                      })}
-                    </AnimatePresence>
+                          {/* Resources */}
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${song.hasLyrics ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`} disabled={!song.hasLyrics}>
+                              <BookOpen className="w-3.5 h-3.5" /> Lyrics
+                            </button>
+                            <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${song.hasSheet ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`} disabled={!song.hasSheet}>
+                              <Download className="w-3.5 h-3.5" /> Sheet Music
+                            </button>
+                            <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${song.hasTrack ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`} disabled={!song.hasTrack}>
+                              <Play className="w-3.5 h-3.5" /> Practice Track
+                            </button>
+                          </div>
+
+                          {/* Update status */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 font-medium">Update status:</span>
+                            {(['not-started', 'practicing', 'ready'] as Song['status'][]).map(s => (
+                              <button key={s} onClick={() => updateSongStatus(song.id, s)}
+                                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${song.status === s ? STATUS_CONFIG[s].color + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                                {STATUS_CONFIG[s].label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Audio tracks from API */}
+                {tracks.length > 0 && (
+                  <div>
+                    <h3 className="font-bold text-[#140152] mb-4 text-lg">Audio Library</h3>
+                    <div className="space-y-3">
+                      {tracks.map(track => (
+                        <div key={track.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4">
+                          <button onClick={() => handlePlay(track.id)}
+                            className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${currentlyPlaying === track.id ? 'bg-[#f5bb00] text-[#140152]' : 'bg-[#140152] text-white hover:bg-[#1a0270]'}`}>
+                            {currentlyPlaying === track.id ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-[#140152] truncate">{track.title}</p>
+                            <p className="text-gray-400 text-xs">{track.play_count} plays</p>
+                          </div>
+                          <Volume2 className={`w-4 h-4 flex-shrink-0 ${currentlyPlaying === track.id ? 'text-[#f5bb00] animate-pulse' : 'text-gray-300'}`} />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </motion.div>
             )}
 
-            {/* ── FORMATION ── */}
-            {activeNav === 'formation' && (
-              <motion.div
-                key="formation"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25 }}
-              >
-                <div className="as-formation-hero">
-                  <div className="as-formation-hero__eyebrow"><Flame size={13} /> Your Journey</div>
-                  <h2 className="as-formation-hero__heading">Sound Formation Path</h2>
-                  <p className="as-formation-hero__sub">
-                    {activeStage
-                      ? `You are currently in Stage ${activeStage.step}: ${activeStage.label}`
-                      : 'All stages complete — ready for Sound Release.'}
-                  </p>
-                  <div className="as-formation-progress-bar">
-                    <div
-                      className="as-formation-progress-bar__fill"
-                      style={{ width: `${(completedSteps / 5) * 100}%` }}
-                    />
+            {/* ══════════ EVENTS ══════════ */}
+            {activeNav === 'events' && (
+              <motion.div key="events" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-6">
+
+                {/* Countdown */}
+                <div className="bg-gradient-to-br from-[#140152] to-[#2d0a6e] rounded-3xl p-6 text-white text-center">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <Star className="w-5 h-5 text-[#f5bb00]" />
+                    <span className="font-black tracking-widest text-sm uppercase text-[#f5bb00]">LETW Anniversary Concert</span>
                   </div>
-                  <div className="as-formation-progress-label">
-                    {completedSteps} of 5 stages complete
+                  <div className="grid grid-cols-4 gap-3 max-w-sm mx-auto">
+                    {[
+                      { val: countdown.days, label: 'Days' },
+                      { val: countdown.hours, label: 'Hours' },
+                      { val: countdown.mins, label: 'Mins' },
+                      { val: countdown.secs, label: 'Secs' },
+                    ].map((c, i) => (
+                      <div key={i} className="bg-white/10 rounded-2xl p-3">
+                        <div className="text-3xl font-black tabular-nums">{String(c.val).padStart(2, '0')}</div>
+                        <div className="text-white/60 text-xs mt-1">{c.label}</div>
+                      </div>
+                    ))}
                   </div>
+                  <p className="text-white/60 text-sm mt-4">📍 Main Auditorium · Saturday, June 28 · 5:00 PM</p>
                 </div>
 
-                <div className="as-formation-stages">
-                  {MOCK_FORMATION.map((stage, i) => (
-                    <div
-                      key={stage.step}
-                      className={`as-stage-card ${stage.active ? 'as-stage-card--active' : ''} ${stage.completed ? 'as-stage-card--done' : ''}`}
-                    >
-                      <div className="as-stage-card__num">
-                        {stage.completed
-                          ? <CheckCircle2 size={20} />
-                          : stage.active
-                            ? <AlertCircle size={20} />
-                            : stage.step}
-                      </div>
-                      <div className="as-stage-card__body">
-                        <div className="as-stage-card__label">{stage.label}</div>
-                        <div className="as-stage-card__desc">
-                          {stage.completed
-                            ? 'Completed — well done, servant.'
-                            : stage.active
-                              ? 'In progress — keep pressing in.'
-                              : 'Upcoming — continue faithfully.'}
+                {/* Events list */}
+                <div className="space-y-4">
+                  {MOCK_EVENTS.map(event => (
+                    <div key={event.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div className="h-1" style={{ backgroundColor: event.color }} />
+                      <div className="p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs font-bold px-2.5 py-1 rounded-full text-white capitalize" style={{ backgroundColor: event.color }}>
+                                {event.type}
+                              </span>
+                              <span className="text-xs text-gray-400">In {event.daysLeft} days</span>
+                            </div>
+                            <h3 className="font-bold text-[#140152] text-xl mb-2">{event.title}</h3>
+                            <div className="space-y-1.5">
+                              <p className="text-gray-600 text-sm flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-400" />{event.date}</p>
+                              <p className="text-gray-600 text-sm flex items-center gap-2"><Clock className="w-4 h-4 text-gray-400" />{event.time}</p>
+                              <p className="text-gray-600 text-sm flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" />{event.venue}</p>
+                            </div>
+                          </div>
+                          <div className="w-16 h-16 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 text-white" style={{ backgroundColor: event.color }}>
+                            <span className="text-2xl font-black leading-none">{event.daysLeft}</span>
+                            <span className="text-xs">days</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-3 mt-5">
+                          <button className="flex-1 bg-[#140152] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#1a0270] transition-all">
+                            Confirm Attendance
+                          </button>
+                          <button className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all">
+                            Remind Me
+                          </button>
                         </div>
                       </div>
-                      {stage.active && (
-                        <span className="as-pill as-pill--gold">Active</span>
-                      )}
-                      {stage.completed && (
-                        <span className="as-pill as-pill--green">Done</span>
-                      )}
                     </div>
                   ))}
-                </div>
-
-                <div className="as-formation-note">
-                  <BookOpen size={14} />
-                  <span>
-                    Your formation is guided by the ministry leaders. Attend sessions faithfully
-                    and engage with the Audio Library to progress.
-                  </span>
                 </div>
               </motion.div>
             )}
 
-            {/* ── ANNOUNCEMENTS ── */}
-            {activeNav === 'announcements' && (
-              <motion.div
-                key="announcements"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25 }}
-              >
-                <div className="as-ann-full-list">
-                  {MOCK_ANNOUNCEMENTS.map((ann, i) => (
-                    <motion.div
-                      key={ann.id}
-                      className="as-ann-card"
-                      initial={{ opacity: 0, x: -16 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.07 }}
-                    >
-                      <div
-                        className="as-ann-card__stripe"
-                        style={{ background: ANNOUNCEMENT_COLORS[ann.type] }}
-                      />
-                      <div className="as-ann-card__body">
-                        <div className="as-ann-card__top">
-                          <h3 className="as-ann-card__title">{ann.title}</h3>
-                          {ann.badge && (
-                            <span
-                              className="as-pill"
-                              style={{
-                                background: ANNOUNCEMENT_COLORS[ann.type] + '22',
-                                color: ANNOUNCEMENT_COLORS[ann.type],
-                              }}
-                            >
-                              {ann.badge}
+            {/* ══════════ TASKS ══════════ */}
+            {activeNav === 'tasks' && (
+              <motion.div key="tasks" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-6">
+
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: 'Total Tasks', val: tasks.length, color: 'text-[#140152]', bg: 'bg-[#140152]/5' },
+                    { label: 'Pending', val: tasks.filter(t => !t.done).length, color: 'text-red-600', bg: 'bg-red-50' },
+                    { label: 'Completed', val: tasks.filter(t => t.done).length, color: 'text-green-600', bg: 'bg-green-50' },
+                  ].map((s, i) => (
+                    <div key={i} className={`${s.bg} rounded-2xl p-4 text-center`}>
+                      <div className={`text-2xl font-black ${s.color}`}>{s.val}</div>
+                      <div className="text-gray-500 text-xs mt-1">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pending */}
+                <div>
+                  <h3 className="font-bold text-[#140152] mb-3">Pending Tasks</h3>
+                  <div className="space-y-3">
+                    {tasks.filter(t => !t.done).map(task => (
+                      <div key={task.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-start gap-4">
+                        <button onClick={() => toggleTask(task.id)} className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full border-2 border-gray-300 hover:border-[#140152] transition-colors flex items-center justify-center" />
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{task.text}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${task.category === 'practice' ? 'bg-purple-100 text-purple-700' : task.category === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                              {task.category}
                             </span>
-                          )}
-                        </div>
-                        <p className="as-ann-card__desc">{ann.description}</p>
-                        <div className="as-ann-card__meta">
-                          <Calendar size={11} />
-                          <span>{ann.date}</span>
-                          {ann.pinned && (
-                            <>
-                              <span className="as-dot-sep" />
-                              <span>Pinned by admin</span>
-                            </>
-                          )}
+                            {task.due && <span className="text-xs text-red-500 font-semibold">Due: {task.due}</span>}
+                          </div>
                         </div>
                       </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── MESSAGES ── */}
-            {activeNav === 'messages' && (
-              <motion.div
-                key="messages"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25 }}
-                className="as-messages-shell"
-              >
-                <div className="as-messages-header">
-                  <div className="as-messages-header__avatar">PA</div>
-                  <div>
-                    <div className="as-messages-header__name">Ministry Admin</div>
-                    <div className="as-messages-header__status">
-                      <span className="as-status-dot" /> Online
-                    </div>
+                    ))}
+                    {tasks.filter(t => !t.done).length === 0 && (
+                      <div className="text-center py-10 text-gray-400">
+                        <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-green-400" />
+                        <p className="font-semibold text-green-600">All tasks completed!</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="as-messages-feed">
-                  {messages.map((msg) => (
-                    <motion.div
-                      key={msg.id}
-                      className={`as-msg-row ${msg.from === 'user' ? 'as-msg-row--user' : ''}`}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                    >
-                      {msg.from === 'admin' && (
-                        <div className="as-msg-avatar as-msg-avatar--admin">PA</div>
-                      )}
-                      <div className="as-msg-bubble-wrap">
-                        <div className={`as-msg-bubble ${msg.from === 'user' ? 'as-msg-bubble--user' : 'as-msg-bubble--admin'}`}>
-                          {msg.text}
-                        </div>
-                        <div className="as-msg-time">{msg.time}</div>
-                      </div>
-                      {msg.from === 'user' && (
-                        <div className="as-msg-avatar as-msg-avatar--user">EM</div>
-                      )}
-                    </motion.div>
-                  ))}
-                </div>
-
-                <div className="as-messages-compose">
-                  <input
-                    className="as-compose-input"
-                    type="text"
-                    placeholder="Write a message to admin…"
-                    value={msgInput}
-                    onChange={(e) => setMsgInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                  />
-                  <button
-                    className="as-compose-send"
-                    onClick={sendMessage}
-                    disabled={!msgInput.trim()}
-                  >
-                    <Send size={15} />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── PROFILE ── */}
-            {activeNav === 'profile' && (
-              <motion.div
-                key="profile"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25 }}
-              >
-                <div className="as-profile-hero">
-                  <div className="as-profile-avatar">EM</div>
+                {/* Completed */}
+                {tasks.filter(t => t.done).length > 0 && (
                   <div>
-                    <h2 className="as-profile-name">Esther Mensah</h2>
-                    <div className="as-profile-meta">
-                      <span className="as-pill as-pill--green">Active Member</span>
-                      <span className="as-profile-role">Soprano · Vocalist</span>
-                    </div>
-                    <div className="as-profile-joined">
-                      <Calendar size={11} /> Joined April 10, 2025
-                    </div>
-                  </div>
-                </div>
-
-                <div className="as-profile-grid">
-                  <div className="as-card">
-                    <div className="as-card__head">
-                      <span className="as-card__title">Personal Details</span>
-                    </div>
-                    <div className="as-profile-fields">
-                      {[
-                        { label: 'Full Name', value: 'Esther Mensah' },
-                        { label: 'Email', value: 'esther@example.com' },
-                        { label: 'Voice / Instrument', value: 'Soprano Vocalist' },
-                        { label: 'Location', value: 'Accra, Ghana' },
-                      ].map(({ label, value }) => (
-                        <div key={label} className="as-profile-field">
-                          <div className="as-profile-field__label">{label}</div>
-                          <div className="as-profile-field__value">{value}</div>
+                    <h3 className="font-bold text-gray-400 mb-3">Completed</h3>
+                    <div className="space-y-3">
+                      {tasks.filter(t => t.done).map(task => (
+                        <div key={task.id} className="bg-gray-50 rounded-2xl border border-gray-100 p-4 flex items-start gap-4 opacity-60">
+                          <button onClick={() => toggleTask(task.id)} className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full bg-green-500 border-2 border-green-500 flex items-center justify-center">
+                            <CheckCircle2 className="w-4 h-4 text-white" />
+                          </button>
+                          <p className="line-through text-gray-500">{task.text}</p>
                         </div>
                       ))}
                     </div>
-                    <button className="as-btn as-btn--outline" style={{ marginTop: '1rem', width: '100%' }}>
-                      <User size={13} /> Edit Profile
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* ══════════ ANNOUNCEMENTS ══════════ */}
+            {activeNav === 'announcements' && (
+              <motion.div key="announcements" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-4">
+                {MOCK_ANNOUNCEMENTS.map(a => (
+                  <div key={a.id} className={`rounded-2xl border shadow-sm overflow-hidden ${a.urgent ? 'border-red-300 bg-red-50' : 'border-gray-100 bg-white'}`}>
+                    {a.pinned && (
+                      <div className="bg-red-500 text-white text-xs font-bold px-4 py-1.5 flex items-center gap-2">
+                        <AlertCircle className="w-3.5 h-3.5" /> PINNED · URGENT
+                      </div>
+                    )}
+                    <div className="p-5">
+                      <h3 className={`font-bold text-lg mb-2 ${a.urgent ? 'text-red-800' : 'text-[#140152]'}`}>{a.title}</h3>
+                      <p className={`text-sm leading-relaxed mb-4 ${a.urgent ? 'text-red-700' : 'text-gray-600'}`}>{a.body}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 bg-[#140152] rounded-full flex items-center justify-center">
+                            <User className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-gray-700">{a.author}</p>
+                            <p className="text-xs text-gray-400">{a.time}</p>
+                          </div>
+                        </div>
+                        <button className="text-[#140152] text-xs font-semibold hover:underline">Reply</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Quick message */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <h3 className="font-bold text-[#140152] mb-4">Message Choir Director</h3>
+                  <div className="flex gap-3">
+                    <input value={msgInput} onChange={e => setMsgInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && msgInput.trim()) setMsgInput('') }}
+                      placeholder="Write a message…" className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#140152]/20 text-sm" />
+                    <button onClick={() => setMsgInput('')} disabled={!msgInput.trim()}
+                      className="px-5 py-3 bg-[#140152] text-white rounded-xl font-semibold text-sm disabled:opacity-40 hover:bg-[#1a0270] transition-all">
+                      <Send className="w-4 h-4" />
                     </button>
                   </div>
+                </div>
+              </motion.div>
+            )}
 
-                  <div className="as-card">
-                    <div className="as-card__head">
-                      <span className="as-card__title">Ministry Stats</span>
-                    </div>
-                    <div className="as-profile-stats">
-                      {[
-                        { label: 'Formation Stage', value: `${completedSteps}/5` },
-                        { label: 'Sessions Attended', value: '7' },
-                        { label: 'Tracks Played', value: '24' },
-                        { label: 'Days in Ministry', value: '18' },
-                      ].map(({ label, value }) => (
-                        <div key={label} className="as-profile-stat">
-                          <div className="as-profile-stat__val">{value}</div>
-                          <div className="as-profile-stat__label">{label}</div>
-                        </div>
-                      ))}
-                    </div>
+            {/* ══════════ ATTENDANCE ══════════ */}
+            {activeNav === 'attendance' && (
+              <motion.div key="attendance" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-6">
+
+                <div className="bg-gradient-to-br from-[#140152] to-[#2d0a6e] rounded-3xl p-6 text-white text-center">
+                  <p className="text-white/60 text-sm mb-2">This Month's Attendance</p>
+                  <div className="text-6xl font-black text-[#f5bb00] mb-2">{attendancePct}%</div>
+                  <p className="text-white/70">{ATTENDANCE.filter(a => a.attended).length} of {ATTENDANCE.length} sessions attended</p>
+                  <div className="mt-6 h-3 bg-white/20 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#f5bb00] rounded-full transition-all" style={{ width: `${attendancePct}%` }} />
                   </div>
+                </div>
+
+                {/* Weekly breakdown */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h3 className="font-bold text-[#140152] mb-5">Monthly Breakdown</h3>
+                  <div className="space-y-4">
+                    {ATTENDANCE.map((a, i) => (
+                      <div key={i} className="flex items-center gap-4">
+                        <span className="text-sm text-gray-500 w-16">{a.week}</span>
+                        <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${a.attended ? 'bg-green-500 w-full' : 'bg-red-400 w-full'}`} />
+                        </div>
+                        <span className={`text-sm font-semibold ${a.attended ? 'text-green-600' : 'text-red-500'}`}>
+                          {a.attended ? '✓ Present' : '✗ Absent'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mark attendance */}
+                <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
+                  <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                  <h3 className="font-bold text-green-800 mb-2">Mark Today's Attendance</h3>
+                  <p className="text-green-600 text-sm mb-5">Confirm your presence at today's rehearsal or service.</p>
+                  <button className="bg-green-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-600 transition-all">
+                    I'm Present Today
+                  </button>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: 'Consistency', val: `${attendancePct}%`, icon: TrendingUp, color: 'text-green-600' },
+                    { label: 'Streak', val: '2 weeks', icon: Zap, color: 'text-amber-600' },
+                    { label: 'Rank', val: 'Top 10%', icon: Award, color: 'text-purple-600' },
+                  ].map((s, i) => (
+                    <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+                      <s.icon className={`w-6 h-6 mx-auto mb-2 ${s.color}`} />
+                      <div className={`font-black text-lg ${s.color}`}>{s.val}</div>
+                      <div className="text-gray-400 text-xs">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* ══════════ MEMBERS ══════════ */}
+            {activeNav === 'members' && (
+              <motion.div key="members" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-6">
+
+                {/* Filter by voice */}
+                <div className="flex gap-2 flex-wrap">
+                  {['All', 'Soprano', 'Alto', 'Tenor', 'Bass'].map(v => (
+                    <button key={v} onClick={() => setMemberFilter(v)}
+                      className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${memberFilter === v ? 'bg-[#140152] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-[#140152]'}`}>
+                      {v}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {(['Soprano', 'Alto', 'Tenor', 'Bass'] as const).map(v => {
+                    const count = MOCK_MEMBERS.filter(m => m.voice === v).length
+                    return (
+                      <div key={v} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+                        <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-2 ${VOICE_COLORS[v]}`}>{v}</div>
+                        <div className="text-2xl font-black text-[#140152]">{count}</div>
+                        <div className="text-gray-400 text-xs">members</div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Members grid */}
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {filteredMembers.map(member => (
+                    <div key={member.id} className={`bg-white rounded-2xl border shadow-sm p-4 flex items-center gap-4 ${!member.active ? 'opacity-50' : 'border-gray-100 hover:shadow-md transition-all'}`}>
+                      <div className="w-12 h-12 bg-[#140152] rounded-full flex items-center justify-center font-bold text-white flex-shrink-0">
+                        {member.initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-[#140152] truncate">{member.name}</p>
+                          {!member.active && <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Inactive</span>}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${VOICE_COLORS[member.voice]}`}>{member.voice}</span>
+                          {member.role && <span className="text-xs text-gray-400">{member.role}</span>}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button className="w-8 h-8 bg-[#140152]/5 hover:bg-[#140152]/10 rounded-lg flex items-center justify-center transition-all">
+                          <MessageSquare className="w-4 h-4 text-[#140152]" />
+                        </button>
+                        <button className="w-8 h-8 bg-[#140152]/5 hover:bg-[#140152]/10 rounded-lg flex items-center justify-center transition-all">
+                          <Mail className="w-4 h-4 text-[#140152]" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* ══════════ HIGHLIGHTS ══════════ */}
+            {activeNav === 'highlights' && (
+              <motion.div key="highlights" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-6">
+
+                {/* Bible verse */}
+                <div className="bg-gradient-to-br from-[#140152] to-[#2d0a6e] rounded-3xl p-8 text-white text-center relative overflow-hidden">
+                  <div className="absolute inset-0 opacity-5"><Quote className="w-full h-full" /></div>
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 bg-[#f5bb00]/20 rounded-full flex items-center justify-center mx-auto mb-5">
+                      <Quote className="w-6 h-6 text-[#f5bb00]" />
+                    </div>
+                    <span className="text-[#f5bb00] text-xs font-bold uppercase tracking-widest mb-4 block">Bible Verse of the Week</span>
+                    <p className="text-xl md:text-2xl font-bold leading-relaxed mb-4 italic">
+                      "Sing to him a new song; play skillfully, and shout for joy."
+                    </p>
+                    <p className="text-[#f5bb00] font-bold">— Psalm 33:3</p>
+                  </div>
+                </div>
+
+                {/* Ministry stats */}
+                <div>
+                  <h3 className="font-bold text-[#140152] mb-4 text-lg">Ministry Highlights</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                      { val: '+12', label: 'New Members This Year', icon: Users, color: 'text-green-600', bg: 'bg-green-50' },
+                      { val: '48', label: 'Services Ministered', icon: Mic2, color: 'text-blue-600', bg: 'bg-blue-50' },
+                      { val: '95%', label: 'Member Satisfaction', icon: Heart, color: 'text-red-500', bg: 'bg-red-50' },
+                      { val: '6', label: 'Special Programs', icon: Star, color: 'text-amber-600', bg: 'bg-amber-50' },
+                    ].map((s, i) => (
+                      <div key={i} className={`${s.bg} rounded-2xl p-5 text-center`}>
+                        <s.icon className={`w-7 h-7 mx-auto mb-3 ${s.color}`} />
+                        <div className={`text-3xl font-black ${s.color}`}>{s.val}</div>
+                        <div className="text-gray-500 text-xs mt-1">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Encouragement cards */}
+                <div>
+                  <h3 className="font-bold text-[#140152] mb-4 text-lg">Testimonies & Encouragement</h3>
+                  <div className="space-y-4">
+                    {[
+                      { title: 'Lives Touched Last Sunday', body: 'Three people gave their lives to Christ after the choir ministered "Reckless Love" during the altar call. Glory to God!', icon: Heart, color: 'bg-red-50 border-red-200', iconColor: 'text-red-500' },
+                      { title: 'Choir Grew by 12 Members', body: 'We welcomed 12 new members to the Alter Sound family this year — 5 sopranos, 3 altos, 2 tenors, and 2 bass. The sound is growing!', icon: Users, color: 'bg-green-50 border-green-200', iconColor: 'text-green-500' },
+                      { title: 'Anniversary Concert Coming Up!', body: 'Preparations are in full swing for the LETW Anniversary Concert on June 28. Let\'s make it a night of glory!', icon: Star, color: 'bg-amber-50 border-amber-200', iconColor: 'text-amber-500' },
+                    ].map((h, i) => (
+                      <div key={i} className={`rounded-2xl border p-5 ${h.color}`}>
+                        <div className="flex items-start gap-4">
+                          <div className={`w-10 h-10 bg-white rounded-xl flex items-center justify-center flex-shrink-0`}>
+                            <h.icon className={`w-5 h-5 ${h.iconColor}`} />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-[#140152] mb-1">{h.title}</h4>
+                            <p className="text-gray-600 text-sm leading-relaxed">{h.body}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Spiritual encouragement */}
+                <div className="bg-[#f5bb00] rounded-3xl p-8 text-[#140152] text-center">
+                  <Crown className="w-12 h-12 mx-auto mb-4" />
+                  <h3 className="text-2xl font-black mb-3">You Are Called</h3>
+                  <p className="font-medium opacity-80 max-w-md mx-auto">
+                    Your voice is not just music — it is ministry. Every note you sing carries the power to break chains, heal hearts, and usher in God's presence. Keep consecrating yourself.
+                  </p>
                 </div>
               </motion.div>
             )}
 
           </AnimatePresence>
-        </div>
-      </main>
-
-      {/* ══ Global Styles ══ */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=Outfit:wght@300;400;500;600&display=swap');
-
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        :root {
-          --ink: #140152;
-          --gold: #f5bb00;
-          --gold-dim: rgba(245,187,0,0.15);
-          --white: #ffffff;
-          --dark: #0c0a1a;
-          --text: #f0eeff;
-          --muted: rgba(240,238,255,0.5);
-          --hint: rgba(240,238,255,0.28);
-          --card-bg: rgba(255,255,255,0.04);
-          --card-border: rgba(255,255,255,0.07);
-          --sidebar-bg: #0d0920;
-          --r: 14px;
-          --rm: 8px;
-          font-family: 'Outfit', sans-serif;
-        }
-
-        body { background: var(--dark); color: var(--text); }
-
-        .as-shell {
-          display: flex;
-          min-height: 100vh;
-          background: var(--dark);
-        }
-
-        /* ── SIDEBAR ── */
-        .as-sidebar {
-          width: 220px;
-          flex-shrink: 0;
-          background: var(--sidebar-bg);
-          border-right: 0.5px solid var(--card-border);
-          display: flex;
-          flex-direction: column;
-          position: sticky;
-          top: 0;
-          height: 100vh;
-          z-index: 40;
-        }
-
-        .as-brand {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 1.25rem 1rem 1rem;
-          border-bottom: 0.5px solid var(--card-border);
-        }
-        .as-brand__logo {
-          width: 30px; height: 30px;
-          background: var(--gold);
-          color: var(--ink);
-          display: flex; align-items: center; justify-content: center;
-          border-radius: 8px;
-          flex-shrink: 0;
-        }
-        .as-brand__name {
-          font-family: 'Syne', sans-serif;
-          font-weight: 800;
-          font-size: 12px;
-          letter-spacing: 0.1em;
-          color: var(--white);
-        }
-        .as-brand__sub {
-          font-size: 9px;
-          color: var(--hint);
-          margin-top: 1px;
-        }
-
-        .as-user-chip {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 0.875rem 1rem;
-          border-bottom: 0.5px solid var(--card-border);
-          position: relative;
-        }
-        .as-user-chip__avatar {
-          width: 32px; height: 32px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, var(--gold) 0%, #e0a800 100%);
-          color: var(--ink);
-          font-size: 11px; font-weight: 700;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .as-user-chip__name {
-          font-size: 12px; font-weight: 600;
-          color: var(--white);
-          display: block;
-        }
-        .as-user-chip__role {
-          font-size: 9px;
-          color: var(--hint);
-          display: block;
-          margin-top: 1px;
-        }
-        .as-status-dot {
-          width: 7px; height: 7px;
-          border-radius: 50%;
-          background: #34d399;
-          flex-shrink: 0;
-          margin-left: auto;
-          box-shadow: 0 0 0 2px rgba(52,211,153,0.25);
-        }
-
-        .as-nav { padding: 0.75rem 0; flex: 1; }
-        .as-nav__item {
-          display: flex;
-          align-items: center;
-          gap: 9px;
-          width: 100%;
-          padding: 0.5rem 1rem;
-          font-size: 12.5px;
-          font-weight: 400;
-          color: var(--muted);
-          background: none;
-          border: none;
-          border-left: 2px solid transparent;
-          cursor: pointer;
-          text-align: left;
-          transition: all 0.15s;
-          font-family: 'Outfit', sans-serif;
-        }
-        .as-nav__item:hover { color: var(--white); background: rgba(255,255,255,0.03); }
-        .as-nav__item--active {
-          color: var(--white);
-          background: rgba(245,187,0,0.08);
-          border-left-color: var(--gold);
-        }
-        .as-nav__badge {
-          margin-left: auto;
-          background: var(--gold);
-          color: var(--ink);
-          font-size: 9px; font-weight: 700;
-          padding: 1px 5px;
-          border-radius: 20px;
-        }
-
-        .as-sidebar__bottom {
-          padding: 0.875rem 1rem;
-          border-top: 0.5px solid var(--card-border);
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .as-sidebar-link {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          font-size: 11px;
-          color: var(--muted);
-          text-decoration: none;
-          padding: 4px 0;
-          transition: color 0.15s;
-        }
-        .as-sidebar-link:hover { color: var(--white); }
-        .as-sidebar-link--danger:hover { color: #f87171; }
-
-        .as-overlay {
-          position: fixed; inset: 0;
-          background: rgba(0,0,0,0.6);
-          z-index: 30;
-        }
-
-        /* ── MAIN ── */
-        .as-main {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          min-width: 0;
-        }
-
-        .as-topbar {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 0 1.25rem;
-          height: 56px;
-          border-bottom: 0.5px solid var(--card-border);
-          background: rgba(13,9,32,0.8);
-          backdrop-filter: blur(12px);
-          position: sticky;
-          top: 0;
-          z-index: 20;
-        }
-        .as-topbar__title {
-          font-family: 'Syne', sans-serif;
-          font-weight: 700;
-          font-size: 14px;
-          color: var(--white);
-          flex: 1;
-        }
-        .as-topbar__actions { display: flex; gap: 6px; }
-        .as-hamburger {
-          display: none;
-          flex-direction: column;
-          gap: 4px;
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 4px;
-        }
-        .as-hamburger span {
-          display: block;
-          width: 18px; height: 1.5px;
-          background: var(--muted);
-          border-radius: 1px;
-        }
-
-        .as-icon-btn {
-          width: 34px; height: 34px;
-          border-radius: var(--rm);
-          background: var(--card-bg);
-          border: 0.5px solid var(--card-border);
-          color: var(--muted);
-          display: flex; align-items: center; justify-content: center;
-          cursor: pointer;
-          position: relative;
-          transition: all 0.15s;
-        }
-        .as-icon-btn:hover { color: var(--white); background: rgba(255,255,255,0.07); }
-        .as-icon-btn__dot {
-          position: absolute;
-          top: 7px; right: 7px;
-          width: 5px; height: 5px;
-          border-radius: 50%;
-          background: var(--gold);
-        }
-
-        .as-content {
-          flex: 1;
-          padding: 1.5rem;
-          overflow-y: auto;
-          max-width: 900px;
-          width: 100%;
-          margin: 0 auto;
-        }
-
-        /* ── Buttons ── */
-        .as-btn {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 8px 16px;
-          border-radius: var(--rm);
-          font-size: 12.5px; font-weight: 500;
-          cursor: pointer;
-          border: none;
-          transition: all 0.15s;
-          font-family: 'Outfit', sans-serif;
-          text-decoration: none;
-        }
-        .as-btn--gold {
-          background: var(--gold);
-          color: var(--ink);
-        }
-        .as-btn--gold:hover { opacity: 0.9; }
-        .as-btn--ghost {
-          background: rgba(255,255,255,0.07);
-          color: var(--muted);
-          border: 0.5px solid var(--card-border);
-        }
-        .as-btn--ghost:hover { color: var(--white); background: rgba(255,255,255,0.1); }
-        .as-btn--outline {
-          background: transparent;
-          color: var(--muted);
-          border: 0.5px solid var(--card-border);
-        }
-        .as-btn--outline:hover { color: var(--white); }
-
-        /* ── Pills ── */
-        .as-pill {
-          display: inline-flex; align-items: center;
-          padding: 2px 8px;
-          border-radius: 20px;
-          font-size: 9px; font-weight: 600;
-          letter-spacing: 0.04em;
-          white-space: nowrap;
-        }
-        .as-pill--gold { background: var(--gold-dim); color: var(--gold); }
-        .as-pill--green { background: rgba(52,211,153,0.15); color: #34d399; }
-        .as-pill--dim { background: rgba(255,255,255,0.06); color: var(--muted); }
-
-        /* ── Cards ── */
-        .as-card {
-          background: var(--card-bg);
-          border: 0.5px solid var(--card-border);
-          border-radius: var(--r);
-          overflow: hidden;
-        }
-        .as-card__head {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 0.875rem 1rem;
-          border-bottom: 0.5px solid var(--card-border);
-        }
-        .as-card__title {
-          font-family: 'Syne', sans-serif;
-          font-size: 13px; font-weight: 700;
-          color: var(--white);
-        }
-        .as-card__link {
-          font-size: 10px; color: var(--muted);
-          background: none; border: none;
-          cursor: pointer;
-          transition: color 0.15s;
-          font-family: 'Outfit', sans-serif;
-        }
-        .as-card__link:hover { color: var(--gold); }
-
-        /* ── WELCOME BANNER ── */
-        .as-welcome-banner {
-          position: relative;
-          background: var(--ink);
-          border-radius: var(--r);
-          padding: 2rem;
-          margin-bottom: 1.25rem;
-          overflow: hidden;
-          border: 0.5px solid rgba(245,187,0,0.2);
-        }
-        .as-welcome-banner__bg {
-          position: absolute; inset: 0;
-          background: radial-gradient(ellipse at 80% 50%, rgba(245,187,0,0.08) 0%, transparent 70%);
-        }
-        .as-welcome-banner__content { position: relative; z-index: 1; max-width: 520px; }
-        .as-welcome-banner__eyebrow {
-          display: flex; align-items: center; gap: 5px;
-          font-size: 10px; font-weight: 600;
-          color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase;
-          margin-bottom: 0.5rem;
-        }
-        .as-welcome-banner__heading {
-          font-family: 'Syne', sans-serif;
-          font-size: 26px; font-weight: 800;
-          color: var(--white); line-height: 1.1;
-          margin-bottom: 0.5rem;
-        }
-        .as-welcome-banner__sub {
-          font-size: 13px; color: rgba(255,255,255,0.55);
-          margin-bottom: 1.25rem; line-height: 1.5;
-        }
-        .as-welcome-banner__actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .as-welcome-banner__ornament {
-          position: absolute; right: -10px; top: 50%;
-          transform: translateY(-50%);
-          color: rgba(245,187,0,0.06);
-          pointer-events: none;
-        }
-
-        /* ── STATS ── */
-        .as-stats {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 10px;
-          margin-bottom: 1.25rem;
-        }
-        .as-stat {
-          background: var(--card-bg);
-          border: 0.5px solid var(--card-border);
-          border-radius: var(--r);
-          padding: 0.875rem 1rem;
-          display: flex; align-items: center; gap: 10px;
-        }
-        .as-stat__icon {
-          width: 34px; height: 34px;
-          border-radius: 8px;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .as-stat__value {
-          font-family: 'Syne', sans-serif;
-          font-size: 18px; font-weight: 800;
-          color: var(--white); line-height: 1;
-        }
-        .as-stat__label {
-          font-size: 10px; color: var(--hint); margin-top: 3px;
-        }
-
-        /* ── HOME GRID ── */
-        .as-home-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 10px;
-        }
-
-        /* ── FORMATION LIST (home card) ── */
-        .as-formation-list { padding: 0.5rem 1rem 1rem; }
-        .as-formation-item {
-          display: flex; align-items: center; gap: 10px;
-          padding: 0.5rem 0;
-          font-size: 12.5px; color: var(--muted);
-          border-bottom: 0.5px solid var(--card-border);
-        }
-        .as-formation-item:last-child { border-bottom: none; }
-        .as-formation-item--active { color: var(--white); }
-        .as-formation-item--done { color: rgba(52,211,153,0.7); }
-        .as-formation-item__num {
-          width: 20px; height: 20px;
-          border-radius: 50%;
-          background: var(--card-border);
-          color: var(--hint);
-          font-size: 10px; font-weight: 700;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .as-formation-item--active .as-formation-item__num {
-          background: var(--gold-dim); color: var(--gold);
-        }
-        .as-formation-item--done .as-formation-item__num {
-          background: rgba(52,211,153,0.15); color: #34d399;
-        }
-
-        /* ── ANN LIST (home) ── */
-        .as-ann-list { padding: 0.5rem 1rem 1rem; }
-        .as-ann-item {
-          display: flex; align-items: flex-start; gap: 10px;
-          padding: 0.5rem 0;
-          border-bottom: 0.5px solid var(--card-border);
-        }
-        .as-ann-item:last-child { border-bottom: none; }
-        .as-ann-item__dot {
-          width: 7px; height: 7px;
-          border-radius: 50%;
-          margin-top: 4px; flex-shrink: 0;
-        }
-        .as-ann-item__title { font-size: 12px; font-weight: 500; color: var(--white); }
-        .as-ann-item__date { font-size: 10px; color: var(--hint); margin-top: 1px; }
-
-        /* ── LATEST MSG ── */
-        .as-latest-msg { padding: 1rem; }
-        .as-latest-msg__time { font-size: 10px; color: var(--hint); margin-top: 6px; }
-
-        /* ── TRACKS GRID ── */
-        .as-filter-row {
-          display: flex; gap: 8px; flex-wrap: wrap;
-          margin-bottom: 1.25rem;
-        }
-        .as-filter-btn {
-          padding: 5px 13px;
-          border-radius: 20px;
-          font-size: 11.5px; font-weight: 500;
-          background: var(--card-bg);
-          border: 0.5px solid var(--card-border);
-          color: var(--muted);
-          cursor: pointer;
-          transition: all 0.15s;
-          font-family: 'Outfit', sans-serif;
-        }
-        .as-filter-btn:hover { color: var(--white); }
-        .as-filter-btn--active {
-          background: var(--gold);
-          border-color: var(--gold);
-          color: var(--ink);
-          font-weight: 600;
-        }
-
-        .as-tracks-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-          gap: 12px;
-        }
-        .as-track-card {
-          background: var(--card-bg);
-          border: 0.5px solid var(--card-border);
-          border-radius: var(--r);
-          overflow: hidden;
-          transition: border-color 0.2s, transform 0.2s;
-        }
-        .as-track-card:hover { border-color: rgba(245,187,0,0.3); transform: translateY(-2px); }
-        .as-track-card--playing { border-color: var(--gold) !important; }
-
-        .as-track-cover {
-          position: relative;
-          aspect-ratio: 1;
-          background: linear-gradient(135deg, var(--ink) 0%, #2d1f6e 100%);
-        }
-        .as-track-cover__img {
-          width: 100%; height: 100%; object-fit: cover;
-        }
-        .as-track-cover__fallback {
-          position: absolute; inset: 0;
-          display: flex; align-items: center; justify-content: center;
-          color: rgba(245,187,0,0.3);
-        }
-        .as-track-play-btn {
-          position: absolute; inset: 0;
-          display: flex; align-items: center; justify-content: center;
-          background: rgba(0,0,0,0.35);
-          opacity: 0;
-          color: var(--white);
-          border: none; cursor: pointer;
-          transition: opacity 0.2s;
-          font-size: 0;
-        }
-        .as-track-card:hover .as-track-play-btn,
-        .as-track-card--playing .as-track-play-btn { opacity: 1; }
-        .as-track-play-btn svg {
-          width: 36px; height: 36px;
-          background: var(--gold);
-          color: var(--ink);
-          border-radius: 50%;
-          padding: 8px;
-        }
-
-        /* Equaliser bars */
-        .as-track-cover__eq {
-          position: absolute; bottom: 8px; left: 8px;
-          display: flex; align-items: flex-end; gap: 2px;
-        }
-        .as-track-cover__eq span {
-          display: block;
-          width: 3px;
-          border-radius: 2px;
-          background: var(--gold);
-          animation: eq 0.8s ease-in-out infinite alternate;
-        }
-        .as-track-cover__eq span:nth-child(1) { height: 8px; animation-delay: 0s; }
-        .as-track-cover__eq span:nth-child(2) { height: 14px; animation-delay: 0.15s; }
-        .as-track-cover__eq span:nth-child(3) { height: 10px; animation-delay: 0.3s; }
-        .as-track-cover__eq span:nth-child(4) { height: 16px; animation-delay: 0.45s; }
-        @keyframes eq {
-          from { transform: scaleY(0.4); }
-          to   { transform: scaleY(1); }
-        }
-
-        .as-track-info { padding: 0.75rem; }
-        .as-track-info__title {
-          font-size: 13px; font-weight: 600; color: var(--white);
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-          margin-bottom: 2px;
-        }
-        .as-track-info__artist { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
-        .as-track-info__meta {
-          display: flex; align-items: center; gap: 6px;
-          flex-wrap: wrap;
-        }
-        .as-track-info__plays { font-size: 10px; color: var(--hint); margin-left: auto; }
-
-        .as-like-btn {
-          background: none; border: none;
-          color: var(--hint); cursor: pointer;
-          display: flex; align-items: center;
-          transition: color 0.15s, transform 0.15s;
-          padding: 0;
-        }
-        .as-like-btn:hover { color: #f87171; transform: scale(1.2); }
-        .as-like-btn--liked { color: #f87171; }
-
-        /* ── FORMATION PAGE ── */
-        .as-formation-hero {
-          background: linear-gradient(135deg, var(--ink) 0%, #1a0d4a 100%);
-          border: 0.5px solid rgba(245,187,0,0.2);
-          border-radius: var(--r);
-          padding: 2rem;
-          margin-bottom: 1.25rem;
-        }
-        .as-formation-hero__eyebrow {
-          display: flex; align-items: center; gap: 5px;
-          font-size: 10px; font-weight: 600;
-          color: var(--gold); letter-spacing: 0.12em;
-          text-transform: uppercase; margin-bottom: 0.5rem;
-        }
-        .as-formation-hero__heading {
-          font-family: 'Syne', sans-serif;
-          font-size: 22px; font-weight: 800;
-          color: var(--white); margin-bottom: 0.5rem;
-        }
-        .as-formation-hero__sub {
-          font-size: 12.5px; color: var(--muted);
-          margin-bottom: 1.25rem;
-        }
-        .as-formation-progress-bar {
-          height: 5px; background: rgba(255,255,255,0.08);
-          border-radius: 3px; overflow: hidden;
-        }
-        .as-formation-progress-bar__fill {
-          height: 100%; background: var(--gold);
-          border-radius: 3px;
-          transition: width 0.8s ease;
-        }
-        .as-formation-progress-label {
-          font-size: 10px; color: var(--muted); margin-top: 6px;
-        }
-
-        .as-formation-stages { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
-        .as-stage-card {
-          display: flex; align-items: center; gap: 14px;
-          background: var(--card-bg);
-          border: 0.5px solid var(--card-border);
-          border-radius: var(--r);
-          padding: 1rem 1.25rem;
-          transition: border-color 0.2s;
-        }
-        .as-stage-card--active { border-color: rgba(245,187,0,0.35); }
-        .as-stage-card--done { border-color: rgba(52,211,153,0.2); }
-        .as-stage-card__num {
-          width: 36px; height: 36px;
-          border-radius: 50%;
-          background: rgba(255,255,255,0.05);
-          color: var(--hint);
-          font-size: 14px; font-weight: 700;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .as-stage-card--active .as-stage-card__num { background: var(--gold-dim); color: var(--gold); }
-        .as-stage-card--done  .as-stage-card__num { background: rgba(52,211,153,0.1); color: #34d399; }
-        .as-stage-card__label {
-          font-weight: 600; font-size: 13.5px; color: var(--white);
-        }
-        .as-stage-card__desc { font-size: 11px; color: var(--hint); margin-top: 2px; }
-        .as-stage-card__body { flex: 1; }
-
-        .as-formation-note {
-          display: flex; align-items: flex-start; gap: 8px;
-          padding: 0.875rem 1rem;
-          background: rgba(245,187,0,0.06);
-          border: 0.5px solid rgba(245,187,0,0.15);
-          border-radius: var(--rm);
-          font-size: 12px; color: var(--muted);
-          line-height: 1.5;
-        }
-        .as-formation-note svg { color: var(--gold); flex-shrink: 0; margin-top: 1px; }
-
-        /* ── ANNOUNCEMENTS PAGE ── */
-        .as-ann-full-list { display: flex; flex-direction: column; gap: 10px; }
-        .as-ann-card {
-          display: flex;
-          background: var(--card-bg);
-          border: 0.5px solid var(--card-border);
-          border-radius: var(--r);
-          overflow: hidden;
-        }
-        .as-ann-card__stripe { width: 4px; flex-shrink: 0; }
-        .as-ann-card__body { padding: 1rem 1.25rem; flex: 1; }
-        .as-ann-card__top {
-          display: flex; align-items: center; gap: 10px;
-          margin-bottom: 6px;
-        }
-        .as-ann-card__title {
-          font-family: 'Syne', sans-serif;
-          font-size: 14px; font-weight: 700;
-          color: var(--white); flex: 1;
-        }
-        .as-ann-card__desc { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
-        .as-ann-card__meta {
-          display: flex; align-items: center; gap: 6px;
-          font-size: 10px; color: var(--hint);
-        }
-        .as-dot-sep { width: 2px; height: 2px; border-radius: 50%; background: var(--hint); }
-
-        /* ── MESSAGES ── */
-        .as-messages-shell {
-          display: flex;
-          flex-direction: column;
-          background: var(--card-bg);
-          border: 0.5px solid var(--card-border);
-          border-radius: var(--r);
-          overflow: hidden;
-          height: calc(100vh - 200px);
-          min-height: 400px;
-        }
-        .as-messages-header {
-          display: flex; align-items: center; gap: 10px;
-          padding: 0.875rem 1rem;
-          border-bottom: 0.5px solid var(--card-border);
-          background: rgba(255,255,255,0.02);
-        }
-        .as-messages-header__avatar {
-          width: 34px; height: 34px;
-          border-radius: 50%;
-          background: var(--ink);
-          border: 1.5px solid rgba(245,187,0,0.4);
-          color: var(--gold);
-          font-size: 11px; font-weight: 700;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .as-messages-header__name { font-size: 13px; font-weight: 600; color: var(--white); }
-        .as-messages-header__status {
-          display: flex; align-items: center; gap: 5px;
-          font-size: 10px; color: #34d399;
-        }
-        .as-messages-feed {
-          flex: 1; overflow-y: auto;
-          padding: 1rem;
-          display: flex; flex-direction: column; gap: 10px;
-        }
-        .as-msg-row {
-          display: flex; align-items: flex-end; gap: 8px;
-        }
-        .as-msg-row--user { flex-direction: row-reverse; }
-        .as-msg-avatar {
-          width: 26px; height: 26px;
-          border-radius: 50%;
-          font-size: 9px; font-weight: 700;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .as-msg-avatar--admin { background: var(--ink); border: 1px solid rgba(245,187,0,0.3); color: var(--gold); }
-        .as-msg-avatar--user { background: var(--gold); color: var(--ink); }
-        .as-msg-bubble-wrap { display: flex; flex-direction: column; gap: 3px; max-width: 70%; }
-        .as-msg-row--user .as-msg-bubble-wrap { align-items: flex-end; }
-        .as-msg-bubble {
-          padding: 9px 13px;
-          border-radius: 12px;
-          font-size: 12.5px; line-height: 1.5;
-        }
-        .as-msg-bubble--admin {
-          background: rgba(255,255,255,0.06);
-          border: 0.5px solid var(--card-border);
-          color: var(--text);
-          border-radius: 12px 12px 12px 2px;
-        }
-        .as-msg-bubble--user {
-          background: var(--ink);
-          color: var(--white);
-          border-radius: 12px 12px 2px 12px;
-        }
-        .as-msg-time { font-size: 9px; color: var(--hint); }
-
-        .as-messages-compose {
-          display: flex; gap: 8px;
-          padding: 0.875rem;
-          border-top: 0.5px solid var(--card-border);
-          background: rgba(255,255,255,0.02);
-        }
-        .as-compose-input {
-          flex: 1;
-          padding: 9px 13px;
-          border-radius: var(--rm);
-          border: 0.5px solid var(--card-border);
-          background: rgba(255,255,255,0.04);
-          color: var(--text);
-          font-size: 12.5px;
-          font-family: 'Outfit', sans-serif;
-          outline: none;
-          transition: border-color 0.15s;
-        }
-        .as-compose-input:focus { border-color: rgba(245,187,0,0.4); }
-        .as-compose-input::placeholder { color: var(--hint); }
-        .as-compose-send {
-          width: 38px; height: 38px;
-          border-radius: var(--rm);
-          background: var(--gold);
-          color: var(--ink);
-          border: none; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          transition: opacity 0.15s;
-          flex-shrink: 0;
-        }
-        .as-compose-send:disabled { opacity: 0.4; cursor: default; }
-        .as-compose-send:not(:disabled):hover { opacity: 0.85; }
-
-        /* ── PROFILE ── */
-        .as-profile-hero {
-          display: flex; align-items: center; gap: 16px;
-          margin-bottom: 1.25rem;
-          padding: 1.5rem;
-          background: linear-gradient(135deg, var(--ink) 0%, #1a0d4a 100%);
-          border: 0.5px solid rgba(245,187,0,0.2);
-          border-radius: var(--r);
-        }
-        .as-profile-avatar {
-          width: 60px; height: 60px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, var(--gold) 0%, #e0a800 100%);
-          color: var(--ink);
-          font-family: 'Syne', sans-serif;
-          font-size: 20px; font-weight: 800;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-          border: 3px solid rgba(245,187,0,0.3);
-        }
-        .as-profile-name {
-          font-family: 'Syne', sans-serif;
-          font-size: 20px; font-weight: 800;
-          color: var(--white); margin-bottom: 6px;
-        }
-        .as-profile-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-        .as-profile-role { font-size: 12px; color: var(--muted); }
-        .as-profile-joined {
-          display: flex; align-items: center; gap: 5px;
-          font-size: 11px; color: var(--hint);
-        }
-
-        .as-profile-grid {
-          display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-        }
-        .as-profile-fields { padding: 0 1rem; }
-        .as-profile-field {
-          display: flex; justify-content: space-between; align-items: center;
-          padding: 0.625rem 0;
-          border-bottom: 0.5px solid var(--card-border);
-          font-size: 12px;
-        }
-        .as-profile-field:last-child { border-bottom: none; }
-        .as-profile-field__label { color: var(--hint); }
-        .as-profile-field__value { color: var(--white); font-weight: 500; }
-        .as-profile-stats {
-          display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
-          padding: 0 1rem 1rem;
-        }
-        .as-profile-stat {
-          padding: 1rem 0.5rem;
-          text-align: center;
-        }
-        .as-profile-stat__val {
-          font-family: 'Syne', sans-serif;
-          font-size: 22px; font-weight: 800;
-          color: var(--white);
-        }
-        .as-profile-stat__label { font-size: 10px; color: var(--hint); margin-top: 3px; }
-
-        /* ── EMPTY STATE ── */
-        .as-empty-state {
-          text-align: center; padding: 4rem 2rem;
-          color: var(--hint); font-size: 13px;
-        }
-        .as-empty-state__icon { color: rgba(245,187,0,0.3); margin: 0 auto 1rem; }
-        .as-pulse { animation: pulse 1.5s ease-in-out infinite; }
-        @keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:0.8} }
-
-        /* ── RESPONSIVE ── */
-        @media (max-width: 768px) {
-          .as-sidebar {
-            position: fixed; left: -220px;
-            height: 100vh; top: 0;
-            transition: left 0.25s ease;
-          }
-          .as-sidebar--open { left: 0; }
-          .as-hamburger { display: flex; }
-          .as-stats { grid-template-columns: repeat(2, 1fr); }
-          .as-home-grid { grid-template-columns: 1fr; }
-          .as-profile-grid { grid-template-columns: 1fr; }
-          .as-tracks-grid { grid-template-columns: repeat(2, 1fr); }
-          .as-welcome-banner__ornament { display: none; }
-          .as-content { padding: 1rem; }
-        }
-
-        @media (max-width: 480px) {
-          .as-stats { grid-template-columns: 1fr 1fr; }
-          .as-tracks-grid { grid-template-columns: 1fr 1fr; }
-          .as-welcome-banner { padding: 1.25rem; }
-          .as-welcome-banner__heading { font-size: 20px; }
-        }
-      `}</style>
+        </main>
+      </div>
     </div>
   )
 }
