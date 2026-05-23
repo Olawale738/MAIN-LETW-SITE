@@ -19,72 +19,80 @@ const programs = [
         color: 'bg-blue-100 text-blue-600',
         accent: '#3b82f6',
         title: 'Leadership Training',
-        description: 'Empowering the next generation of leaders through monthly sessions, mentorship, and real-world leadership experience.',
+        description: 'You were not born to follow the crowd — you were born to lead it. Our leadership track equips you with the character, vision, strategy, and spiritual authority to step into your God-ordained role. From monthly intensives to one-on-one mentorship with seasoned leaders, you will be challenged, sharpened, and sent.',
+        badge: 'High Impact',
         href: '/leadership',
-        cta: 'Join Now',
+        cta: 'Start Leading',
     },
     {
         icon: Briefcase,
         color: 'bg-purple-100 text-purple-600',
         accent: '#8b5cf6',
         title: 'Career Guidance',
-        description: 'Expert mentorship, CV workshops, interview coaching, and professional networking to launch your career.',
+        description: 'God cares about your Monday just as much as your Sunday. This program bridges faith and profession — pairing you with industry mentors, walking you through CV building, interview mastery, and strategic networking. We don\'t just help you find a job; we help you build a God-honouring career that makes an eternal impact.',
+        badge: 'Career-Defining',
         href: '/career-guidance',
-        cta: 'Learn More',
+        cta: 'Build Your Future',
     },
     {
         icon: TrendingUp,
         color: 'bg-green-100 text-green-600',
         accent: '#22c55e',
         title: 'Skill Development',
-        description: 'Practical workshops in tech, creative arts, entrepreneurship, and vocational skills to sharpen your abilities.',
+        description: 'Your gift will make room for you — but only if it is sharpened. We run hands-on workshops in technology, digital media, creative arts, public speaking, entrepreneurship, and vocational trades. Whether you are a creator, builder, or thinker, there is a track designed to turn your raw potential into a market-ready ability.',
+        badge: 'In-Demand Skills',
         href: '/skill-development',
-        cta: 'Get Started',
+        cta: 'Sharpen Your Gift',
     },
     {
         icon: MessageCircle,
         color: 'bg-pink-100 text-pink-600',
         accent: '#ec4899',
-        title: 'Counselling',
-        description: 'Safe, confidential counselling for youth navigating challenges — mental health, relationships, identity, and faith.',
+        title: 'Counselling & Wellbeing',
+        description: 'Your mental and emotional health matter deeply to God and to us. Our trained counsellors provide a safe, completely confidential space for you to process trauma, navigate identity, heal from broken relationships, and find your footing in faith. You do not have to carry your battles alone — real help is here.',
+        badge: 'Safe Space',
         href: '/services/counselling',
-        cta: 'Book Session',
+        cta: 'Get Support Now',
     },
     {
         icon: Music,
         color: 'bg-amber-100 text-amber-600',
         accent: '#f59e0b',
         title: 'Alter Sound',
-        description: 'A consecrated space of worship and prophetic sound. Join the youth worship ministry and flow in the Spirit.',
+        description: 'This is not just a choir. Alter Sound is a prophetic worship movement — a consecrated company of young voices and instruments releasing the sound of heaven. If you carry a gift for music, singing, or sound, this is where you are refined, released, and positioned to lead others into the presence of God.',
+        badge: 'Prophetic Worship',
         href: '/services/alter-sound',
-        cta: 'Enter Alter Sound',
+        cta: 'Enter the Sound',
     },
     {
         icon: BookOpen,
         color: 'bg-indigo-100 text-indigo-600',
         accent: '#6366f1',
         title: 'Bible Study',
-        description: 'Interactive weekly Bible study every Tuesday at 6:00 PM. Deepen your understanding of the Word.',
+        description: 'The Word of God is not just a book — it is a living weapon, a daily compass, and the foundation of every great life. Our weekly Bible study goes deep: systematic theology, cultural context, practical application, and open discussion. Come hungry. Leave equipped. Every Tuesday at 6:00 PM.',
+        badge: 'Every Tuesday',
         href: '/bible-study',
-        cta: 'Learn More',
+        cta: 'Study the Word',
     },
     {
         icon: Heart,
         color: 'bg-red-100 text-red-600',
         accent: '#ef4444',
-        title: 'Prayer Meeting',
-        description: 'Power-packed youth prayer meetings every Friday at 8:00 PM. Come pray, intercede, and encounter God.',
+        title: 'Prayer & Intercession',
+        description: 'Every great move of God starts on someone\'s knees. Our Friday prayer meetings are not quiet, passive gatherings — they are spiritual warfare. We intercede for nations, believe for miracles, and encounter the living God together. If you want a prayer life that actually changes things, this is where it starts.',
+        badge: 'Every Friday',
         href: '/prayer',
-        cta: 'Join Prayer',
+        cta: 'Pray with Power',
     },
     {
         icon: Star,
         color: 'bg-orange-100 text-orange-600',
         accent: '#f97316',
         title: 'Discipleship Training',
-        description: 'Structured discipleship pathway from new believer to mature leader — walk with Christ and multiply His kingdom.',
+        description: 'Salvation is the beginning, not the destination. Our discipleship pathway takes you from new believer to mature minister — through structured teaching, accountability partnerships, and mission-focused deployment. This is not a programme you attend; it is a transformation you undergo. Your kingdom assignment starts here.',
+        badge: 'Life-Changing',
         href: '/discipleship',
-        cta: 'Start Journey',
+        cta: 'Begin the Journey',
     },
 ]
 
@@ -247,13 +255,13 @@ export default function YouthMinistryPage() {
                         <span className="text-[#f5bb00] font-bold uppercase tracking-widest text-sm mb-4 block">What We Offer</span>
                         <h2 className="text-4xl md:text-5xl font-black text-[#140152] mb-4">Youth Programs</h2>
                         <p className="text-gray-500 max-w-2xl mx-auto text-lg">
-                            Eight distinct programs to develop every area of your life — spiritual, professional, and personal.
+                            Eight transformative programs — each one designed to develop a specific dimension of who God made you to be. Spiritual. Professional. Purposeful. Unstoppable.
                         </p>
                         <div className="w-24 h-1.5 bg-[#f5bb00] mx-auto rounded-full mt-6" />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {programs.map(({ icon: Icon, color, title, description, href, cta }, i) => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {programs.map(({ icon: Icon, color, title, description, badge, href, cta }, i) => (
                             <motion.div
                                 key={title}
                                 initial={{ opacity: 0, y: 20 }}
@@ -262,14 +270,19 @@ export default function YouthMinistryPage() {
                                 transition={{ delay: i * 0.05 }}
                             >
                                 <Card className="border-none shadow-md hover:shadow-2xl transition-all duration-300 h-full flex flex-col group hover:-translate-y-1">
-                                    <CardContent className="p-6 flex flex-col h-full">
-                                        <div className={`w-12 h-12 ${color} rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                                            <Icon className="w-6 h-6" />
+                                    <CardContent className="p-7 flex flex-col h-full">
+                                        <div className="flex items-start justify-between mb-5">
+                                            <div className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shrink-0`}>
+                                                <Icon className="w-7 h-7" />
+                                            </div>
+                                            {badge && (
+                                                <span className="text-xs font-bold bg-[#140152]/8 text-[#140152] border border-[#140152]/15 px-3 py-1 rounded-full">{badge}</span>
+                                            )}
                                         </div>
-                                        <h3 className="font-bold text-[#140152] text-lg mb-2">{title}</h3>
-                                        <p className="text-sm text-gray-500 leading-relaxed flex-1 mb-4">{description}</p>
+                                        <h3 className="font-black text-[#140152] text-xl mb-3">{title}</h3>
+                                        <p className="text-sm text-gray-500 leading-relaxed flex-1 mb-5">{description}</p>
                                         <Link href={href}
-                                            className="text-[#140152] font-bold text-sm flex items-center gap-1 hover:gap-2 transition-all">
+                                            className="inline-flex items-center gap-2 bg-[#140152] text-white font-bold text-sm px-5 py-3 rounded-xl hover:bg-[#1d0175] transition-all group-hover:gap-3 self-start">
                                             {cta} <ArrowRight className="w-4 h-4" />
                                         </Link>
                                     </CardContent>
