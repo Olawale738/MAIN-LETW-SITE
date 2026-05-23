@@ -33,6 +33,7 @@ export default function ConditionalLayout({
         '/admin',
         '/auth',
         '/services/alter-sound/dashboard',
+        '/dashboard/alter-sound',
         '/children/dashboard',
         '/youth/dashboard',
     ]
