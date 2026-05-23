@@ -9,7 +9,7 @@ import PremiumButton from '@/components/ui/PremiumButton'
 import SectionWrapper from '@/components/shared/SectionWrapper'
 import {
     Users, BookOpen, Briefcase, TrendingUp, Heart,
-    Music, MessageCircle, ArrowRight, CheckCircle,
+    Music, MessageCircle, Star, ArrowRight, CheckCircle,
     Loader2, Flame, Target, Zap, Globe
 } from 'lucide-react'
 
