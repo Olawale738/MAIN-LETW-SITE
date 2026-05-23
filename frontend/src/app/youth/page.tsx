@@ -9,7 +9,7 @@ import PremiumButton from '@/components/ui/PremiumButton'
 import SectionWrapper from '@/components/shared/SectionWrapper'
 import {
     Users, BookOpen, Briefcase, TrendingUp, Heart,
-    Music, MessageCircle, Star, ArrowRight, CheckCircle,
+    Music, MessageCircle, ArrowRight, CheckCircle,
     Loader2, Flame, Target, Zap, Globe
 } from 'lucide-react'
 
@@ -305,41 +305,6 @@ export default function YouthMinistryPage() {
                     </div>
                 </div>
             </SectionWrapper>
-
-            {/* ─── TESTIMONIALS ─────────────────────────────────────── */}
-            <div className="bg-[#140152] py-24">
-                <SectionWrapper>
-                    <div className="text-center mb-12">
-                        <span className="text-[#f5bb00] font-bold uppercase tracking-widest text-sm mb-4 block">Voices</span>
-                        <h2 className="text-4xl font-black text-white">What Youth Are Saying</h2>
-                    </div>
-                    <div className="grid md:grid-cols-3 gap-8">
-                        {[
-                            { name: 'Chidera A.', age: '22', quote: 'LETW Youth Ministry completely transformed my life. The leadership training gave me confidence I never thought I had.' },
-                            { name: 'Adaeze O.', age: '19', quote: 'The Bible study sessions are unlike any I have attended. Deep, practical, and life-changing every single week.' },
-                            { name: 'Emeka B.', age: '25', quote: 'Through the Career Guidance program, I landed my dream job. The mentors here genuinely invest in your future.' },
-                        ].map(({ name, age, quote }) => (
-                            <Card key={name} className="bg-white/5 border-white/10 text-white hover:bg-white/10 transition-colors">
-                                <CardContent className="p-6">
-                                    <div className="flex mb-4">
-                                        {[1,2,3,4,5].map(s => <Star key={s} className="w-4 h-4 text-[#f5bb00] fill-[#f5bb00]" />)}
-                                    </div>
-                                    <p className="text-blue-100 italic leading-relaxed mb-6">"{quote}"</p>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-[#f5bb00] flex items-center justify-center text-[#140152] font-black">
-                                            {name[0]}
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-white">{name}</p>
-                                            <p className="text-xs text-blue-300">Age {age}</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </SectionWrapper>
-            </div>
 
             {/* ─── JOIN FORM ────────────────────────────────────────── */}
             <div id="join">
