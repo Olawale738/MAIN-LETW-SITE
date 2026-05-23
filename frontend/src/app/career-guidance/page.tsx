@@ -26,7 +26,7 @@ function CareerLanding() {
         { icon: MessageCircle, title: 'Interview Coaching', desc: 'Master interview techniques, body language, and how to communicate your value.', color: 'bg-purple-100 text-purple-600' },
         { icon: Users, title: '1-on-1 Mentorship', desc: 'Paired with an experienced professional in your field for personalised career advice.', color: 'bg-green-100 text-green-600' },
         { icon: Globe, title: 'Professional Networking', desc: 'Connect with professionals, alumni, and employers through our ministry network.', color: 'bg-amber-100 text-amber-600' },
-        { icon: TrendingUp, title: 'Career Path Planning', desc: 'Discover God's purpose for your career and create a strategic 5-year growth plan.', color: 'bg-red-100 text-red-600' },
+        { icon: TrendingUp, title: 'Career Path Planning', desc: "Discover God's purpose for your career and create a strategic 5-year growth plan.", color: 'bg-red-100 text-red-600' },
         { icon: Lightbulb, title: 'Entrepreneurship Track', desc: 'For those called to build — business planning, funding, and kingdom entrepreneurship.', color: 'bg-indigo-100 text-indigo-600' },
     ]
 

@@ -32,6 +32,7 @@ export default function ConditionalLayout({
     const excludedRoutes = [
         '/admin',
         '/auth',
+        '/services/alter-sound/dashboard',
     ]
 
     // Check if current path matches dashboard routes
