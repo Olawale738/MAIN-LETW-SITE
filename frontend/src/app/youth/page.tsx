@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
@@ -17,7 +18,7 @@ const programs = [
     {
         icon: Users,
         color: 'bg-blue-100 text-blue-600',
-        accent: '#3b82f6',
+        image: '/Impact.png',
         title: 'Leadership Training',
         description: 'You were not born to follow the crowd — you were born to lead it. Our leadership track equips you with the character, vision, strategy, and spiritual authority to step into your God-ordained role. From monthly intensives to one-on-one mentorship with seasoned leaders, you will be challenged, sharpened, and sent.',
         badge: 'High Impact',
@@ -27,7 +28,7 @@ const programs = [
     {
         icon: Briefcase,
         color: 'bg-purple-100 text-purple-600',
-        accent: '#8b5cf6',
+        image: '/EducationHero.jpg',
         title: 'Career Guidance',
         description: 'God cares about your Monday just as much as your Sunday. This program bridges faith and profession — pairing you with industry mentors, walking you through CV building, interview mastery, and strategic networking. We don\'t just help you find a job; we help you build a God-honouring career that makes an eternal impact.',
         badge: 'Career-Defining',
@@ -37,7 +38,7 @@ const programs = [
     {
         icon: TrendingUp,
         color: 'bg-green-100 text-green-600',
-        accent: '#22c55e',
+        image: '/Join.png',
         title: 'Skill Development',
         description: 'Your gift will make room for you — but only if it is sharpened. We run hands-on workshops in technology, digital media, creative arts, public speaking, entrepreneurship, and vocational trades. Whether you are a creator, builder, or thinker, there is a track designed to turn your raw potential into a market-ready ability.',
         badge: 'In-Demand Skills',
@@ -47,7 +48,7 @@ const programs = [
     {
         icon: MessageCircle,
         color: 'bg-pink-100 text-pink-600',
-        accent: '#ec4899',
+        image: '/Counselling.png',
         title: 'Counselling & Wellbeing',
         description: 'Your mental and emotional health matter deeply to God and to us. Our trained counsellors provide a safe, completely confidential space for you to process trauma, navigate identity, heal from broken relationships, and find your footing in faith. You do not have to carry your battles alone — real help is here.',
         badge: 'Safe Space',
@@ -57,7 +58,7 @@ const programs = [
     {
         icon: Music,
         color: 'bg-amber-100 text-amber-600',
-        accent: '#f59e0b',
+        image: '/altersound.png',
         title: 'Alter Sound',
         description: 'This is not just a choir. Alter Sound is a prophetic worship movement — a consecrated company of young voices and instruments releasing the sound of heaven. If you carry a gift for music, singing, or sound, this is where you are refined, released, and positioned to lead others into the presence of God.',
         badge: 'Prophetic Worship',
@@ -67,7 +68,7 @@ const programs = [
     {
         icon: BookOpen,
         color: 'bg-indigo-100 text-indigo-600',
-        accent: '#6366f1',
+        image: '/Bible-study.png',
         title: 'Bible Study',
         description: 'The Word of God is not just a book — it is a living weapon, a daily compass, and the foundation of every great life. Our weekly Bible study goes deep: systematic theology, cultural context, practical application, and open discussion. Come hungry. Leave equipped. Every Tuesday at 6:00 PM.',
         badge: 'Every Tuesday',
@@ -77,7 +78,7 @@ const programs = [
     {
         icon: Heart,
         color: 'bg-red-100 text-red-600',
-        accent: '#ef4444',
+        image: '/PrayerMeeting.png',
         title: 'Prayer & Intercession',
         description: 'Every great move of God starts on someone\'s knees. Our Friday prayer meetings are not quiet, passive gatherings — they are spiritual warfare. We intercede for nations, believe for miracles, and encounter the living God together. If you want a prayer life that actually changes things, this is where it starts.',
         badge: 'Every Friday',
@@ -87,7 +88,7 @@ const programs = [
     {
         icon: Star,
         color: 'bg-orange-100 text-orange-600',
-        accent: '#f97316',
+        image: '/Discipleship.png',
         title: 'Discipleship Training',
         description: 'Salvation is the beginning, not the destination. Our discipleship pathway takes you from new believer to mature minister — through structured teaching, accountability partnerships, and mission-focused deployment. This is not a programme you attend; it is a transformation you undergo. Your kingdom assignment starts here.',
         badge: 'Life-Changing',
@@ -261,7 +262,7 @@ export default function YouthMinistryPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {programs.map(({ icon: Icon, color, title, description, badge, href, cta }, i) => (
+                        {programs.map(({ icon: Icon, color, image, title, description, badge, href, cta }, i) => (
                             <motion.div
                                 key={title}
                                 initial={{ opacity: 0, y: 20 }}
@@ -269,16 +270,28 @@ export default function YouthMinistryPage() {
                                 viewport={{ once: true }}
                                 transition={{ delay: i * 0.05 }}
                             >
-                                <Card className="border-none shadow-md hover:shadow-2xl transition-all duration-300 h-full flex flex-col group hover:-translate-y-1">
-                                    <CardContent className="p-7 flex flex-col h-full">
-                                        <div className="flex items-start justify-between mb-5">
-                                            <div className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shrink-0`}>
-                                                <Icon className="w-7 h-7" />
-                                            </div>
-                                            {badge && (
-                                                <span className="text-xs font-bold bg-[#140152]/8 text-[#140152] border border-[#140152]/15 px-3 py-1 rounded-full">{badge}</span>
-                                            )}
+                                <Card className="border-none shadow-md hover:shadow-2xl transition-all duration-300 h-full flex flex-col group hover:-translate-y-1 overflow-hidden">
+                                    {/* Image banner */}
+                                    <div className="relative w-full h-52 overflow-hidden">
+                                        <Image
+                                            src={image}
+                                            alt={title}
+                                            fill
+                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                        />
+                                        {/* Gradient overlay so badge reads clearly */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                                        {badge && (
+                                            <span className="absolute top-3 right-3 text-xs font-bold bg-white/90 text-[#140152] px-3 py-1 rounded-full shadow-sm backdrop-blur-sm">
+                                                {badge}
+                                            </span>
+                                        )}
+                                        {/* Icon chip over image */}
+                                        <div className={`absolute bottom-3 left-4 w-11 h-11 ${color} rounded-xl flex items-center justify-center shadow-lg`}>
+                                            <Icon className="w-5 h-5" />
                                         </div>
+                                    </div>
+                                    <CardContent className="p-7 flex flex-col flex-1">
                                         <h3 className="font-black text-[#140152] text-xl mb-3">{title}</h3>
                                         <p className="text-sm text-gray-500 leading-relaxed flex-1 mb-5">{description}</p>
                                         <Link href={href}
