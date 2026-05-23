@@ -159,13 +159,17 @@ export default function YouthMinistryPage() {
                         <p className="text-xl md:text-2xl text-blue-200 max-w-3xl mx-auto font-light leading-relaxed mb-10">
                             A generation set apart. Discover your purpose, develop your gifts, and ignite your world for Christ.
                         </p>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
                             <PremiumButton href="#join" className="py-6 px-10 text-lg rounded-full bg-[#f5bb00] text-[#140152] hover:bg-white border-none shadow-2xl shadow-[#f5bb00]/30">
                                 Join Youth Ministry
                             </PremiumButton>
                             <Link href="#programs"
                                 className="py-4 px-8 text-lg rounded-full border-2 border-white/30 text-white hover:bg-white/10 transition-all font-semibold flex items-center gap-2 justify-center">
                                 Explore Programs <ArrowRight className="w-5 h-5" />
+                            </Link>
+                            <Link href="/youth/dashboard"
+                                className="py-4 px-8 text-lg rounded-full border-2 border-[#f5bb00]/50 text-[#f5bb00] hover:bg-[#f5bb00]/10 transition-all font-semibold flex items-center gap-2 justify-center">
+                                <Zap className="w-5 h-5" /> Enter Dashboard
                             </Link>
                         </div>
                     </motion.div>
