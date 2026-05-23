@@ -200,6 +200,22 @@ export default function SoundAltarPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Member Portal CTA */}
+                <div className="mt-16 bg-gradient-to-r from-[#140152] to-[#1a0270] rounded-[2.5rem] p-12 text-center text-white shadow-2xl max-w-4xl mx-auto">
+                    <div className="w-16 h-16 bg-[#f5bb00]/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Mic2 className="w-8 h-8 text-[#f5bb00]" />
+                    </div>
+                    <h3 className="text-3xl font-black mb-4">Alter Sound Member Portal</h3>
+                    <p className="text-lg opacity-80 mb-8 max-w-xl mx-auto">
+                        Access your formation journey, audio library, rehearsal schedules, announcements, and messages — all in one place.
+                    </p>
+                    <Link href="/services/alter-sound/dashboard">
+                        <Button className="bg-[#f5bb00] text-[#140152] hover:bg-[#f5bb00]/90 px-10 py-6 rounded-xl font-black text-lg shadow-lg">
+                            Enter Member Portal
+                        </Button>
+                    </Link>
+                </div>
             </SectionWrapper>
         </div>
     )
