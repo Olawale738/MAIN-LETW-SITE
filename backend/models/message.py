@@ -49,7 +49,11 @@ class Conversation(Base):
     )
     subject: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[ConversationStatus] = mapped_column(
-        SQLEnum(ConversationStatus),
+        # native_enum=False → VARCHAR + CHECK constraint instead of a PostgreSQL
+        # enum type.  This avoids the DuplicatePreparedStatementError that occurs
+        # when Supabase PgBouncer (transaction mode) intercepts the asyncpg
+        # prepared-statement used by SQLAlchemy's has_type() reflection probe.
+        SQLEnum(ConversationStatus, native_enum=False),
         default=ConversationStatus.OPEN, nullable=False,
     )
 
