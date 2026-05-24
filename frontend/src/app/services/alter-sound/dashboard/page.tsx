@@ -79,46 +79,15 @@ interface ChatMessage {
   reactions?: { emoji: string; count: number }[]
 }
 
-/* ─── Mock Data ──────────────────────────────────────────────── */
-const MEMBER_INFO = { name: 'Sister Jane', initials: 'SJ', voice: 'Soprano', role: 'Section Leader', avatar: '#7c3aed' }
+/* ─── Data — all start empty; real data comes from the Choirmaster portal ── */
+const MEMBER_INFO = { name: 'Choir Member', initials: 'CM', voice: 'Soprano', role: 'Choir Member', avatar: '#7c3aed' }
 
-const MOCK_TASKS: Task[] = [
-  { id: '1', text: 'Practice Alto harmony for "Great Are You Lord"', category: 'practice', done: false, due: 'Today' },
-  { id: '2', text: 'Confirm Sunday availability with choir director', category: 'admin', done: false, due: 'Tomorrow' },
-  { id: '3', text: 'Download new lyrics for Easter medley', category: 'practice', done: false, due: 'Fri' },
-  { id: '4', text: 'Attend Thursday rehearsal (7pm)', category: 'service', done: true },
-  { id: '5', text: 'Submit voice warm-up feedback form', category: 'admin', done: true },
-]
-
-const MOCK_SONGS: Song[] = [
-  { id: '1', title: 'Great Are You Lord', key: 'G Major', tempo: '72 BPM', voicePart: 'All Parts', status: 'ready', hasLyrics: true, hasSheet: true, hasTrack: true, category: 'Worship' },
-  { id: '2', title: 'Way Maker', key: 'Ab Major', tempo: '68 BPM', voicePart: 'Soprano Lead', status: 'practicing', hasLyrics: true, hasSheet: true, hasTrack: false, category: 'Praise' },
-  { id: '3', title: 'Reckless Love', key: 'E Major', tempo: '75 BPM', voicePart: 'All Parts', status: 'practicing', hasLyrics: true, hasSheet: false, hasTrack: true, category: 'Worship' },
-  { id: '4', title: 'Goodness of God', key: 'B Major', tempo: '65 BPM', voicePart: 'Alto Harmony', status: 'not-started', hasLyrics: false, hasSheet: false, hasTrack: false, category: 'Praise' },
-  { id: '5', title: 'Holy Spirit (You Are Welcome)', key: 'D Major', tempo: '60 BPM', voicePart: 'All Parts', status: 'not-started', hasLyrics: true, hasSheet: false, hasTrack: false, category: 'Prophetic' },
-]
-
-const MOCK_EVENTS: Event[] = [
-  { id: '1', title: 'Weekly Rehearsal', type: 'rehearsal', date: 'Thursday, May 29', time: '7:00 PM', venue: 'Church Hall B', daysLeft: 6, color: '#7c3aed' },
-  { id: '2', title: 'Sunday Morning Service', type: 'service', date: 'Sunday, June 1', time: '9:00 AM', venue: 'Main Sanctuary', daysLeft: 9, color: '#0284c7' },
-  { id: '3', title: 'LETW Anniversary Concert', type: 'special', date: 'Saturday, June 28', time: '5:00 PM', venue: 'Main Auditorium', daysLeft: 36, color: '#f5bb00' },
-]
-
-const MOCK_ANNOUNCEMENTS: Announcement[] = [
-  { id: '1', title: '⚠️ Mandatory Rehearsal This Thursday', body: 'All members are required to attend. We will be running through all 5 songs for the anniversary. No absences unless pre-approved.', author: 'Choir Director', time: '2 hours ago', urgent: true, pinned: true },
-  { id: '2', title: 'New Sheet Music Available', body: 'Sheet music for the Easter medley has been uploaded to the library. Please download before Friday\'s session.', author: 'Choir Director', time: '1 day ago', urgent: false },
-  { id: '3', title: 'Congratulations to the Soprano Section!', body: 'Excellent performance last Sunday. The congregation was truly blessed. Keep up the excellent work!', author: 'Pastor Wale', time: '3 days ago', urgent: false },
-]
-
-// No fake members — real members are added by the Choir Master
+const MOCK_TASKS: Task[] = []
+const MOCK_SONGS: Song[] = []
+const MOCK_EVENTS: Event[] = []
+const MOCK_ANNOUNCEMENTS: Announcement[] = []
 const MOCK_MEMBERS: Member[] = []
-
-const ATTENDANCE = [
-  { week: 'Week 1', attended: true }, { week: 'Week 2', attended: true },
-  { week: 'Week 3', attended: false }, { week: 'Week 4', attended: true },
-]
-
-// Chat starts empty — real messages come from real members
+const ATTENDANCE: { week: string; attended: boolean }[] = []
 const MOCK_CHAT: ChatMessage[] = []
 
 const VOICE_AVATAR: Record<string, string> = {
@@ -354,9 +323,11 @@ export default function ChoirDashboard() {
     return matchSearch && matchFilter
   })
 
-  const filteredMembers = memberFilter === 'All' ? MOCK_MEMBERS : MOCK_MEMBERS.filter(m => m.voice === memberFilter)
+  const filteredMembers = memberFilter === 'All' ? realMembers : realMembers.filter(m => m.voice === memberFilter)
 
-  const attendancePct = Math.round((ATTENDANCE.filter(a => a.attended).length / ATTENDANCE.length) * 100)
+  const attendancePct = ATTENDANCE.length === 0
+    ? 0
+    : Math.round((ATTENDANCE.filter(a => a.attended).length / ATTENDANCE.length) * 100)
   const pendingTasks = tasks.filter(t => !t.done).length
   const readySongs = songs.filter(s => s.status === 'ready').length
   const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
@@ -475,10 +446,10 @@ export default function ChoirDashboard() {
                 {/* Quick stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { label: 'Attendance', value: `${attendancePct}%`, icon: BarChart2, color: 'text-green-600', bg: 'bg-green-50' },
-                    { label: 'Songs to Practice', value: `${songs.filter(s => s.status !== 'ready').length}`, icon: Music, color: 'text-blue-600', bg: 'bg-blue-50' },
-                    { label: 'Pending Tasks', value: `${pendingTasks}`, icon: CheckSquare, color: 'text-red-600', bg: 'bg-red-50' },
-                    { label: 'Songs Ready', value: `${readySongs}/${songs.length}`, icon: CheckCircle2, color: 'text-purple-600', bg: 'bg-purple-50' },
+                    { label: 'Attendance', value: ATTENDANCE.length === 0 ? '—' : `${attendancePct}%`, icon: BarChart2, color: 'text-green-600', bg: 'bg-green-50' },
+                    { label: 'Songs to Practice', value: songs.length === 0 ? '—' : `${songs.filter(s => s.status !== 'ready').length}`, icon: Music, color: 'text-blue-600', bg: 'bg-blue-50' },
+                    { label: 'Pending Tasks', value: tasks.length === 0 ? '—' : `${pendingTasks}`, icon: CheckSquare, color: 'text-red-600', bg: 'bg-red-50' },
+                    { label: 'Songs Ready', value: songs.length === 0 ? '—' : `${readySongs}/${songs.length}`, icon: CheckCircle2, color: 'text-purple-600', bg: 'bg-purple-50' },
                   ].map((s, i) => (
                     <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
                       <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center mb-3`}>
@@ -498,10 +469,18 @@ export default function ChoirDashboard() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-bold text-purple-800">Next Rehearsal</span>
-                      <span className="text-xs bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full font-semibold">In {MOCK_EVENTS[0].daysLeft} days</span>
+                      {MOCK_EVENTS[0] && (
+                        <span className="text-xs bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full font-semibold">In {MOCK_EVENTS[0].daysLeft} days</span>
+                      )}
                     </div>
-                    <p className="text-purple-700 font-semibold">{MOCK_EVENTS[0].date} · {MOCK_EVENTS[0].time}</p>
-                    <p className="text-purple-500 text-sm flex items-center gap-1 mt-1"><MapPin className="w-3.5 h-3.5" /> {MOCK_EVENTS[0].venue}</p>
+                    {MOCK_EVENTS[0] ? (
+                      <>
+                        <p className="text-purple-700 font-semibold">{MOCK_EVENTS[0].date} · {MOCK_EVENTS[0].time}</p>
+                        <p className="text-purple-500 text-sm flex items-center gap-1 mt-1"><MapPin className="w-3.5 h-3.5" /> {MOCK_EVENTS[0].venue}</p>
+                      </>
+                    ) : (
+                      <p className="text-purple-500 text-sm">No rehearsal scheduled yet. Check back soon.</p>
+                    )}
                   </div>
                   <button onClick={() => navigate('events')} className="text-purple-600 hover:text-purple-800 transition-colors"><ChevronRight className="w-5 h-5" /></button>
                 </div>
@@ -558,17 +537,24 @@ export default function ChoirDashboard() {
                     <button onClick={() => navigate('announcements')} className="text-sm text-[#140152] font-semibold hover:underline">View all</button>
                   </div>
                   <div className="space-y-3">
-                    {MOCK_ANNOUNCEMENTS.slice(0, 2).map(a => (
-                      <div key={a.id} className={`p-4 rounded-2xl border ${a.urgent ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
-                        <div className="flex items-start gap-3">
-                          {a.urgent && <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />}
-                          <div>
-                            <p className="font-semibold text-gray-900 text-sm">{a.title}</p>
-                            <p className="text-gray-500 text-xs mt-1 line-clamp-2">{a.body}</p>
+                    {MOCK_ANNOUNCEMENTS.length === 0 ? (
+                      <div className="text-center py-8 text-gray-400">
+                        <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">No notices yet. Check back after the coordinator posts.</p>
+                      </div>
+                    ) : (
+                      MOCK_ANNOUNCEMENTS.slice(0, 2).map(a => (
+                        <div key={a.id} className={`p-4 rounded-2xl border ${a.urgent ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
+                          <div className="flex items-start gap-3">
+                            {a.urgent && <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />}
+                            <div>
+                              <p className="font-semibold text-gray-900 text-sm">{a.title}</p>
+                              <p className="text-gray-500 text-xs mt-1 line-clamp-2">{a.body}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -701,21 +687,25 @@ export default function ChoirDashboard() {
                     <h2 className="font-black text-[#140152] text-sm">Alter Sound — Group Chat</h2>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="w-2 h-2 bg-green-500 rounded-full" />
-                      <span className="text-xs text-gray-400">{MOCK_MEMBERS.filter(m => m.active).length} members online · Choir members only</span>
+                      <span className="text-xs text-gray-400">{realMembers.filter(m => m.active).length} members online · Choir members only</span>
                     </div>
                   </div>
                   {/* Online member avatars */}
-                  <div className="flex -space-x-2 flex-shrink-0">
-                    {MOCK_MEMBERS.filter(m => m.active).slice(0, 5).map(m => (
-                      <div key={m.id} className="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] font-bold"
-                        style={{ backgroundColor: VOICE_AVATAR[m.voice] }}>
-                        {m.initials}
-                      </div>
-                    ))}
-                    <div className="w-7 h-7 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-gray-500 text-[9px] font-bold">
-                      +{MOCK_MEMBERS.filter(m => m.active).length - 5}
+                  {realMembers.filter(m => m.active).length > 0 && (
+                    <div className="flex -space-x-2 flex-shrink-0">
+                      {realMembers.filter(m => m.active).slice(0, 5).map(m => (
+                        <div key={m.id} className="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] font-bold"
+                          style={{ backgroundColor: VOICE_AVATAR[m.voice] }}>
+                          {m.initials}
+                        </div>
+                      ))}
+                      {realMembers.filter(m => m.active).length > 5 && (
+                        <div className="w-7 h-7 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-gray-500 text-[9px] font-bold">
+                          +{realMembers.filter(m => m.active).length - 5}
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Voice legend */}
@@ -812,7 +802,7 @@ export default function ChoirDashboard() {
                     </button>
                   </div>
                   <p className="text-center text-[10px] text-gray-400 mt-1.5">
-                    Only verified Alter Sound members can see this chat · Choir members: {MOCK_MEMBERS.filter(m => m.active).length} active
+                    Only verified Alter Sound members can see this chat · Choir members: {realMembers.filter(m => m.active).length} active
                   </p>
                 </div>
               </motion.div>
@@ -846,41 +836,49 @@ export default function ChoirDashboard() {
 
                 {/* Events list */}
                 <div className="space-y-4">
-                  {MOCK_EVENTS.map(event => (
-                    <div key={event.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                      <div className="h-1" style={{ backgroundColor: event.color }} />
-                      <div className="p-5">
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-xs font-bold px-2.5 py-1 rounded-full text-white capitalize" style={{ backgroundColor: event.color }}>
-                                {event.type}
-                              </span>
-                              <span className="text-xs text-gray-400">In {event.daysLeft} days</span>
+                  {MOCK_EVENTS.length === 0 ? (
+                    <div className="text-center py-14 text-gray-400 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                      <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p className="font-semibold text-gray-500 mb-1">No events scheduled</p>
+                      <p className="text-sm">The coordinator will add upcoming rehearsals and services here.</p>
+                    </div>
+                  ) : (
+                    MOCK_EVENTS.map(event => (
+                      <div key={event.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="h-1" style={{ backgroundColor: event.color }} />
+                        <div className="p-5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-xs font-bold px-2.5 py-1 rounded-full text-white capitalize" style={{ backgroundColor: event.color }}>
+                                  {event.type}
+                                </span>
+                                <span className="text-xs text-gray-400">In {event.daysLeft} days</span>
+                              </div>
+                              <h3 className="font-bold text-[#140152] text-xl mb-2">{event.title}</h3>
+                              <div className="space-y-1.5">
+                                <p className="text-gray-600 text-sm flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-400" />{event.date}</p>
+                                <p className="text-gray-600 text-sm flex items-center gap-2"><Clock className="w-4 h-4 text-gray-400" />{event.time}</p>
+                                <p className="text-gray-600 text-sm flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" />{event.venue}</p>
+                              </div>
                             </div>
-                            <h3 className="font-bold text-[#140152] text-xl mb-2">{event.title}</h3>
-                            <div className="space-y-1.5">
-                              <p className="text-gray-600 text-sm flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-400" />{event.date}</p>
-                              <p className="text-gray-600 text-sm flex items-center gap-2"><Clock className="w-4 h-4 text-gray-400" />{event.time}</p>
-                              <p className="text-gray-600 text-sm flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" />{event.venue}</p>
+                            <div className="w-16 h-16 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 text-white" style={{ backgroundColor: event.color }}>
+                              <span className="text-2xl font-black leading-none">{event.daysLeft}</span>
+                              <span className="text-xs">days</span>
                             </div>
                           </div>
-                          <div className="w-16 h-16 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 text-white" style={{ backgroundColor: event.color }}>
-                            <span className="text-2xl font-black leading-none">{event.daysLeft}</span>
-                            <span className="text-xs">days</span>
+                          <div className="flex gap-3 mt-5">
+                            <button className="flex-1 bg-[#140152] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#1a0270] transition-all">
+                              Confirm Attendance
+                            </button>
+                            <button className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all">
+                              Remind Me
+                            </button>
                           </div>
-                        </div>
-                        <div className="flex gap-3 mt-5">
-                          <button className="flex-1 bg-[#140152] text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-[#1a0270] transition-all">
-                            Confirm Attendance
-                          </button>
-                          <button className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all">
-                            Remind Me
-                          </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </motion.div>
             )}
@@ -957,6 +955,13 @@ export default function ChoirDashboard() {
                   <p className="text-sm text-[#140152] font-semibold">Tap <strong>Reply</strong> on any notice to send a message directly to the Choir Director or Pastor.</p>
                 </div>
 
+                {MOCK_ANNOUNCEMENTS.length === 0 && (
+                  <div className="text-center py-14 text-gray-400 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                    <Bell className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="font-semibold text-gray-500 mb-1">No announcements yet</p>
+                    <p className="text-sm">The choir director will post notices and updates here.</p>
+                  </div>
+                )}
                 {MOCK_ANNOUNCEMENTS.map(a => (
                   <div key={a.id} className={`rounded-2xl border shadow-sm overflow-hidden ${a.urgent ? 'border-red-300 bg-red-50' : 'border-gray-100 bg-white'}`}>
                     {a.pinned && (
@@ -1078,29 +1083,44 @@ export default function ChoirDashboard() {
 
                 <div className="bg-gradient-to-br from-[#140152] to-[#2d0a6e] rounded-3xl p-6 text-white text-center">
                   <p className="text-white/60 text-sm mb-2">This Month's Attendance</p>
-                  <div className="text-6xl font-black text-[#f5bb00] mb-2">{attendancePct}%</div>
-                  <p className="text-white/70">{ATTENDANCE.filter(a => a.attended).length} of {ATTENDANCE.length} sessions attended</p>
-                  <div className="mt-6 h-3 bg-white/20 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#f5bb00] rounded-full transition-all" style={{ width: `${attendancePct}%` }} />
+                  <div className="text-6xl font-black text-[#f5bb00] mb-2">
+                    {ATTENDANCE.length === 0 ? '—' : `${attendancePct}%`}
                   </div>
+                  <p className="text-white/70">
+                    {ATTENDANCE.length === 0
+                      ? 'No sessions recorded yet'
+                      : `${ATTENDANCE.filter(a => a.attended).length} of ${ATTENDANCE.length} sessions attended`}
+                  </p>
+                  {ATTENDANCE.length > 0 && (
+                    <div className="mt-6 h-3 bg-white/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#f5bb00] rounded-full transition-all" style={{ width: `${attendancePct}%` }} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Weekly breakdown */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                   <h3 className="font-bold text-[#140152] mb-5">Monthly Breakdown</h3>
-                  <div className="space-y-4">
-                    {ATTENDANCE.map((a, i) => (
-                      <div key={i} className="flex items-center gap-4">
-                        <span className="text-sm text-gray-500 w-16">{a.week}</span>
-                        <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${a.attended ? 'bg-green-500 w-full' : 'bg-red-400 w-full'}`} />
+                  {ATTENDANCE.length === 0 ? (
+                    <div className="text-center py-8 text-gray-400">
+                      <BarChart2 className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No attendance records yet. Records will appear here once sessions are logged.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {ATTENDANCE.map((a, i) => (
+                        <div key={i} className="flex items-center gap-4">
+                          <span className="text-sm text-gray-500 w-16">{a.week}</span>
+                          <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${a.attended ? 'bg-green-500 w-full' : 'bg-red-400 w-full'}`} />
+                          </div>
+                          <span className={`text-sm font-semibold ${a.attended ? 'text-green-600' : 'text-red-500'}`}>
+                            {a.attended ? '✓ Present' : '✗ Absent'}
+                          </span>
                         </div>
-                        <span className={`text-sm font-semibold ${a.attended ? 'text-green-600' : 'text-red-500'}`}>
-                          {a.attended ? '✓ Present' : '✗ Absent'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Mark attendance */}
@@ -1116,9 +1136,9 @@ export default function ChoirDashboard() {
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-4">
                   {[
-                    { label: 'Consistency', val: `${attendancePct}%`, icon: TrendingUp, color: 'text-green-600' },
-                    { label: 'Streak', val: '2 weeks', icon: Zap, color: 'text-amber-600' },
-                    { label: 'Rank', val: 'Top 10%', icon: Award, color: 'text-purple-600' },
+                    { label: 'Consistency', val: ATTENDANCE.length === 0 ? '—' : `${attendancePct}%`, icon: TrendingUp, color: 'text-green-600' },
+                    { label: 'Sessions', val: ATTENDANCE.length === 0 ? '—' : `${ATTENDANCE.length}`, icon: Zap, color: 'text-amber-600' },
+                    { label: 'Attended', val: ATTENDANCE.length === 0 ? '—' : `${ATTENDANCE.filter(a => a.attended).length}`, icon: Award, color: 'text-purple-600' },
                   ].map((s, i) => (
                     <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
                       <s.icon className={`w-6 h-6 mx-auto mb-2 ${s.color}`} />
@@ -1147,7 +1167,7 @@ export default function ChoirDashboard() {
                 {/* Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {(['Soprano', 'Alto', 'Tenor', 'Bass'] as const).map(v => {
-                    const count = MOCK_MEMBERS.filter(m => m.voice === v).length
+                    const count = realMembers.filter(m => m.voice === v).length
                     return (
                       <div key={v} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
                         <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-2 ${VOICE_COLORS[v]}`}>{v}</div>
@@ -1159,6 +1179,13 @@ export default function ChoirDashboard() {
                 </div>
 
                 {/* Members grid */}
+                {filteredMembers.length === 0 && (
+                  <div className="text-center py-14 text-gray-400 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                    <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="font-semibold text-gray-500 mb-1">No members yet</p>
+                    <p className="text-sm">The choir coordinator will add registered members here.</p>
+                  </div>
+                )}
                 <div className="grid sm:grid-cols-2 gap-4">
                   {filteredMembers.map(member => (
                     <div key={member.id} className={`bg-white rounded-2xl border shadow-sm p-4 flex items-center gap-4 ${!member.active ? 'opacity-50' : 'border-gray-100 hover:shadow-md transition-all'}`}>
