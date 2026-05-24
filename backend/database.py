@@ -85,7 +85,7 @@ async def init_db():
             result = await conn.execute(text("SELECT current_database(), current_schema()"))
             row = result.fetchone()
             print(f"[init_db] Connected to database='{row[0]}' schema='{row[1]}'", flush=True)
-            await conn.run_sync(lambda sync_conn: Base.metadata.create_all(sync_conn, checkfirst=False))
+            await conn.run_sync(Base.metadata.create_all)
             await conn.commit()
         print("[init_db] Database tables created successfully", flush=True)
     except Exception as e:
