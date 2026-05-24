@@ -238,99 +238,55 @@ export default function ChildrenMinistryPage() {
         </div>
       </section>
 
-      {/* ── CHILDREN BANNER / FLYER ── */}
-      <div className="bg-gradient-to-br from-[#0d0138] via-[#1a0050] to-[#0d0138] py-16 px-4">
-        <div className="max-w-3xl mx-auto">
+      {/* ── CHILDREN MINISTRY FLYER ── */}
+      <div className="bg-[#0d0138] py-10 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-r from-[#140152] to-[#2d0a6e] border border-[#f5bb00]/20">
 
-          {/* Flyer card */}
-          <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+            {/* Gold top accent */}
+            <div className="h-1 bg-gradient-to-r from-[#f5bb00] via-yellow-300 to-[#f5bb00]" />
 
-            {/* Background gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-pink-500 via-orange-400 to-yellow-400" />
+            {/* Subtle glow blobs */}
+            <div className="absolute top-0 right-0 w-48 h-48 bg-[#f5bb00]/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-40 h-40 bg-pink-500/10 rounded-full blur-2xl pointer-events-none" />
 
-            {/* Decorative circles */}
-            <div className="absolute -top-16 -right-16 w-64 h-64 bg-white/10 rounded-full" />
-            <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-white/10 rounded-full" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/5 rounded-full" />
+            <div className="relative z-10 px-7 py-8 md:px-10 flex flex-col md:flex-row items-center gap-8">
 
-            {/* Floating stars */}
-            <div className="absolute top-6 left-8 text-white/40 text-2xl">★</div>
-            <div className="absolute top-12 right-16 text-white/30 text-lg">✦</div>
-            <div className="absolute bottom-16 left-16 text-white/30 text-xl">✦</div>
-            <div className="absolute bottom-8 right-10 text-white/40 text-2xl">★</div>
-            <div className="absolute top-1/3 right-8 text-white/20 text-4xl">✶</div>
-
-            {/* Content */}
-            <div className="relative z-10 px-8 py-12 md:px-14 md:py-16 text-center">
-
-              {/* Church logo / name */}
-              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-5 py-2 mb-8">
-                <span className="text-white font-black text-xs uppercase tracking-widest">Light Encounter Tabernacle</span>
+              {/* Left — icon emblem */}
+              <div className="flex-shrink-0 w-20 h-20 rounded-2xl bg-[#f5bb00] flex items-center justify-center shadow-lg shadow-[#f5bb00]/30">
+                <Heart className="w-10 h-10 text-[#140152] fill-current" />
               </div>
 
-              {/* Icon row */}
-              <div className="flex justify-center gap-4 mb-8">
-                {[
-                  { icon: Star,     bg: 'bg-yellow-300', text: 'text-orange-600' },
-                  { icon: Heart,    bg: 'bg-pink-200',   text: 'text-pink-700' },
-                  { icon: BookOpen, bg: 'bg-white',      text: 'text-purple-700' },
-                  { icon: Music,    bg: 'bg-orange-200', text: 'text-orange-700' },
-                  { icon: Sparkles, bg: 'bg-yellow-200', text: 'text-yellow-700' },
-                ].map(({ icon: Icon, bg, text }, i) => (
-                  <div key={i} className={`w-12 h-12 ${bg} rounded-2xl flex items-center justify-center shadow-lg`}>
-                    <Icon className={`w-6 h-6 ${text}`} />
-                  </div>
-                ))}
+              {/* Right — text */}
+              <div className="flex-1 text-center md:text-left">
+                <span className="text-[#f5bb00] font-black text-[10px] uppercase tracking-[0.2em] mb-2 block">
+                  LETW Children's Ministry
+                </span>
+                <h2 className="text-white font-black text-2xl md:text-3xl leading-tight mb-2">
+                  Every Child Is a<br />
+                  <span className="text-[#f5bb00]">Promise from God.</span>
+                </h2>
+                <p className="text-white/60 text-sm leading-relaxed mb-5">
+                  We raise children who know Jesus personally — grounded in the Word, secure in their identity, and bold in their faith. Ages 0–12 welcome every Sunday.
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center md:justify-start mb-5">
+                  {['Sunday School', 'Kids Worship', 'Bible Quiz', 'Drama', 'Prayer Hour'].map(p => (
+                    <span key={p} className="bg-white/10 text-white/80 text-[10px] font-bold px-3 py-1 rounded-full border border-white/10">
+                      {p}
+                    </span>
+                  ))}
+                </div>
+                <a
+                  href="#enrol"
+                  className="inline-flex items-center gap-2 bg-[#f5bb00] text-[#140152] font-black px-7 py-3 rounded-full text-sm hover:bg-yellow-300 transition-colors shadow-lg"
+                >
+                  Enrol Your Child <ArrowRight className="w-4 h-4" />
+                </a>
               </div>
-
-              {/* Headline */}
-              <h2 className="text-5xl md:text-7xl font-black text-white leading-tight mb-4 drop-shadow-lg">
-                Little <span className="text-yellow-200">Lights.</span><br />
-                Big <span className="text-yellow-200">Faith.</span>
-              </h2>
-
-              {/* Tagline */}
-              <p className="text-white/90 text-lg md:text-xl font-semibold mb-10 max-w-lg mx-auto leading-relaxed">
-                A vibrant, safe & fun space for children aged <strong>0–12</strong> to discover Jesus, build faith, and shine bright.
-              </p>
-
-              {/* Program pills */}
-              <div className="flex flex-wrap justify-center gap-3 mb-10">
-                {['Sunday School', 'Kids Worship', 'Bible Quiz', 'VBS', 'Drama Ministry', 'Kids Prayer'].map(p => (
-                  <span key={p} className="bg-white/25 backdrop-blur-sm text-white font-bold text-xs px-4 py-2 rounded-full border border-white/30">
-                    {p}
-                  </span>
-                ))}
-              </div>
-
-              {/* Age groups */}
-              <div className="grid grid-cols-4 gap-3 mb-10 max-w-sm mx-auto">
-                {[
-                  { label: 'Nursery',  age: '0–2',   color: 'bg-pink-200 text-pink-800' },
-                  { label: 'Toddlers', age: '3–5',   color: 'bg-orange-200 text-orange-800' },
-                  { label: 'Primary',  age: '6–9',   color: 'bg-yellow-200 text-yellow-800' },
-                  { label: 'Juniors',  age: '10–12', color: 'bg-green-200 text-green-800' },
-                ].map(g => (
-                  <div key={g.label} className={`${g.color} rounded-2xl py-3 px-1 text-center`}>
-                    <p className="font-black text-xs">{g.label}</p>
-                    <p className="text-[10px] font-semibold opacity-70">Ages {g.age}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* CTA */}
-              <a
-                href="#enrol"
-                className="inline-flex items-center gap-3 bg-[#140152] text-white font-black px-10 py-4 rounded-full text-base hover:bg-[#1d0175] transition-all shadow-xl"
-              >
-                Enrol Your Child Today <ArrowRight className="w-5 h-5" />
-              </a>
-
-              {/* Footer note */}
-              <p className="text-white/60 text-xs mt-6 font-semibold">
-                Every Sunday · 9:00 AM · LETW Main Campus
-              </p>
             </div>
+
+            {/* Gold bottom accent */}
+            <div className="h-1 bg-gradient-to-r from-[#f5bb00] via-yellow-300 to-[#f5bb00]" />
           </div>
         </div>
       </div>
