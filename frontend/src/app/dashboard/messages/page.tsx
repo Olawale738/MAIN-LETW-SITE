@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -32,6 +32,14 @@ function initials(name?: string | null) {
 }
 
 export default function MessagesPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#140152]" /></div>}>
+            <MessagesContent />
+        </Suspense>
+    )
+}
+
+function MessagesContent() {
     const router = useRouter()
     const params = useSearchParams()
     const wantConv = params.get('c') || undefined
