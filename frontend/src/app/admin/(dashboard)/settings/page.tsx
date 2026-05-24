@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { authApi, userApi, settingsApi, User } from '@/lib/api'
+import Link from 'next/link'
 import {
     User as UserIcon,
     Lock,
@@ -15,19 +16,65 @@ import {
     EyeOff,
     Shield,
     Crown,
-    School
+    School,
+    Users,
+    Music,
+    Heart,
+    Zap,
+    ExternalLink,
+    KeyRound,
+    Save
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+
+/* ─── Ministry role helpers ────────────────────────────────────── */
+const ROLE_KEYS = {
+    choirmaster:   'letw_choirmaster_creds',
+    youthCoord:    'letw_youth_coord_creds',
+    childrenCoord: 'letw_children_coord_creds',
+} as const
+
+type RoleKey = keyof typeof ROLE_KEYS
+
+interface RoleCreds { name: string; username: string; password: string }
+
+const ROLE_DEFAULTS: Record<RoleKey, RoleCreds> = {
+    choirmaster:   { name: '', username: 'choirmaster', password: 'LETW@Choir2026'    },
+    youthCoord:    { name: '', username: 'youthcoord',  password: 'LETW@Youth2026'    },
+    childrenCoord: { name: '', username: 'childcoord',  password: 'LETW@Children2026' },
+}
+
+function loadRoleCreds(key: RoleKey): RoleCreds {
+    if (typeof window === 'undefined') return { ...ROLE_DEFAULTS[key] }
+    try {
+        const raw = localStorage.getItem(ROLE_KEYS[key])
+        if (raw) return { ...ROLE_DEFAULTS[key], ...JSON.parse(raw) }
+    } catch { /* ignore */ }
+    return { ...ROLE_DEFAULTS[key] }
+}
+
+function saveRoleCreds(key: RoleKey, creds: RoleCreds) {
+    localStorage.setItem(ROLE_KEYS[key], JSON.stringify(creds))
+}
 
 export default function AdminSettingsPage() {
     const router = useRouter()
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'registrations'>('profile')
+    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'registrations' | 'ministry'>('profile')
 
     // Registration Settings state
     const [theologyRegistrationOpen, setTheologyRegistrationOpen] = useState(true)
     const [registrationLoading, setRegistrationLoading] = useState(false)
+
+    // Ministry roles state
+    const [roles, setRoles] = useState<Record<RoleKey, RoleCreds>>({
+        choirmaster:   { ...ROLE_DEFAULTS.choirmaster },
+        youthCoord:    { ...ROLE_DEFAULTS.youthCoord },
+        childrenCoord: { ...ROLE_DEFAULTS.childrenCoord },
+    })
+    const [roleShowPw, setRoleShowPw] = useState<Record<RoleKey, boolean>>({ choirmaster: false, youthCoord: false, childrenCoord: false })
+    const [roleSaved, setRoleSaved]   = useState<Record<RoleKey, boolean>>({ choirmaster: false, youthCoord: false, childrenCoord: false })
 
     // Profile form state
     const [name, setName] = useState('')
@@ -45,6 +92,13 @@ export default function AdminSettingsPage() {
     const [passwordError, setPasswordError] = useState('')
 
     useEffect(() => {
+        // Load ministry role credentials from localStorage
+        setRoles({
+            choirmaster:   loadRoleCreds('choirmaster'),
+            youthCoord:    loadRoleCreds('youthCoord'),
+            childrenCoord: loadRoleCreds('childrenCoord'),
+        })
+
         const fetchUser = async () => {
             try {
                 const userData = await authApi.getCurrentUser()
@@ -67,6 +121,17 @@ export default function AdminSettingsPage() {
         }
         fetchUser()
     }, [router])
+
+    const handleSaveRole = (key: RoleKey) => {
+        if (!roles[key].username.trim() || !roles[key].password.trim()) return
+        saveRoleCreds(key, roles[key])
+        setRoleSaved(prev => ({ ...prev, [key]: true }))
+        setTimeout(() => setRoleSaved(prev => ({ ...prev, [key]: false })), 2500)
+    }
+
+    const updateRole = (key: RoleKey, field: keyof RoleCreds, value: string) => {
+        setRoles(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }))
+    }
 
     const handleRegistrationToggle = async (checked: boolean) => {
         setRegistrationLoading(true)
@@ -141,9 +206,16 @@ export default function AdminSettingsPage() {
     }
 
     const tabs = [
-        { id: 'profile' as const, label: 'Profile', icon: UserIcon },
-        { id: 'security' as const, label: 'Security', icon: Shield },
-        { id: 'registrations' as const, label: 'Registrations', icon: School },
+        { id: 'profile'      as const, label: 'Profile',         icon: UserIcon },
+        { id: 'security'     as const, label: 'Security',         icon: Shield   },
+        { id: 'registrations'as const, label: 'Registrations',    icon: School   },
+        { id: 'ministry'     as const, label: 'Ministry Roles',   icon: Users    },
+    ]
+
+    const ROLE_CARDS: { key: RoleKey; label: string; icon: React.ElementType; color: string; href: string; desc: string }[] = [
+        { key: 'choirmaster',   label: 'Choir Master',          icon: Music,  color: '#7c3aed', href: '/services/alter-sound/choirmaster', desc: 'Controls the Alter Sound choir portal' },
+        { key: 'youthCoord',    label: 'Youth Coordinator',     icon: Zap,    color: '#4f46e5', href: '/youth/coordinator',                desc: 'Manages the Youth Ministry portal'     },
+        { key: 'childrenCoord', label: "Children's Coordinator", icon: Heart,  color: '#10b981', href: '/children/coordinator',             desc: "Manages the Children's Ministry portal" },
     ]
 
     return (
@@ -311,6 +383,113 @@ export default function AdminSettingsPage() {
                                         )}
                                     </Button>
                                 </form>
+                            </motion.div>
+                        )}
+
+                        {activeTab === 'ministry' && (
+                            <motion.div
+                                key="ministry"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold text-[#140152] mb-1">Ministry Portal Roles</h3>
+                                    <p className="text-sm text-gray-500">Set the login credentials for each ministry coordinator. These are saved locally and used to control access to each portal.</p>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {ROLE_CARDS.map(({ key, label, icon: Icon, color, href, desc }) => (
+                                        <div key={key} className="border border-gray-200 rounded-2xl overflow-hidden">
+                                            {/* Card header */}
+                                            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100"
+                                                style={{ background: color + '0d' }}>
+                                                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                                                    style={{ background: color + '18' }}>
+                                                    <Icon className="w-5 h-5" style={{ color }} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="font-bold text-[#140152] text-sm">{label}</p>
+                                                    <p className="text-xs text-gray-500">{desc}</p>
+                                                </div>
+                                                <Link href={href} target="_blank"
+                                                    className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-current transition-colors"
+                                                    style={{ color }}>
+                                                    <ExternalLink className="w-3 h-3" /> Open Portal
+                                                </Link>
+                                            </div>
+
+                                            {/* Fields */}
+                                            <div className="px-5 py-4 space-y-3">
+                                                <div className="grid sm:grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                                            <UserIcon className="inline w-3 h-3 mr-1" />Holder's Name
+                                                        </label>
+                                                        <input
+                                                            value={roles[key].name}
+                                                            onChange={e => updateRole(key, 'name', e.target.value)}
+                                                            className="w-full p-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 text-sm"
+                                                            style={{ '--tw-ring-color': color } as React.CSSProperties}
+                                                            placeholder={`e.g. Bro. Samuel Akin`}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                                            <KeyRound className="inline w-3 h-3 mr-1" />Login Username
+                                                        </label>
+                                                        <input
+                                                            value={roles[key].username}
+                                                            onChange={e => updateRole(key, 'username', e.target.value)}
+                                                            className="w-full p-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 text-sm font-mono"
+                                                            placeholder="username"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                                        <Lock className="inline w-3 h-3 mr-1" />Login Password
+                                                    </label>
+                                                    <div className="relative">
+                                                        <input
+                                                            type={roleShowPw[key] ? 'text' : 'password'}
+                                                            value={roles[key].password}
+                                                            onChange={e => updateRole(key, 'password', e.target.value)}
+                                                            className="w-full p-2.5 pr-10 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 text-sm font-mono"
+                                                            placeholder="Set a strong password"
+                                                        />
+                                                        <button type="button"
+                                                            onClick={() => setRoleShowPw(prev => ({ ...prev, [key]: !prev[key] }))}
+                                                            className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                                                            {roleShowPw[key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3 pt-1">
+                                                    <button
+                                                        onClick={() => handleSaveRole(key)}
+                                                        disabled={!roles[key].username.trim() || !roles[key].password.trim()}
+                                                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all"
+                                                        style={{ background: color }}>
+                                                        <Save className="w-4 h-4" />
+                                                        Save Credentials
+                                                    </button>
+                                                    {roleSaved[key] && (
+                                                        <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600">
+                                                            <CheckCircle className="w-4 h-4" /> Saved!
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 flex gap-2">
+                                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                                    <p>Credentials are stored in your browser's local storage. Share the username and password directly with each coordinator so they can access their portal.</p>
+                                </div>
                             </motion.div>
                         )}
 

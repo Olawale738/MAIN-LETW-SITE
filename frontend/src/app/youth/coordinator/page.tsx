@@ -58,8 +58,18 @@ const NAV_ITEMS = [
 
 // ─── Auth Gate ────────────────────────────────────────────────────
 
-const COORDINATOR_CREDENTIALS = { username: 'youthcoord', password: 'LETW@Youth2026' }
-const ADMIN_CREDENTIALS        = { username: 'admin',      password: 'LETW@Admin2026'  }
+// Defaults — overridden by admin via /admin/settings Ministry Roles tab
+const DEFAULT_COORDINATOR_CREDS = { username: 'youthcoord', password: 'LETW@Youth2026' }
+const ADMIN_CREDENTIALS         = { username: 'admin',       password: 'LETW@Admin2026' }
+
+function getCoordinatorCreds() {
+  if (typeof window === 'undefined') return DEFAULT_COORDINATOR_CREDS
+  try {
+    const raw = localStorage.getItem('letw_youth_coord_creds')
+    if (raw) { const p = JSON.parse(raw); return { username: p.username || DEFAULT_COORDINATOR_CREDS.username, password: p.password || DEFAULT_COORDINATOR_CREDS.password } }
+  } catch { /* ignore */ }
+  return DEFAULT_COORDINATOR_CREDS
+}
 
 function LoginGate({ onLogin }: { onLogin: (role: string) => void }) {
   const [username, setUsername] = useState('')
@@ -68,7 +78,8 @@ function LoginGate({ onLogin }: { onLogin: (role: string) => void }) {
   const [error, setError] = useState('')
 
   const handleLogin = () => {
-    if ((username === COORDINATOR_CREDENTIALS.username && password === COORDINATOR_CREDENTIALS.password)) {
+    const creds = getCoordinatorCreds()
+    if (username === creds.username && password === creds.password) {
       onLogin('coordinator')
     } else if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
       onLogin('admin')
