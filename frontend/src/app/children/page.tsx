@@ -238,27 +238,99 @@ export default function ChildrenMinistryPage() {
         </div>
       </section>
 
-      {/* ── CHILDREN BANNER ── */}
-      <div className="bg-[#0d0138] py-14">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-[#f5bb00] font-black text-xs uppercase tracking-widest mb-3">
-            ✨ LETW Children's Ministry
-          </p>
-          <h2 className="text-center text-white font-black text-2xl mb-8">Little Lights. Big Faith.</h2>
-          <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-            <img
-              src="/primary.png"
-              alt="LETW Children's Ministry"
-              className="w-full object-cover"
-            />
-          </div>
-          <div className="flex justify-center mt-6">
-            <a
-              href="#enrol"
-              className="bg-[#f5bb00] text-[#140152] font-black px-10 py-4 rounded-full text-sm hover:bg-yellow-300 transition-colors shadow-lg inline-flex items-center gap-2"
-            >
-              Enrol Your Child <ArrowRight className="w-4 h-4" />
-            </a>
+      {/* ── CHILDREN BANNER / FLYER ── */}
+      <div className="bg-gradient-to-br from-[#0d0138] via-[#1a0050] to-[#0d0138] py-16 px-4">
+        <div className="max-w-3xl mx-auto">
+
+          {/* Flyer card */}
+          <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+
+            {/* Background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-pink-500 via-orange-400 to-yellow-400" />
+
+            {/* Decorative circles */}
+            <div className="absolute -top-16 -right-16 w-64 h-64 bg-white/10 rounded-full" />
+            <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-white/10 rounded-full" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/5 rounded-full" />
+
+            {/* Floating stars */}
+            <div className="absolute top-6 left-8 text-white/40 text-2xl">★</div>
+            <div className="absolute top-12 right-16 text-white/30 text-lg">✦</div>
+            <div className="absolute bottom-16 left-16 text-white/30 text-xl">✦</div>
+            <div className="absolute bottom-8 right-10 text-white/40 text-2xl">★</div>
+            <div className="absolute top-1/3 right-8 text-white/20 text-4xl">✶</div>
+
+            {/* Content */}
+            <div className="relative z-10 px-8 py-12 md:px-14 md:py-16 text-center">
+
+              {/* Church logo / name */}
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-5 py-2 mb-8">
+                <span className="text-white font-black text-xs uppercase tracking-widest">Light Encounter Tabernacle</span>
+              </div>
+
+              {/* Icon row */}
+              <div className="flex justify-center gap-4 mb-8">
+                {[
+                  { icon: Star,     bg: 'bg-yellow-300', text: 'text-orange-600' },
+                  { icon: Heart,    bg: 'bg-pink-200',   text: 'text-pink-700' },
+                  { icon: BookOpen, bg: 'bg-white',      text: 'text-purple-700' },
+                  { icon: Music,    bg: 'bg-orange-200', text: 'text-orange-700' },
+                  { icon: Sparkles, bg: 'bg-yellow-200', text: 'text-yellow-700' },
+                ].map(({ icon: Icon, bg, text }, i) => (
+                  <div key={i} className={`w-12 h-12 ${bg} rounded-2xl flex items-center justify-center shadow-lg`}>
+                    <Icon className={`w-6 h-6 ${text}`} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Headline */}
+              <h2 className="text-5xl md:text-7xl font-black text-white leading-tight mb-4 drop-shadow-lg">
+                Little <span className="text-yellow-200">Lights.</span><br />
+                Big <span className="text-yellow-200">Faith.</span>
+              </h2>
+
+              {/* Tagline */}
+              <p className="text-white/90 text-lg md:text-xl font-semibold mb-10 max-w-lg mx-auto leading-relaxed">
+                A vibrant, safe & fun space for children aged <strong>0–12</strong> to discover Jesus, build faith, and shine bright.
+              </p>
+
+              {/* Program pills */}
+              <div className="flex flex-wrap justify-center gap-3 mb-10">
+                {['Sunday School', 'Kids Worship', 'Bible Quiz', 'VBS', 'Drama Ministry', 'Kids Prayer'].map(p => (
+                  <span key={p} className="bg-white/25 backdrop-blur-sm text-white font-bold text-xs px-4 py-2 rounded-full border border-white/30">
+                    {p}
+                  </span>
+                ))}
+              </div>
+
+              {/* Age groups */}
+              <div className="grid grid-cols-4 gap-3 mb-10 max-w-sm mx-auto">
+                {[
+                  { label: 'Nursery',  age: '0–2',   color: 'bg-pink-200 text-pink-800' },
+                  { label: 'Toddlers', age: '3–5',   color: 'bg-orange-200 text-orange-800' },
+                  { label: 'Primary',  age: '6–9',   color: 'bg-yellow-200 text-yellow-800' },
+                  { label: 'Juniors',  age: '10–12', color: 'bg-green-200 text-green-800' },
+                ].map(g => (
+                  <div key={g.label} className={`${g.color} rounded-2xl py-3 px-1 text-center`}>
+                    <p className="font-black text-xs">{g.label}</p>
+                    <p className="text-[10px] font-semibold opacity-70">Ages {g.age}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <a
+                href="#enrol"
+                className="inline-flex items-center gap-3 bg-[#140152] text-white font-black px-10 py-4 rounded-full text-base hover:bg-[#1d0175] transition-all shadow-xl"
+              >
+                Enrol Your Child Today <ArrowRight className="w-5 h-5" />
+              </a>
+
+              {/* Footer note */}
+              <p className="text-white/60 text-xs mt-6 font-semibold">
+                Every Sunday · 9:00 AM · LETW Main Campus
+              </p>
+            </div>
           </div>
         </div>
       </div>
