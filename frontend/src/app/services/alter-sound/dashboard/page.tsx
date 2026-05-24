@@ -252,6 +252,20 @@ export default function ChoirDashboard() {
 
   const submitReply = (announcementId: string) => {
     if (!replyText.trim()) return
+    const ann = MOCK_ANNOUNCEMENTS.find(a => a.id === announcementId)
+    // Save reply to localStorage so Choir Master inbox can receive it
+    const existing = JSON.parse(localStorage.getItem('letw_choirmaster_inbox') || '[]')
+    existing.unshift({
+      id:                Date.now().toString(),
+      from:              MEMBER_INFO.name,
+      initials:          MEMBER_INFO.initials,
+      voice:             MEMBER_INFO.voice,
+      announcementTitle: ann?.title || 'Announcement',
+      text:              replyText.trim(),
+      time:              new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      read:              false,
+    })
+    localStorage.setItem('letw_choirmaster_inbox', JSON.stringify(existing))
     setSentReplies(prev => ({ ...prev, [announcementId]: replyText.trim() }))
     setReplyingTo(null)
     setReplyText('')

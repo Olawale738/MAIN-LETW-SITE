@@ -191,6 +191,26 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
   const [sentReplies, setSentReplies] = useState<Set<string>>(new Set())
   const [countdown, setCountdown] = useState({ d: 0, h: 0, m: 0, s: 0 })
 
+  // Load inbox replies from localStorage (sent by members via member dashboard)
+  useEffect(() => {
+    const loadInbox = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem('letw_choirmaster_inbox') || '[]')
+        if (stored.length > 0) setInboxReplies(stored)
+      } catch { /* ignore */ }
+    }
+    loadInbox()
+    // Poll every 10 seconds for new replies
+    const interval = setInterval(loadInbox, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Sync inbox changes back to localStorage
+  const updateInbox = (updated: Reply[]) => {
+    setInboxReplies(updated)
+    localStorage.setItem('letw_choirmaster_inbox', JSON.stringify(updated))
+  }
+
   // Countdown to Anniversary Concert
   useEffect(() => {
     const target = new Date('2026-06-28T17:00:00')
@@ -210,8 +230,8 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
   const activeCount = members.filter(m => m.active).length
   const avgAttendance = Math.round(members.filter(m => m.active).reduce((s, m) => s + m.attendance, 0) / activeCount)
 
-  const markRead = (id: string) => setInboxReplies(prev => prev.map(r => r.id === id ? { ...r, read: true } : r))
-  const markAllRead = () => setInboxReplies(prev => prev.map(r => ({ ...r, read: true })))
+  const markRead = (id: string) => updateInbox(inboxReplies.map(r => r.id === id ? { ...r, read: true } : r))
+  const markAllRead = () => updateInbox(inboxReplies.map(r => ({ ...r, read: true })))
 
   const toggleMemberStatus = (id: string) =>
     setMembers(prev => prev.map(m => m.id === id ? { ...m, active: !m.active } : m))
