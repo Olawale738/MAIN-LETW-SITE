@@ -153,6 +153,41 @@ const NAV_ITEMS = [
   { id: 'highlights', label: 'Highlights', icon: Star },
 ]
 
+/* ─── Live localStorage helpers ─────────────────────────────── */
+interface ChoirHighlight {
+  id: string
+  title: string
+  body: string
+  type: 'testimony' | 'update' | 'praise'
+  postedBy: string
+  time: string
+}
+
+interface ChoirStats {
+  membersThisYear: number
+  servicesMinistered: number
+  specialPrograms: number
+}
+
+function loadRealMembers(): Member[] {
+  if (typeof window === 'undefined') return []
+  try { return JSON.parse(localStorage.getItem('letw_choir_members_data') || '[]') } catch { return [] }
+}
+
+function loadHighlights(): ChoirHighlight[] {
+  if (typeof window === 'undefined') return []
+  try { return JSON.parse(localStorage.getItem('letw_choir_highlights') || '[]') } catch { return [] }
+}
+
+function saveHighlights(h: ChoirHighlight[]) {
+  localStorage.setItem('letw_choir_highlights', JSON.stringify(h))
+}
+
+function loadStats(): ChoirStats {
+  if (typeof window === 'undefined') return { membersThisYear: 0, servicesMinistered: 0, specialPrograms: 0 }
+  try { return JSON.parse(localStorage.getItem('letw_choir_stats') || 'null') || { membersThisYear: 0, servicesMinistered: 0, specialPrograms: 0 } } catch { return { membersThisYear: 0, servicesMinistered: 0, specialPrograms: 0 } }
+}
+
 /* ═══════════════════════════════════════════════════════════════ */
 export default function ChoirDashboard() {
   const [activeNav, setActiveNav] = useState('home')
@@ -173,6 +208,43 @@ export default function ChoirDashboard() {
   const [chatInput, setChatInput] = useState('')
   const chatBottomRef = useRef<HTMLDivElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  /* Live data from localStorage */
+  const [realMembers, setRealMembers] = useState<Member[]>([])
+  const [highlights, setHighlights] = useState<ChoirHighlight[]>([])
+  const [choirStats, setChoirStats] = useState<ChoirStats>({ membersThisYear: 0, servicesMinistered: 0, specialPrograms: 0 })
+  const [newTestimony, setNewTestimony] = useState('')
+  const [testimonyTitle, setTestimonyTitle] = useState('')
+
+  useEffect(() => {
+    setRealMembers(loadRealMembers())
+    setHighlights(loadHighlights())
+    setChoirStats(loadStats())
+    // Refresh every 30 s to pick up choirmaster updates
+    const interval = setInterval(() => {
+      setRealMembers(loadRealMembers())
+      setHighlights(loadHighlights())
+      setChoirStats(loadStats())
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const submitTestimony = () => {
+    if (!testimonyTitle.trim() || !newTestimony.trim()) return
+    const entry: ChoirHighlight = {
+      id: Date.now().toString(),
+      title: testimonyTitle.trim(),
+      body: newTestimony.trim(),
+      type: 'testimony',
+      postedBy: MEMBER_INFO.name,
+      time: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+    }
+    const updated = [entry, ...highlights]
+    saveHighlights(updated)
+    setHighlights(updated)
+    setTestimonyTitle('')
+    setNewTestimony('')
+  }
 
   /* Countdown to next major event (Anniversary Concert) */
   useEffect(() => {
@@ -1136,15 +1208,20 @@ export default function ChoirDashboard() {
                   </div>
                 </div>
 
-                {/* Ministry stats */}
+                {/* Ministry stats — live from choirmaster */}
                 <div>
-                  <h3 className="font-bold text-[#140152] mb-4 text-lg">Ministry Highlights</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-[#140152] text-lg">Ministry Highlights</h3>
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block" />
+                      Live · updated by coordinator
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {[
-                      { val: '+12', label: 'New Members This Year', icon: Users, color: 'text-green-600', bg: 'bg-green-50' },
-                      { val: '48', label: 'Services Ministered', icon: Mic2, color: 'text-blue-600', bg: 'bg-blue-50' },
-                      { val: '95%', label: 'Member Satisfaction', icon: Heart, color: 'text-red-500', bg: 'bg-red-50' },
-                      { val: '6', label: 'Special Programs', icon: Star, color: 'text-amber-600', bg: 'bg-amber-50' },
+                      { val: realMembers.length > 0 ? `${realMembers.length}` : '—', label: 'Registered Members', icon: Users, color: 'text-violet-600', bg: 'bg-violet-50' },
+                      { val: choirStats.servicesMinistered > 0 ? `${choirStats.servicesMinistered}` : '—', label: 'Services Ministered', icon: Mic2, color: 'text-blue-600', bg: 'bg-blue-50' },
+                      { val: choirStats.specialPrograms > 0 ? `${choirStats.specialPrograms}` : '—', label: 'Special Programs', icon: Star, color: 'text-amber-600', bg: 'bg-amber-50' },
                     ].map((s, i) => (
                       <div key={i} className={`${s.bg} rounded-2xl p-5 text-center`}>
                         <s.icon className={`w-7 h-7 mx-auto mb-3 ${s.color}`} />
@@ -1153,29 +1230,79 @@ export default function ChoirDashboard() {
                       </div>
                     ))}
                   </div>
+                  {realMembers.length === 0 && choirStats.servicesMinistered === 0 && (
+                    <p className="text-xs text-gray-400 text-center mt-3 italic">
+                      Stats will appear here once the choir coordinator updates them.
+                    </p>
+                  )}
                 </div>
 
-                {/* Encouragement cards */}
+                {/* Testimonies & Encouragement — real live posts */}
                 <div>
-                  <h3 className="font-bold text-[#140152] mb-4 text-lg">Testimonies & Encouragement</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-[#140152] text-lg">Testimonies & Encouragement</h3>
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block" />
+                      Live
+                    </span>
+                  </div>
+
+                  {/* Submit testimony */}
+                  <div className="bg-violet-50 border border-violet-100 rounded-2xl p-5 mb-4">
+                    <p className="text-xs font-bold text-violet-700 mb-3">✍️ Share Your Testimony</p>
+                    <input
+                      value={testimonyTitle}
+                      onChange={e => setTestimonyTitle(e.target.value)}
+                      placeholder="Title (e.g. God healed me last Sunday…)"
+                      className="w-full px-3 py-2 border border-violet-200 rounded-xl text-sm mb-2 focus:ring-2 focus:ring-violet-400 focus:outline-none bg-white"
+                    />
+                    <textarea
+                      value={newTestimony}
+                      onChange={e => setNewTestimony(e.target.value)}
+                      rows={3}
+                      placeholder="Share what God did…"
+                      className="w-full px-3 py-2 border border-violet-200 rounded-xl text-sm resize-none focus:ring-2 focus:ring-violet-400 focus:outline-none bg-white"
+                    />
+                    <button
+                      onClick={submitTestimony}
+                      disabled={!testimonyTitle.trim() || !newTestimony.trim()}
+                      className="mt-2 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-50 transition-all"
+                      style={{ background: 'linear-gradient(135deg, #7c3aed, #4c1d95)' }}
+                    >
+                      <Send className="w-3.5 h-3.5" /> Submit Testimony
+                    </button>
+                  </div>
+
+                  {/* Highlights list */}
                   <div className="space-y-4">
-                    {[
-                      { title: 'Lives Touched Last Sunday', body: 'Three people gave their lives to Christ after the choir ministered "Reckless Love" during the altar call. Glory to God!', icon: Heart, color: 'bg-red-50 border-red-200', iconColor: 'text-red-500' },
-                      { title: 'Choir Grew by 12 Members', body: 'We welcomed 12 new members to the Alter Sound family this year — 5 sopranos, 3 altos, 2 tenors, and 2 bass. The sound is growing!', icon: Users, color: 'bg-green-50 border-green-200', iconColor: 'text-green-500' },
-                      { title: 'Anniversary Concert Coming Up!', body: 'Preparations are in full swing for the LETW Anniversary Concert on June 28. Let\'s make it a night of glory!', icon: Star, color: 'bg-amber-50 border-amber-200', iconColor: 'text-amber-500' },
-                    ].map((h, i) => (
-                      <div key={i} className={`rounded-2xl border p-5 ${h.color}`}>
-                        <div className="flex items-start gap-4">
-                          <div className={`w-10 h-10 bg-white rounded-xl flex items-center justify-center flex-shrink-0`}>
-                            <h.icon className={`w-5 h-5 ${h.iconColor}`} />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-[#140152] mb-1">{h.title}</h4>
-                            <p className="text-gray-600 text-sm leading-relaxed">{h.body}</p>
-                          </div>
-                        </div>
+                    {highlights.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
+                        <Star className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                        <p className="text-sm text-gray-400 font-medium">No testimonies yet.</p>
+                        <p className="text-xs text-gray-400 mt-1">Be the first to share what God has done, or check back after the coordinator posts an update.</p>
                       </div>
-                    ))}
+                    ) : (
+                      highlights.map(h => {
+                        const typeColors: Record<string, string> = { testimony: 'bg-red-50 border-red-200', update: 'bg-blue-50 border-blue-200', praise: 'bg-amber-50 border-amber-200' }
+                        const typeIcons: Record<string, React.ElementType> = { testimony: Heart, update: Bell, praise: Star }
+                        const typeIconColors: Record<string, string> = { testimony: 'text-red-500', update: 'text-blue-500', praise: 'text-amber-500' }
+                        const Icon = typeIcons[h.type] || Heart
+                        return (
+                          <div key={h.id} className={`rounded-2xl border p-5 ${typeColors[h.type] || 'bg-gray-50 border-gray-200'}`}>
+                            <div className="flex items-start gap-4">
+                              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
+                                <Icon className={`w-5 h-5 ${typeIconColors[h.type] || 'text-gray-400'}`} />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-bold text-[#140152] mb-1">{h.title}</h4>
+                                <p className="text-gray-600 text-sm leading-relaxed">{h.body}</p>
+                                <p className="text-xs text-gray-400 mt-2">{h.postedBy} · {h.time}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
                   </div>
                 </div>
 

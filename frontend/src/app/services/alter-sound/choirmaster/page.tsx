@@ -24,6 +24,8 @@ interface Reply { id: string; from: string; initials: string; voice: string; ann
 interface Announcement { id: string; title: string; body: string; time: string; urgent: boolean; pinned: boolean; replies: number }
 interface Song { id: string; title: string; key: string; tempo: string; category: string; readyCount: number; totalCount: number }
 interface Event { id: string; title: string; type: string; date: string; time: string; venue: string; daysLeft: number; color: string; confirmed: number; total: number }
+interface ChoirHighlight { id: string; title: string; body: string; type: 'testimony' | 'update' | 'praise'; postedBy: string; time: string }
+interface ChoirStats { membersThisYear: number; servicesMinistered: number; specialPrograms: number }
 
 // ─── Mock Data ─────────────────────────────────────────────────────
 
@@ -67,13 +69,14 @@ const VOICE_BG: Record<string, string> = {
 }
 
 const NAV_ITEMS = [
-  { id: 'home',     label: 'Overview',     icon: Home },
-  { id: 'inbox',    label: 'Member Inbox', icon: MessageSquare },
-  { id: 'members',  label: 'Members',      icon: Users },
-  { id: 'announce', label: 'Announcements', icon: Megaphone },
-  { id: 'songs',    label: 'Song Manager', icon: Music },
-  { id: 'events',   label: 'Schedule',     icon: Calendar },
-  { id: 'attendance', label: 'Attendance', icon: BarChart2 },
+  { id: 'home',       label: 'Overview',      icon: Home },
+  { id: 'inbox',      label: 'Member Inbox',  icon: MessageSquare },
+  { id: 'members',    label: 'Members',       icon: Users },
+  { id: 'highlights', label: 'Ministry Feed', icon: Star },
+  { id: 'announce',   label: 'Announcements', icon: Megaphone },
+  { id: 'songs',      label: 'Song Manager',  icon: Music },
+  { id: 'events',     label: 'Schedule',      icon: Calendar },
+  { id: 'attendance', label: 'Attendance',    icon: BarChart2 },
 ]
 
 // ─── Auth Gate ────────────────────────────────────────────────────
@@ -191,6 +194,25 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
   const [sentReplies, setSentReplies] = useState<Set<string>>(new Set())
   const [countdown, setCountdown] = useState({ d: 0, h: 0, m: 0, s: 0 })
 
+  // ── Member add form state ──────────────────────────────────────────
+  const [showAddMember, setShowAddMember] = useState(false)
+  const [newMemberName,  setNewMemberName]  = useState('')
+  const [newMemberVoice, setNewMemberVoice] = useState<Member['voice']>('Soprano')
+  const [newMemberPhone, setNewMemberPhone] = useState('')
+  const [newMemberEmail, setNewMemberEmail] = useState('')
+  const [newMemberRole,  setNewMemberRole]  = useState('')
+
+  // ── Ministry feed (highlights) state ─────────────────────────────
+  const [highlights,    setHighlights]    = useState<ChoirHighlight[]>([])
+  const [newHighTitle,  setNewHighTitle]  = useState('')
+  const [newHighBody,   setNewHighBody]   = useState('')
+  const [newHighType,   setNewHighType]   = useState<ChoirHighlight['type']>('update')
+
+  // ── Stats state ───────────────────────────────────────────────────
+  const [choirStats,    setChoirStats]    = useState<ChoirStats>({ membersThisYear: 0, servicesMinistered: 0, specialPrograms: 0 })
+  const [editingStats,  setEditingStats]  = useState(false)
+  const [statInputs,    setStatInputs]    = useState({ membersThisYear: '', servicesMinistered: '', specialPrograms: '' })
+
   // Load inbox replies from localStorage (sent by members via member dashboard)
   useEffect(() => {
     const loadInbox = () => {
@@ -209,6 +231,104 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
   const updateInbox = (updated: Reply[]) => {
     setInboxReplies(updated)
     localStorage.setItem('letw_choirmaster_inbox', JSON.stringify(updated))
+  }
+
+  // Load members from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('letw_choir_members_data') || '[]')
+      if (Array.isArray(stored) && stored.length > 0) setMembers(stored)
+    } catch { /* ignore */ }
+  }, [])
+
+  // Load highlights on mount
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('letw_choir_highlights') || '[]')
+      if (Array.isArray(stored)) setHighlights(stored)
+    } catch { /* ignore */ }
+  }, [])
+
+  // Load stats on mount
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('letw_choir_stats') || 'null')
+      if (stored) setChoirStats(stored)
+    } catch { /* ignore */ }
+  }, [])
+
+  // ── Persistence helpers ───────────────────────────────────────────
+  const saveMembers = (updated: Member[]) => {
+    setMembers(updated)
+    localStorage.setItem('letw_choir_members_data', JSON.stringify(updated))
+  }
+
+  const saveHighlights = (updated: ChoirHighlight[]) => {
+    setHighlights(updated)
+    localStorage.setItem('letw_choir_highlights', JSON.stringify(updated))
+  }
+
+  // ── Member actions ────────────────────────────────────────────────
+  const addMember = () => {
+    if (!newMemberName.trim()) return
+    const parts = newMemberName.trim().split(' ')
+    const initials = parts.map(w => w[0]).join('').toUpperCase().slice(0, 2)
+    const newMember: Member = {
+      id: Date.now().toString(),
+      name: newMemberName.trim(),
+      initials,
+      voice: newMemberVoice,
+      role: newMemberRole.trim() || undefined,
+      active: true,
+      attendance: 100,
+      joinedDate: new Date().getFullYear().toString(),
+      phone: newMemberPhone.trim(),
+      email: newMemberEmail.trim(),
+    }
+    saveMembers([...members, newMember])
+    setNewMemberName(''); setNewMemberVoice('Soprano')
+    setNewMemberPhone(''); setNewMemberEmail(''); setNewMemberRole('')
+    setShowAddMember(false)
+  }
+
+  const removeMember = (id: string) => saveMembers(members.filter(m => m.id !== id))
+
+  // ── Highlights actions ────────────────────────────────────────────
+  const postHighlight = () => {
+    if (!newHighTitle.trim() || !newHighBody.trim()) return
+    const entry: ChoirHighlight = {
+      id: Date.now().toString(),
+      title: newHighTitle.trim(),
+      body: newHighBody.trim(),
+      type: newHighType,
+      postedBy: 'Choir Director',
+      time: new Date().toLocaleString(),
+    }
+    saveHighlights([entry, ...highlights])
+    setNewHighTitle(''); setNewHighBody('')
+  }
+
+  const deleteHighlight = (id: string) => saveHighlights(highlights.filter(h => h.id !== id))
+
+  // ── Stats actions ─────────────────────────────────────────────────
+  const openEditStats = () => {
+    setStatInputs({
+      membersThisYear: choirStats.membersThisYear ? String(choirStats.membersThisYear) : '',
+      servicesMinistered: choirStats.servicesMinistered ? String(choirStats.servicesMinistered) : '',
+      specialPrograms: choirStats.specialPrograms ? String(choirStats.specialPrograms) : '',
+    })
+    setEditingStats(true)
+  }
+
+  const saveStats = () => {
+    const updated: ChoirStats = {
+      membersThisYear:    parseInt(statInputs.membersThisYear)    || 0,
+      servicesMinistered: parseInt(statInputs.servicesMinistered) || 0,
+      specialPrograms:    parseInt(statInputs.specialPrograms)    || 0,
+    }
+    setChoirStats(updated)
+    localStorage.setItem('letw_choir_stats', JSON.stringify(updated))
+    setEditingStats(false)
   }
 
   // Countdown to Anniversary Concert
@@ -234,7 +354,7 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
   const markAllRead = () => updateInbox(inboxReplies.map(r => ({ ...r, read: true })))
 
   const toggleMemberStatus = (id: string) =>
-    setMembers(prev => prev.map(m => m.id === id ? { ...m, active: !m.active } : m))
+    saveMembers(members.map(m => m.id === id ? { ...m, active: !m.active } : m))
 
   const sendReplyToMember = (replyId: string) => {
     if (!replyInputs[replyId]?.trim()) return
@@ -327,6 +447,56 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
             <CountBox v={countdown.s} l="Secs" />
           </div>
           <p className="text-[#140152]/70 text-xs mt-3">Sat 28 June · Main Auditorium · 5:00 PM — {MOCK_EVENTS[2].confirmed}/{MOCK_EVENTS[2].total} members confirmed</p>
+        </div>
+
+        {/* Ministry Stats — editable, written to localStorage for member dashboard */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+            <h3 className="font-black text-gray-800 text-sm flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-violet-600" /> Ministry Stats
+              <span className="text-[10px] font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Live · visible to members</span>
+            </h3>
+            <button onClick={openEditStats} className="text-violet-600 text-xs font-bold flex items-center gap-1 hover:underline">
+              <Edit3 className="w-3 h-3" /> Edit
+            </button>
+          </div>
+          {editingStats ? (
+            <div className="p-5 space-y-3">
+              {[
+                { key: 'membersThisYear', label: 'New Members This Year' },
+                { key: 'servicesMinistered', label: 'Services Ministered' },
+                { key: 'specialPrograms', label: 'Special Programs' },
+              ].map(({ key, label }) => (
+                <div key={key} className="flex items-center gap-3">
+                  <label className="text-xs font-semibold text-gray-600 w-44 flex-shrink-0">{label}</label>
+                  <input
+                    type="number" min="0"
+                    value={statInputs[key as keyof typeof statInputs]}
+                    onChange={e => setStatInputs(prev => ({ ...prev, [key]: e.target.value }))}
+                    className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
+                    placeholder="0"
+                  />
+                </div>
+              ))}
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setEditingStats(false)} className="px-4 py-2 text-xs text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
+                <button onClick={saveStats} className="px-5 py-2 bg-[#140152] text-white text-xs font-bold rounded-lg hover:bg-[#1a0270] transition-all">Save & Publish</button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 divide-x divide-gray-50">
+              {[
+                { label: 'New Members', value: choirStats.membersThisYear },
+                { label: 'Services',    value: choirStats.servicesMinistered },
+                { label: 'Special Programs', value: choirStats.specialPrograms },
+              ].map(s => (
+                <div key={s.label} className="p-4 text-center">
+                  <div className="text-2xl font-black text-[#140152]">{s.value || '—'}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Recent replies preview */}
@@ -479,8 +649,69 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
           ))}
         </div>
 
+        {/* Add Member button / form */}
+        <div>
+          <button onClick={() => setShowAddMember(!showAddMember)}
+            className="w-full flex items-center gap-3 bg-[#140152] text-white rounded-2xl px-5 py-3.5 font-bold hover:bg-[#1a0270] transition-all mb-4">
+            <Plus className="w-5 h-5" /> Add New Member
+          </button>
+
+          {showAddMember && (
+            <div className="bg-white border border-violet-200 rounded-2xl p-5 shadow-sm space-y-3 mb-4">
+              <h3 className="font-black text-[#140152] text-sm">New Choir Member</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Full Name *</label>
+                  <input value={newMemberName} onChange={e => setNewMemberName(e.target.value)}
+                    placeholder="e.g. Mary Johnson"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Voice Part *</label>
+                  <select value={newMemberVoice} onChange={e => setNewMemberVoice(e.target.value as Member['voice'])}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300">
+                    {['Soprano', 'Alto', 'Tenor', 'Bass'].map(v => <option key={v}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Role / Title</label>
+                  <input value={newMemberRole} onChange={e => setNewMemberRole(e.target.value)}
+                    placeholder="e.g. Section Lead"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
+                  <input value={newMemberPhone} onChange={e => setNewMemberPhone(e.target.value)}
+                    placeholder="+234 …"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
+                  <input value={newMemberEmail} onChange={e => setNewMemberEmail(e.target.value)}
+                    placeholder="member@example.com" type="email"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end pt-1">
+                <button onClick={() => setShowAddMember(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-xl transition-colors">Cancel</button>
+                <button onClick={addMember} disabled={!newMemberName.trim()}
+                  className="px-5 py-2 bg-[#140152] text-white text-sm font-bold rounded-xl disabled:opacity-40 hover:bg-[#1a0270] transition-all flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> Add to Choir
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Member cards */}
         <div className="space-y-3">
+          {filteredMembers.length === 0 && (
+            <div className="text-center py-12 text-gray-400">
+              <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-semibold">No members yet</p>
+              <p className="text-xs mt-1">Add your first choir member above.</p>
+            </div>
+          )}
           {filteredMembers.map(m => (
             <div key={m.id} className={`bg-white rounded-2xl border shadow-sm p-4 transition-all ${!m.active ? 'opacity-60 border-gray-100' : 'border-gray-100 hover:shadow-md'}`}>
               <div className="flex items-center gap-3">
@@ -504,16 +735,25 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
                   </div>
                 </div>
                 <div className="flex gap-1.5 flex-shrink-0">
-                  <a href={`tel:${m.phone}`} className="w-8 h-8 bg-gray-100 hover:bg-green-100 rounded-lg flex items-center justify-center transition-colors" title="Call">
-                    <Phone className="w-3.5 h-3.5 text-gray-600" />
-                  </a>
-                  <a href={`mailto:${m.email}`} className="w-8 h-8 bg-gray-100 hover:bg-blue-100 rounded-lg flex items-center justify-center transition-colors" title="Email">
-                    <Mail className="w-3.5 h-3.5 text-gray-600" />
-                  </a>
+                  {m.phone && (
+                    <a href={`tel:${m.phone}`} className="w-8 h-8 bg-gray-100 hover:bg-green-100 rounded-lg flex items-center justify-center transition-colors" title="Call">
+                      <Phone className="w-3.5 h-3.5 text-gray-600" />
+                    </a>
+                  )}
+                  {m.email && (
+                    <a href={`mailto:${m.email}`} className="w-8 h-8 bg-gray-100 hover:bg-blue-100 rounded-lg flex items-center justify-center transition-colors" title="Email">
+                      <Mail className="w-3.5 h-3.5 text-gray-600" />
+                    </a>
+                  )}
                   <button onClick={() => toggleMemberStatus(m.id)}
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${m.active ? 'bg-gray-100 hover:bg-red-100' : 'bg-green-100 hover:bg-green-200'}`}
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${m.active ? 'bg-gray-100 hover:bg-orange-100' : 'bg-green-100 hover:bg-green-200'}`}
                     title={m.active ? 'Deactivate member' : 'Reactivate member'}>
                     {m.active ? <UserX className="w-3.5 h-3.5 text-gray-600" /> : <UserCheck className="w-3.5 h-3.5 text-green-700" />}
+                  </button>
+                  <button onClick={() => removeMember(m.id)}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-gray-100 hover:bg-red-100 transition-colors"
+                    title="Remove member permanently">
+                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
                   </button>
                 </div>
               </div>
@@ -591,6 +831,77 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
             </div>
           </div>
         ))}
+      </div>
+    )
+  }
+
+  // ─── MINISTRY FEED (HIGHLIGHTS) ───────────────────────────────
+  function renderHighlights() {
+    const typeColors: Record<ChoirHighlight['type'], string> = {
+      testimony: 'bg-amber-100 text-amber-700',
+      update:    'bg-blue-100 text-blue-700',
+      praise:    'bg-green-100 text-green-700',
+    }
+    const typeIcons: Record<ChoirHighlight['type'], string> = {
+      testimony: '🙌',
+      update:    '📢',
+      praise:    '⭐',
+    }
+    return (
+      <div className="space-y-5">
+        <div className="bg-[#140152]/5 border border-[#140152]/10 rounded-xl px-4 py-3 text-sm text-[#140152] font-semibold">
+          Posts here appear instantly on the <strong>Member Dashboard</strong> — share testimonies, updates, and praise reports.
+        </div>
+
+        {/* Compose */}
+        <div className="bg-white border border-violet-200 rounded-2xl p-5 shadow-sm space-y-3">
+          <h3 className="font-black text-[#140152] text-sm flex items-center gap-2"><Star className="w-4 h-4 text-[#f5bb00]" /> Post to Member Feed</h3>
+          <div className="flex gap-2">
+            {(['update', 'testimony', 'praise'] as const).map(t => (
+              <button key={t} onClick={() => setNewHighType(t)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${newHighType === t ? 'bg-[#140152] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                {typeIcons[t]} {t}
+              </button>
+            ))}
+          </div>
+          <input value={newHighTitle} onChange={e => setNewHighTitle(e.target.value)}
+            placeholder="Title / headline…"
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300" />
+          <textarea rows={3} value={newHighBody} onChange={e => setNewHighBody(e.target.value)}
+            placeholder="Share the update, testimony, or praise report…"
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-300" />
+          <div className="flex justify-end">
+            <button onClick={postHighlight} disabled={!newHighTitle.trim() || !newHighBody.trim()}
+              className="px-5 py-2 bg-[#140152] text-white text-sm font-bold rounded-xl disabled:opacity-40 hover:bg-[#1a0270] transition-all flex items-center gap-2">
+              <Send className="w-4 h-4" /> Publish to Members
+            </button>
+          </div>
+        </div>
+
+        {/* Posted highlights */}
+        {highlights.length === 0 ? (
+          <div className="text-center py-10 text-gray-400">
+            <Star className="w-10 h-10 mx-auto mb-3 opacity-20" />
+            <p className="text-sm font-semibold">No posts yet</p>
+            <p className="text-xs mt-1">Your first post will appear on the member dashboard immediately.</p>
+          </div>
+        ) : (
+          highlights.map(h => (
+            <div key={h.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full capitalize ${typeColors[h.type]}`}>{typeIcons[h.type]} {h.type}</span>
+                  <h3 className="font-black text-[#140152]">{h.title}</h3>
+                </div>
+                <button onClick={() => deleteHighlight(h.id)} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors flex-shrink-0" title="Delete">
+                  <Trash2 className="w-3.5 h-3.5 text-gray-400 hover:text-red-500" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed mb-2">{h.body}</p>
+              <p className="text-[10px] text-gray-400">{h.postedBy} · {h.time}</p>
+            </div>
+          ))
+        )}
       </div>
     )
   }
@@ -744,14 +1055,15 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
 
   function renderSection() {
     switch (activeNav) {
-      case 'home':     return renderHome()
-      case 'inbox':    return renderInbox()
-      case 'members':  return renderMembers()
-      case 'announce': return renderAnnouncements()
-      case 'songs':    return renderSongs()
-      case 'events':   return renderEvents()
+      case 'home':       return renderHome()
+      case 'inbox':      return renderInbox()
+      case 'members':    return renderMembers()
+      case 'highlights': return renderHighlights()
+      case 'announce':   return renderAnnouncements()
+      case 'songs':      return renderSongs()
+      case 'events':     return renderEvents()
       case 'attendance': return renderAttendance()
-      default:         return renderHome()
+      default:           return renderHome()
     }
   }
 
