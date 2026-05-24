@@ -78,23 +78,26 @@ export default function ServicesPage() {
       </div>
 
       {/* FLYER BANNER */}
-      <div className="bg-[#0d0138] py-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-[#f5bb00] font-black text-xs uppercase tracking-widest mb-6">
+      <div className="bg-[#0d0138] py-14">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-[#f5bb00] font-black text-xs uppercase tracking-widest mb-4">
             📣 Upcoming at LETW
           </p>
-          <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 group">
+          <h2 className="text-center text-white font-black text-2xl mb-8">Don't Miss What's Coming</h2>
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10">
             <img
               src="/Flyer1.jpg"
               alt="LETW Event Flyer"
-              className="w-full object-cover group-hover:scale-105 transition-transform duration-700"
+              className="w-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-8">
-              <a href="/events"
-                className="bg-[#f5bb00] text-[#140152] font-black px-8 py-3 rounded-full text-sm hover:bg-yellow-300 transition-colors shadow-lg">
-                View All Events →
-              </a>
-            </div>
+          </div>
+          <div className="flex justify-center mt-6">
+            <a
+              href="/events"
+              className="bg-[#f5bb00] text-[#140152] font-black px-10 py-4 rounded-full text-sm hover:bg-yellow-300 transition-colors shadow-lg inline-flex items-center gap-2"
+            >
+              View All Events <ArrowRight className="w-4 h-4" />
+            </a>
           </div>
         </div>
       </div>
