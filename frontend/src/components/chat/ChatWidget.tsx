@@ -1,23 +1,25 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { MessageCircle, X, Send, Loader2 } from 'lucide-react'
+import { MessageCircle, X, Send, Loader2, RefreshCw, WifiOff, Clock } from 'lucide-react'
 import { chatApi, ChatMessage } from '@/lib/api'
 
-const POLL_INTERVAL = 5000 // 5 seconds
+const POLL_INTERVAL = 6000 // 6 seconds
+
+type SendStatus = 'idle' | 'sending' | 'retrying' | 'error-network' | 'error-server'
 
 export default function ChatWidget() {
     const [isOpen, setIsOpen] = useState(false)
     const [messages, setMessages] = useState<ChatMessage[]>([])
     const [input, setInput] = useState('')
     const [loading, setLoading] = useState(false)
-    const [sending, setSending] = useState(false)
-    const [sendError, setSendError] = useState('')
+    const [sendStatus, setSendStatus] = useState<SendStatus>('idle')
     const [unread, setUnread] = useState(0)
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [mounted, setMounted] = useState(false)
     const bottomRef = useRef<HTMLDivElement>(null)
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+    const pendingMessage = useRef('')
 
     useEffect(() => {
         setIsLoggedIn(!!localStorage.getItem('isLoggedIn'))
@@ -51,7 +53,6 @@ export default function ChatWidget() {
             fetchMessages().finally(() => setLoading(false))
             pollRef.current = setInterval(fetchMessages, POLL_INTERVAL)
         } else {
-            // Poll unread count when closed
             fetchUnread()
             const unreadPoll = setInterval(fetchUnread, 15000)
             pollRef.current = unreadPoll
@@ -67,22 +68,54 @@ export default function ChatWidget() {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages])
 
-    const handleSend = async () => {
-        if (!input.trim() || sending) return
-        if (!isLoggedIn) {
-            setSendError('Please log in to send a message.')
-            return
-        }
-        setSending(true)
-        setSendError('')
+    const trySend = async (content: string): Promise<boolean> => {
         try {
-            const msg = await chatApi.sendMessage(input.trim())
+            const msg = await chatApi.sendMessage(content)
             setMessages(prev => [...prev, msg])
+            return true
+        } catch (err: unknown) {
+            // Distinguish network failures from server errors
+            const isNetworkError =
+                err instanceof TypeError ||
+                (err instanceof Error && (
+                    err.message.includes('fetch') ||
+                    err.message.includes('network') ||
+                    err.message.includes('Failed to fetch')
+                ))
+            setSendStatus(isNetworkError ? 'error-network' : 'error-server')
+            return false
+        }
+    }
+
+    const handleSend = async () => {
+        const content = input.trim()
+        if (!content || sendStatus === 'sending' || sendStatus === 'retrying') return
+
+        pendingMessage.current = content
+        setSendStatus('sending')
+
+        const ok = await trySend(content)
+        if (ok) {
             setInput('')
-        } catch {
-            setSendError('Failed to send. Please check your connection and try again.')
-        } finally {
-            setSending(false)
+            pendingMessage.current = ''
+            setSendStatus('idle')
+        }
+        // if not ok, status is already set to error-network or error-server
+    }
+
+    const handleRetry = async () => {
+        const content = pendingMessage.current
+        if (!content) return
+        setSendStatus('retrying')
+
+        // Small delay so the user sees "retrying…" feedback
+        await new Promise(r => setTimeout(r, 800))
+
+        const ok = await trySend(content)
+        if (ok) {
+            setInput('')
+            pendingMessage.current = ''
+            setSendStatus('idle')
         }
     }
 
@@ -93,6 +126,8 @@ export default function ChatWidget() {
         }
     }
 
+    const isBusy = sendStatus === 'sending' || sendStatus === 'retrying'
+
     // Only show to registered (logged-in) users
     if (!mounted || !isLoggedIn) return null
 
@@ -100,21 +135,28 @@ export default function ChatWidget() {
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
             {/* Chat window */}
             {isOpen && (
-                <div className="mb-4 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
-                    style={{ height: '480px' }}>
+                <div
+                    className="mb-4 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
+                    style={{ height: '500px' }}
+                >
                     {/* Header */}
-                    <div className="bg-[#140152] text-white px-4 py-3 flex items-center justify-between">
+                    <div className="bg-[#140152] text-white px-4 py-3 flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#f5bb00] flex items-center justify-center">
+                            <div className="w-9 h-9 rounded-full bg-[#f5bb00] flex items-center justify-center">
                                 <MessageCircle className="w-4 h-4 text-[#140152]" />
                             </div>
                             <div>
                                 <p className="font-bold text-sm">LETW Support</p>
-                                <p className="text-xs text-blue-200">Admin team</p>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                                    <p className="text-xs text-blue-200">Admin team · Online</p>
+                                </div>
                             </div>
                         </div>
-                        <button onClick={() => setIsOpen(false)}
-                            className="text-white/70 hover:text-white transition-colors">
+                        <button
+                            onClick={() => setIsOpen(false)}
+                            className="text-white/60 hover:text-white transition-colors p-1"
+                        >
                             <X className="w-5 h-5" />
                         </button>
                     </div>
@@ -122,27 +164,37 @@ export default function ChatWidget() {
                     {/* Messages */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
                         {loading ? (
-                            <div className="flex justify-center items-center h-full">
+                            <div className="flex flex-col justify-center items-center h-full gap-3 text-gray-400">
                                 <Loader2 className="w-6 h-6 animate-spin text-[#140152]" />
+                                <p className="text-xs">Loading messages…</p>
                             </div>
                         ) : messages.length === 0 ? (
-                            <div className="text-center text-gray-400 text-sm mt-8">
-                                <MessageCircle className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                                <p>Send a message to start a conversation with our team.</p>
+                            <div className="text-center text-gray-400 text-sm mt-10 px-4">
+                                <div className="w-14 h-14 bg-[#140152]/8 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                    <MessageCircle className="w-7 h-7 text-[#140152]/30" />
+                                </div>
+                                <p className="font-semibold text-gray-500 mb-1">Start a conversation</p>
+                                <p className="text-xs text-gray-400 leading-relaxed">
+                                    Send a message and our admin team will get back to you.
+                                </p>
                             </div>
                         ) : (
                             messages.map(msg => (
-                                <div key={msg.id}
-                                    className={`flex ${msg.is_admin ? 'justify-start' : 'justify-end'}`}>
-                                    <div className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm leading-relaxed
-                                        ${msg.is_admin
-                                            ? 'bg-white border border-gray-100 text-gray-800 rounded-tl-sm'
-                                            : 'bg-[#140152] text-white rounded-tr-sm'}`}>
+                                <div
+                                    key={msg.id}
+                                    className={`flex ${msg.is_admin ? 'justify-start' : 'justify-end'}`}
+                                >
+                                    <div
+                                        className={`max-w-[78%] px-3 py-2 rounded-2xl text-sm leading-relaxed shadow-sm
+                                            ${msg.is_admin
+                                                ? 'bg-white border border-gray-100 text-gray-800 rounded-tl-sm'
+                                                : 'bg-[#140152] text-white rounded-tr-sm'}`}
+                                    >
                                         {msg.is_admin && (
-                                            <p className="text-xs font-semibold text-[#f5bb00] mb-1">Admin</p>
+                                            <p className="text-[10px] font-bold text-[#f5bb00] mb-1 uppercase tracking-wide">Admin</p>
                                         )}
-                                        {msg.content}
-                                        <p className={`text-xs mt-1 ${msg.is_admin ? 'text-gray-400' : 'text-blue-200'}`}>
+                                        <p>{msg.content}</p>
+                                        <p className={`text-[10px] mt-1 ${msg.is_admin ? 'text-gray-400' : 'text-blue-200'}`}>
                                             {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </p>
                                     </div>
@@ -152,30 +204,79 @@ export default function ChatWidget() {
                         <div ref={bottomRef} />
                     </div>
 
+                    {/* Error banner */}
+                    {(sendStatus === 'error-network' || sendStatus === 'error-server') && (
+                        <div className={`shrink-0 px-4 py-3 flex items-start gap-3 border-t text-sm
+                            ${sendStatus === 'error-network'
+                                ? 'bg-amber-50 border-amber-100'
+                                : 'bg-red-50 border-red-100'}`}
+                        >
+                            <div className="shrink-0 mt-0.5">
+                                {sendStatus === 'error-network'
+                                    ? <Clock className="w-4 h-4 text-amber-500" />
+                                    : <WifiOff className="w-4 h-4 text-red-400" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className={`font-semibold text-xs ${sendStatus === 'error-network' ? 'text-amber-700' : 'text-red-600'}`}>
+                                    {sendStatus === 'error-network'
+                                        ? 'Server is warming up…'
+                                        : 'Message failed to send'}
+                                </p>
+                                <p className={`text-xs mt-0.5 ${sendStatus === 'error-network' ? 'text-amber-600' : 'text-red-500'}`}>
+                                    {sendStatus === 'error-network'
+                                        ? 'Our server may have been asleep. Click retry — it usually wakes up within seconds.'
+                                        : 'Something went wrong. Please try again.'}
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleRetry}
+                                disabled={sendStatus === 'retrying'}
+                                className={`shrink-0 flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg transition-all
+                                    ${sendStatus === 'error-network'
+                                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                        : 'bg-red-100 text-red-600 hover:bg-red-200'}
+                                    disabled:opacity-50`}
+                            >
+                                <RefreshCw className={`w-3 h-3 ${sendStatus === 'retrying' ? 'animate-spin' : ''}`} />
+                                {sendStatus === 'retrying' ? 'Retrying…' : 'Retry'}
+                            </button>
+                        </div>
+                    )}
+
                     {/* Input */}
-                    <div className="p-3 border-t border-gray-100 bg-white space-y-2">
-                        {sendError && (
-                            <p className="text-xs text-red-500 px-1">{sendError}</p>
-                        )}
-                        <div className="flex gap-2">
+                    <div className="p-3 border-t border-gray-100 bg-white shrink-0">
+                        <div className="flex gap-2 items-end">
                             <textarea
                                 rows={1}
                                 value={input}
-                                onChange={e => { setInput(e.target.value); setSendError('') }}
+                                onChange={e => {
+                                    setInput(e.target.value)
+                                    if (sendStatus !== 'idle' && sendStatus !== 'sending' && sendStatus !== 'retrying') {
+                                        setSendStatus('idle')
+                                    }
+                                }}
                                 onKeyDown={handleKeyDown}
                                 placeholder="Type a message…"
-                                className="flex-1 resize-none border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#140152] focus:border-transparent"
+                                disabled={isBusy}
+                                className="flex-1 resize-none border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#140152] focus:border-transparent disabled:opacity-60 disabled:bg-gray-50 transition-all"
+                                style={{ maxHeight: '80px' }}
                             />
                             <button
                                 onClick={handleSend}
-                                disabled={sending || !input.trim()}
-                                className="bg-[#140152] text-white p-2 rounded-xl hover:bg-[#1d0175] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                                disabled={isBusy || !input.trim()}
+                                className="bg-[#140152] text-white p-2.5 rounded-xl hover:bg-[#1d0175] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center shrink-0"
                             >
-                                {sending
+                                {sendStatus === 'sending'
                                     ? <Loader2 className="w-4 h-4 animate-spin" />
                                     : <Send className="w-4 h-4" />}
                             </button>
                         </div>
+                        {sendStatus === 'sending' && (
+                            <p className="text-[10px] text-gray-400 mt-1.5 px-1">Sending…</p>
+                        )}
+                        {sendStatus === 'retrying' && (
+                            <p className="text-[10px] text-amber-500 mt-1.5 px-1">Waking server & retrying…</p>
+                        )}
                     </div>
                 </div>
             )}
