@@ -12,6 +12,7 @@ export default function ChatWidget() {
     const [input, setInput] = useState('')
     const [loading, setLoading] = useState(false)
     const [sending, setSending] = useState(false)
+    const [sendError, setSendError] = useState('')
     const [unread, setUnread] = useState(0)
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const bottomRef = useRef<HTMLDivElement>(null)
@@ -68,13 +69,18 @@ export default function ChatWidget() {
 
     const handleSend = async () => {
         if (!input.trim() || sending) return
+        if (!isLoggedIn) {
+            setSendError('Please log in to send a message.')
+            return
+        }
         setSending(true)
+        setSendError('')
         try {
             const msg = await chatApi.sendMessage(input.trim())
             setMessages(prev => [...prev, msg])
             setInput('')
         } catch {
-            // could show toast here
+            setSendError('Failed to send. Please check your connection and try again.')
         } finally {
             setSending(false)
         }
@@ -86,8 +92,6 @@ export default function ChatWidget() {
             handleSend()
         }
     }
-
-    if (!isLoggedIn) return null
 
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
@@ -114,7 +118,13 @@ export default function ChatWidget() {
 
                     {/* Messages */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
-                        {loading ? (
+                        {!isLoggedIn ? (
+                            <div className="text-center text-gray-400 text-sm mt-8 px-4">
+                                <MessageCircle className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                                <p className="font-semibold text-gray-600 mb-1">Welcome to LETW Support</p>
+                                <p className="text-xs">Please <a href="/auth/login" className="text-[#140152] font-bold underline">log in</a> to send a message to our team.</p>
+                            </div>
+                        ) : loading ? (
                             <div className="flex justify-center items-center h-full">
                                 <Loader2 className="w-6 h-6 animate-spin text-[#140152]" />
                             </div>
@@ -146,24 +156,30 @@ export default function ChatWidget() {
                     </div>
 
                     {/* Input */}
-                    <div className="p-3 border-t border-gray-100 bg-white flex gap-2">
-                        <textarea
-                            rows={1}
-                            value={input}
-                            onChange={e => setInput(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="Type a message…"
-                            className="flex-1 resize-none border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#140152] focus:border-transparent"
-                        />
-                        <button
-                            onClick={handleSend}
-                            disabled={sending || !input.trim()}
-                            className="bg-[#140152] text-white p-2 rounded-xl hover:bg-[#1d0175] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-                        >
-                            {sending
-                                ? <Loader2 className="w-4 h-4 animate-spin" />
-                                : <Send className="w-4 h-4" />}
-                        </button>
+                    <div className="p-3 border-t border-gray-100 bg-white space-y-2">
+                        {sendError && (
+                            <p className="text-xs text-red-500 px-1">{sendError}</p>
+                        )}
+                        <div className="flex gap-2">
+                            <textarea
+                                rows={1}
+                                value={input}
+                                onChange={e => { setInput(e.target.value); setSendError('') }}
+                                onKeyDown={handleKeyDown}
+                                placeholder={isLoggedIn ? 'Type a message…' : 'Log in to chat…'}
+                                disabled={!isLoggedIn}
+                                className="flex-1 resize-none border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#140152] focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400"
+                            />
+                            <button
+                                onClick={handleSend}
+                                disabled={sending || !input.trim() || !isLoggedIn}
+                                className="bg-[#140152] text-white p-2 rounded-xl hover:bg-[#1d0175] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                            >
+                                {sending
+                                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                                    : <Send className="w-4 h-4" />}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

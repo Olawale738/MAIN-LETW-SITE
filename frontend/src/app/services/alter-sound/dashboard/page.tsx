@@ -553,15 +553,26 @@ export default function ChoirDashboard() {
 
                           {/* Resources */}
                           <div className="flex flex-wrap gap-2 mb-4">
-                            <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${song.hasLyrics ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`} disabled={!song.hasLyrics}>
-                              <BookOpen className="w-3.5 h-3.5" /> Lyrics
-                            </button>
-                            <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${song.hasSheet ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`} disabled={!song.hasSheet}>
-                              <Download className="w-3.5 h-3.5" /> Sheet Music
-                            </button>
-                            <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${song.hasTrack ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`} disabled={!song.hasTrack}>
-                              <Play className="w-3.5 h-3.5" /> Practice Track
-                            </button>
+                            {[
+                              { label: 'Lyrics',         has: song.hasLyrics, key: `lyrics-${song.id}`,  icon: BookOpen, color: 'bg-purple-100 text-purple-700 hover:bg-purple-200' },
+                              { label: 'Sheet Music',    has: song.hasSheet,  key: `sheet-${song.id}`,   icon: Download, color: 'bg-blue-100 text-blue-700 hover:bg-blue-200'     },
+                              { label: 'Practice Track', has: song.hasTrack,  key: `track-${song.id}`,   icon: Play,     color: 'bg-green-100 text-green-700 hover:bg-green-200'   },
+                            ].map(({ label, has, key, icon: Icon, color }) => {
+                              const url = typeof window !== 'undefined' ? localStorage.getItem(`letw_song_${key}`) : null
+                              return url ? (
+                                <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${color}`}>
+                                  <Icon className="w-3.5 h-3.5" /> {label}
+                                </a>
+                              ) : (
+                                <button key={key}
+                                  onClick={() => has ? alert(`No link set yet. Ask the Choir Master to add the ${label} link.`) : undefined}
+                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${has ? color : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                                  disabled={!has}>
+                                  <Icon className="w-3.5 h-3.5" /> {label}
+                                </button>
+                              )
+                            })}
                           </div>
 
                           {/* Update status */}
