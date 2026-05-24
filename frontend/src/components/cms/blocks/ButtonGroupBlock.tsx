@@ -14,6 +14,8 @@ interface ButtonConfig {
 interface ButtonGroupBlockProps {
     data: {
         bg_color?: string;
+        title?: string;
+        subtitle?: string;
         buttons: ButtonConfig[];
     }
 }
@@ -76,26 +78,42 @@ function HoverDropdownButton({ btn }: { btn: ButtonConfig }) {
 export default function ButtonGroupBlock({ data }: ButtonGroupBlockProps) {
     if (!data?.buttons || data.buttons.length === 0) return null;
 
-    const bgClass = data.bg_color === 'white' 
-        ? 'bg-white' 
-        : 'bg-neutral-50 dark:bg-neutral-900';
+    const bgClass = data.bg_color === 'dark'
+        ? 'bg-[#140152]'
+        : data.bg_color === 'white'
+            ? 'bg-white'
+            : 'bg-neutral-50 dark:bg-neutral-900';
+
+    const isDark = data.bg_color === 'dark';
 
     return (
-        <section className={`py-12 ${bgClass} border-y border-gray-100 dark:border-neutral-800 relative z-50`}>
-            <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-6">
-                {data.buttons.map((btn, idx) => {
-                    if (btn.type === 'dropdown') {
-                        return <HoverDropdownButton key={idx} btn={btn} />;
-                    }
+        <section className={`py-16 ${bgClass} relative z-50`}>
+            <div className="container mx-auto px-4 text-center">
+                {data.title && (
+                    <h2 className={`text-3xl md:text-4xl font-black mb-3 ${isDark ? 'text-white' : 'text-[#140152]'}`}>
+                        {data.title}
+                    </h2>
+                )}
+                {data.subtitle && (
+                    <p className={`text-base md:text-lg mb-10 max-w-xl mx-auto ${isDark ? 'text-white/70' : 'text-gray-500'}`}>
+                        {data.subtitle}
+                    </p>
+                )}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                    {data.buttons.map((btn, idx) => {
+                        if (btn.type === 'dropdown') {
+                            return <HoverDropdownButton key={idx} btn={btn} />;
+                        }
 
-                    return (
-                        <div key={idx} className="relative z-10 w-full sm:w-auto">
-                            <Button asChild size="lg" className="w-full bg-[#f5bb00] hover:bg-[#e0a800] text-[#140152] font-bold rounded-full h-14 px-8 text-base shadow-lg shadow-[#f5bb00]/30 transition-transform hover:-translate-y-1">
-                                <a href={btn.link} target="_blank" rel="noopener noreferrer">{btn.text}</a>
-                            </Button>
-                        </div>
-                    );
-                })}
+                        return (
+                            <div key={idx} className="relative z-10 w-full sm:w-auto">
+                                <Button asChild size="lg" className="w-full bg-[#f5bb00] hover:bg-[#e0a800] text-[#140152] font-bold rounded-full h-14 px-8 text-base shadow-lg shadow-[#f5bb00]/30 transition-transform hover:-translate-y-1">
+                                    <a href={btn.link} target="_blank" rel="noopener noreferrer">{btn.text}</a>
+                                </Button>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </section>
     );

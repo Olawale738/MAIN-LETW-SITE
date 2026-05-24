@@ -64,10 +64,28 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         }
     },
     {
+        id: 'latest-sermons',
+        type: 'sermon-list',
+        data: {
+            title: "Latest Sermons",
+            count: 3
+        }
+    },
+    {
+        id: 'upcoming-events',
+        type: 'upcoming-events',
+        data: {
+            title: "Upcoming Events",
+            count: 3
+        }
+    },
+    {
         id: 'home-actions',
         type: 'button-group',
         data: {
-            bg_color: 'white',
+            bg_color: 'dark',
+            title: 'Stay Connected with LETW',
+            subtitle: 'Grow in faith every day — open your devotional or tune in to our live radio stream.',
             buttons: [
                 {
                     text: 'Visit our Devotion web app',
@@ -83,22 +101,6 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
                     ]
                 }
             ]
-        }
-    },
-    {
-        id: 'latest-sermons',
-        type: 'sermon-list',
-        data: {
-            title: "Latest Sermons",
-            count: 3
-        }
-    },
-    {
-        id: 'upcoming-events',
-        type: 'upcoming-events',
-        data: {
-            title: "Upcoming Events",
-            count: 3
         }
     }
 ];
