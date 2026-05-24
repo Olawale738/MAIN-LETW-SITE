@@ -78,8 +78,13 @@ async def get_db():
 async def init_db():
     """Create all database tables."""
     print("[init_db] Initializing database tables...", flush=True)
+    print(f"[init_db] Tables registered in metadata: {sorted(Base.metadata.tables.keys())}", flush=True)
     try:
         async with engine.begin() as conn:
+            from sqlalchemy import text
+            result = await conn.execute(text("SELECT current_database(), current_schema()"))
+            row = result.fetchone()
+            print(f"[init_db] Connected to database='{row[0]}' schema='{row[1]}'", flush=True)
             await conn.run_sync(Base.metadata.create_all)
         print("[init_db] Database tables created successfully", flush=True)
     except Exception as e:
