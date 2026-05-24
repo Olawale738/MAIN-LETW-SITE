@@ -278,125 +278,19 @@ const NAV_ITEMS = [
   { id: 'highlights',    icon: Star,        label: 'Highlights' },
 ]
 
-const EVENTS = [
-  {
-    title: 'Youth Friday Fellowship',
-    date: 'Fri, 30 May 2026',
-    time: '6:00 PM',
-    venue: 'Main Hall, LETW',
-    leader: 'Bro. Samuel Akin',
-    type: 'Fellowship',
-    color: 'bg-purple-100 text-purple-700',
-    dot: 'bg-purple-500',
-    confirmed: true,
-  },
-  {
-    title: 'Youth Worship Night',
-    date: 'Sat, 7 Jun 2026',
-    time: '5:00 PM',
-    venue: 'Sanctuary',
-    leader: 'Sis. Grace Obi',
-    type: 'Worship',
-    color: 'bg-pink-100 text-pink-700',
-    dot: 'bg-pink-500',
-    confirmed: false,
-  },
-  {
-    title: 'Evangelism Outreach',
-    date: 'Sat, 14 Jun 2026',
-    time: '9:00 AM',
-    venue: 'City Centre Park',
-    leader: 'Bro. Femi Adeyemi',
-    type: 'Outreach',
-    color: 'bg-orange-100 text-orange-700',
-    dot: 'bg-orange-500',
-    confirmed: false,
-  },
-  {
-    title: 'Annual Youth Conference',
-    date: 'Fri–Sun, 27–29 Jun 2026',
-    time: 'All Day',
-    venue: 'LETW Conference Centre',
-    leader: 'Youth Pastor Kelechi',
-    type: 'Conference',
-    color: 'bg-yellow-100 text-yellow-700',
-    dot: 'bg-yellow-500',
-    confirmed: false,
-  },
-]
-
-const ANNOUNCEMENTS = [
-  {
-    from: 'Youth Pastor Kelechi',
-    role: 'Youth Pastor',
-    time: '2 hours ago',
-    msg: 'Reminder: All youth leaders must submit their June programme plans by this Wednesday. Please use the template shared in the leadership WhatsApp group.',
-    urgent: true,
-    pinned: true,
-  },
-  {
-    from: 'Sis. Grace Obi',
-    role: 'Worship Team Lead',
-    time: 'Yesterday',
-    msg: 'Worship team rehearsal has been moved from Thursday to Wednesday 7 PM. Please ensure all members are informed. God bless you.',
-    urgent: false,
-    pinned: false,
-  },
-  {
-    from: 'Bro. Femi Adeyemi',
-    role: 'Outreach Coordinator',
-    time: '2 days ago',
-    msg: 'We need 20 volunteers for the June outreach. Sign up using the Quick Action button or contact me directly. Bring your Bible, tracts, and a willing heart!',
-    urgent: false,
-    pinned: false,
-  },
-  {
-    from: 'Admin',
-    role: 'Church Admin',
-    time: '3 days ago',
-    msg: 'Youth registration for the Annual Conference is now open. Early bird registration closes on June 10. Spaces are limited — register now!',
-    urgent: false,
-    pinned: false,
-  },
-]
-
-const GROUPS = [
-  { name: 'Worship Team',    leader: 'Sis. Grace Obi',      members: 18, icon: Music,     color: 'bg-pink-100 text-pink-700',   border: 'border-pink-200' },
-  { name: 'Media & Tech',    leader: 'Bro. Daniel Ojo',     members: 12, icon: Camera,    color: 'bg-blue-100 text-blue-700',   border: 'border-blue-200' },
-  { name: 'Drama Ministry',  leader: 'Sis. Tola Adebayo',   members: 15, icon: Play,      color: 'bg-purple-100 text-purple-700', border: 'border-purple-200' },
-  { name: 'Ushering',        leader: 'Bro. Yusuf Bello',    members: 10, icon: UserCheck, color: 'bg-green-100 text-green-700', border: 'border-green-200' },
-  { name: 'Evangelism',      leader: 'Bro. Femi Adeyemi',   members: 22, icon: Globe,     color: 'bg-orange-100 text-orange-700', border: 'border-orange-200' },
-  { name: 'Prayer Team',     leader: 'Sis. Ngozi Eze',      members: 20, icon: Heart,     color: 'bg-red-100 text-red-700',     border: 'border-red-200' },
-  { name: 'Welfare',         leader: 'Sis. Amaka Peters',   members: 8,  icon: Gift,      color: 'bg-yellow-100 text-yellow-700', border: 'border-yellow-200' },
-  { name: 'Follow-up Team',  leader: 'Bro. Emeka Chukwu',   members: 14, icon: Activity,  color: 'bg-indigo-100 text-indigo-700', border: 'border-indigo-200' },
-]
-
-const TESTIMONIES = [
-  { name: 'Sis. Chiamaka', text: 'I got a scholarship to study abroad! I know it was God and the prayers of this youth group. Thank you all!', tag: 'Scholarship' },
-  { name: 'Bro. Tobi', text: 'After the career seminar last month, I finally got my dream job offer. God is faithful!', tag: 'Career' },
-  { name: 'Sis. Funke', text: 'I was struggling with my faith but the mentorship sessions helped me rediscover my purpose in Christ.', tag: 'Spiritual Growth' },
-]
+// ─── All data starts empty — real content comes from the Youth Coordinator portal ───
+const EVENTS: { title: string; date: string; time: string; venue: string; leader: string; type: string; color: string; dot: string }[] = []
+const ANNOUNCEMENTS: { from: string; role: string; time: string; msg: string; urgent: boolean; pinned: boolean }[] = []
+const GROUPS: { name: string; leader: string; members: number; icon: React.ElementType; color: string; border: string }[] = []
+const TESTIMONIES: { name: string; text: string; tag: string }[] = []
+const MENTORS: { name: string; area: string; available: boolean }[] = []
+const ATTENDANCE_WEEKS: { week: string; present: boolean }[] = []
 
 const WEEKLY_DISCUSSION = [
   'What does it mean to seek God\'s kingdom first in a practical, daily way?',
   'How do you handle peer pressure from friends who don\'t share your faith?',
   'What is one area in your life where you need God\'s guidance right now?',
   'How can we as a youth group better support each other in our daily walk with God?',
-]
-
-const MENTORS = [
-  { name: 'Pastor Kelechi Eze', area: 'Spiritual Growth & Leadership', available: true },
-  { name: 'Sis. Ngozi Eze', area: 'Women\'s Mentorship & Career', available: true },
-  { name: 'Bro. Samuel Akin', area: 'Men\'s Mentorship & Purpose', available: false },
-  { name: 'Sis. Tola Adebayo', area: 'Creative Arts & Ministry Calling', available: true },
-]
-
-const ATTENDANCE_WEEKS = [
-  { week: 'Week 1', present: true },
-  { week: 'Week 2', present: true },
-  { week: 'Week 3', present: false },
-  { week: 'Week 4', present: true },
-  { week: 'Week 5', present: true },
 ]
 
 // ─── Countdown Hook ────────────────────────────────────────────────────────────
@@ -441,21 +335,11 @@ export default function YouthDashboardPage() {
 function YouthDashboardContent({ memberName }: { memberName: string }) {
   const [activeSection, setActiveSection] = useState('home')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, text: 'Lead opening prayer at Friday fellowship', category: 'worship', due: 'Fri 30 May', done: false },
-    { id: 2, text: 'Confirm attendance for Worship Night with team', category: 'worship', due: 'Mon 26 May', done: false },
-    { id: 3, text: 'Share outreach flyers on social media', category: 'outreach', due: 'Wed 28 May', done: true },
-    { id: 4, text: 'Submit June programme plan to youth pastor', category: 'admin', due: 'Wed 28 May', done: false },
-    { id: 5, text: 'Follow up with 3 new youth members', category: 'service', due: 'Thu 29 May', done: false },
-    { id: 6, text: 'Collect drama costumes for next performance', category: 'service', due: 'Sat 31 May', done: true },
-  ])
+  const [tasks, setTasks] = useState<Task[]>([])
   const [prayerInput, setPrayerInput] = useState('')
-  const [prayerRequests, setPrayerRequests] = useState<PrayerRequest[]>([
-    { id: 1, name: 'Me', request: 'For divine direction in my career choice', date: '20 May', answered: false },
-    { id: 2, name: 'Me', request: 'Healing for my mother who is unwell', date: '15 May', answered: true },
-  ])
+  const [prayerRequests, setPrayerRequests] = useState<PrayerRequest[]>([])
   const [announcementFilter, setAnnouncementFilter] = useState<'all' | 'urgent'>('all')
-  const [confirmedEvents, setConfirmedEvents] = useState<Set<number>>(new Set([0]))
+  const [confirmedEvents, setConfirmedEvents] = useState<Set<number>>(new Set())
   const [openDiscussion, setOpenDiscussion] = useState<number | null>(null)
   const [newTask, setNewTask] = useState('')
   const [messageInput, setMessageInput] = useState('')
@@ -496,7 +380,9 @@ function YouthDashboardContent({ memberName }: { memberName: string }) {
     : ANNOUNCEMENTS
 
   const pendingTasks = tasks.filter(t => !t.done).length
-  const attendancePercent = Math.round((ATTENDANCE_WEEKS.filter(w => w.present).length / ATTENDANCE_WEEKS.length) * 100)
+  const attendancePercent = ATTENDANCE_WEEKS.length === 0
+    ? 0
+    : Math.round((ATTENDANCE_WEEKS.filter(w => w.present).length / ATTENDANCE_WEEKS.length) * 100)
 
   // ─── SECTION RENDERS ──────────────────────────────────────────────────────
 
@@ -513,12 +399,19 @@ function YouthDashboardContent({ memberName }: { memberName: string }) {
             </div>
             <div className="flex-1">
               <p className="text-purple-200 text-sm font-semibold">Welcome back 🔥</p>
-              <h2 className="text-2xl font-black text-white mt-0.5">Brother David!</h2>
-              <p className="text-purple-200 text-sm mt-1">Friday, 23 May 2026</p>
-              <div className="mt-3 bg-white/10 rounded-xl px-4 py-2.5 flex items-center gap-3">
-                <Calendar className="w-4 h-4 text-yellow-300 shrink-0" />
-                <span className="text-white text-sm font-semibold">Next: Youth Friday Fellowship — Fri 30 May, 6 PM</span>
-              </div>
+              <h2 className="text-2xl font-black text-white mt-0.5">{memberName || 'Youth Member'}!</h2>
+              <p className="text-purple-200 text-sm mt-1">{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              {EVENTS[0] ? (
+                <div className="mt-3 bg-white/10 rounded-xl px-4 py-2.5 flex items-center gap-3">
+                  <Calendar className="w-4 h-4 text-yellow-300 shrink-0" />
+                  <span className="text-white text-sm font-semibold">Next: {EVENTS[0].title} — {EVENTS[0].date}, {EVENTS[0].time}</span>
+                </div>
+              ) : (
+                <div className="mt-3 bg-white/10 rounded-xl px-4 py-2.5 flex items-center gap-3">
+                  <Calendar className="w-4 h-4 text-yellow-300 shrink-0" />
+                  <span className="text-white/70 text-sm">No upcoming events yet. Check back soon.</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -526,8 +419,8 @@ function YouthDashboardContent({ memberName }: { memberName: string }) {
         {/* Quick Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Attendance', value: `${attendancePercent}%`, sub: 'This month', icon: BarChart2, color: 'text-violet-600', bg: 'bg-violet-50' },
-            { label: 'Upcoming', value: '4', sub: 'Events', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
+            { label: 'Attendance', value: ATTENDANCE_WEEKS.length === 0 ? '—' : `${attendancePercent}%`, sub: 'This month', icon: BarChart2, color: 'text-violet-600', bg: 'bg-violet-50' },
+            { label: 'Upcoming', value: EVENTS.length === 0 ? '—' : String(EVENTS.length), sub: 'Events', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Tasks Due', value: String(pendingTasks), sub: 'Pending', icon: CheckSquare, color: 'text-orange-600', bg: 'bg-orange-50' },
             { label: 'Prayer Req.', value: String(prayerRequests.filter(p => !p.answered).length), sub: 'Open', icon: Heart, color: 'text-pink-600', bg: 'bg-pink-50' },
           ].map(s => (
@@ -540,20 +433,7 @@ function YouthDashboardContent({ memberName }: { memberName: string }) {
           ))}
         </div>
 
-        {/* Countdown */}
-        <div className="bg-gradient-to-r from-orange-500 to-pink-600 rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Flame className="w-5 h-5 text-white" />
-            <span className="text-white font-black text-sm uppercase tracking-wider">Annual Youth Conference 2026</span>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <CountBox value={countdown.d} label="Days" />
-            <CountBox value={countdown.h} label="Hours" />
-            <CountBox value={countdown.m} label="Mins" />
-            <CountBox value={countdown.s} label="Secs" />
-          </div>
-          <p className="text-white/80 text-xs mt-3">27–29 June 2026 · LETW Conference Centre · Registration Open</p>
-        </div>
+        {/* Countdown — only show when coordinator has added a special event */}
 
         {/* Quick Actions */}
         <div>
@@ -590,17 +470,24 @@ function YouthDashboardContent({ memberName }: { memberName: string }) {
               View all <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          {ANNOUNCEMENTS.slice(0, 2).map((a, i) => (
-            <div key={i} className={`px-5 py-4 ${i < 1 ? 'border-b border-gray-50' : ''}`}>
-              {a.urgent && (
-                <span className="inline-flex items-center gap-1 bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full mb-2">
-                  <AlertCircle className="w-3 h-3" /> Urgent
-                </span>
-              )}
-              <p className="text-gray-700 text-sm leading-relaxed line-clamp-2">{a.msg}</p>
-              <p className="text-gray-400 text-xs mt-1.5">{a.from} · {a.time}</p>
+          {ANNOUNCEMENTS.length === 0 ? (
+            <div className="px-5 py-8 text-center text-gray-400">
+              <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No announcements yet.</p>
             </div>
-          ))}
+          ) : (
+            ANNOUNCEMENTS.slice(0, 2).map((a, i) => (
+              <div key={i} className={`px-5 py-4 ${i < 1 ? 'border-b border-gray-50' : ''}`}>
+                {a.urgent && (
+                  <span className="inline-flex items-center gap-1 bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full mb-2">
+                    <AlertCircle className="w-3 h-3" /> Urgent
+                  </span>
+                )}
+                <p className="text-gray-700 text-sm leading-relaxed line-clamp-2">{a.msg}</p>
+                <p className="text-gray-400 text-xs mt-1.5">{a.from} · {a.time}</p>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Tasks Preview */}
@@ -617,15 +504,22 @@ function YouthDashboardContent({ memberName }: { memberName: string }) {
               View all <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          {tasks.filter(t => !t.done).slice(0, 3).map(t => (
-            <div key={t.id} className="px-5 py-3 border-b border-gray-50 last:border-0 flex items-center gap-3">
-              <button onClick={() => toggleTask(t.id)}>
-                <Circle className="w-5 h-5 text-gray-300" />
-              </button>
-              <span className="flex-1 text-sm text-gray-700">{t.text}</span>
-              <span className="text-xs text-gray-400">{t.due}</span>
+          {tasks.filter(t => !t.done).length === 0 ? (
+            <div className="px-5 py-8 text-center text-gray-400">
+              <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No tasks yet. Add a task below.</p>
             </div>
-          ))}
+          ) : (
+            tasks.filter(t => !t.done).slice(0, 3).map(t => (
+              <div key={t.id} className="px-5 py-3 border-b border-gray-50 last:border-0 flex items-center gap-3">
+                <button onClick={() => toggleTask(t.id)}>
+                  <Circle className="w-5 h-5 text-gray-300" />
+                </button>
+                <span className="flex-1 text-sm text-gray-700">{t.text}</span>
+                <span className="text-xs text-gray-400">{t.due}</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
     )
@@ -634,68 +528,62 @@ function YouthDashboardContent({ memberName }: { memberName: string }) {
   function renderEvents() {
     return (
       <div className="space-y-6">
-        <div className="bg-gradient-to-r from-orange-500 to-pink-600 rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Flame className="w-5 h-5 text-white" />
-            <span className="text-white font-black text-sm uppercase tracking-wider">Annual Conference Countdown</span>
+        {EVENTS.length === 0 ? (
+          <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p className="font-semibold text-gray-500 mb-1">No events scheduled yet</p>
+            <p className="text-sm">The Youth Coordinator will post upcoming events here.</p>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <CountBox value={countdown.d} label="Days" />
-            <CountBox value={countdown.h} label="Hours" />
-            <CountBox value={countdown.m} label="Mins" />
-            <CountBox value={countdown.s} label="Secs" />
+        ) : (
+          <div className="space-y-4">
+            {EVENTS.map((evt, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-3 p-4 border-b border-gray-50">
+                  <div className={`w-3 h-3 rounded-full ${evt.dot} shrink-0`} />
+                  <h3 className="font-black text-gray-800 flex-1">{evt.title}</h3>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${evt.color}`}>{evt.type}</span>
+                </div>
+                <div className="p-4 grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <span>{evt.date}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <span>{evt.time}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Map className="w-4 h-4 text-gray-400" />
+                    <span>{evt.venue}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Crown className="w-4 h-4 text-gray-400" />
+                    <span>{evt.leader}</span>
+                  </div>
+                </div>
+                <div className="px-4 pb-4 flex gap-2">
+                  <button
+                    onClick={() => setConfirmedEvents(prev => {
+                      const next = new Set(prev)
+                      next.has(i) ? next.delete(i) : next.add(i)
+                      return next
+                    })}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                      confirmedEvents.has(i)
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-violet-600 text-white hover:bg-violet-700'
+                    }`}
+                  >
+                    {confirmedEvents.has(i) ? <><CheckCircle2 className="w-4 h-4" /> Confirmed</> : <><UserCheck className="w-4 h-4" /> Confirm Attendance</>}
+                  </button>
+                  <button className="px-4 py-2.5 rounded-xl text-sm font-bold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-2">
+                    <Bell className="w-4 h-4" /> Remind Me
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-          <p className="text-white/80 text-xs mt-2">27–29 June 2026 · LETW Conference Centre</p>
-        </div>
-
-        <div className="space-y-4">
-          {EVENTS.map((evt, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="flex items-center gap-3 p-4 border-b border-gray-50">
-                <div className={`w-3 h-3 rounded-full ${evt.dot} shrink-0`} />
-                <h3 className="font-black text-gray-800 flex-1">{evt.title}</h3>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${evt.color}`}>{evt.type}</span>
-              </div>
-              <div className="p-4 grid grid-cols-2 gap-3 text-sm">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <span>{evt.date}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <span>{evt.time}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Map className="w-4 h-4 text-gray-400" />
-                  <span>{evt.venue}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Crown className="w-4 h-4 text-gray-400" />
-                  <span>{evt.leader}</span>
-                </div>
-              </div>
-              <div className="px-4 pb-4 flex gap-2">
-                <button
-                  onClick={() => setConfirmedEvents(prev => {
-                    const next = new Set(prev)
-                    next.has(i) ? next.delete(i) : next.add(i)
-                    return next
-                  })}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                    confirmedEvents.has(i)
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-violet-600 text-white hover:bg-violet-700'
-                  }`}
-                >
-                  {confirmedEvents.has(i) ? <><CheckCircle2 className="w-4 h-4" /> Confirmed</> : <><UserCheck className="w-4 h-4" /> Confirm Attendance</>}
-                </button>
-                <button className="px-4 py-2.5 rounded-xl text-sm font-bold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-2">
-                  <Bell className="w-4 h-4" /> Remind Me
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        )}
       </div>
     )
   }
@@ -830,27 +718,6 @@ function YouthDashboardContent({ memberName }: { memberName: string }) {
           </div>
         </div>
 
-        {/* Pending confirmations */}
-        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertCircle className="w-4 h-4 text-orange-600" />
-            <span className="font-black text-orange-800 text-sm">Pending Confirmations</span>
-          </div>
-          <div className="space-y-2">
-            {[
-              'Confirm: Are you available to usher at Worship Night on 7 June?',
-              'Confirm: Will you join the outreach team on 14 June?',
-            ].map((c, i) => (
-              <div key={i} className="flex items-center gap-3 bg-white rounded-xl p-3">
-                <p className="flex-1 text-sm text-gray-700">{c}</p>
-                <div className="flex gap-2 shrink-0">
-                  <button className="text-xs font-bold bg-green-100 text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-200 transition-colors">Yes</button>
-                  <button className="text-xs font-bold bg-red-100 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-200 transition-colors">No</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     )
   }
@@ -873,6 +740,13 @@ function YouthDashboardContent({ memberName }: { memberName: string }) {
         </div>
 
         <div className="space-y-4">
+          {filteredAnnouncements.length === 0 && (
+            <div className="text-center py-14 text-gray-400 bg-white rounded-2xl border border-gray-100 shadow-sm">
+              <Bell className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p className="font-semibold text-gray-500 mb-1">No announcements yet</p>
+              <p className="text-sm">The youth coordinator will post notices here.</p>
+            </div>
+          )}
           {filteredAnnouncements.map((a, i) => (
             <div key={i} className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${
               a.pinned ? 'border-red-200' : 'border-gray-100'
@@ -935,61 +809,38 @@ function YouthDashboardContent({ memberName }: { memberName: string }) {
             <span className="text-yellow-300 font-bold text-sm uppercase">My Attendance</span>
           </div>
           <div className="flex items-end gap-4 mb-4">
-            <span className="text-6xl font-black">{attendancePercent}%</span>
+            <span className="text-6xl font-black">{ATTENDANCE_WEEKS.length === 0 ? '—' : `${attendancePercent}%`}</span>
             <div>
               <p className="text-white/80 text-sm">Consistency</p>
-              <p className="text-white/60 text-xs">{ATTENDANCE_WEEKS.filter(w => w.present).length} of {ATTENDANCE_WEEKS.length} meetings</p>
+              <p className="text-white/60 text-xs">
+                {ATTENDANCE_WEEKS.length === 0
+                  ? 'No sessions recorded yet'
+                  : `${ATTENDANCE_WEEKS.filter(w => w.present).length} of ${ATTENDANCE_WEEKS.length} meetings`}
+              </p>
             </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            {ATTENDANCE_WEEKS.map((w, i) => (
-              <div key={i} className={`flex flex-col items-center gap-1.5 bg-white/10 rounded-xl px-3 py-2`}>
-                <div className={`w-4 h-4 rounded-full ${w.present ? 'bg-green-400' : 'bg-red-400'}`} />
-                <span className="text-white/70 text-xs">{w.week}</span>
-              </div>
-            ))}
-          </div>
+          {ATTENDANCE_WEEKS.length === 0 ? (
+            <p className="text-white/50 text-sm text-center mt-2">Attendance records will appear here once sessions are logged.</p>
+          ) : (
+            <div className="flex gap-2 flex-wrap">
+              {ATTENDANCE_WEEKS.map((w, i) => (
+                <div key={i} className="flex flex-col items-center gap-1.5 bg-white/10 rounded-xl px-3 py-2">
+                  <div className={`w-4 h-4 rounded-full ${w.present ? 'bg-green-400' : 'bg-red-400'}`} />
+                  <span className="text-white/70 text-xs">{w.week}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Mark attendance */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h3 className="font-black text-gray-800 mb-3 flex items-center gap-2">
-            <UserCheck className="w-4 h-4 text-green-600" /> Mark Today's Attendance
-          </h3>
-          <p className="text-sm text-gray-500 mb-4">Friday Fellowship · 23 May 2026</p>
-          <button className="w-full bg-green-600 text-white font-black py-3.5 rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
-            <CheckCircle2 className="w-5 h-5" /> Mark Present Today
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-center">
+          <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto mb-3" />
+          <h3 className="font-black text-green-800 mb-2">Mark Today's Attendance</h3>
+          <p className="text-green-600 text-sm mb-4">Confirm your presence at today's session.</p>
+          <button className="bg-green-600 text-white font-bold px-8 py-3 rounded-xl hover:bg-green-700 transition-colors">
+            I'm Present Today
           </button>
-        </div>
-
-        {/* Streak & rank */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 text-center">
-            <Flame className="w-6 h-6 text-orange-500 mx-auto mb-2" />
-            <div className="text-2xl font-black text-orange-600">4</div>
-            <p className="text-xs text-gray-500 mt-1">Streak (weeks)</p>
-          </div>
-          <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 text-center">
-            <Award className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
-            <div className="text-2xl font-black text-yellow-600">#7</div>
-            <p className="text-xs text-gray-500 mt-1">Attendance Rank</p>
-          </div>
-        </div>
-
-        {/* New members */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h3 className="font-black text-gray-800 text-sm mb-3 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-violet-600" /> New Members This Month
-          </h3>
-          <div className="flex gap-3 flex-wrap">
-            {['Taiwo A.', 'Sola B.', 'Chidi O.', 'Amina K.', 'Blessing N.'].map(name => (
-              <div key={name} className="flex items-center gap-2 bg-violet-50 border border-violet-100 rounded-full px-3 py-1.5">
-                <div className="w-5 h-5 rounded-full bg-violet-200 flex items-center justify-center text-violet-700 text-xs font-black">{name[0]}</div>
-                <span className="text-sm text-violet-700 font-semibold">{name}</span>
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-gray-400 mt-3">5 new members joined the youth ministry this month</p>
         </div>
       </div>
     )
@@ -999,6 +850,13 @@ function YouthDashboardContent({ memberName }: { memberName: string }) {
     return (
       <div className="space-y-6">
         <p className="text-gray-500 text-sm">Connect with your team, contact leaders, and coordinate ministry assignments.</p>
+        {GROUPS.length === 0 && (
+          <div className="text-center py-14 text-gray-400 bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p className="font-semibold text-gray-500 mb-1">No groups yet</p>
+            <p className="text-sm">The Youth Coordinator will add ministry groups here.</p>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {GROUPS.map((g, i) => (
             <div key={i} className={`bg-white rounded-2xl border-2 ${g.border} p-5 hover:shadow-md transition-all`}>
@@ -1099,6 +957,12 @@ function YouthDashboardContent({ memberName }: { memberName: string }) {
             </h3>
           </div>
           <div className="divide-y divide-gray-50">
+            {MENTORS.length === 0 && (
+              <div className="px-5 py-8 text-center text-gray-400">
+                <Crown className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No mentors listed yet.</p>
+              </div>
+            )}
             {MENTORS.map((m, i) => (
               <div key={i} className="flex items-center gap-3 px-5 py-4">
                 <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center font-black text-violet-700 text-sm shrink-0">
@@ -1145,89 +1009,32 @@ function YouthDashboardContent({ memberName }: { memberName: string }) {
   function renderHighlights() {
     return (
       <div className="space-y-6">
-        {/* Growth stats */}
-        <div className="bg-gradient-to-br from-violet-700 to-indigo-800 rounded-3xl p-6 text-white">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-yellow-300" />
-            <span className="text-yellow-300 font-bold text-sm uppercase tracking-wider">Ministry Growth</span>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {[
-              { label: 'Total Youth Members', value: '247' },
-              { label: 'New This Year', value: '+38' },
-              { label: 'Active Volunteers', value: '89' },
-              { label: 'Events This Year', value: '24' },
-            ].map(s => (
-              <div key={s.label} className="bg-white/10 rounded-2xl p-3 text-center">
-                <div className="text-2xl font-black text-yellow-300">{s.value}</div>
-                <div className="text-white/70 text-xs mt-1">{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Testimonies */}
         <div className="space-y-4">
           <h3 className="font-black text-gray-800 flex items-center gap-2">
             <Star className="w-4 h-4 text-yellow-500 fill-current" /> Testimonies
           </h3>
-          {TESTIMONIES.map((t, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-9 h-9 rounded-full bg-yellow-100 flex items-center justify-center font-black text-yellow-700 text-sm">
-                  {t.name.split(' ')[1]?.[0] || t.name[0]}
-                </div>
-                <div>
-                  <p className="font-black text-gray-800 text-sm">{t.name}</p>
-                  <span className="text-xs font-bold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">{t.tag}</span>
-                </div>
-              </div>
-              <p className="text-gray-600 text-sm leading-relaxed italic">"{t.text}"</p>
+          {TESTIMONIES.length === 0 ? (
+            <div className="text-center py-10 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
+              <Star className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No testimonies yet. Be the first to share what God has done!</p>
             </div>
-          ))}
-        </div>
-
-        {/* Birthdays & Celebrations */}
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Gift className="w-4 h-4 text-yellow-600" />
-            <h3 className="font-black text-yellow-800 text-sm">Birthdays & Celebrations</h3>
-          </div>
-          <div className="space-y-2">
-            {[
-              { name: 'Sis. Chinwe Okafor', event: '🎂 Birthday — 25 May' },
-              { name: 'Bro. Adebayo Lawal', event: '🎓 Graduation — 28 May' },
-              { name: 'Sis. Joy Emmanuel', event: '🎂 Birthday — 31 May' },
-            ].map((b, i) => (
-              <div key={i} className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5">
-                <span className="font-semibold text-sm text-gray-700">{b.name}</span>
-                <span className="text-sm">{b.event}</span>
+          ) : (
+            TESTIMONIES.map((t, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-9 h-9 rounded-full bg-yellow-100 flex items-center justify-center font-black text-yellow-700 text-sm">
+                    {t.name.split(' ')[1]?.[0] || t.name[0]}
+                  </div>
+                  <div>
+                    <p className="font-black text-gray-800 text-sm">{t.name}</p>
+                    <span className="text-xs font-bold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">{t.tag}</span>
+                  </div>
+                </div>
+                <p className="text-gray-600 text-sm leading-relaxed italic">"{t.text}"</p>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent highlights */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-50">
-            <h3 className="font-black text-gray-800 text-sm flex items-center gap-2">
-              <Camera className="w-4 h-4 text-violet-600" /> Recent Event Highlights
-            </h3>
-          </div>
-          {[
-            { event: 'Easter Vigil Service', date: 'April 2026', type: 'Worship', desc: '180 youth members participated in a powerful all-night prayer and worship experience.' },
-            { event: 'Quarterly Outreach', date: 'March 2026', type: 'Outreach', desc: '45 youth members reached 300+ homes in the community. 12 new members joined the church.' },
-            { event: 'Leadership Summit', date: 'February 2026', type: 'Training', desc: 'Youth leaders completed 2-day intensive training on servant leadership and ministry management.' },
-          ].map((h, i) => (
-            <div key={i} className="px-5 py-4 border-b border-gray-50 last:border-0">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="font-black text-gray-800 text-sm">{h.event}</span>
-                <span className="text-xs bg-violet-100 text-violet-700 font-bold px-2 py-0.5 rounded-full">{h.type}</span>
-              </div>
-              <p className="text-xs text-gray-400 mb-1">{h.date}</p>
-              <p className="text-sm text-gray-600 leading-relaxed">{h.desc}</p>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* Encouragement */}
