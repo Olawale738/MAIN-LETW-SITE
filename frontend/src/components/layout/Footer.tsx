@@ -1,11 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Facebook, Twitter, Instagram, Youtube, MapPin, Phone, Mail, ArrowRight, Heart } from 'lucide-react'
+import { Facebook, Twitter, Instagram, Youtube, MapPin, Phone, Mail, ChevronDown, ExternalLink, BookOpen, Radio } from 'lucide-react'
 
 export default function Footer() {
   const pathname = usePathname()
+  const [radioOpen, setRadioOpen] = useState(false)
 
   if (pathname?.startsWith('/admin')) return null
 
@@ -25,18 +27,47 @@ export default function Footer() {
             <p className="text-gray-400 text-sm mt-1">Join thousands of believers walking in faith.</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <Link
-              href="/join"
-              className="inline-flex items-center justify-center gap-2 bg-[#f5bb00] text-[#140152] font-black px-6 py-3 rounded-full text-sm hover:bg-yellow-300 transition-all hover:scale-105 shadow-lg shadow-[#f5bb00]/20"
+            {/* Devotion app */}
+            <a
+              href="https://devotion.letw.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 bg-[#f5bb00] text-[#140152] font-black px-6 py-3 rounded-full text-sm hover:bg-yellow-300 transition-all hover:scale-105 shadow-lg shadow-[#f5bb00]/20 whitespace-nowrap"
             >
-              Join Our Family <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/giving"
-              className="inline-flex items-center justify-center gap-2 border border-white/20 text-white font-semibold px-6 py-3 rounded-full text-sm hover:bg-white/10 transition-all"
-            >
-              <Heart className="w-4 h-4 text-[#f5bb00]" /> Give Today
-            </Link>
+              <BookOpen className="w-4 h-4" /> Devotion App
+            </a>
+            {/* Radio — dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setRadioOpen(v => !v)}
+                onBlur={() => setTimeout(() => setRadioOpen(false), 150)}
+                className="w-full inline-flex items-center justify-center gap-2 border border-white/20 text-white font-semibold px-6 py-3 rounded-full text-sm hover:bg-white/10 transition-all whitespace-nowrap"
+              >
+                <Radio className="w-4 h-4 text-[#f5bb00]" />
+                Stream via our Radio
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${radioOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {radioOpen && (
+                <div className="absolute bottom-full mb-2 left-0 w-full sm:w-52 bg-white rounded-2xl shadow-xl ring-1 ring-black/10 overflow-hidden p-1.5 z-50">
+                  {[
+                    { title: 'Stream', link: 'https://radio.letw.org/stream' },
+                    { title: 'Listen',  link: 'https://radio.letw.org/listen'  },
+                  ].map(opt => (
+                    <a
+                      key={opt.title}
+                      href={opt.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#140152] font-semibold hover:bg-gray-50 rounded-xl transition-colors"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#f5bb00]" />
+                      {opt.title}
+                      <ExternalLink className="w-3.5 h-3.5 ml-auto text-gray-400" />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

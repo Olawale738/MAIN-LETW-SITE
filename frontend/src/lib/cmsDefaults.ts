@@ -78,30 +78,6 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
             title: "Upcoming Events",
             count: 3
         }
-    },
-    {
-        id: 'home-actions',
-        type: 'button-group',
-        data: {
-            bg_color: 'dark',
-            title: 'Stay Connected with LETW',
-            subtitle: 'Grow in faith every day — open your devotional or tune in to our live radio stream.',
-            buttons: [
-                {
-                    text: 'Visit our Devotion web app',
-                    link: 'https://devotion.letw.org',
-                    type: 'solid'
-                },
-                {
-                    text: 'Stream via our Radio',
-                    type: 'dropdown',
-                    options: [
-                        { title: 'Stream', link: 'https://radio.letw.org/stream' },
-                        { title: 'Listen', link: 'https://radio.letw.org/listen' }
-                    ]
-                }
-            ]
-        }
     }
 ];
 
