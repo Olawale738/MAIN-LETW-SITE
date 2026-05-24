@@ -166,7 +166,6 @@ export default function ChoirDashboard() {
   const [songFilter, setSongFilter] = useState('all')
   const [memberFilter, setMemberFilter] = useState('All')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
   const [tracks, setTracks] = useState<AudioTrack[]>([])
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
   const [msgInput, setMsgInput] = useState('')
@@ -214,24 +213,6 @@ export default function ChoirDashboard() {
     setTestimonyTitle('')
     setNewTestimony('')
   }
-
-  /* Countdown to next major event (Anniversary Concert) */
-  useEffect(() => {
-    const target = new Date('2026-06-28T17:00:00')
-    const tick = () => {
-      const diff = target.getTime() - Date.now()
-      if (diff <= 0) return
-      setCountdown({
-        days: Math.floor(diff / 86400000),
-        hours: Math.floor((diff % 86400000) / 3600000),
-        mins: Math.floor((diff % 3600000) / 60000),
-        secs: Math.floor((diff % 60000) / 1000),
-      })
-    }
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [])
 
   /* Load audio tracks */
   useEffect(() => {
@@ -506,28 +487,6 @@ export default function ChoirDashboard() {
                       </button>
                     ))}
                   </div>
-                </div>
-
-                {/* Countdown to anniversary */}
-                <div className="bg-gradient-to-r from-[#f5bb00] to-[#f59e0b] rounded-3xl p-6 text-[#140152]">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Star className="w-5 h-5" />
-                    <span className="font-black text-sm uppercase tracking-wider">LETW Anniversary Concert</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-3">
-                    {[
-                      { val: countdown.days, label: 'Days' },
-                      { val: countdown.hours, label: 'Hours' },
-                      { val: countdown.mins, label: 'Mins' },
-                      { val: countdown.secs, label: 'Secs' },
-                    ].map((c, i) => (
-                      <div key={i} className="bg-[#140152]/10 rounded-2xl p-3 text-center">
-                        <div className="text-3xl font-black tabular-nums">{String(c.val).padStart(2, '0')}</div>
-                        <div className="text-xs font-semibold opacity-70 mt-1">{c.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-sm mt-4 opacity-70">📍 Main Auditorium · Saturday, June 28 · 5:00 PM</p>
                 </div>
 
                 {/* Recent announcements preview */}
@@ -811,28 +770,6 @@ export default function ChoirDashboard() {
             {/* ══════════ EVENTS ══════════ */}
             {activeNav === 'events' && (
               <motion.div key="events" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-6">
-
-                {/* Countdown */}
-                <div className="bg-gradient-to-br from-[#140152] to-[#2d0a6e] rounded-3xl p-6 text-white text-center">
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <Star className="w-5 h-5 text-[#f5bb00]" />
-                    <span className="font-black tracking-widest text-sm uppercase text-[#f5bb00]">LETW Anniversary Concert</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-3 max-w-sm mx-auto">
-                    {[
-                      { val: countdown.days, label: 'Days' },
-                      { val: countdown.hours, label: 'Hours' },
-                      { val: countdown.mins, label: 'Mins' },
-                      { val: countdown.secs, label: 'Secs' },
-                    ].map((c, i) => (
-                      <div key={i} className="bg-white/10 rounded-2xl p-3">
-                        <div className="text-3xl font-black tabular-nums">{String(c.val).padStart(2, '0')}</div>
-                        <div className="text-white/60 text-xs mt-1">{c.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-white/60 text-sm mt-4">📍 Main Auditorium · Saturday, June 28 · 5:00 PM</p>
-                </div>
 
                 {/* Events list */}
                 <div className="space-y-4">
