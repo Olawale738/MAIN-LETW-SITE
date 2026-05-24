@@ -25,6 +25,16 @@ interface Announcement { id: string; title: string; body: string; time: string; 
 interface Song { id: string; title: string; key: string; tempo: string; category: string; readyCount: number; totalCount: number }
 interface SongFile { name: string; url: string; size: number; uploadedAt: string }
 interface SongFiles { lyrics?: SongFile; sheet?: SongFile; track?: SongFile }
+
+interface GroupChatMsg {
+  id: string
+  sender_name: string
+  sender_initials: string
+  voice_part: string
+  is_director: boolean
+  content: string
+  created_at: string
+}
 interface Event { id: string; title: string; type: string; date: string; time: string; venue: string; daysLeft: number; color: string; confirmed: number; total: number }
 interface ChoirHighlight { id: string; title: string; body: string; type: 'testimony' | 'update' | 'praise'; postedBy: string; time: string }
 interface ChoirStats { membersThisYear: number; servicesMinistered: number; specialPrograms: number }
@@ -72,6 +82,7 @@ const VOICE_BG: Record<string, string> = {
 
 const NAV_ITEMS = [
   { id: 'home',       label: 'Overview',      icon: Home },
+  { id: 'chat',       label: 'Group Chat',    icon: MessageSquare },
   { id: 'inbox',      label: 'Member Inbox',  icon: MessageSquare },
   { id: 'members',    label: 'Members',       icon: Users },
   { id: 'highlights', label: 'Ministry Feed', icon: Star },
@@ -80,6 +91,8 @@ const NAV_ITEMS = [
   { id: 'events',     label: 'Schedule',      icon: Calendar },
   { id: 'attendance', label: 'Attendance',    icon: BarChart2 },
 ]
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
 
 // ─── Auth Gate ────────────────────────────────────────────────────
 
@@ -204,6 +217,14 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
   const [newMemberEmail, setNewMemberEmail] = useState('')
   const [newMemberRole,  setNewMemberRole]  = useState('')
 
+  // ── Group Chat state ──────────────────────────────────────────────
+  const [groupMessages, setGroupMessages] = useState<GroupChatMsg[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+  const [chatError, setChatError] = useState('')
+  const chatBottomRef = useRef<HTMLDivElement>(null)
+  const latestTimestampRef = useRef<string>('')
+
   // ── Song file uploads ─────────────────────────────────────────────
   const [songFiles, setSongFiles] = useState<Record<string, SongFiles>>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -326,6 +347,84 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
     localStorage.setItem('letw_choir_song_files_meta', JSON.stringify(metaOnly))
     setPendingUpload(null)
     e.target.value = ''
+  }
+
+  // ── Group chat helpers ────────────────────────────────────────────
+  const fetchChatMessages = async (initial = false) => {
+    try {
+      const url = initial
+        ? `${API_BASE}/choir-chat/messages?limit=80`
+        : latestTimestampRef.current
+          ? `${API_BASE}/choir-chat/messages?since=${encodeURIComponent(latestTimestampRef.current)}`
+          : `${API_BASE}/choir-chat/messages?limit=80`
+      const res = await fetch(url)
+      if (!res.ok) return
+      const data: GroupChatMsg[] = await res.json()
+      if (data.length > 0) {
+        if (initial) {
+          setGroupMessages(data)
+        } else {
+          setGroupMessages(prev => [...prev, ...data])
+        }
+        latestTimestampRef.current = data[data.length - 1].created_at
+        setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 60)
+      }
+      setChatError('')
+    } catch {
+      if (initial) setChatError('Could not connect to chat. Check your connection.')
+    }
+  }
+
+  // Initial load + poll every 3 seconds when on chat tab
+  useEffect(() => {
+    fetchChatMessages(true)
+    const interval = setInterval(() => fetchChatMessages(false), 3000)
+    return () => clearInterval(interval)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sendGroupMessage = async () => {
+    const text = chatInput.trim()
+    if (!text || chatLoading) return
+    setChatLoading(true)
+    const optimistic: GroupChatMsg = {
+      id: `tmp-${Date.now()}`,
+      sender_name: 'Choir Director',
+      sender_initials: 'CD',
+      voice_part: 'Director',
+      is_director: true,
+      content: text,
+      created_at: new Date().toISOString(),
+    }
+    setGroupMessages(prev => [...prev, optimistic])
+    setChatInput('')
+    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 60)
+    try {
+      const res = await fetch(`${API_BASE}/choir-chat/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender_name: 'Choir Director',
+          sender_initials: 'CD',
+          voice_part: 'Director',
+          is_director: true,
+          content: text,
+        }),
+      })
+      if (res.ok) {
+        const saved: GroupChatMsg = await res.json()
+        // Replace the optimistic message with the real one
+        setGroupMessages(prev => prev.map(m => m.id === optimistic.id ? saved : m))
+        latestTimestampRef.current = saved.created_at
+      }
+    } catch { /* optimistic message stays visible */ }
+    finally { setChatLoading(false) }
+  }
+
+  const clearGroupChat = async () => {
+    if (!confirm('Clear all group chat messages? This cannot be undone.')) return
+    await fetch(`${API_BASE}/choir-chat/messages/clear`, { method: 'DELETE' })
+    setGroupMessages([])
+    latestTimestampRef.current = ''
   }
 
   const removeFile = (songId: string, type: 'lyrics' | 'sheet' | 'track') => {
@@ -977,6 +1076,128 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
     )
   }
 
+  // ─── GROUP CHAT ────────────────────────────────────────────────
+  function renderChat() {
+    const VOICE_BUBBLE: Record<string, string> = {
+      Director: '#f5bb00',
+      Soprano:  '#7c3aed',
+      Alto:     '#db2777',
+      Tenor:    '#2563eb',
+      Bass:     '#16a34a',
+    }
+
+    const formatTime = (iso: string) => {
+      try {
+        return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+      } catch { return '' }
+    }
+
+    return (
+      <div className="flex flex-col h-[calc(100vh-130px)]">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-sm font-black text-[#140152]">Live Group Chat</span>
+            <span className="text-xs text-gray-400">· {groupMessages.length} messages</span>
+          </div>
+          <button
+            onClick={clearGroupChat}
+            className="text-xs text-red-400 hover:text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+          >
+            Clear Chat
+          </button>
+        </div>
+
+        {/* Error banner */}
+        {chatError && (
+          <div className="mb-3 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 text-xs text-red-600 font-semibold flex items-center gap-2 flex-shrink-0">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" /> {chatError}
+          </div>
+        )}
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto bg-gray-50 rounded-2xl border border-gray-100 p-4 space-y-3">
+          {groupMessages.length === 0 && !chatError && (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
+              <MessageSquare className="w-10 h-10 mb-3 opacity-20" />
+              <p className="font-semibold text-sm">No messages yet</p>
+              <p className="text-xs mt-1">Start the conversation — members will see it instantly.</p>
+            </div>
+          )}
+
+          {groupMessages.map((msg, i) => {
+            const isMine = msg.is_director
+            const prevMsg = groupMessages[i - 1]
+            const showSender = !prevMsg || prevMsg.sender_name !== msg.sender_name
+            const bubbleColor = VOICE_BUBBLE[msg.voice_part] || '#7c3aed'
+
+            return (
+              <div key={msg.id} className={`flex gap-2.5 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
+                {/* Avatar — show once per sender group */}
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 self-end ${showSender ? 'opacity-100' : 'opacity-0'}`}
+                  style={{ backgroundColor: isMine ? '#f5bb00' : bubbleColor, color: isMine ? '#140152' : 'white' }}
+                >
+                  {msg.sender_initials}
+                </div>
+
+                <div className={`flex flex-col max-w-[72%] ${isMine ? 'items-end' : 'items-start'}`}>
+                  {showSender && (
+                    <div className={`flex items-center gap-2 mb-1 px-1 ${isMine ? 'flex-row-reverse' : ''}`}>
+                      <span className="text-xs font-bold text-gray-700">{msg.sender_name}</span>
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                        style={{ backgroundColor: isMine ? '#f5bb00', color: isMine ? '#140152' : 'white' } as React.CSSProperties}
+                      >
+                        {msg.voice_part}
+                      </span>
+                    </div>
+                  )}
+                  <div
+                    className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                      isMine
+                        ? 'bg-[#f5bb00] text-[#140152] rounded-br-sm font-semibold'
+                        : 'bg-white border border-gray-100 text-gray-800 rounded-bl-sm shadow-sm'
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                  <span className="text-[10px] text-gray-400 mt-1 px-1">{formatTime(msg.created_at)}</span>
+                </div>
+              </div>
+            )
+          })}
+          <div ref={chatBottomRef} />
+        </div>
+
+        {/* Input */}
+        <div className="flex-shrink-0 mt-3">
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-2xl px-4 py-2.5 shadow-sm focus-within:border-[#f5bb00] focus-within:ring-2 focus-within:ring-[#f5bb00]/20 transition-all">
+            <div className="w-7 h-7 rounded-full bg-[#f5bb00] flex items-center justify-center font-black text-[#140152] text-xs flex-shrink-0">CD</div>
+            <input
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendGroupMessage()}
+              placeholder="Message the choir…"
+              className="flex-1 text-sm text-gray-700 placeholder-gray-400 outline-none bg-transparent"
+            />
+            <button
+              onClick={sendGroupMessage}
+              disabled={!chatInput.trim() || chatLoading}
+              className="w-9 h-9 bg-[#140152] rounded-xl flex items-center justify-center text-white disabled:opacity-30 hover:bg-[#1a0270] transition-all flex-shrink-0"
+            >
+              {chatLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </button>
+          </div>
+          <p className="text-center text-[10px] text-gray-400 mt-1.5">
+            Sending as <strong>Choir Director</strong> · Refreshes every 3 seconds
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   // ─── SONGS ─────────────────────────────────────────────────────
   function renderSongs() {
     const uploadDefs: { type: 'lyrics' | 'sheet' | 'track'; label: string; icon: React.ElementType; accept: string }[] = [
@@ -1170,6 +1391,7 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
   function renderSection() {
     switch (activeNav) {
       case 'home':       return renderHome()
+      case 'chat':       return renderChat()
       case 'inbox':      return renderInbox()
       case 'members':    return renderMembers()
       case 'highlights': return renderHighlights()
@@ -1223,6 +1445,9 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeNav === id ? 'bg-[#f5bb00] text-[#140152] font-black' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}>
               <Icon className="w-4 h-4 flex-shrink-0" />
               {label}
+              {id === 'chat' && (
+                <span className="ml-auto bg-green-500 text-white text-[10px] font-black rounded-full px-1.5 py-0.5 leading-none">Live</span>
+              )}
               {id === 'inbox' && unreadCount > 0 && (
                 <span className="ml-auto bg-orange-500 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center">{unreadCount}</span>
               )}

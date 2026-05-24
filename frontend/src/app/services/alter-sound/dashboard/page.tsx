@@ -174,7 +174,9 @@ export default function ChoirDashboard() {
   const [sentReplies, setSentReplies] = useState<Record<string, string>>({})
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(MOCK_CHAT)
   const [chatInput, setChatInput] = useState('')
+  const [chatSending, setChatSending] = useState(false)
   const chatBottomRef = useRef<HTMLDivElement | null>(null)
+  const chatLatestRef = useRef<string>('')
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   /* Live data from localStorage */
@@ -196,6 +198,51 @@ export default function ChoirDashboard() {
     }, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  /* ── Group chat polling ── */
+  const CHAT_API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api') + '/choir-chat'
+
+  const mapApiMsg = (m: {id: string; sender_name: string; sender_initials: string; voice_part: string; is_director: boolean; content: string; created_at: string}): ChatMessage => ({
+    id: m.id,
+    senderId: m.sender_initials,
+    senderName: m.sender_name,
+    senderInitials: m.sender_initials,
+    senderVoice: (m.voice_part === 'Director' ? 'Soprano' : m.voice_part) as ChatMessage['senderVoice'],
+    text: m.content,
+    time: new Date(m.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+    isMine: false,  // members never own the director's messages
+  })
+
+  const fetchGroupChat = async (initial = false) => {
+    try {
+      const url = initial
+        ? `${CHAT_API}/messages?limit=80`
+        : chatLatestRef.current
+          ? `${CHAT_API}/messages?since=${encodeURIComponent(chatLatestRef.current)}`
+          : `${CHAT_API}/messages?limit=80`
+      const res = await fetch(url)
+      if (!res.ok) return
+      const data: {id: string; sender_name: string; sender_initials: string; voice_part: string; is_director: boolean; content: string; created_at: string}[] = await res.json()
+      if (data.length === 0) return
+      const mapped = data.map(m => ({
+        ...mapApiMsg(m),
+        isMine: m.sender_initials === (MEMBER_INFO.initials),
+      }))
+      if (initial) {
+        setChatMessages(mapped)
+      } else {
+        setChatMessages(prev => [...prev, ...mapped])
+      }
+      chatLatestRef.current = data[data.length - 1].created_at
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 60)
+    } catch { /* silent */ }
+  }
+
+  useEffect(() => {
+    fetchGroupChat(true)
+    const interval = setInterval(() => fetchGroupChat(false), 3000)
+    return () => clearInterval(interval)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const submitTestimony = () => {
     if (!testimonyTitle.trim() || !newTestimony.trim()) return
@@ -242,23 +289,46 @@ export default function ChoirDashboard() {
   const updateSongStatus = (id: string, status: Song['status']) =>
     setSongs(prev => prev.map(s => s.id === id ? { ...s, status } : s))
 
-  const sendChatMessage = () => {
+  const sendChatMessage = async () => {
     const text = chatInput.trim()
-    if (!text) return
-    const now = new Date()
-    const time = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-    setChatMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      senderId: '1',
+    if (!text || chatSending) return
+    setChatSending(true)
+    // Optimistic update
+    const optimistic: ChatMessage = {
+      id: `tmp-${Date.now()}`,
+      senderId: MEMBER_INFO.initials,
       senderName: MEMBER_INFO.name,
       senderInitials: MEMBER_INFO.initials,
       senderVoice: MEMBER_INFO.voice as 'Soprano',
       text,
-      time,
+      time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
       isMine: true,
-    }])
+    }
+    setChatMessages(prev => [...prev, optimistic])
     setChatInput('')
     setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 60)
+    try {
+      const res = await fetch(`${CHAT_API}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender_name: MEMBER_INFO.name,
+          sender_initials: MEMBER_INFO.initials,
+          voice_part: MEMBER_INFO.voice,
+          is_director: false,
+          content: text,
+        }),
+      })
+      if (res.ok) {
+        const saved = await res.json()
+        setChatMessages(prev => prev.map(m => m.id === optimistic.id
+          ? { ...optimistic, id: saved.id }
+          : m
+        ))
+        chatLatestRef.current = saved.created_at
+      }
+    } catch { /* keep optimistic message */ }
+    finally { setChatSending(false) }
   }
 
   const addReaction = (msgId: string, emoji: string) => {
@@ -755,9 +825,9 @@ export default function ChoirDashboard() {
                       placeholder="Message the choir…"
                       className="flex-1 text-sm text-gray-700 placeholder-gray-400 outline-none bg-transparent"
                     />
-                    <button onClick={sendChatMessage} disabled={!chatInput.trim()}
+                    <button onClick={sendChatMessage} disabled={!chatInput.trim() || chatSending}
                       className="w-9 h-9 bg-[#140152] rounded-xl flex items-center justify-center text-white disabled:opacity-30 hover:bg-[#1a0270] transition-all disabled:cursor-not-allowed flex-shrink-0">
-                      <Send className="w-4 h-4" />
+                      {chatSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     </button>
                   </div>
                   <p className="text-center text-[10px] text-gray-400 mt-1.5">

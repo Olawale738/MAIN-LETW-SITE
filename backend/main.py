@@ -107,6 +107,10 @@ app.include_router(live_stream.router)
 from routers import chat
 app.include_router(chat.router)
 
+# Choir group chat
+from routers import choir_chat
+app.include_router(choir_chat.router)
+
 # Chat / messaging
 from routers import messages
 app.include_router(messages.router)
