@@ -106,12 +106,9 @@ app.include_router(live_stream.router)
 from routers import chat
 app.include_router(chat.router)
 
-# Chat / messaging (legacy)
-try:
-    from routers import messages
-    app.include_router(messages.router)
-except Exception:
-    pass
+# Chat / messaging
+from routers import messages
+app.include_router(messages.router)
 
 # User profile, activity, prayer wall
 try:

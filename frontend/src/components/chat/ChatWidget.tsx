@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { MessageCircle, X, Send, Loader2, RefreshCw, WifiOff } from 'lucide-react'
-import { messageApi } from '@/lib/api'
+import { MessageCircle, X, Send, Loader2, RefreshCw, WifiOff, AlertTriangle } from 'lucide-react'
+import { messageApi, ApiError } from '@/lib/api'
 
 type SendState = 'idle' | 'sending' | 'error'
 
-// Local types — avoids the duplicate-export ambiguity in api.ts
+// Local types — avoids duplicate-export ambiguity in api.ts
 interface MsgSender { id: string; name: string; role: string }
 interface Msg {
     id: string
@@ -28,12 +28,14 @@ export default function ChatWidget() {
     const [input,      setInput]      = useState('')
     const [sendState,  setSendState]  = useState<SendState>('idle')
     const [errorMsg,   setErrorMsg]   = useState('')
+    const [loadError,  setLoadError]  = useState('')
 
     const convIdRef      = useRef<string | null>(null)
-    const userIdRef      = useRef<string | null>(null)   // non-admin participant id
+    const userIdRef      = useRef<string | null>(null)
     const wsRef          = useRef<WebSocket | null>(null)
     const reconnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const pollTimerRef   = useRef<ReturnType<typeof setInterval> | null>(null)
+    const retryTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
     const mountedRef     = useRef(false)
     const bottomRef      = useRef<HTMLDivElement>(null)
 
@@ -42,7 +44,10 @@ export default function ChatWidget() {
         mountedRef.current = true
         setMounted(true)
         setIsLoggedIn(!!localStorage.getItem('isLoggedIn'))
-        return () => { mountedRef.current = false }
+        return () => {
+            mountedRef.current = false
+            if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
+        }
     }, [])
 
     // auto-scroll on new messages
@@ -59,8 +64,28 @@ export default function ChatWidget() {
             ? msg.sender_id !== userIdRef.current
             : msg.sender?.role === 'admin'
 
+    // Turn any caught error into a human-readable string
+    const describeError = (err: unknown): string => {
+        if (err instanceof ApiError) {
+            if (err.status === 0 || err.status === undefined) {
+                return 'Cannot reach the server. It may be starting up — please try again in 30 seconds.'
+            }
+            if (err.status === 401) return 'Your session has expired. Please log in again.'
+            if (err.status === 403) return 'You do not have permission to use this chat.'
+            if (err.status === 404) return `Server endpoint not found (404). Please contact support.`
+            if (err.status >= 500)  return `Server error (${err.status}). It may be starting up — please retry in 30 seconds.`
+            return `Error ${err.status}: ${err.message}`
+        }
+        if (err instanceof TypeError || (err instanceof Error && err.message.toLowerCase().includes('fetch'))) {
+            return 'Cannot reach the server. It may be starting up — please try again in 30 seconds.'
+        }
+        if (err instanceof Error) return err.message
+        return 'An unexpected error occurred. Please try again.'
+    }
+
     // ── load conversation ─────────────────────────────────────────────
     const loadConversation = useCallback(async () => {
+        setLoadError('')
         try {
             const { conversations } = await messageApi.listConversations()
             if (!conversations.length) return
@@ -71,8 +96,20 @@ export default function ChatWidget() {
             userIdRef.current = detail.user?.id ?? null
             setMessages((detail.messages ?? []) as unknown as Msg[])
             messageApi.markRead(detail.id).catch(() => {})
-        } catch { /* no conversations yet — that is fine */ }
-    }, [])
+        } catch (err) {
+            if (!mountedRef.current) return
+            const msg = describeError(err)
+            setLoadError(msg)
+            // Auto-retry once after 35 s (backend cold-start window)
+            if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
+            retryTimerRef.current = setTimeout(() => {
+                if (mountedRef.current) {
+                    setLoadError('')
+                    loadConversation()
+                }
+            }, 35000)
+        }
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── WebSocket ─────────────────────────────────────────────────────
     const connectWS = useCallback(() => {
@@ -108,7 +145,7 @@ export default function ChatWidget() {
         wsRef.current = null
     }
 
-    // ── unread poll (while chat is closed) ────────────────────────────
+    // ── unread poll ───────────────────────────────────────────────────
     const startUnreadPoll = useCallback(() => {
         const poll = async () => {
             try {
@@ -132,6 +169,7 @@ export default function ChatWidget() {
             connectWS()
         } else {
             disconnectWS()
+            if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null }
             startUnreadPoll()
         }
 
@@ -151,7 +189,6 @@ export default function ChatWidget() {
 
         try {
             if (!convIdRef.current) {
-                // First message ever — create conversation
                 const detail = await messageApi.createConversation({ initial_message: content })
                 convIdRef.current = detail.id
                 userIdRef.current = detail.user?.id ?? null
@@ -164,12 +201,7 @@ export default function ChatWidget() {
             setInput('')
             setSendState('idle')
         } catch (err: unknown) {
-            const isNetwork =
-                err instanceof TypeError ||
-                (err instanceof Error && err.message.toLowerCase().includes('fetch'))
-            setErrorMsg(isNetwork
-                ? 'Connection lost. Check your internet and tap Retry.'
-                : 'Message failed to send. Please try again.')
+            setErrorMsg(describeError(err))
             setSendState('error')
         }
     }, [input, sendState, connectWS]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -226,6 +258,17 @@ export default function ChatWidget() {
                                 <Loader2 className="w-6 h-6 animate-spin text-[#140152]" />
                                 <p className="text-xs">Loading messages…</p>
                             </div>
+                        ) : loadError ? (
+                            <div className="flex flex-col items-center justify-center h-full gap-3 px-4 text-center">
+                                <AlertTriangle className="w-8 h-8 text-amber-400" />
+                                <p className="text-sm text-gray-600 leading-relaxed">{loadError}</p>
+                                <button
+                                    onClick={() => { setLoadError(''); setLoading(true); loadConversation().finally(() => setLoading(false)) }}
+                                    className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-[#140152] text-white rounded-lg hover:bg-[#1d0175] transition-all"
+                                >
+                                    <RefreshCw className="w-3 h-3" /> Try Again
+                                </button>
+                            </div>
                         ) : messages.length === 0 ? (
                             <div className="text-center text-gray-400 text-sm mt-10 px-4">
                                 <div className="w-14 h-14 bg-[#140152]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -265,9 +308,9 @@ export default function ChatWidget() {
 
                     {/* Error banner */}
                     {sendState === 'error' && (
-                        <div className="shrink-0 px-4 py-2.5 bg-red-50 border-t border-red-100 flex items-center gap-2">
-                            <WifiOff className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
-                            <span className="flex-1 text-xs text-red-600">{errorMsg}</span>
+                        <div className="shrink-0 px-4 py-2.5 bg-red-50 border-t border-red-100 flex items-start gap-2">
+                            <WifiOff className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
+                            <span className="flex-1 text-xs text-red-600 leading-relaxed">{errorMsg}</span>
                             <button
                                 onClick={handleRetry}
                                 className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-all flex-shrink-0"
