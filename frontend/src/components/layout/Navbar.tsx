@@ -94,8 +94,8 @@ export default function Navbar() {
         <motion.div
           layout
           className={cn(
-            "w-full max-w-6xl rounded-full bg-white/80 backdrop-blur-xl border border-white/20 shadow-lg pointer-events-auto px-6 py-3 flex items-center justify-between transition-all duration-300",
-            scrolled ? "max-w-full rounded-none md:rounded-full md:max-w-6xl shadow-xl py-2" : ""
+            "w-full max-w-6xl rounded-full bg-white border border-gray-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.07)] pointer-events-auto px-6 py-3 flex items-center justify-between transition-all duration-300",
+            scrolled ? "max-w-full rounded-none md:rounded-full md:max-w-6xl shadow-[0_2px_16px_rgba(0,0,0,0.1)] py-2" : ""
           )}
         >
           {/* LOGO */}
@@ -208,7 +208,7 @@ export default function Navbar() {
             animate="open"
             exit="closed"
             variants={menuVariants}
-            className="fixed top-0 left-0 w-full h-[100dvh] z-40 bg-white/95 backdrop-blur-3xl lg:hidden flex flex-col pt-32 px-6 pb-8 overflow-y-auto overscroll-contain no-scrollbar"
+            className="fixed top-0 left-0 w-full h-[100dvh] z-40 bg-white lg:hidden flex flex-col pt-32 px-6 pb-8 overflow-y-auto overscroll-contain no-scrollbar border-r border-gray-100"
           >
             <div className="flex flex-col gap-6">
               {navLinks.map((link, i) => (

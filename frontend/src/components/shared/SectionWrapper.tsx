@@ -17,14 +17,14 @@ export default function SectionWrapper({
 }: SectionWrapperProps) {
   const bgClasses = {
     white: 'bg-white',
-    gray: 'bg-gray-50',
+    gray: 'bg-[#f8f8fb] border-y border-gray-100',
     dark: 'bg-[#140152] text-white'
   }
 
   const paddingClasses = {
     small: 'py-10',
-    medium: 'py-16',
-    large: 'py-24'
+    medium: 'py-14',
+    large: 'py-20'
   }
 
   return (

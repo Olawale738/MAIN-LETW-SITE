@@ -99,6 +99,11 @@ const sidebarItems = [
         href: '/admin/chat',
         icon: MessageCircle
     },
+    {
+        title: 'Ministry Staff',
+        href: '/admin/settings?tab=ministry',
+        icon: Crown
+    },
 ]
 
 export default function AdminSidebar() {

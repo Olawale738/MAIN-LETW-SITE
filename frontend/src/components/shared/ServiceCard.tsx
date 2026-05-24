@@ -18,7 +18,7 @@ export default function ServiceCard({
   icon
 }: ServiceCardProps) {
   return (
-    <div className="h-full flex flex-col group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-[#140152]/20 shadow-sm hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+    <div className="h-full flex flex-col group bg-white rounded-2xl overflow-hidden border border-gray-200 hover:border-[#140152]/30 shadow-[0_1px_4px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(20,1,82,0.12)] transition-all duration-300 hover:-translate-y-1">
       {/* Top accent bar that reveals on hover */}
       <div className="h-1 bg-gradient-to-r from-[#140152] to-[#1d0175] transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
 

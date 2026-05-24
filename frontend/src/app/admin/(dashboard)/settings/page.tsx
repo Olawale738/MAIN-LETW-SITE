@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { authApi, userApi, settingsApi, User } from '@/lib/api'
 import Link from 'next/link'
@@ -59,9 +59,12 @@ function saveRoleCreds(key: RoleKey, creds: RoleCreds) {
 
 export default function AdminSettingsPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'registrations' | 'ministry'>('profile')
+    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'registrations' | 'ministry'>(
+        (searchParams.get('tab') as 'profile' | 'security' | 'registrations' | 'ministry') || 'profile'
+    )
 
     // Registration Settings state
     const [theologyRegistrationOpen, setTheologyRegistrationOpen] = useState(true)
