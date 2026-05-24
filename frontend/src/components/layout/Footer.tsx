@@ -79,18 +79,12 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Connect — links NOT already in the navbar */}
           <div>
-            <h4 className="font-black text-sm uppercase tracking-widest mb-6 text-[#f5bb00]">Quick Links</h4>
+            <h4 className="font-black text-sm uppercase tracking-widest mb-6 text-[#f5bb00]">Connect</h4>
             <ul className="space-y-2.5">
               {[
-                { name: 'About Us', href: '/about' },
-                { name: 'Youth Ministry', href: '/youth' },
-                { name: "Children's Ministry", href: '/children' },
                 { name: 'Volunteer', href: '/volunteer' },
-                { name: 'Sermons', href: '/sermons' },
-                { name: 'Events', href: '/events' },
-                { name: 'Give', href: '/giving' },
                 { name: 'Contact', href: '/contact' },
               ].map((link) => (
                 <li key={link.name}>
@@ -103,27 +97,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Education */}
+          {/* Ministries */}
           <div>
-            <h4 className="font-black text-sm uppercase tracking-widest mb-6 text-[#f5bb00]">Education</h4>
-            <ul className="space-y-2.5">
-              {[
-                { name: 'Primary School', href: '/education/primary-school' },
-                { name: 'Secondary School', href: '/education/secondary-school' },
-                { name: 'University', href: '/education/university' },
-                { name: 'Theology School', href: '/education/theology-school' },
-              ].map((link) => (
-                <li key={link.name}>
-                  <Link href={link.href} className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-200 flex items-center gap-2 text-sm group">
-                    <span className="w-1 h-1 rounded-full bg-[#f5bb00]/40 group-hover:bg-[#f5bb00] transition-colors" />
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-
-            {/* Services sub-section */}
-            <h4 className="font-black text-sm uppercase tracking-widest mt-8 mb-4 text-[#f5bb00]">Ministries</h4>
+            <h4 className="font-black text-sm uppercase tracking-widest mb-6 text-[#f5bb00]">Ministries</h4>
             <ul className="space-y-2.5">
               {[
                 { name: 'Alter Sound', href: '/services/alter-sound' },

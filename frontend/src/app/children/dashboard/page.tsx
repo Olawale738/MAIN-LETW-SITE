@@ -14,103 +14,245 @@ import {
 } from 'lucide-react'
 
 /* ─── Auth ────────────────────────────────────────────────────────────────── */
-const MEMBER_ACCESS_CODE = 'LETWCHILDREN2026'
-const ADMIN_CREDENTIALS  = { username: 'admin', password: 'LETW@Admin2026' }
+const ADMIN_CREDENTIALS = { username: 'admin', password: 'LETW@Admin2026' }
 
-function ChildrenLoginGate({ onLogin }: { onLogin: () => void }) {
-  const [tab,      setTab]      = useState<'member' | 'admin'>('member')
-  const [code,     setCode]     = useState('')
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPw,   setShowPw]   = useState(false)
-  const [error,    setError]    = useState('')
-  const [loading,  setLoading]  = useState(false)
+export interface ChildrenMember {
+  id: string; guardian: string; email: string; phone: string; password: string
+  childName: string; childAge: number; ageGroup: string; gender: string
+  allergies: string; medicalNotes: string; joinedAt: string; active: boolean
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true); setError('')
+function getChildrenMembers(): ChildrenMember[] {
+  if (typeof window === 'undefined') return []
+  try { return JSON.parse(localStorage.getItem('letw_children_members') || '[]') } catch { return [] }
+}
+function saveChildrenMembers(members: ChildrenMember[]) {
+  localStorage.setItem('letw_children_members', JSON.stringify(members))
+}
+
+function ChildrenLoginGate({ onLogin }: { onLogin: (name: string) => void }) {
+  const [tab, setTab] = useState<'login' | 'register' | 'admin'>('login')
+
+  const [loginEmail,    setLoginEmail]    = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+
+  const [regGuardian,   setRegGuardian]   = useState('')
+  const [regEmail,      setRegEmail]      = useState('')
+  const [regPhone,      setRegPhone]      = useState('')
+  const [regPassword,   setRegPassword]   = useState('')
+  const [regConfirm,    setRegConfirm]    = useState('')
+  const [regChildName,  setRegChildName]  = useState('')
+  const [regChildAge,   setRegChildAge]   = useState('')
+  const [regAgeGroup,   setRegAgeGroup]   = useState('Primary')
+  const [regGender,     setRegGender]     = useState('Male')
+  const [regAllergies,  setRegAllergies]  = useState('')
+  const [regMedical,    setRegMedical]    = useState('')
+
+  const [adminUser, setAdminUser] = useState('')
+  const [adminPw,   setAdminPw]   = useState('')
+
+  const [showPw,  setShowPw]  = useState(false)
+  const [error,   setError]   = useState('')
+  const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const inputCls = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none'
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault(); setLoading(true); setError('')
     setTimeout(() => {
       setLoading(false)
-      if (tab === 'member') {
-        if (code.trim() === MEMBER_ACCESS_CODE) { onLogin() }
-        else { setError('Invalid access code. Please get your code from the Children\'s Coordinator.') }
-      } else {
-        if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) { onLogin() }
-        else { setError('Invalid admin credentials.') }
+      const members = getChildrenMembers()
+      const found = members.find(m => m.email.toLowerCase() === loginEmail.toLowerCase() && m.password === loginPassword)
+      if (found) { onLogin(found.guardian) }
+      else { setError('Email or password is incorrect.') }
+    }, 600)
+  }
+
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault(); setLoading(true); setError(''); setSuccess('')
+    setTimeout(() => {
+      setLoading(false)
+      if (regPassword.length < 6) { setError('Password must be at least 6 characters.'); return }
+      if (regPassword !== regConfirm) { setError('Passwords do not match.'); return }
+      const members = getChildrenMembers()
+      if (members.find(m => m.email.toLowerCase() === regEmail.toLowerCase())) {
+        setError('An account with this email already exists. Please log in.'); return
       }
+      const newMember: ChildrenMember = {
+        id: Date.now().toString(), guardian: regGuardian.trim(), email: regEmail.trim().toLowerCase(),
+        phone: regPhone.trim(), password: regPassword, childName: regChildName.trim(),
+        childAge: parseInt(regChildAge) || 0, ageGroup: regAgeGroup, gender: regGender,
+        allergies: regAllergies.trim(), medicalNotes: regMedical.trim(),
+        joinedAt: new Date().toISOString(), active: true,
+      }
+      saveChildrenMembers([...members, newMember])
+      setSuccess('Account created! You can now log in.')
+      setTab('login'); setLoginEmail(regEmail.trim().toLowerCase())
     }, 700)
   }
 
+  const handleAdmin = (e: React.FormEvent) => {
+    e.preventDefault(); setLoading(true); setError('')
+    setTimeout(() => {
+      setLoading(false)
+      if (adminUser === ADMIN_CREDENTIALS.username && adminPw === ADMIN_CREDENTIALS.password) { onLogin('Admin') }
+      else { setError('Invalid admin credentials.') }
+    }, 600)
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center"
+    <div className="min-h-screen flex items-center justify-center px-4"
       style={{ background: 'linear-gradient(135deg, #134e4a 0%, #065f46 50%, #14532d 100%)' }}>
       <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden">
-        <div className="px-8 pt-10 pb-8">
+        <div className="px-7 pt-8 pb-7">
           <div className="flex flex-col items-center mb-6">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mb-3"
               style={{ background: 'linear-gradient(135deg, #10b981, #065f46)' }}>
-              <Baby className="w-8 h-8 text-white" />
+              <Baby className="w-7 h-7 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">LETW Children</h1>
-            <p className="text-sm text-gray-500 mt-1">Ministry Dashboard Access</p>
+            <h1 className="text-xl font-black text-gray-900">LETW Children</h1>
+            <p className="text-xs text-gray-500 mt-0.5">Parent / Guardian Portal</p>
           </div>
 
           <div className="flex rounded-xl overflow-hidden border border-gray-200 mb-5">
-            {(['member', 'admin'] as const).map(t => (
-              <button key={t} onClick={() => { setTab(t); setError('') }}
+            {([['login','Login'],['register','Register'],['admin','Admin']] as const).map(([t, label]) => (
+              <button key={t} onClick={() => { setTab(t); setError(''); setSuccess('') }}
                 className={`flex-1 py-2 text-xs font-semibold transition-all ${tab === t ? 'bg-emerald-600 text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
-                {t === 'member' ? '🔑 Member Access' : '⚙ Admin Login'}
+                {label}
               </button>
             ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {tab === 'member' ? (
+          {success && (
+            <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> {success}
+            </div>
+          )}
+
+          {/* LOGIN */}
+          {tab === 'login' && (
+            <form onSubmit={handleLogin} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Access Code</label>
-                <input value={code} onChange={e => setCode(e.target.value)} required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                  placeholder="Enter your access code" />
-                <p className="text-xs text-gray-400 mt-1">Get your code from the Children's Coordinator.</p>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Email Address</label>
+                <input type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className={inputCls} placeholder="your@email.com" />
               </div>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Username</label>
-                  <input value={username} onChange={e => setUsername(e.target.value)} required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Admin username" />
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Password</label>
+                <div className="relative">
+                  <input type={showPw ? 'text' : 'password'} required value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className={inputCls + ' pr-10'} placeholder="Your password" />
+                  <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-2.5 text-gray-400">
+                    {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Password</label>
-                  <div className="relative">
-                    <input value={password} onChange={e => setPassword(e.target.value)}
-                      type={showPw ? 'text' : 'password'} required
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                      placeholder="Admin password" />
-                    <button type="button" onClick={() => setShowPw(v => !v)}
-                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
-                      {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-            <AnimatePresence>
-              {error && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+              </div>
+              <AnimatePresence>
+                {error && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                   className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {error}
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <button type="submit" disabled={loading}
-              className="w-full py-2.5 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-70"
-              style={{ background: 'linear-gradient(135deg, #10b981, #065f46)' }}>
-              {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying…</> : 'Access Dashboard'}
-            </button>
-          </form>
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {error}</motion.div>}
+              </AnimatePresence>
+              <button type="submit" disabled={loading} className="w-full py-2.5 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-70 mt-1" style={{ background: 'linear-gradient(135deg, #10b981, #065f46)' }}>
+                {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Signing in…</> : 'Sign In'}
+              </button>
+              <p className="text-center text-xs text-gray-400">No account? <button type="button" onClick={() => setTab('register')} className="text-emerald-600 font-semibold hover:underline">Register here</button></p>
+            </form>
+          )}
+
+          {/* REGISTER */}
+          {tab === 'register' && (
+            <form onSubmit={handleRegister} className="space-y-3">
+              <p className="text-xs text-gray-500 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+                Register yourself as a parent/guardian and enrol your child.
+              </p>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Parent / Guardian Name *</label>
+                <input required value={regGuardian} onChange={e => setRegGuardian(e.target.value)} className={inputCls} placeholder="Your full name" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Email *</label>
+                  <input type="email" required value={regEmail} onChange={e => setRegEmail(e.target.value)} className={inputCls} placeholder="your@email.com" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
+                  <input value={regPhone} onChange={e => setRegPhone(e.target.value)} className={inputCls} placeholder="+234…" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Child's Name *</label>
+                <input required value={regChildName} onChange={e => setRegChildName(e.target.value)} className={inputCls} placeholder="Child's full name" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Child's Age *</label>
+                  <input type="number" min="0" max="12" required value={regChildAge} onChange={e => setRegChildAge(e.target.value)} className={inputCls} placeholder="e.g. 7" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Gender</label>
+                  <select value={regGender} onChange={e => setRegGender(e.target.value)} className={inputCls}>
+                    <option>Male</option><option>Female</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Age Group *</label>
+                <select required value={regAgeGroup} onChange={e => setRegAgeGroup(e.target.value)} className={inputCls}>
+                  <option>Nursery (0–2)</option><option>Toddlers (3–5)</option><option>Primary (6–9)</option><option>Juniors (10–12)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Allergies / Medical Notes</label>
+                <input value={regAllergies} onChange={e => setRegAllergies(e.target.value)} className={inputCls} placeholder="e.g. nut allergy, asthma (optional)" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Password *</label>
+                  <input type="password" required value={regPassword} onChange={e => setRegPassword(e.target.value)} className={inputCls} placeholder="Min 6 chars" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Confirm *</label>
+                  <input type="password" required value={regConfirm} onChange={e => setRegConfirm(e.target.value)} className={inputCls} placeholder="Repeat" />
+                </div>
+              </div>
+              <AnimatePresence>
+                {error && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                  className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {error}</motion.div>}
+              </AnimatePresence>
+              <button type="submit" disabled={loading} className="w-full py-2.5 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-70" style={{ background: 'linear-gradient(135deg, #10b981, #065f46)' }}>
+                {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating account…</> : 'Create Account'}
+              </button>
+              <p className="text-center text-xs text-gray-400">Already registered? <button type="button" onClick={() => setTab('login')} className="text-emerald-600 font-semibold hover:underline">Log in</button></p>
+            </form>
+          )}
+
+          {/* ADMIN */}
+          {tab === 'admin' && (
+            <form onSubmit={handleAdmin} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Username</label>
+                <input required value={adminUser} onChange={e => setAdminUser(e.target.value)} className={inputCls} placeholder="Admin username" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Password</label>
+                <div className="relative">
+                  <input type={showPw ? 'text' : 'password'} required value={adminPw} onChange={e => setAdminPw(e.target.value)} className={inputCls + ' pr-10'} placeholder="Admin password" />
+                  <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-2.5 text-gray-400">
+                    {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <AnimatePresence>
+                {error && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                  className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {error}</motion.div>}
+              </AnimatePresence>
+              <button type="submit" disabled={loading} className="w-full py-2.5 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-70" style={{ background: 'linear-gradient(135deg, #10b981, #065f46)' }}>
+                {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying…</> : 'Admin Login'}
+              </button>
+            </form>
+          )}
 
           <p className="text-center text-xs text-gray-400 mt-5">
             <Link href="/children" className="text-emerald-600 font-semibold hover:underline">← Back to Children's Page</Link>
@@ -260,11 +402,12 @@ const NAV_ITEMS = [
 /* ═══════════════════════════════════════════════════════════════ */
 export default function ChildrenDashboard() {
   const [authenticated, setAuthenticated] = useState(false)
-  if (!authenticated) return <ChildrenLoginGate onLogin={() => setAuthenticated(true)} />
-  return <ChildrenDashboardContent />
+  const [memberName, setMemberName] = useState('')
+  if (!authenticated) return <ChildrenLoginGate onLogin={(name) => { setAuthenticated(true); setMemberName(name) }} />
+  return <ChildrenDashboardContent memberName={memberName} />
 }
 
-function ChildrenDashboardContent() {
+function ChildrenDashboardContent({ memberName }: { memberName: string }) {
   const [activeNav, setActiveNav] = useState('home')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS)

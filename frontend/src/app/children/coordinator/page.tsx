@@ -62,8 +62,29 @@ function getCoordinatorCreds() {
   return DEFAULT_COORDINATOR_CREDS
 }
 
-/* ─── Empty member list (no fake data) ──────────────────────────── */
-const REGISTERED_CHILDREN: Child[] = []
+/* ─── Load real children from localStorage ──────────────────────── */
+function loadChildrenMembers(): Child[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = JSON.parse(localStorage.getItem('letw_children_members') || '[]')
+    return raw.map((m: { id: string; childName: string; childAge: number; ageGroup: string; gender: string; guardian: string; phone: string; email: string; allergies: string; medicalNotes: string; joinedAt: string; active: boolean }) => ({
+      id: m.id,
+      name: m.childName,
+      initials: m.childName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
+      age: m.childAge || 0,
+      ageGroup: (m.ageGroup?.split(' ')[0] || 'Primary') as Child['ageGroup'],
+      gender: (m.gender === 'Female' ? 'Female' : 'Male') as 'Male' | 'Female',
+      email: m.email,
+      phone: m.phone || '—',
+      guardian: m.guardian,
+      allergies: m.allergies || '',
+      medicalNotes: m.medicalNotes || '',
+      active: m.active !== false,
+      joinedDate: m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+      attendance: 0,
+    }))
+  } catch { return [] }
+}
 
 /* ─── Nav Items ─────────────────────────────────────────────────── */
 const NAV_ITEMS = [
@@ -196,7 +217,7 @@ export default function ChildrenCoordinatorDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   /* Members state */
-  const [children, setChildren] = useState<Child[]>(REGISTERED_CHILDREN)
+  const [children, setChildren] = useState<Child[]>(() => loadChildrenMembers())
   const [childSearch, setChildSearch] = useState('')
   const [ageFilter, setAgeFilter] = useState('All')
   const [showAddForm, setShowAddForm] = useState(false)
@@ -222,6 +243,14 @@ export default function ChildrenCoordinatorDashboard() {
   const [messages, setMessages] = useState<Message[]>([])
   const [replyTo,  setReplyTo]  = useState<string | null>(null)
   const [replyTxt, setReplyTxt] = useState('')
+
+  /* Refresh children list from localStorage every 30 seconds */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setChildren(loadChildrenMembers())
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   /* Countdown to Children's Day */
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })

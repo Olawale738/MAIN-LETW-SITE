@@ -28,9 +28,26 @@ interface Event {
   venue: string; daysLeft: number; color: string; confirmed: number; total: number
 }
 
-// ─── Registered Youth Members ─────────────────────────────────────
-// Only real registered members appear here — no fake data
-const REGISTERED_MEMBERS: Member[] = []
+// ─── Load real registered youth members from localStorage ─────────
+function loadYouthMembers(): Member[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = JSON.parse(localStorage.getItem('letw_youth_members') || '[]')
+    return raw.map((m: { id: string; name: string; email: string; phone: string; ageGroup: string; gender: string; joinedAt: string; active: boolean }) => ({
+      id: m.id,
+      name: m.name,
+      initials: m.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
+      age: 0,
+      email: m.email,
+      phone: m.phone || '—',
+      group: m.ageGroup || 'General',
+      active: m.active !== false,
+      attendance: 0,
+      joinedDate: m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+      gender: (m.gender === 'Female' ? 'F' : 'M') as 'M' | 'F',
+    }))
+  } catch { return [] }
+}
 
 const MOCK_ANNOUNCEMENTS: Announcement[] = [
   { id: '1', title: '⚠️ Youth Friday Fellowship — This Week', body: 'Attendance is compulsory. Topic: Walking in Purpose. Come with your Bible and a heart to receive.', time: '2 hours ago', urgent: true, pinned: true, replies: 0 },
@@ -137,7 +154,7 @@ export default function YouthCoordinatorDashboard() {
   const [role, setRole] = useState('')
   const [activeNav, setActiveNav] = useState('home')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [members, setMembers] = useState<Member[]>(REGISTERED_MEMBERS)
+  const [members, setMembers] = useState<Member[]>(() => loadYouthMembers())
   const [memberSearch, setMemberSearch] = useState('')
   const [memberFilter, setMemberFilter] = useState('All')
   const [announcements, setAnnouncements] = useState<Announcement[]>(MOCK_ANNOUNCEMENTS)
@@ -150,6 +167,13 @@ export default function YouthCoordinatorDashboard() {
   // New member form
   const [showAddMember, setShowAddMember] = useState(false)
   const [newMember, setNewMember] = useState({ name: '', age: '', email: '', phone: '', group: '', gender: 'M' as 'M' | 'F' })
+
+  // Reload members from localStorage every 30s so new registrations appear
+  useEffect(() => {
+    const refresh = () => setMembers(loadYouthMembers())
+    const id = setInterval(refresh, 30000)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     const target = new Date('2026-06-27T09:00:00')
