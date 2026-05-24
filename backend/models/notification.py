@@ -51,7 +51,7 @@ class Notification(Base):
     )
     
     type: Mapped[NotificationType] = mapped_column(
-        SQLEnum(NotificationType),
+        SQLEnum(NotificationType, native_enum=False),
         default=NotificationType.GENERAL,
         nullable=False
     )

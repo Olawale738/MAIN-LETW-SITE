@@ -32,7 +32,7 @@ class BibleReadingPlan(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    plan_type: Mapped[ReadingPlanType] = mapped_column(SQLEnum(ReadingPlanType), default=ReadingPlanType.WEEKLY)
+    plan_type: Mapped[ReadingPlanType] = mapped_column(SQLEnum(ReadingPlanType, native_enum=False), default=ReadingPlanType.WEEKLY)
     duration_days: Mapped[int] = mapped_column(Integer, nullable=False)  # Total days in the plan
     target_audience: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # e.g., "Children 6-12 years"
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -92,7 +92,7 @@ class UserDailyReading(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     progress_id: Mapped[str] = mapped_column(String(36), ForeignKey("user_reading_progress.id"), nullable=False)
     daily_reading_id: Mapped[str] = mapped_column(String(36), ForeignKey("daily_readings.id"), nullable=False)
-    status: Mapped[ReadingStatus] = mapped_column(SQLEnum(ReadingStatus), default=ReadingStatus.NOT_STARTED)
+    status: Mapped[ReadingStatus] = mapped_column(SQLEnum(ReadingStatus, native_enum=False), default=ReadingStatus.NOT_STARTED)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # User's personal notes
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

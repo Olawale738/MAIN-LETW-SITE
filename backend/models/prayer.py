@@ -74,7 +74,7 @@ class PrayerRequest(Base):
     is_anonymous: Mapped[bool] = mapped_column(Boolean, default=False)
     is_public: Mapped[bool] = mapped_column(Boolean, default=True)  # Can others see and pray for this?
     status: Mapped[PrayerRequestStatus] = mapped_column(
-        SQLEnum(PrayerRequestStatus),
+        SQLEnum(PrayerRequestStatus, native_enum=False),
         default=PrayerRequestStatus.PENDING
     )
     prayer_count: Mapped[int] = mapped_column(Integer, default=0)  # Number of people who prayed

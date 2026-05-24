@@ -44,7 +44,7 @@ class VerificationToken(Base):
     )
     
     token_type: Mapped[TokenType] = mapped_column(
-        SQLEnum(TokenType),
+        SQLEnum(TokenType, native_enum=False),
         nullable=False
     )
     

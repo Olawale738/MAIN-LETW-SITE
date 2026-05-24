@@ -44,7 +44,7 @@ class ServiceRequest(Base):
     )
     
     status: Mapped[ServiceRequestStatus] = mapped_column(
-        SQLEnum(ServiceRequestStatus),
+        SQLEnum(ServiceRequestStatus, native_enum=False),
         default=ServiceRequestStatus.PENDING,
         nullable=False,
         index=True
