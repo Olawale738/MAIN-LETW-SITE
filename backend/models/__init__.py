@@ -28,12 +28,7 @@ from models.bible_study import (
 from models.cms import CMSPage, CMSImage
 from models.chat import ChatConversation, ChatMessage
 
-# Legacy message model (may or may not exist)
-try:
-    from models.message import Conversation, Message, ConversationStatus
-    _has_message_model = True
-except ImportError:
-    _has_message_model = False
+from models.message import Conversation, Message, ConversationStatus
 
 __all__ = [
     "User",
@@ -87,4 +82,7 @@ __all__ = [
     "CMSImage",
     "ChatConversation",
     "ChatMessage",
+    "Conversation",
+    "Message",
+    "ConversationStatus",
 ]
