@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Facebook, Twitter, Instagram, Youtube, MapPin, Phone, Mail, ChevronDown, ExternalLink, BookOpen, Radio } from 'lucide-react'
@@ -8,6 +8,17 @@ import { Facebook, Twitter, Instagram, Youtube, MapPin, Phone, Mail, ChevronDown
 export default function Footer() {
   const pathname = usePathname()
   const [radioOpen, setRadioOpen] = useState(false)
+  const radioRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (radioRef.current && !radioRef.current.contains(e.target as Node)) {
+        setRadioOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   if (pathname?.startsWith('/admin')) return null
 
@@ -44,10 +55,9 @@ export default function Footer() {
               <BookOpen className="w-4 h-4 text-[#f5bb00]" /> Devotion App
             </a>
             {/* Radio — dropdown */}
-            <div className="relative">
+            <div className="relative" ref={radioRef}>
               <button
                 onClick={() => setRadioOpen(v => !v)}
-                onBlur={() => setTimeout(() => setRadioOpen(false), 150)}
                 className="inline-flex items-center justify-center gap-2 border border-white/20 text-white font-semibold px-6 py-3 rounded-full text-sm hover:bg-white/10 transition-all whitespace-nowrap"
               >
                 <Radio className="w-4 h-4 text-[#f5bb00]" />
