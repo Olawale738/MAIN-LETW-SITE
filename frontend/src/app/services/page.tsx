@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PremiumButton from '@/components/ui/PremiumButton'
 import { ArrowRight, Users, BookOpen, Heart, TrendingUp, Church, Briefcase, PlayCircle } from 'lucide-react'
+import { motion } from 'framer-motion'
 import ServiceCard from '@/components/shared/ServiceCard'
 import SectionWrapper from '@/components/shared/SectionWrapper'
 import { sermonApi, Sermon } from '@/lib/api'
@@ -34,16 +35,50 @@ export default function ServicesPage() {
   return (
     <>
       {/* Hero */}
-      <div className="w-full">
-        <img
-          src="/service.png"
-          alt="Our Services"
-          className="w-full h-auto block"
+      <div className="relative min-h-[580px] flex items-center justify-center overflow-hidden bg-[#140152]">
+        {/* Background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-30"
+          style={{ backgroundImage: 'url(/service.png)' }}
         />
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#140152]/80 via-[#140152]/60 to-[#140152]/90" />
+        {/* Animated orbs */}
+        <div className="absolute top-[-15%] right-[-5%] w-[500px] h-[500px] bg-[#f5bb00]/15 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-15%] left-[-5%] w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1.5s' }} />
+        {/* Gold accent line */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#f5bb00] to-transparent opacity-60" />
+
+        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto py-24">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+          >
+            <span className="inline-flex items-center gap-2 bg-[#f5bb00]/20 border border-[#f5bb00]/40 text-[#f5bb00] text-xs font-bold uppercase tracking-widest px-5 py-2 rounded-full mb-8">
+              <Church className="w-4 h-4" />
+              Light Encounter Tabernacle
+            </span>
+            <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight" style={{ textShadow: '0 2px 20px rgba(0,0,0,0.3)' }}>
+              Our <span className="text-[#f5bb00]">Services</span> &amp;<br />Programs
+            </h1>
+            <p className="text-xl text-blue-200 max-w-2xl mx-auto leading-relaxed mb-10">
+              Worship, grow, and serve — discover all the ways to connect with God and community at LETW.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <PremiumButton href="#main-services" className="py-4 px-8 text-base">
+                Explore Services
+              </PremiumButton>
+              <a href="/sermons" className="py-4 px-8 text-base rounded-full border-2 border-white/30 text-white hover:bg-white/10 transition-all font-semibold flex items-center gap-2 justify-center">
+                Watch Sermons <ArrowRight className="w-5 h-5" />
+              </a>
+            </div>
+          </motion.div>
+        </div>
       </div>
 
       {/* OUR SERVICES */}
-      <SectionWrapper>
+      <SectionWrapper id="main-services">
         <div className="text-center mb-16 space-y-4">
           <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Worship & Word</span>
           <h2 className="text-4xl md:text-5xl font-black text-[#140152]">Our Main Services</h2>

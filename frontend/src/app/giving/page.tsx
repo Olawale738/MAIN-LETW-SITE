@@ -76,20 +76,13 @@ export default function GivingPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero */}
-      <div className="w-full">
-        <img
-          src="/giving.png"
-          alt="Giving"
-          className="w-full h-auto block"
-        />
-      </div>
-
-      <div className="relative bg-[#140152] overflow-hidden flex flex-col justify-center">
+      <div className="relative bg-[#140152] overflow-hidden flex flex-col justify-center" style={{ minHeight: '100vh' }}>
       {/* Background Effects */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#f5bb00]/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: 'url(/giving.png)' }} />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#f5bb00]/15 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#f5bb00] to-transparent opacity-40" />
       </div>
 
       <div className="container mx-auto px-4 pt-24 pb-8 md:pt-32 relative z-10">
