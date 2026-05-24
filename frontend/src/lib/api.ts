@@ -2577,6 +2577,31 @@ export const messageApi = {
         const ws = base.replace(/^http/, 'ws');
         return `${ws}/api/messages/ws?token=${encodeURIComponent(token)}`;
     },
+
+    /** Admin: get all user conversations (inbox) */
+    admin: {
+        getInbox: async (): Promise<ChatListResponse> =>
+            fetchApi<ChatListResponse>('/messages/admin/inbox'),
+
+        getConversation: async (id: string): Promise<ChatConversationDetail> =>
+            fetchApi<ChatConversationDetail>(`/messages/conversations/${id}`),
+
+        sendMessage: async (conversationId: string, body: string): Promise<ChatMessage> =>
+            fetchApi<ChatMessage>(`/messages/conversations/${conversationId}/messages`, {
+                method: 'POST',
+                body: JSON.stringify({ body }),
+            }),
+
+        markRead: async (conversationId: string): Promise<MessageResponse> =>
+            fetchApi<MessageResponse>(`/messages/conversations/${conversationId}/read`, {
+                method: 'POST',
+            }),
+
+        closeConversation: async (conversationId: string): Promise<MessageResponse> =>
+            fetchApi<MessageResponse>(`/messages/conversations/${conversationId}/close`, {
+                method: 'POST',
+            }),
+    },
 };
 
 // ============================================================
