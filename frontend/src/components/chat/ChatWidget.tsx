@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { MessageCircle, X, Send, Loader2, RefreshCw, WifiOff, Clock } from 'lucide-react'
-import { chatApi, ChatMessage } from '@/lib/api'
+import { chatApi, ChatMessage, ApiError } from '@/lib/api'
 
 const POLL_INTERVAL = 6000 // 6 seconds
 
@@ -74,15 +74,18 @@ export default function ChatWidget() {
             setMessages(prev => [...prev, msg])
             return true
         } catch (err: unknown) {
-            // Distinguish network failures from server errors
-            const isNetworkError =
+            // Network / cold-start errors: TypeError (Failed to fetch) OR
+            // server 5xx (502/503/504 from Render cold start) OR
+            // 0-status (connection refused / no response at all)
+            const isNetworkOrColdStart =
                 err instanceof TypeError ||
+                (err instanceof ApiError && (err.status === 0 || err.status >= 500)) ||
                 (err instanceof Error && (
-                    err.message.includes('fetch') ||
-                    err.message.includes('network') ||
-                    err.message.includes('Failed to fetch')
+                    err.message.toLowerCase().includes('fetch') ||
+                    err.message.toLowerCase().includes('network') ||
+                    err.message.toLowerCase().includes('failed to fetch')
                 ))
-            setSendStatus(isNetworkError ? 'error-network' : 'error-server')
+            setSendStatus(isNetworkOrColdStart ? 'error-network' : 'error-server')
             return false
         }
     }
@@ -108,8 +111,8 @@ export default function ChatWidget() {
         if (!content) return
         setSendStatus('retrying')
 
-        // Small delay so the user sees "retrying…" feedback
-        await new Promise(r => setTimeout(r, 800))
+        // Give Render's cold-start server time to wake (3 s feels fast, covers most spin-ups)
+        await new Promise(r => setTimeout(r, 3000))
 
         const ok = await trySend(content)
         if (ok) {
@@ -223,15 +226,15 @@ export default function ChatWidget() {
                                     {sendStatus === 'retrying'
                                         ? 'Waking server & retrying…'
                                         : sendStatus === 'error-network'
-                                            ? 'Server is warming up…'
-                                            : 'Message failed to send'}
+                                            ? 'Server is waking up…'
+                                            : 'Couldn\'t reach the server'}
                                 </p>
                                 <p className={`text-xs mt-0.5 ${sendStatus === 'error-server' ? 'text-red-500' : 'text-amber-600'}`}>
                                     {sendStatus === 'retrying'
-                                        ? 'Hang on, this usually takes a few seconds.'
+                                        ? 'Almost there — this takes a few seconds on first use.'
                                         : sendStatus === 'error-network'
-                                            ? 'Our server may have been asleep. Click Retry — it wakes up within seconds.'
-                                            : 'Something went wrong on our end. Please try again.'}
+                                            ? 'Our server may have been idle. Hit Retry — it usually wakes within 10 s.'
+                                            : 'Please check your connection and try again, or refresh the page.'}
                                 </p>
                             </div>
                             {sendStatus !== 'retrying' && (
