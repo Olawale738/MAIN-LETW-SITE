@@ -29,27 +29,11 @@ interface Event { id: string; title: string; type: string; date: string; time: s
 
 const DIRECTOR = { name: 'Choir Director', initials: 'CD', role: 'Director & Section Lead' }
 
-const ALL_MEMBERS: Member[] = [
-  { id: '1',  name: 'Sister Jane',  initials: 'SJ', voice: 'Soprano', role: 'Section Leader', active: true,  attendance: 92, joinedDate: 'Jan 2023', phone: '+234 801 234 5678', email: 'jane@letw.org' },
-  { id: '2',  name: 'Adaeze O.',    initials: 'AO', voice: 'Soprano', active: true,  attendance: 85, joinedDate: 'Mar 2023', phone: '+234 802 345 6789', email: 'adaeze@letw.org' },
-  { id: '3',  name: 'Grace E.',     initials: 'GE', voice: 'Soprano', active: true,  attendance: 78, joinedDate: 'Jun 2023', phone: '+234 803 456 7890', email: 'grace@letw.org' },
-  { id: '4',  name: 'Chidera A.',   initials: 'CA', voice: 'Alto',    role: 'Section Leader', active: true,  attendance: 96, joinedDate: 'Feb 2022', phone: '+234 804 567 8901', email: 'chidera@letw.org' },
-  { id: '5',  name: 'Funke M.',     initials: 'FM', voice: 'Alto',    active: true,  attendance: 70, joinedDate: 'Sep 2023', phone: '+234 805 678 9012', email: 'funke@letw.org' },
-  { id: '6',  name: 'Bola K.',      initials: 'BK', voice: 'Alto',    active: false, attendance: 40, joinedDate: 'Jan 2024', phone: '+234 806 789 0123', email: 'bola@letw.org' },
-  { id: '7',  name: 'Emeka B.',     initials: 'EB', voice: 'Tenor',   role: 'Section Leader', active: true,  attendance: 88, joinedDate: 'Apr 2022', phone: '+234 807 890 1234', email: 'emeka@letw.org' },
-  { id: '8',  name: 'Daniel O.',    initials: 'DO', voice: 'Tenor',   active: true,  attendance: 82, joinedDate: 'Jul 2023', phone: '+234 808 901 2345', email: 'daniel@letw.org' },
-  { id: '9',  name: 'Samuel A.',    initials: 'SA', voice: 'Bass',    role: 'Section Leader', active: true,  attendance: 98, joinedDate: 'Jan 2021', phone: '+234 809 012 3456', email: 'samuel@letw.org' },
-  { id: '10', name: 'Tunde R.',     initials: 'TR', voice: 'Bass',    active: true,  attendance: 74, joinedDate: 'Oct 2023', phone: '+234 810 123 4567', email: 'tunde@letw.org' },
-]
+// No fake members — real members are added by the Choir Master
+const ALL_MEMBERS: Member[] = []
 
-const INBOX_REPLIES: Reply[] = [
-  { id: '1', from: 'Sister Jane',  initials: 'SJ', voice: 'Soprano', announcementTitle: '⚠️ Mandatory Rehearsal This Thursday', text: 'Good morning Director! I will be there. I\'ve already informed the Soprano section. We\'ll arrive by 6:45 PM as suggested.', time: '8:45 AM', read: false },
-  { id: '2', from: 'Emeka B.',     initials: 'EB', voice: 'Tenor',   announcementTitle: '⚠️ Mandatory Rehearsal This Thursday', text: 'Confirmed! Daniel and I will be there. We\'ve been running the tenor lines daily. Ready for Thursday 💪', time: '9:02 AM', read: false },
-  { id: '3', from: 'Funke M.',     initials: 'FM', voice: 'Alto',    announcementTitle: 'New Sheet Music Available',        text: 'Downloaded! The arrangement is so beautiful. The bridge is going to be incredible. Thank you for sharing!', time: '9:30 AM', read: true },
-  { id: '4', from: 'Daniel O.',    initials: 'DO', voice: 'Tenor',   announcementTitle: '⚠️ Mandatory Rehearsal This Thursday', text: 'Director, please can we start 15 minutes early for warm-ups? Last time we went straight into singing and voices weren\'t ready.', time: '10:05 AM', read: true },
-  { id: '5', from: 'Grace E.',     initials: 'GE', voice: 'Soprano', announcementTitle: 'Congratulations to the Soprano Section!', text: 'Thank you so much Pastor! We are truly grateful for the encouragement. God bless you richly 🙏', time: '11:20 AM', read: true },
-  { id: '6', from: 'Tunde R.',     initials: 'TR', voice: 'Bass',    announcementTitle: '⚠️ Mandatory Rehearsal This Thursday', text: 'Will be there Director. Please can the bass part for "Way Maker" be reviewed? I\'m struggling with the key change.', time: '12:15 PM', read: false },
-]
+// Inbox starts empty — real replies come from real members
+const INBOX_REPLIES: Reply[] = []
 
 const MOCK_ANNOUNCEMENTS: Announcement[] = [
   { id: '1', title: '⚠️ Mandatory Rehearsal This Thursday', body: 'All members are required to attend. We will be running through all 5 songs for the anniversary. No absences unless pre-approved.', time: '2 hours ago', urgent: true,  pinned: true,  replies: 4 },
