@@ -77,31 +77,6 @@ export default function ServicesPage() {
         </div>
       </div>
 
-      {/* FLYER BANNER */}
-      <div className="bg-[#0d0138] py-14">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-[#f5bb00] font-black text-xs uppercase tracking-widest mb-4">
-            📣 Upcoming at LETW
-          </p>
-          <h2 className="text-center text-white font-black text-2xl mb-8">Don't Miss What's Coming</h2>
-          <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-            <img
-              src="/Flyer1.jpg"
-              alt="LETW Event Flyer"
-              className="w-full object-cover"
-            />
-          </div>
-          <div className="flex justify-center mt-6">
-            <a
-              href="/events"
-              className="bg-[#f5bb00] text-[#140152] font-black px-10 py-4 rounded-full text-sm hover:bg-yellow-300 transition-colors shadow-lg inline-flex items-center gap-2"
-            >
-              View All Events <ArrowRight className="w-4 h-4" />
-            </a>
-          </div>
-        </div>
-      </div>
-
       {/* OUR SERVICES */}
       <SectionWrapper id="main-services">
         <div className="text-center mb-16 space-y-4">
