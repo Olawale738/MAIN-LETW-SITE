@@ -170,7 +170,7 @@ export default function ChatWidget() {
                             </div>
                         ) : messages.length === 0 ? (
                             <div className="text-center text-gray-400 text-sm mt-10 px-4">
-                                <div className="w-14 h-14 bg-[#140152]/8 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <div className="w-14 h-14 bg-[#140152]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
                                     <MessageCircle className="w-7 h-7 text-[#140152]/30" />
                                 </div>
                                 <p className="font-semibold text-gray-500 mb-1">Start a conversation</p>
@@ -204,42 +204,48 @@ export default function ChatWidget() {
                         <div ref={bottomRef} />
                     </div>
 
-                    {/* Error banner */}
-                    {(sendStatus === 'error-network' || sendStatus === 'error-server') && (
+                    {/* Error / retrying banner */}
+                    {(sendStatus === 'error-network' || sendStatus === 'error-server' || sendStatus === 'retrying') && (
                         <div className={`shrink-0 px-4 py-3 flex items-start gap-3 border-t text-sm
-                            ${sendStatus === 'error-network'
-                                ? 'bg-amber-50 border-amber-100'
-                                : 'bg-red-50 border-red-100'}`}
+                            ${sendStatus === 'error-server'
+                                ? 'bg-red-50 border-red-100'
+                                : 'bg-amber-50 border-amber-100'}`}
                         >
                             <div className="shrink-0 mt-0.5">
-                                {sendStatus === 'error-network'
-                                    ? <Clock className="w-4 h-4 text-amber-500" />
-                                    : <WifiOff className="w-4 h-4 text-red-400" />}
+                                {sendStatus === 'retrying'
+                                    ? <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />
+                                    : sendStatus === 'error-network'
+                                        ? <Clock className="w-4 h-4 text-amber-500" />
+                                        : <WifiOff className="w-4 h-4 text-red-400" />}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className={`font-semibold text-xs ${sendStatus === 'error-network' ? 'text-amber-700' : 'text-red-600'}`}>
-                                    {sendStatus === 'error-network'
-                                        ? 'Server is warming up…'
-                                        : 'Message failed to send'}
+                                <p className={`font-semibold text-xs ${sendStatus === 'error-server' ? 'text-red-600' : 'text-amber-700'}`}>
+                                    {sendStatus === 'retrying'
+                                        ? 'Waking server & retrying…'
+                                        : sendStatus === 'error-network'
+                                            ? 'Server is warming up…'
+                                            : 'Message failed to send'}
                                 </p>
-                                <p className={`text-xs mt-0.5 ${sendStatus === 'error-network' ? 'text-amber-600' : 'text-red-500'}`}>
-                                    {sendStatus === 'error-network'
-                                        ? 'Our server may have been asleep. Click retry — it usually wakes up within seconds.'
-                                        : 'Something went wrong. Please try again.'}
+                                <p className={`text-xs mt-0.5 ${sendStatus === 'error-server' ? 'text-red-500' : 'text-amber-600'}`}>
+                                    {sendStatus === 'retrying'
+                                        ? 'Hang on, this usually takes a few seconds.'
+                                        : sendStatus === 'error-network'
+                                            ? 'Our server may have been asleep. Click Retry — it wakes up within seconds.'
+                                            : 'Something went wrong on our end. Please try again.'}
                                 </p>
                             </div>
-                            <button
-                                onClick={handleRetry}
-                                disabled={sendStatus === 'retrying'}
-                                className={`shrink-0 flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg transition-all
-                                    ${sendStatus === 'error-network'
-                                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                                        : 'bg-red-100 text-red-600 hover:bg-red-200'}
-                                    disabled:opacity-50`}
-                            >
-                                <RefreshCw className={`w-3 h-3 ${sendStatus === 'retrying' ? 'animate-spin' : ''}`} />
-                                {sendStatus === 'retrying' ? 'Retrying…' : 'Retry'}
-                            </button>
+                            {sendStatus !== 'retrying' && (
+                                <button
+                                    onClick={handleRetry}
+                                    className={`shrink-0 flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg transition-all
+                                        ${sendStatus === 'error-server'
+                                            ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                                            : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}
+                                >
+                                    <RefreshCw className="w-3 h-3" />
+                                    Retry
+                                </button>
+                            )}
                         </div>
                     )}
 
@@ -273,9 +279,6 @@ export default function ChatWidget() {
                         </div>
                         {sendStatus === 'sending' && (
                             <p className="text-[10px] text-gray-400 mt-1.5 px-1">Sending…</p>
-                        )}
-                        {sendStatus === 'retrying' && (
-                            <p className="text-[10px] text-amber-500 mt-1.5 px-1">Waking server & retrying…</p>
                         )}
                     </div>
                 </div>
