@@ -23,6 +23,8 @@ interface Member {
 interface Reply { id: string; from: string; initials: string; voice: string; announcementTitle: string; text: string; time: string; read: boolean }
 interface Announcement { id: string; title: string; body: string; time: string; urgent: boolean; pinned: boolean; replies: number }
 interface Song { id: string; title: string; key: string; tempo: string; category: string; readyCount: number; totalCount: number }
+interface SongFile { name: string; url: string; size: number; uploadedAt: string }
+interface SongFiles { lyrics?: SongFile; sheet?: SongFile; track?: SongFile }
 interface Event { id: string; title: string; type: string; date: string; time: string; venue: string; daysLeft: number; color: string; confirmed: number; total: number }
 interface ChoirHighlight { id: string; title: string; body: string; type: 'testimony' | 'update' | 'praise'; postedBy: string; time: string }
 interface ChoirStats { membersThisYear: number; servicesMinistered: number; specialPrograms: number }
@@ -202,6 +204,11 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
   const [newMemberEmail, setNewMemberEmail] = useState('')
   const [newMemberRole,  setNewMemberRole]  = useState('')
 
+  // ── Song file uploads ─────────────────────────────────────────────
+  const [songFiles, setSongFiles] = useState<Record<string, SongFiles>>({})
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [pendingUpload, setPendingUpload] = useState<{ songId: string; type: 'lyrics' | 'sheet' | 'track' } | null>(null)
+
   // ── Ministry feed (highlights) state ─────────────────────────────
   const [highlights,    setHighlights]    = useState<ChoirHighlight[]>([])
   const [newHighTitle,  setNewHighTitle]  = useState('')
@@ -266,6 +273,70 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
   const saveHighlights = (updated: ChoirHighlight[]) => {
     setHighlights(updated)
     localStorage.setItem('letw_choir_highlights', JSON.stringify(updated))
+  }
+
+  // ── Song file upload handlers ─────────────────────────────────────
+  // Load persisted file metadata on mount (blob URLs don't survive refresh,
+  // so we store only name/size/date; actual file must be re-uploaded after refresh)
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('letw_choir_song_files_meta') || '{}')
+      if (stored) setSongFiles(stored)
+    } catch { /* ignore */ }
+  }, [])
+
+  const triggerUpload = (songId: string, type: 'lyrics' | 'sheet' | 'track') => {
+    setPendingUpload({ songId, type })
+    if (fileInputRef.current) {
+      fileInputRef.current.accept =
+        type === 'track' ? 'audio/*,.mp3,.wav,.m4a' :
+        type === 'lyrics' ? '.pdf,.txt,.doc,.docx' :
+        '.pdf,.jpg,.jpeg,.png'
+      fileInputRef.current.click()
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !pendingUpload) return
+    const url = URL.createObjectURL(file)
+    const fileRecord: SongFile = {
+      name: file.name,
+      url,
+      size: file.size,
+      uploadedAt: new Date().toLocaleString(),
+    }
+    const updated = {
+      ...songFiles,
+      [pendingUpload.songId]: {
+        ...songFiles[pendingUpload.songId],
+        [pendingUpload.type]: fileRecord,
+      },
+    }
+    setSongFiles(updated)
+    // Save only metadata to localStorage (URL is temporary blob)
+    const metaOnly = Object.fromEntries(
+      Object.entries(updated).map(([sid, files]) => [
+        sid,
+        Object.fromEntries(
+          Object.entries(files).map(([t, f]) => [t, { name: (f as SongFile).name, size: (f as SongFile).size, uploadedAt: (f as SongFile).uploadedAt }])
+        )
+      ])
+    )
+    localStorage.setItem('letw_choir_song_files_meta', JSON.stringify(metaOnly))
+    setPendingUpload(null)
+    e.target.value = ''
+  }
+
+  const removeFile = (songId: string, type: 'lyrics' | 'sheet' | 'track') => {
+    const current = songFiles[songId]?.[type]
+    if (current?.url) URL.revokeObjectURL(current.url)
+    const updated = {
+      ...songFiles,
+      [songId]: { ...songFiles[songId], [type]: undefined },
+    }
+    setSongFiles(updated)
+    localStorage.setItem('letw_choir_song_files_meta', JSON.stringify(updated))
   }
 
   // ── Member actions ────────────────────────────────────────────────
@@ -908,14 +979,23 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
 
   // ─── SONGS ─────────────────────────────────────────────────────
   function renderSongs() {
+    const uploadDefs: { type: 'lyrics' | 'sheet' | 'track'; label: string; icon: React.ElementType; accept: string }[] = [
+      { type: 'lyrics', label: 'Lyrics',      icon: BookOpen, accept: '.pdf,.txt,.doc,.docx' },
+      { type: 'sheet',  label: 'Sheet Music', icon: Download, accept: '.pdf,.jpg,.jpeg,.png' },
+      { type: 'track',  label: 'Audio Track', icon: Music,    accept: 'audio/*,.mp3,.wav,.m4a' },
+    ]
+
     return (
       <div className="space-y-4">
         <div className="bg-[#140152]/5 border border-[#140152]/10 rounded-xl px-4 py-3 text-sm text-[#140152] font-semibold">
           Showing member readiness across all {MOCK_SONGS.length} songs · {MOCK_SONGS.filter(s => s.readyCount === s.totalCount).length} fully ready
         </div>
+
         {MOCK_SONGS.map(s => {
           const pct = Math.round((s.readyCount / s.totalCount) * 100)
           const barColor = pct === 100 ? '#16a34a' : pct >= 70 ? '#f5bb00' : '#7c3aed'
+          const files = songFiles[s.id] || {}
+
           return (
             <div key={s.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-start justify-between gap-3 mb-3">
@@ -927,26 +1007,60 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
                   {pct}% ready
                 </span>
               </div>
-              <div className="flex items-center gap-3">
+
+              <div className="flex items-center gap-3 mb-4">
                 <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColor }} />
                 </div>
                 <span className="text-xs text-gray-500 font-semibold flex-shrink-0">{s.readyCount}/{s.totalCount} members</span>
               </div>
-              <div className="flex gap-2 mt-4 flex-wrap">
-                <button className="flex items-center gap-1.5 text-xs font-bold bg-[#140152]/8 text-[#140152] px-3 py-1.5 rounded-lg hover:bg-[#140152]/15 transition-colors">
-                  <BookOpen className="w-3.5 h-3.5" /> Upload Lyrics
-                </button>
-                <button className="flex items-center gap-1.5 text-xs font-bold bg-[#140152]/8 text-[#140152] px-3 py-1.5 rounded-lg hover:bg-[#140152]/15 transition-colors">
-                  <Download className="w-3.5 h-3.5" /> Upload Sheet
-                </button>
-                <button className="flex items-center gap-1.5 text-xs font-bold bg-[#140152]/8 text-[#140152] px-3 py-1.5 rounded-lg hover:bg-[#140152]/15 transition-colors">
-                  <Music className="w-3.5 h-3.5" /> Upload Track
-                </button>
+
+              {/* Upload buttons row */}
+              <div className="flex gap-2 flex-wrap">
+                {uploadDefs.map(({ type, label, icon: Icon }) => {
+                  const uploaded = files[type]
+                  return uploaded ? (
+                    <div key={type} className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold max-w-[180px]">
+                      <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                      <a
+                        href={uploaded.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="truncate hover:underline"
+                        title={uploaded.name}
+                      >
+                        {uploaded.name}
+                      </a>
+                      <button
+                        onClick={() => removeFile(s.id, type)}
+                        className="ml-auto flex-shrink-0 text-green-400 hover:text-red-500 transition-colors"
+                        title="Remove file"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      key={type}
+                      onClick={() => triggerUpload(s.id, type)}
+                      className="flex items-center gap-1.5 text-xs font-bold bg-[#140152]/8 text-[#140152] px-3 py-1.5 rounded-lg hover:bg-[#140152]/15 transition-colors"
+                    >
+                      <Icon className="w-3.5 h-3.5" /> Upload {label}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )
         })}
+
+        {/* Hidden shared file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleFileChange}
+        />
       </div>
     )
   }
