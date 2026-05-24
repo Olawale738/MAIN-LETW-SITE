@@ -26,32 +26,39 @@ export default function Footer() {
             <h3 className="text-xl font-black text-white">Stay connected with LETW</h3>
             <p className="text-gray-400 text-sm mt-1">Join thousands of believers walking in faith.</p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            {/* Devotion app */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Join Our Family */}
+            <Link
+              href="/join"
+              className="inline-flex items-center justify-center gap-2 bg-[#f5bb00] text-[#140152] font-black px-6 py-3 rounded-full text-sm hover:bg-yellow-300 transition-all hover:scale-105 shadow-lg shadow-[#f5bb00]/20 whitespace-nowrap"
+            >
+              Join Our Family
+            </Link>
+            {/* Devotion App */}
             <a
               href="https://devotion.letw.org"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 bg-[#f5bb00] text-[#140152] font-black px-6 py-3 rounded-full text-sm hover:bg-yellow-300 transition-all hover:scale-105 shadow-lg shadow-[#f5bb00]/20 whitespace-nowrap"
+              className="inline-flex items-center justify-center gap-2 border border-white/20 text-white font-semibold px-6 py-3 rounded-full text-sm hover:bg-white/10 transition-all whitespace-nowrap"
             >
-              <BookOpen className="w-4 h-4" /> Devotion App
+              <BookOpen className="w-4 h-4 text-[#f5bb00]" /> Devotion App
             </a>
             {/* Radio — dropdown */}
             <div className="relative">
               <button
                 onClick={() => setRadioOpen(v => !v)}
                 onBlur={() => setTimeout(() => setRadioOpen(false), 150)}
-                className="w-full inline-flex items-center justify-center gap-2 border border-white/20 text-white font-semibold px-6 py-3 rounded-full text-sm hover:bg-white/10 transition-all whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-2 border border-white/20 text-white font-semibold px-6 py-3 rounded-full text-sm hover:bg-white/10 transition-all whitespace-nowrap"
               >
                 <Radio className="w-4 h-4 text-[#f5bb00]" />
-                Stream via our Radio
+                Our Radio
                 <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${radioOpen ? 'rotate-180' : ''}`} />
               </button>
               {radioOpen && (
-                <div className="absolute bottom-full mb-2 left-0 w-full sm:w-52 bg-white rounded-2xl shadow-xl ring-1 ring-black/10 overflow-hidden p-1.5 z-50">
+                <div className="absolute bottom-full mb-2 right-0 w-44 bg-white rounded-2xl shadow-xl ring-1 ring-black/10 overflow-hidden p-1.5 z-50">
                   {[
                     { title: 'Stream', link: 'https://radio.letw.org/stream' },
-                    { title: 'Listen',  link: 'https://radio.letw.org/listen'  },
+                    { title: 'Listen',  link: 'https://radio.letw.org/listen' },
                   ].map(opt => (
                     <a
                       key={opt.title}
