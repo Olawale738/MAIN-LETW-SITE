@@ -65,7 +65,7 @@ export default function Footer() {
                 <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${radioOpen ? 'rotate-180' : ''}`} />
               </button>
               {radioOpen && (
-                <div className="absolute top-full mt-2 right-0 w-44 bg-white rounded-2xl shadow-xl ring-1 ring-black/10 overflow-hidden p-1.5 z-50">
+                <div className="absolute top-full mt-2 right-0 w-44 bg-white rounded-2xl shadow-xl ring-1 ring-black/10 p-1.5 z-50">
                   {[
                     { title: 'Stream', link: 'https://radio.letw.org/stream' },
                     { title: 'Listen',  link: 'https://radio.letw.org/listen' },
