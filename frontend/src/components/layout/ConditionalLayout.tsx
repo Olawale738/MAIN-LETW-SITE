@@ -5,7 +5,6 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import DashboardNavbar from '@/components/layout/DashboardNavbar'
 import ChatWidget from '@/components/chat/ChatWidget'
-import FlyerWidget from '@/components/shared/FlyerWidget'
 
 /**
  * Conditionally renders Navbar and Footer based on the current route.
@@ -71,7 +70,6 @@ export default function ConditionalLayout({
             <main>{children}</main>
             <Footer />
             <ChatWidget />
-            <FlyerWidget />
         </>
     )
 }
