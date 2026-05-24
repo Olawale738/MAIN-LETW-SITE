@@ -186,6 +186,9 @@ export default function ChoirDashboard() {
   const [tracks, setTracks] = useState<AudioTrack[]>([])
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
   const [msgInput, setMsgInput] = useState('')
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
+  const [sentReplies, setSentReplies] = useState<Record<string, string>>({})
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(MOCK_CHAT)
   const [chatInput, setChatInput] = useState('')
   const chatBottomRef = useRef<HTMLDivElement | null>(null)
@@ -265,6 +268,13 @@ export default function ChoirDashboard() {
       }
       return { ...m, reactions: [...(m.reactions || []), { emoji, count: 1 }] }
     }))
+  }
+
+  const submitReply = (announcementId: string) => {
+    if (!replyText.trim()) return
+    setSentReplies(prev => ({ ...prev, [announcementId]: replyText.trim() }))
+    setReplyingTo(null)
+    setReplyText('')
   }
 
   /* Auto-scroll chat to bottom on mount */
@@ -864,6 +874,12 @@ export default function ChoirDashboard() {
             {/* ══════════ ANNOUNCEMENTS ══════════ */}
             {activeNav === 'announcements' && (
               <motion.div key="announcements" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="space-y-4">
+
+                <div className="bg-[#140152]/5 border border-[#140152]/10 rounded-2xl px-5 py-3 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-[#140152]" />
+                  <p className="text-sm text-[#140152] font-semibold">Tap <strong>Reply</strong> on any notice to send a message directly to the Choir Director or Pastor.</p>
+                </div>
+
                 {MOCK_ANNOUNCEMENTS.map(a => (
                   <div key={a.id} className={`rounded-2xl border shadow-sm overflow-hidden ${a.urgent ? 'border-red-300 bg-red-50' : 'border-gray-100 bg-white'}`}>
                     {a.pinned && (
@@ -874,29 +890,102 @@ export default function ChoirDashboard() {
                     <div className="p-5">
                       <h3 className={`font-bold text-lg mb-2 ${a.urgent ? 'text-red-800' : 'text-[#140152]'}`}>{a.title}</h3>
                       <p className={`text-sm leading-relaxed mb-4 ${a.urgent ? 'text-red-700' : 'text-gray-600'}`}>{a.body}</p>
+
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 bg-[#140152] rounded-full flex items-center justify-center">
-                            <User className="w-4 h-4 text-white" />
+                          <div className="w-8 h-8 bg-[#140152] rounded-full flex items-center justify-center text-white text-xs font-black">
+                            {a.author.split(' ').map(w => w[0]).join('').slice(0, 2)}
                           </div>
                           <div>
-                            <p className="text-xs font-semibold text-gray-700">{a.author}</p>
+                            <p className="text-xs font-bold text-gray-700">{a.author}</p>
                             <p className="text-xs text-gray-400">{a.time}</p>
                           </div>
                         </div>
-                        <button className="text-[#140152] text-xs font-semibold hover:underline">Reply</button>
+                        {sentReplies[a.id] ? (
+                          <span className="text-xs font-bold text-green-600 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Reply sent
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setReplyingTo(replyingTo === a.id ? null : a.id)}
+                            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${
+                              replyingTo === a.id
+                                ? 'bg-[#140152] text-white'
+                                : 'bg-[#140152]/10 text-[#140152] hover:bg-[#140152]/20'
+                            }`}
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            {replyingTo === a.id ? 'Cancel' : 'Reply'}
+                          </button>
+                        )}
                       </div>
+
+                      {/* Sent reply preview */}
+                      {sentReplies[a.id] && (
+                        <div className="mt-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                          <p className="text-xs font-bold text-green-700 mb-1">Your reply to {a.author}:</p>
+                          <p className="text-sm text-green-800 italic">"{sentReplies[a.id]}"</p>
+                        </div>
+                      )}
+
+                      {/* Inline reply box */}
+                      <AnimatePresence>
+                        {replyingTo === a.id && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                              {/* Quoted message */}
+                              <div className="flex items-start gap-2 mb-3">
+                                <div className="w-1 bg-[#140152] rounded-full self-stretch flex-shrink-0" />
+                                <div>
+                                  <p className="text-[10px] font-bold text-[#140152] mb-0.5">Replying to {a.author}</p>
+                                  <p className="text-xs text-gray-500 line-clamp-2">{a.body}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus-within:border-[#140152] focus-within:bg-white transition-all">
+                                <div className="w-6 h-6 rounded-full bg-[#7c3aed] flex items-center justify-center text-white text-[10px] font-black flex-shrink-0">
+                                  {MEMBER_INFO.initials}
+                                </div>
+                                <input
+                                  autoFocus
+                                  value={replyText}
+                                  onChange={e => setReplyText(e.target.value)}
+                                  onKeyDown={e => e.key === 'Enter' && submitReply(a.id)}
+                                  placeholder={`Reply to ${a.author}…`}
+                                  className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400"
+                                />
+                                <button
+                                  onClick={() => submitReply(a.id)}
+                                  disabled={!replyText.trim()}
+                                  className="w-8 h-8 bg-[#140152] rounded-lg flex items-center justify-center text-white disabled:opacity-30 hover:bg-[#1a0270] transition-all flex-shrink-0"
+                                >
+                                  <Send className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <p className="text-[10px] text-gray-400 mt-1.5 pl-1">Press Enter or click send · Your reply goes directly to {a.author}</p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
                 ))}
 
-                {/* Quick message */}
+                {/* Direct message box */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                  <h3 className="font-bold text-[#140152] mb-4">Message Choir Director</h3>
+                  <h3 className="font-bold text-[#140152] mb-1 flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" /> Send a Direct Message
+                  </h3>
+                  <p className="text-xs text-gray-400 mb-4">Send a general message to the Choir Director at any time.</p>
                   <div className="flex gap-3">
                     <input value={msgInput} onChange={e => setMsgInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter' && msgInput.trim()) setMsgInput('') }}
-                      placeholder="Write a message…" className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#140152]/20 text-sm" />
+                      placeholder="Write a message to the Choir Director…"
+                      className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#140152]/20 text-sm" />
                     <button onClick={() => setMsgInput('')} disabled={!msgInput.trim()}
                       className="px-5 py-3 bg-[#140152] text-white rounded-xl font-semibold text-sm disabled:opacity-40 hover:bg-[#1a0270] transition-all">
                       <Send className="w-4 h-4" />
