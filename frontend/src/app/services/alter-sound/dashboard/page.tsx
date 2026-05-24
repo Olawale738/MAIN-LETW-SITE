@@ -110,36 +110,16 @@ const MOCK_ANNOUNCEMENTS: Announcement[] = [
   { id: '3', title: 'Congratulations to the Soprano Section!', body: 'Excellent performance last Sunday. The congregation was truly blessed. Keep up the excellent work!', author: 'Pastor Wale', time: '3 days ago', urgent: false },
 ]
 
-const MOCK_MEMBERS: Member[] = [
-  { id: '1', name: 'Sister Jane', initials: 'SJ', voice: 'Soprano', role: 'Section Leader', active: true },
-  { id: '2', name: 'Adaeze O.', initials: 'AO', voice: 'Soprano', active: true },
-  { id: '3', name: 'Grace E.', initials: 'GE', voice: 'Soprano', active: true },
-  { id: '4', name: 'Chidera A.', initials: 'CA', voice: 'Alto', role: 'Section Leader', active: true },
-  { id: '5', name: 'Funke M.', initials: 'FM', voice: 'Alto', active: true },
-  { id: '6', name: 'Bola K.', initials: 'BK', voice: 'Alto', active: false },
-  { id: '7', name: 'Emeka B.', initials: 'EB', voice: 'Tenor', role: 'Section Leader', active: true },
-  { id: '8', name: 'Daniel O.', initials: 'DO', voice: 'Tenor', active: true },
-  { id: '9', name: 'Samuel A.', initials: 'SA', voice: 'Bass', role: 'Section Leader', active: true },
-  { id: '10', name: 'Tunde R.', initials: 'TR', voice: 'Bass', active: true },
-]
+// No fake members — real members are added by the Choir Master
+const MOCK_MEMBERS: Member[] = []
 
 const ATTENDANCE = [
   { week: 'Week 1', attended: true }, { week: 'Week 2', attended: true },
   { week: 'Week 3', attended: false }, { week: 'Week 4', attended: true },
 ]
 
-const MOCK_CHAT: ChatMessage[] = [
-  { id: '1', senderId: '9', senderName: 'Samuel A.', senderInitials: 'SA', senderVoice: 'Bass', text: 'Good morning everyone! 🎶 Please remember rehearsal is this Thursday at 7 PM. Let\'s all come prepared!', time: '8:02 AM', isMine: false, reactions: [{ emoji: '🙌', count: 5 }, { emoji: '✅', count: 4 }] },
-  { id: '2', senderId: '4', senderName: 'Chidera A.', senderInitials: 'CA', senderVoice: 'Alto', text: 'Noted! I\'ve been practising the alto harmony for "Great Are You Lord". Really loving the arrangement.', time: '8:15 AM', isMine: false, reactions: [{ emoji: '❤️', count: 3 }] },
-  { id: '3', senderId: '7', senderName: 'Emeka B.', senderInitials: 'EB', senderVoice: 'Tenor', text: 'Same here! Bro Daniel and I are running the tenor lines together tonight. We\'ll be ready 💪', time: '8:20 AM', isMine: false },
-  { id: '4', senderId: '1', senderName: 'Sister Jane', senderInitials: 'SJ', senderVoice: 'Soprano', text: 'That\'s great news! Soprano section also had a mini practice yesterday. We\'re sounding really good. God is with us!', time: '8:35 AM', isMine: true, reactions: [{ emoji: '🔥', count: 6 }] },
-  { id: '5', senderId: '2', senderName: 'Adaeze O.', senderInitials: 'AO', senderVoice: 'Soprano', text: 'Has anyone downloaded the new sheet music for the Easter medley? The director said it\'s in the library.', time: '9:10 AM', isMine: false },
-  { id: '6', senderId: '5', senderName: 'Funke M.', senderInitials: 'FM', senderVoice: 'Alto', text: 'Yes I did! It\'s beautiful. The arrangement in the bridge section is going to hit different when all 4 parts come together 😭', time: '9:18 AM', isMine: false, reactions: [{ emoji: '😭', count: 4 }, { emoji: '🎵', count: 3 }] },
-  { id: '7', senderId: '1', senderName: 'Sister Jane', senderInitials: 'SJ', senderVoice: 'Soprano', text: 'Downloading it now! Also reminder — please mark your attendance for last Sunday\'s service if you haven\'t done so.', time: '9:25 AM', isMine: true },
-  { id: '8', senderId: '8', senderName: 'Daniel O.', senderInitials: 'DO', senderVoice: 'Tenor', text: 'Done ✅ Also, can we start 15 mins early on Thursday for warm-ups? Last week we went straight into song and some voices weren\'t ready.', time: '10:05 AM', isMine: false, reactions: [{ emoji: '👍', count: 7 }] },
-  { id: '9', senderId: '9', senderName: 'Samuel A.', senderInitials: 'SA', senderVoice: 'Bass', text: 'Great idea Daniel! I\'ll inform the director. Let\'s aim for 6:45 PM arrival then.', time: '10:12 AM', isMine: false },
-  { id: '10', senderId: '3', senderName: 'Grace E.', senderInitials: 'GE', senderVoice: 'Soprano', text: 'Works for me! Can\'t wait. The Anniversary Concert is going to be something special. Let\'s give God our absolute best 🙏✨', time: '10:30 AM', isMine: false, reactions: [{ emoji: '🙏', count: 8 }, { emoji: '✨', count: 5 }] },
-]
+// Chat starts empty — real messages come from real members
+const MOCK_CHAT: ChatMessage[] = []
 
 const VOICE_AVATAR: Record<string, string> = {
   Soprano: '#7c3aed',

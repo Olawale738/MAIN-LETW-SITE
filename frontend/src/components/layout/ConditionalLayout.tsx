@@ -37,6 +37,8 @@ export default function ConditionalLayout({
         '/children/dashboard',
         '/youth/dashboard',
         '/services/alter-sound/choirmaster',
+        '/youth/coordinator',
+        '/children/coordinator',
     ]
 
     // Check if current path matches dashboard routes

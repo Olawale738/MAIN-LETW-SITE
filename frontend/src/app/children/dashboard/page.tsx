@@ -13,6 +13,114 @@ import {
   AlertTriangle, Lock, Eye, EyeOff, Search, Filter
 } from 'lucide-react'
 
+/* ─── Auth ────────────────────────────────────────────────────────────────── */
+const MEMBER_ACCESS_CODE = 'LETWCHILDREN2026'
+const ADMIN_CREDENTIALS  = { username: 'admin', password: 'LETW@Admin2026' }
+
+function ChildrenLoginGate({ onLogin }: { onLogin: () => void }) {
+  const [tab,      setTab]      = useState<'member' | 'admin'>('member')
+  const [code,     setCode]     = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPw,   setShowPw]   = useState(false)
+  const [error,    setError]    = useState('')
+  const [loading,  setLoading]  = useState(false)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true); setError('')
+    setTimeout(() => {
+      setLoading(false)
+      if (tab === 'member') {
+        if (code.trim() === MEMBER_ACCESS_CODE) { onLogin() }
+        else { setError('Invalid access code. Please get your code from the Children\'s Coordinator.') }
+      } else {
+        if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) { onLogin() }
+        else { setError('Invalid admin credentials.') }
+      }
+    }, 700)
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center"
+      style={{ background: 'linear-gradient(135deg, #134e4a 0%, #065f46 50%, #14532d 100%)' }}>
+      <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="px-8 pt-10 pb-8">
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+              style={{ background: 'linear-gradient(135deg, #10b981, #065f46)' }}>
+              <Baby className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">LETW Children</h1>
+            <p className="text-sm text-gray-500 mt-1">Ministry Dashboard Access</p>
+          </div>
+
+          <div className="flex rounded-xl overflow-hidden border border-gray-200 mb-5">
+            {(['member', 'admin'] as const).map(t => (
+              <button key={t} onClick={() => { setTab(t); setError('') }}
+                className={`flex-1 py-2 text-xs font-semibold transition-all ${tab === t ? 'bg-emerald-600 text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                {t === 'member' ? '🔑 Member Access' : '⚙ Admin Login'}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {tab === 'member' ? (
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Access Code</label>
+                <input value={code} onChange={e => setCode(e.target.value)} required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Enter your access code" />
+                <p className="text-xs text-gray-400 mt-1">Get your code from the Children's Coordinator.</p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Username</label>
+                  <input value={username} onChange={e => setUsername(e.target.value)} required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Admin username" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Password</label>
+                  <div className="relative">
+                    <input value={password} onChange={e => setPassword(e.target.value)}
+                      type={showPw ? 'text' : 'password'} required
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Admin password" />
+                    <button type="button" onClick={() => setShowPw(v => !v)}
+                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                      {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+            <AnimatePresence>
+              {error && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                  className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {error}
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <button type="submit" disabled={loading}
+              className="w-full py-2.5 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-70"
+              style={{ background: 'linear-gradient(135deg, #10b981, #065f46)' }}>
+              {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying…</> : 'Access Dashboard'}
+            </button>
+          </form>
+
+          <p className="text-center text-xs text-gray-400 mt-5">
+            <Link href="/children" className="text-emerald-600 font-semibold hover:underline">← Back to Children's Page</Link>
+          </p>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
 /* ─── Types ─────────────────────────────────────────────────── */
 interface Child {
   id: string
@@ -151,6 +259,12 @@ const NAV_ITEMS = [
 
 /* ═══════════════════════════════════════════════════════════════ */
 export default function ChildrenDashboard() {
+  const [authenticated, setAuthenticated] = useState(false)
+  if (!authenticated) return <ChildrenLoginGate onLogin={() => setAuthenticated(true)} />
+  return <ChildrenDashboardContent />
+}
+
+function ChildrenDashboardContent() {
   const [activeNav, setActiveNav] = useState('home')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS)
