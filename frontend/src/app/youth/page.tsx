@@ -196,6 +196,31 @@ export default function YouthMinistryPage() {
                 </div>
             </div>
 
+            {/* ─── YOUTH BANNER ─────────────────────────────────────── */}
+            <div className="bg-[#0d0138] py-14">
+                <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <p className="text-center text-[#f5bb00] font-black text-xs uppercase tracking-widest mb-3">
+                        🔥 Light Encounter Youth Ministry
+                    </p>
+                    <h2 className="text-center text-white font-black text-2xl mb-8">Rise. Shine. Lead.</h2>
+                    <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+                        <img
+                            src="/Youth.png"
+                            alt="LETW Youth Ministry"
+                            className="w-full object-cover"
+                        />
+                    </div>
+                    <div className="flex justify-center mt-6">
+                        <a
+                            href="#join"
+                            className="bg-[#f5bb00] text-[#140152] font-black px-10 py-4 rounded-full text-sm hover:bg-yellow-300 transition-colors shadow-lg inline-flex items-center gap-2"
+                        >
+                            Join Youth Ministry <ArrowRight className="w-4 h-4" />
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             {/* ─── STATS ────────────────────────────────────────────── */}
             <div className="bg-[#f5bb00] py-12">
                 <div className="max-w-5xl mx-auto px-4">

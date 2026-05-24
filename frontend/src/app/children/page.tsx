@@ -238,6 +238,31 @@ export default function ChildrenMinistryPage() {
         </div>
       </section>
 
+      {/* ── CHILDREN BANNER ── */}
+      <div className="bg-[#0d0138] py-14">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-[#f5bb00] font-black text-xs uppercase tracking-widest mb-3">
+            ✨ LETW Children's Ministry
+          </p>
+          <h2 className="text-center text-white font-black text-2xl mb-8">Little Lights. Big Faith.</h2>
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+            <img
+              src="/primary.png"
+              alt="LETW Children's Ministry"
+              className="w-full object-cover"
+            />
+          </div>
+          <div className="flex justify-center mt-6">
+            <a
+              href="#enrol"
+              className="bg-[#f5bb00] text-[#140152] font-black px-10 py-4 rounded-full text-sm hover:bg-yellow-300 transition-colors shadow-lg inline-flex items-center gap-2"
+            >
+              Enrol Your Child <ArrowRight className="w-4 h-4" />
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* ── STATS BAR ── */}
       <section className="bg-[#f5bb00] py-8">
         <div className="max-w-6xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
