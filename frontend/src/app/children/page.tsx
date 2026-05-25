@@ -490,9 +490,12 @@ export default function ChildrenMinistryPage() {
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
                 <CheckCircle className="w-10 h-10 text-green-600" />
               </div>
-              <h3 className="text-2xl font-black text-green-800 mb-3">Enrolment Received!</h3>
-              <p className="text-green-700 leading-relaxed mb-6">
-                Thank you for registering your child. Our Children&apos;s Ministry team will contact you within 24–48 hours to complete the process. God bless your family!
+              <h3 className="text-2xl font-black text-green-800 mb-3">Enrolment Submitted! 🌟</h3>
+              <p className="text-green-700 leading-relaxed mb-4">
+                Thank you for registering your child with Children Ministry. God bless your family!
+              </p>
+              <p className="text-amber-700 font-semibold text-sm mb-6 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3">
+                ⏳ Pending Approval — Our Children&apos;s Coordinator will review and approve your enrolment. You will see a pending status in your dashboard until confirmed (usually within 24–48 hours).
               </p>
               <Link href="/children/dashboard"
                 className="inline-flex items-center gap-2 bg-[#140152] text-white font-black px-8 py-3 rounded-xl hover:bg-[#1d0175] transition-all">

@@ -401,21 +401,21 @@ export default function YouthMinistryPage() {
                                 <Loader2 className="w-10 h-10 animate-spin text-[#140152]" />
                             </div>
                         ) : success ? (
-                            <div className="bg-green-50 border border-green-100 rounded-3xl p-12 text-center">
-                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <CheckCircle className="w-10 h-10 text-green-600" />
+                            <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-12 text-center">
+                                <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <CheckCircle className="w-10 h-10 text-amber-600" />
                                 </div>
-                                <h3 className="text-2xl font-black text-[#140152] mb-3">Welcome to the Family!</h3>
-                                <p className="text-gray-600 mb-6">You are now registered in the Youth Ministry. Head to your dashboard to connect with the community.</p>
-                                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                                    <Link href="/youth/dashboard"
-                                        className="inline-flex items-center gap-2 bg-[#140152] text-white font-black px-8 py-3 rounded-xl hover:bg-[#1d0175] transition-all">
-                                        <Zap className="w-5 h-5" /> Go to Dashboard
-                                    </Link>
-                                    <Button onClick={() => setSuccess(false)} variant="outline" className="px-8">
-                                        Back
-                                    </Button>
-                                </div>
+                                <h3 className="text-2xl font-black text-[#140152] mb-3">Registration Submitted! 🙌</h3>
+                                <p className="text-gray-600 mb-2 leading-relaxed">
+                                    Your application to join Youth Ministry has been received.
+                                </p>
+                                <p className="text-amber-700 font-semibold text-sm mb-6 bg-amber-100 rounded-2xl px-5 py-3">
+                                    ⏳ Pending Approval — Your Youth Leader will review and approve your registration. You will see a pending status in your dashboard until approved.
+                                </p>
+                                <Link href="/youth/dashboard"
+                                    className="inline-flex items-center gap-2 bg-[#140152] text-white font-black px-8 py-3 rounded-xl hover:bg-[#1d0175] transition-all">
+                                    <Zap className="w-5 h-5" /> Go to Dashboard
+                                </Link>
                             </div>
                         ) : !isLoggedIn ? (
                             /* Guest — show clean login/register prompt */
