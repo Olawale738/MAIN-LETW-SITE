@@ -225,10 +225,10 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
   const chatBottomRef = useRef<HTMLDivElement>(null)
   const latestTimestampRef = useRef<string>('')
 
-  // ── Song file uploads ─────────────────────────────────────────────
+  // ── Song link management (URL-based, cross-device) ───────────────
   const [songFiles, setSongFiles] = useState<Record<string, SongFiles>>({})
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [pendingUpload, setPendingUpload] = useState<{ songId: string; type: 'lyrics' | 'sheet' | 'track' } | null>(null)
+  const [urlModal, setUrlModal] = useState<{ songId: string; type: 'lyrics' | 'sheet' | 'track' } | null>(null)
+  const [urlInput, setUrlInput] = useState('')
 
   // ── Ministry feed (highlights) state ─────────────────────────────
   const [highlights,    setHighlights]    = useState<ChoirHighlight[]>([])
@@ -286,9 +286,30 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
   }, [])
 
   // ── Persistence helpers ───────────────────────────────────────────
+  const syncMembersToBackend = async (updatedMembers: Member[]) => {
+    try {
+      await fetch(`${API_BASE}/choir-chat/roster/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          director_key: 'LETW@Choir2026',
+          members: updatedMembers.map(m => ({
+            id: m.id,
+            name: m.name,
+            initials: m.initials,
+            voice: m.voice,
+            role: m.role || null,
+            active: m.active,
+          })),
+        }),
+      })
+    } catch { /* silent — local state still updated */ }
+  }
+
   const saveMembers = (updated: Member[]) => {
     setMembers(updated)
     localStorage.setItem('letw_choir_members_data', JSON.stringify(updated))
+    syncMembersToBackend(updated) // also sync to backend for cross-device access
   }
 
   const saveHighlights = (updated: ChoirHighlight[]) => {
@@ -296,9 +317,7 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
     localStorage.setItem('letw_choir_highlights', JSON.stringify(updated))
   }
 
-  // ── Song file upload handlers ─────────────────────────────────────
-  // Load persisted file metadata on mount (blob URLs don't survive refresh,
-  // so we store only name/size/date; actual file must be re-uploaded after refresh)
+  // ── Song link handlers (URL-based, persisted to backend) ─────────
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('letw_choir_song_files_meta') || '{}')
@@ -306,47 +325,65 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
     } catch { /* ignore */ }
   }, [])
 
-  const triggerUpload = (songId: string, type: 'lyrics' | 'sheet' | 'track') => {
-    setPendingUpload({ songId, type })
-    if (fileInputRef.current) {
-      fileInputRef.current.accept =
-        type === 'track' ? 'audio/*,.mp3,.wav,.m4a' :
-        type === 'lyrics' ? '.pdf,.txt,.doc,.docx' :
-        '.pdf,.jpg,.jpeg,.png'
-      fileInputRef.current.click()
-    }
+  /** Sync the full song list (with resource URLs) to the backend. */
+  const syncSongsToBackend = async (updatedFiles: Record<string, SongFiles>) => {
+    const payload = MOCK_SONGS.map(s => ({
+      id: s.id,
+      title: s.title,
+      key: s.key,
+      tempo: s.tempo,
+      category: s.category,
+      lyrics_url: updatedFiles[s.id]?.lyrics?.url || null,
+      sheet_url: updatedFiles[s.id]?.sheet?.url || null,
+      track_url: updatedFiles[s.id]?.track?.url || null,
+    }))
+    try {
+      await fetch(`${API_BASE}/choir-chat/songs/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ director_key: 'LETW@Choir2026', songs: payload }),
+      })
+    } catch { /* silent — local state still updated */ }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !pendingUpload) return
-    const url = URL.createObjectURL(file)
-    const fileRecord: SongFile = {
-      name: file.name,
+  /** Open the URL-entry modal for a given song/type. */
+  const openUrlModal = (songId: string, type: 'lyrics' | 'sheet' | 'track') => {
+    setUrlInput(songFiles[songId]?.[type]?.url || '')
+    setUrlModal({ songId, type })
+  }
+
+  /** Save the entered URL as the song resource link. */
+  const saveUrlLink = async () => {
+    if (!urlModal) return
+    const { songId, type } = urlModal
+    const url = urlInput.trim()
+    const typeLabels = { lyrics: 'Lyrics', sheet: 'Sheet Music', track: 'Audio Track' }
+    const fileRecord: SongFile | undefined = url ? {
+      name: typeLabels[type],
       url,
-      size: file.size,
+      size: 0,
       uploadedAt: new Date().toLocaleString(),
-    }
-    const updated = {
+    } : undefined
+
+    const updated: Record<string, SongFiles> = {
       ...songFiles,
-      [pendingUpload.songId]: {
-        ...songFiles[pendingUpload.songId],
-        [pendingUpload.type]: fileRecord,
-      },
+      [songId]: { ...songFiles[songId], [type]: fileRecord },
     }
     setSongFiles(updated)
-    // Save only metadata to localStorage (URL is temporary blob)
-    const metaOnly = Object.fromEntries(
-      Object.entries(updated).map(([sid, files]) => [
-        sid,
-        Object.fromEntries(
-          Object.entries(files).map(([t, f]) => [t, { name: (f as SongFile).name, size: (f as SongFile).size, uploadedAt: (f as SongFile).uploadedAt }])
-        )
-      ])
-    )
-    localStorage.setItem('letw_choir_song_files_meta', JSON.stringify(metaOnly))
-    setPendingUpload(null)
-    e.target.value = ''
+    localStorage.setItem('letw_choir_song_files_meta', JSON.stringify(updated))
+    setUrlModal(null)
+    setUrlInput('')
+    await syncSongsToBackend(updated)
+  }
+
+  const removeFile = async (songId: string, type: 'lyrics' | 'sheet' | 'track') => {
+    const updated: Record<string, SongFiles> = {
+      ...songFiles,
+      [songId]: { ...songFiles[songId], [type]: undefined },
+    }
+    setSongFiles(updated)
+    localStorage.setItem('letw_choir_song_files_meta', JSON.stringify(updated))
+    await syncSongsToBackend(updated)
   }
 
   // ── Group chat helpers ────────────────────────────────────────────
@@ -1200,16 +1237,16 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
 
   // ─── SONGS ─────────────────────────────────────────────────────
   function renderSongs() {
-    const uploadDefs: { type: 'lyrics' | 'sheet' | 'track'; label: string; icon: React.ElementType; accept: string }[] = [
-      { type: 'lyrics', label: 'Lyrics',      icon: BookOpen, accept: '.pdf,.txt,.doc,.docx' },
-      { type: 'sheet',  label: 'Sheet Music', icon: Download, accept: '.pdf,.jpg,.jpeg,.png' },
-      { type: 'track',  label: 'Audio Track', icon: Music,    accept: 'audio/*,.mp3,.wav,.m4a' },
+    const linkDefs: { type: 'lyrics' | 'sheet' | 'track'; label: string; icon: React.ElementType }[] = [
+      { type: 'lyrics', label: 'Lyrics',      icon: BookOpen },
+      { type: 'sheet',  label: 'Sheet Music', icon: Download },
+      { type: 'track',  label: 'Audio Track', icon: Music    },
     ]
 
     return (
       <div className="space-y-4">
         <div className="bg-[#140152]/5 border border-[#140152]/10 rounded-xl px-4 py-3 text-sm text-[#140152] font-semibold">
-          Showing member readiness across all {MOCK_SONGS.length} songs · {MOCK_SONGS.filter(s => s.readyCount === s.totalCount).length} fully ready
+          Song Manager · {MOCK_SONGS.length} songs — paste Google Drive / Dropbox / YouTube links for members to access
         </div>
 
         {MOCK_SONGS.map(s => {
@@ -1236,26 +1273,33 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
                 <span className="text-xs text-gray-500 font-semibold flex-shrink-0">{s.readyCount}/{s.totalCount} members</span>
               </div>
 
-              {/* Upload buttons row */}
+              {/* Link buttons row */}
               <div className="flex gap-2 flex-wrap">
-                {uploadDefs.map(({ type, label, icon: Icon }) => {
-                  const uploaded = files[type]
-                  return uploaded ? (
-                    <div key={type} className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold max-w-[180px]">
+                {linkDefs.map(({ type, label, icon: Icon }) => {
+                  const linked = files[type]
+                  return linked?.url ? (
+                    <div key={type} className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold max-w-[200px]">
                       <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
                       <a
-                        href={uploaded.url}
+                        href={linked.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="truncate hover:underline"
-                        title={uploaded.name}
+                        title={linked.url}
                       >
-                        {uploaded.name}
+                        {label} ✓
                       </a>
                       <button
+                        onClick={() => openUrlModal(s.id, type)}
+                        className="text-green-400 hover:text-blue-500 transition-colors ml-0.5"
+                        title="Edit link"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                      <button
                         onClick={() => removeFile(s.id, type)}
-                        className="ml-auto flex-shrink-0 text-green-400 hover:text-red-500 transition-colors"
-                        title="Remove file"
+                        className="text-green-400 hover:text-red-500 transition-colors"
+                        title="Remove link"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -1263,10 +1307,10 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
                   ) : (
                     <button
                       key={type}
-                      onClick={() => triggerUpload(s.id, type)}
-                      className="flex items-center gap-1.5 text-xs font-bold bg-[#140152]/8 text-[#140152] px-3 py-1.5 rounded-lg hover:bg-[#140152]/15 transition-colors"
+                      onClick={() => openUrlModal(s.id, type)}
+                      className="flex items-center gap-1.5 text-xs font-bold bg-[#140152]/5 text-[#140152] border border-[#140152]/15 px-3 py-1.5 rounded-lg hover:bg-[#140152]/10 transition-colors"
                     >
-                      <Icon className="w-3.5 h-3.5" /> Upload {label}
+                      <Icon className="w-3.5 h-3.5" /> Add {label} Link
                     </button>
                   )
                 })}
@@ -1274,14 +1318,6 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
             </div>
           )
         })}
-
-        {/* Hidden shared file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          onChange={handleFileChange}
-        />
       </div>
     )
   }
@@ -1494,6 +1530,38 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
           </div>
         </main>
       </div>
+
+      {/* ── URL Link Modal ── */}
+      {urlModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setUrlModal(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <h3 className="font-black text-[#140152] mb-1">
+              {urlModal.type === 'lyrics' ? '📄 Lyrics' : urlModal.type === 'sheet' ? '🎼 Sheet Music' : '🎵 Audio Track'} Link
+            </h3>
+            <p className="text-xs text-gray-400 mb-4">
+              Paste a shareable link (Google Drive, Dropbox, YouTube, SoundCloud…). Members can open it directly from their portal.
+            </p>
+            <input
+              autoFocus
+              value={urlInput}
+              onChange={e => setUrlInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveUrlLink()}
+              placeholder="https://drive.google.com/file/d/…"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#140152]/20 focus:outline-none mb-4"
+            />
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setUrlModal(null)}
+                className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-xl transition-colors">
+                Cancel
+              </button>
+              <button onClick={saveUrlLink}
+                className="px-5 py-2 bg-[#140152] text-white text-sm font-bold rounded-xl hover:bg-[#1a0270] transition-all flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" /> Save Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

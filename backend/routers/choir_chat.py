@@ -2,8 +2,10 @@
 Choir group chat — live polling-based group message room.
 No user authentication required; sender identity is carried in the request body.
 Supports up to 200 messages in history; older messages are auto-pruned.
+Also provides roster and song-library sync endpoints for the Choirmaster portal.
 """
 
+import uuid
 from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,9 +14,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func as sqlfunc
 
 from database import get_db
-from models.choir_chat import ChoirGroupMessage
+from models.choir_chat import ChoirGroupMessage, ChoirMember, ChoirSong
 
 router = APIRouter(prefix="/api/choir-chat", tags=["Choir Chat"])
+
+# Simple secret used by the Choirmaster portal when writing to the DB.
+# Matches the default choirmaster login password so no extra config is needed.
+DIRECTOR_KEY = "LETW@Choir2026"
 
 MAX_MESSAGES = 200  # keep chat history manageable
 
@@ -120,3 +126,115 @@ async def clear_messages(db: AsyncSession = Depends(get_db)):
     await db.execute(delete(ChoirGroupMessage))
     await db.commit()
     return {"message": "Chat cleared"}
+
+
+# ─── Member Roster ───────────────────────────────────────────────────────────
+
+class MemberOut(BaseModel):
+    id: str
+    name: str
+    initials: str
+    voice: str
+    role: Optional[str] = None
+    active: bool
+
+    class Config:
+        from_attributes = True
+
+
+class SyncRosterRequest(BaseModel):
+    director_key: str
+    members: list[dict]
+
+
+@router.get("/roster", response_model=list[MemberOut])
+async def get_roster(db: AsyncSession = Depends(get_db)):
+    """Get the registered choir member roster (public — no auth required)."""
+    result = await db.execute(
+        select(ChoirMember).order_by(ChoirMember.created_at.asc())
+    )
+    return result.scalars().all()
+
+
+@router.post("/roster/sync", status_code=200)
+async def sync_roster(body: SyncRosterRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Replace the entire member roster.
+    Called by the Choirmaster portal whenever a member is added or removed.
+    Requires the director key.
+    """
+    if body.director_key != DIRECTOR_KEY:
+        raise HTTPException(status_code=403, detail="Invalid director key")
+
+    await db.execute(delete(ChoirMember))
+    for m in body.members:
+        db.add(ChoirMember(
+            id=str(m.get("id") or uuid.uuid4()),
+            name=str(m.get("name", "")).strip(),
+            initials=str(m.get("initials", "")).strip()[:4],
+            voice=str(m.get("voice", "Soprano")).strip(),
+            role=str(m["role"]).strip() if m.get("role") else None,
+            active=bool(m.get("active", True)),
+        ))
+    await db.commit()
+    return {"synced": len(body.members)}
+
+
+# ─── Song Library ────────────────────────────────────────────────────────────
+
+class SongOut(BaseModel):
+    id: str
+    title: str
+    key: Optional[str] = None
+    tempo: Optional[str] = None
+    voice_part: Optional[str] = None
+    category: Optional[str] = None
+    lyrics_url: Optional[str] = None
+    sheet_url: Optional[str] = None
+    track_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SyncSongsRequest(BaseModel):
+    director_key: str
+    songs: list[dict]
+
+
+@router.get("/songs", response_model=list[SongOut])
+async def get_songs(db: AsyncSession = Depends(get_db)):
+    """Get the choir song library (public — no auth required)."""
+    result = await db.execute(
+        select(ChoirSong).order_by(ChoirSong.position.asc(), ChoirSong.created_at.asc())
+    )
+    return result.scalars().all()
+
+
+@router.post("/songs/sync", status_code=200)
+async def sync_songs(body: SyncSongsRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Replace the entire song library.
+    Called by the Choirmaster portal whenever song links are updated.
+    Requires the director key.
+    """
+    if body.director_key != DIRECTOR_KEY:
+        raise HTTPException(status_code=403, detail="Invalid director key")
+
+    await db.execute(delete(ChoirSong))
+    for i, s in enumerate(body.songs):
+        voice_part = str(s.get("voicePart") or s.get("voice_part") or "").strip() or None
+        db.add(ChoirSong(
+            id=str(s.get("id") or uuid.uuid4()),
+            title=str(s.get("title", "")).strip(),
+            key=str(s["key"]).strip() if s.get("key") else None,
+            tempo=str(s["tempo"]).strip() if s.get("tempo") else None,
+            voice_part=voice_part,
+            category=str(s["category"]).strip() if s.get("category") else None,
+            lyrics_url=str(s["lyrics_url"]).strip() if s.get("lyrics_url") else None,
+            sheet_url=str(s["sheet_url"]).strip() if s.get("sheet_url") else None,
+            track_url=str(s["track_url"]).strip() if s.get("track_url") else None,
+            position=i,
+        ))
+    await db.commit()
+    return {"synced": len(body.songs)}

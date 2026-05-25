@@ -35,6 +35,9 @@ interface Song {
   hasSheet: boolean
   hasTrack: boolean
   category: string
+  lyricsUrl?: string | null
+  sheetUrl?: string | null
+  trackUrl?: string | null
 }
 
 interface Member {
@@ -80,7 +83,7 @@ interface ChatMessage {
 }
 
 /* ─── Data — all start empty; real data comes from the Choirmaster portal ── */
-const MEMBER_INFO = { name: 'Choir Member', initials: 'CM', voice: 'Soprano', role: 'Choir Member', avatar: '#7c3aed' }
+// MEMBER_INFO is now dynamic — set after login gate (see MemberSession state inside ChoirDashboard)
 
 const MOCK_TASKS: Task[] = []
 const MOCK_SONGS: Song[] = []
@@ -138,9 +141,193 @@ interface ChoirStats {
   specialPrograms: number
 }
 
-function loadRealMembers(): Member[] {
+/** Fallback: load members from localStorage (choirmaster's device only) */
+function loadRealMembersLocal(): Member[] {
   if (typeof window === 'undefined') return []
   try { return JSON.parse(localStorage.getItem('letw_choir_members_data') || '[]') } catch { return [] }
+}
+
+/* ─── Member Session & Login Gate ───────────────────────────── */
+interface MemberSession {
+  name: string
+  initials: string
+  voice: 'Soprano' | 'Alto' | 'Tenor' | 'Bass'
+  role: string
+  avatar: string
+}
+
+const MEMBER_SESSION_KEY = 'letw_choir_member_session'
+
+function loadMemberSession(): MemberSession | null {
+  if (typeof window === 'undefined') return null
+  try { return JSON.parse(sessionStorage.getItem(MEMBER_SESSION_KEY) || 'null') }
+  catch { return null }
+}
+
+function saveMemberSession(s: MemberSession) {
+  sessionStorage.setItem(MEMBER_SESSION_KEY, JSON.stringify(s))
+}
+
+interface RosterEntry {
+  id: string
+  name: string
+  initials: string
+  voice: string
+  role?: string
+  active: boolean
+}
+
+function MemberLoginGate({ apiBase, onLogin }: { apiBase: string; onLogin: (s: MemberSession) => void }) {
+  const [roster, setRoster] = useState<RosterEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedId, setSelectedId] = useState('')
+  const [guestName, setGuestName] = useState('')
+  const [guestVoice, setGuestVoice] = useState<MemberSession['voice']>('Soprano')
+  const [guestMode, setGuestMode] = useState(false)
+  const [err, setErr] = useState('')
+
+  useEffect(() => {
+    fetch(`${apiBase}/choir-chat/roster`)
+      .then(r => r.json())
+      .then((d: RosterEntry[]) => {
+        setRoster(Array.isArray(d) ? d.filter(m => m.active) : [])
+        setLoading(false)
+      })
+      .catch(() => { setLoading(false); setGuestMode(true) })
+  }, [apiBase])
+
+  const handleEnter = () => {
+    let session: MemberSession
+    if (!guestMode && selectedId) {
+      const m = roster.find(x => x.id === selectedId)
+      if (!m) { setErr('Please select your name'); return }
+      session = {
+        name: m.name,
+        initials: m.initials,
+        voice: m.voice as MemberSession['voice'],
+        role: m.role || 'Choir Member',
+        avatar: VOICE_AVATAR[m.voice] || '#7c3aed',
+      }
+    } else {
+      const name = guestName.trim()
+      if (!name) { setErr('Please enter your name'); return }
+      const initials = name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)
+      session = { name, initials, voice: guestVoice, role: 'Choir Member', avatar: VOICE_AVATAR[guestVoice] }
+    }
+    saveMemberSession(session)
+    onLogin(session)
+  }
+
+  const selMember = roster.find(m => m.id === selectedId)
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4"
+      style={{ background: 'linear-gradient(135deg, #1e0050 0%, #2d0075 50%, #3b0099 100%)' }}>
+      <div className="w-full max-w-sm">
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-16 h-16 bg-[#f5bb00] rounded-2xl flex items-center justify-center mb-3">
+            <Flame className="w-8 h-8 text-[#140152]" />
+          </div>
+          <h1 className="text-2xl font-black text-white">ALTER SOUND</h1>
+          <p className="text-white/60 text-sm mt-1">Choir Member Portal</p>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-2xl p-6">
+          <h2 className="font-black text-[#140152] text-lg mb-1">Welcome, choir member!</h2>
+          <p className="text-gray-500 text-sm mb-5">Identify yourself to access your portal.</p>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-6 gap-2 text-gray-500 text-sm">
+              <Loader2 className="w-5 h-5 animate-spin text-[#140152]" />
+              Loading member list…
+            </div>
+          ) : !guestMode && roster.length > 0 ? (
+            <>
+              <label className="block text-xs font-bold text-gray-600 mb-1.5">Select your name</label>
+              <select
+                value={selectedId}
+                onChange={e => { setSelectedId(e.target.value); setErr('') }}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#140152]/20 focus:outline-none mb-3 bg-white"
+              >
+                <option value="">— Choose your name —</option>
+                {roster.map(m => (
+                  <option key={m.id} value={m.id}>{m.name} ({m.voice})</option>
+                ))}
+              </select>
+
+              {selMember && (
+                <div className="flex items-center gap-3 bg-[#140152]/5 rounded-xl px-3 py-2.5 mb-3">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                    style={{ background: VOICE_AVATAR[selMember.voice] }}>
+                    {selMember.initials}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-[#140152]">{selMember.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {selMember.voice}{selMember.role ? ` · ${selMember.role}` : ''}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <button onClick={() => setGuestMode(true)}
+                className="text-xs text-gray-400 hover:text-gray-600 underline mb-4 block">
+                My name isn&apos;t listed — enter as guest
+              </button>
+            </>
+          ) : (
+            <>
+              {roster.length === 0 && !loading && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">
+                  <p className="text-xs text-amber-700">
+                    No registered members yet. Enter as guest and ask your choir director to add you to the roster.
+                  </p>
+                </div>
+              )}
+              <label className="block text-xs font-bold text-gray-600 mb-1.5">Your name</label>
+              <input
+                value={guestName}
+                onChange={e => { setGuestName(e.target.value); setErr('') }}
+                placeholder="Enter your full name"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#140152]/20 focus:outline-none mb-3"
+              />
+              <label className="block text-xs font-bold text-gray-600 mb-1.5">Your voice part</label>
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                {(['Soprano', 'Alto', 'Tenor', 'Bass'] as const).map(v => (
+                  <button key={v} onClick={() => setGuestVoice(v)}
+                    className={`py-2 rounded-xl text-xs font-bold transition-all border ${guestVoice === v ? 'text-white border-transparent' : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-[#140152]'}`}
+                    style={guestVoice === v ? { background: VOICE_AVATAR[v] } : undefined}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+              {roster.length > 0 && (
+                <button onClick={() => setGuestMode(false)}
+                  className="text-xs text-gray-400 hover:text-gray-600 underline mb-3 block">
+                  ← Back to member list
+                </button>
+              )}
+            </>
+          )}
+
+          {err && (
+            <p className="text-xs text-red-600 mb-3 flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {err}
+            </p>
+          )}
+
+          <button
+            onClick={handleEnter}
+            disabled={loading}
+            className="w-full py-3 bg-[#140152] text-white rounded-xl font-bold text-sm hover:bg-[#1a0270] transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+          >
+            Enter Portal <ArrowRight className="w-4 h-4" />
+          </button>
+          <p className="text-center text-[10px] text-gray-400 mt-3">Alter Sound members only</p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function loadHighlights(): ChoirHighlight[] {
@@ -159,6 +346,11 @@ function loadStats(): ChoirStats {
 
 /* ═══════════════════════════════════════════════════════════════ */
 export default function ChoirDashboard() {
+  /* ── Member identity (resolved after login gate) ── */
+  const [memberSession, setMemberSession] = useState<MemberSession | null>(() => loadMemberSession())
+  const memberSessionRef = useRef<MemberSession | null>(null)
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+
   const [activeNav, setActiveNav] = useState('home')
   const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS)
   const [songs, setSongs] = useState<Song[]>(MOCK_SONGS)
@@ -179,7 +371,16 @@ export default function ChoirDashboard() {
   const chatLatestRef = useRef<string>('')
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
-  /* Live data from localStorage */
+  /* Keep ref in sync with session so polling closures see the current identity */
+  useEffect(() => { memberSessionRef.current = memberSession }, [memberSession])
+
+  /* Dynamic MEMBER_INFO — uses real session when logged in, falls back to generic */
+  const MEMBER_INFO = memberSession ?? {
+    name: 'Choir Member', initials: 'CM',
+    voice: 'Soprano' as const, role: 'Choir Member', avatar: '#7c3aed',
+  }
+
+  /* Live data from backend API */
   const [realMembers, setRealMembers] = useState<Member[]>([])
   const [highlights, setHighlights] = useState<ChoirHighlight[]>([])
   const [choirStats, setChoirStats] = useState<ChoirStats>({ membersThisYear: 0, servicesMinistered: 0, specialPrograms: 0 })
@@ -187,17 +388,23 @@ export default function ChoirDashboard() {
   const [testimonyTitle, setTestimonyTitle] = useState('')
 
   useEffect(() => {
-    setRealMembers(loadRealMembers())
+    // Load members from backend API (available cross-device)
+    const fetchRoster = () => {
+      fetch(`${API_BASE_URL}/choir-chat/roster`)
+        .then(r => r.json())
+        .then((d: Member[]) => { if (Array.isArray(d)) setRealMembers(d) })
+        .catch(() => setRealMembers(loadRealMembersLocal())) // fallback: same device as choirmaster
+    }
+    fetchRoster()
     setHighlights(loadHighlights())
     setChoirStats(loadStats())
-    // Refresh every 30 s to pick up choirmaster updates
     const interval = setInterval(() => {
-      setRealMembers(loadRealMembers())
+      fetchRoster()
       setHighlights(loadHighlights())
       setChoirStats(loadStats())
     }, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [API_BASE_URL])
 
   /* ── Group chat polling ── */
   const CHAT_API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api') + '/choir-chat'
@@ -224,9 +431,10 @@ export default function ChoirDashboard() {
       if (!res.ok) return
       const data: {id: string; sender_name: string; sender_initials: string; voice_part: string; is_director: boolean; content: string; created_at: string}[] = await res.json()
       if (data.length === 0) return
+      const myInitials = memberSessionRef.current?.initials || ''
       const mapped = data.map(m => ({
         ...mapApiMsg(m),
-        isMine: m.sender_initials === (MEMBER_INFO.initials),
+        isMine: !!myInitials && m.sender_initials === myInitials,
       }))
       if (initial) {
         setChatMessages(mapped)
@@ -239,10 +447,11 @@ export default function ChoirDashboard() {
   }
 
   useEffect(() => {
+    if (!memberSession) return  // don't poll before login
     fetchGroupChat(true)
     const interval = setInterval(() => fetchGroupChat(false), 3000)
     return () => clearInterval(interval)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [memberSession?.initials]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const submitTestimony = () => {
     if (!testimonyTitle.trim() || !newTestimony.trim()) return
@@ -260,6 +469,35 @@ export default function ChoirDashboard() {
     setTestimonyTitle('')
     setNewTestimony('')
   }
+
+  /* Load songs from backend API */
+  useEffect(() => {
+    if (!memberSession) return
+    fetch(`${API_BASE_URL}/choir-chat/songs`)
+      .then(r => r.json())
+      .then((data: {id: string; title: string; key?: string; tempo?: string; voice_part?: string; category?: string; lyrics_url?: string; sheet_url?: string; track_url?: string}[]) => {
+        if (!Array.isArray(data)) return
+        const statusKey = `letw_song_status_${memberSession.initials}`
+        let savedStatus: Record<string, Song['status']> = {}
+        try { savedStatus = JSON.parse(sessionStorage.getItem(statusKey) || '{}') } catch { /* ignore */ }
+        setSongs(data.map(s => ({
+          id: s.id,
+          title: s.title,
+          key: s.key || '—',
+          tempo: s.tempo || '—',
+          voicePart: s.voice_part || 'All',
+          status: (savedStatus[s.id] as Song['status']) || 'not-started',
+          hasLyrics: !!s.lyrics_url,
+          hasSheet: !!s.sheet_url,
+          hasTrack: !!s.track_url,
+          category: s.category || 'General',
+          lyricsUrl: s.lyrics_url || null,
+          sheetUrl: s.sheet_url || null,
+          trackUrl: s.track_url || null,
+        })))
+      })
+      .catch(() => { /* no songs yet */ })
+  }, [memberSession?.initials, API_BASE_URL]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Load audio tracks */
   useEffect(() => {
@@ -286,8 +524,17 @@ export default function ChoirDashboard() {
   const toggleTask = (id: string) =>
     setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
 
-  const updateSongStatus = (id: string, status: Song['status']) =>
-    setSongs(prev => prev.map(s => s.id === id ? { ...s, status } : s))
+  const updateSongStatus = (id: string, status: Song['status']) => {
+    setSongs(prev => {
+      const updated = prev.map(s => s.id === id ? { ...s, status } : s)
+      try {
+        const statusKey = `letw_song_status_${memberSessionRef.current?.initials || 'CM'}`
+        const statusMap = Object.fromEntries(updated.map(s => [s.id, s.status]))
+        sessionStorage.setItem(statusKey, JSON.stringify(statusMap))
+      } catch { /* ignore */ }
+      return updated
+    })
+  }
 
   const sendChatMessage = async () => {
     const text = chatInput.trim()
@@ -384,6 +631,16 @@ export default function ChoirDashboard() {
   const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
   const navigate = (id: string) => { setActiveNav(id); setSidebarOpen(false) }
+
+  /* Show login gate if no session yet */
+  if (!memberSession) {
+    return (
+      <MemberLoginGate
+        apiBase={API_BASE_URL}
+        onLogin={s => setMemberSession(s)}
+      />
+    )
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -638,28 +895,26 @@ export default function ChoirDashboard() {
                             </div>
                           </div>
 
-                          {/* Resources */}
+                          {/* Resources — URLs come from backend (set by Choir Master) */}
                           <div className="flex flex-wrap gap-2 mb-4">
                             {[
-                              { label: 'Lyrics',         has: song.hasLyrics, key: `lyrics-${song.id}`,  icon: BookOpen, color: 'bg-purple-100 text-purple-700 hover:bg-purple-200' },
-                              { label: 'Sheet Music',    has: song.hasSheet,  key: `sheet-${song.id}`,   icon: Download, color: 'bg-blue-100 text-blue-700 hover:bg-blue-200'     },
-                              { label: 'Practice Track', has: song.hasTrack,  key: `track-${song.id}`,   icon: Play,     color: 'bg-green-100 text-green-700 hover:bg-green-200'   },
-                            ].map(({ label, has, key, icon: Icon, color }) => {
-                              const url = typeof window !== 'undefined' ? localStorage.getItem(`letw_song_${key}`) : null
-                              return url ? (
-                                <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                              { label: 'Lyrics',         url: song.lyricsUrl,  icon: BookOpen, color: 'bg-purple-100 text-purple-700 hover:bg-purple-200' },
+                              { label: 'Sheet Music',    url: song.sheetUrl,   icon: Download, color: 'bg-blue-100 text-blue-700 hover:bg-blue-200'     },
+                              { label: 'Practice Track', url: song.trackUrl,   icon: Play,     color: 'bg-green-100 text-green-700 hover:bg-green-200'   },
+                            ].map(({ label, url, icon: Icon, color }) => (
+                              url ? (
+                                <a key={label} href={url} target="_blank" rel="noopener noreferrer"
                                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${color}`}>
                                   <Icon className="w-3.5 h-3.5" /> {label}
                                 </a>
                               ) : (
-                                <button key={key}
-                                  onClick={() => has ? alert(`No link set yet. Ask the Choir Master to add the ${label} link.`) : undefined}
-                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${has ? color : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-                                  disabled={!has}>
+                                <span key={label}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-400"
+                                  title="No link yet — the Choir Director will add one soon">
                                   <Icon className="w-3.5 h-3.5" /> {label}
-                                </button>
+                                </span>
                               )
-                            })}
+                            ))}
                           </div>
 
                           {/* Update status */}
