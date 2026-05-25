@@ -120,7 +120,6 @@ export default function YouthMinistryPage() {
     const [error, setError] = useState('')
     const [authChecked, setAuthChecked] = useState(false)
     const [isLoggedIn, setIsLoggedIn] = useState(false)
-    const [userId, setUserId] = useState('')
 
     useEffect(() => {
         const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
@@ -129,7 +128,6 @@ export default function YouthMinistryPage() {
             getCurrentUser()
                 .then(user => {
                     setIsLoggedIn(true)
-                    setUserId(user.id)
                     setFormData(p => ({ ...p, name: user.name || '', email: user.email || '' }))
                 })
                 .catch(() => { /* token invalid */ })
@@ -142,20 +140,14 @@ export default function YouthMinistryPage() {
         setLoading(true)
         setError('')
         try {
-            const { joinDepartment, updateMember } = await import('@/lib/dept-api')
-            await joinDepartment('youth')
-            // Always attempt to force pending — backend may default is_active=true; silently ignore if disallowed
-            if (userId) {
-                try { await updateMember('youth', userId, { is_active: false }) } catch { /* ignored */ }
-            }
-            // optionally log interest via service request
-            try {
-                const { serviceRequestApi } = await import('@/lib/api')
-                await serviceRequestApi.submitRequests(
-                    ['Youth Ministry'],
-                    `Age group: ${formData.ageGroup}\nPhone: ${formData.phone}\nInterest: ${formData.interest}`
-                )
-            } catch { /* non-critical */ }
+            // Submit interest as a service request so the coordinator can review and manually add the member.
+            // We do NOT call joinDepartment here — that would enrol them immediately (possibly as active).
+            // The Youth Leader uses the Youth Coordinator dashboard to add and approve members.
+            const { serviceRequestApi } = await import('@/lib/api')
+            await serviceRequestApi.submitRequests(
+                ['Youth Ministry'],
+                `Age group: ${formData.ageGroup}\nPhone: ${formData.phone}\nInterest: ${formData.interest}`
+            )
             setSuccess(true)
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
@@ -411,17 +403,17 @@ export default function YouthMinistryPage() {
                                 <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
                                     <CheckCircle className="w-10 h-10 text-amber-600" />
                                 </div>
-                                <h3 className="text-2xl font-black text-[#140152] mb-3">Registration Submitted! 🙌</h3>
+                                <h3 className="text-2xl font-black text-[#140152] mb-3">Application Received! 🙌</h3>
                                 <p className="text-gray-600 mb-4 leading-relaxed">
                                     Your application to join Youth Ministry has been received.
                                 </p>
                                 <div className="bg-amber-100 border border-amber-300 rounded-2xl px-5 py-4">
                                     <div className="flex items-center gap-2 justify-center mb-2">
                                         <Lock className="w-5 h-5 text-amber-700" />
-                                        <span className="text-amber-800 font-black text-sm uppercase tracking-wide">Awaiting Approval</span>
+                                        <span className="text-amber-800 font-black text-sm uppercase tracking-wide">Awaiting Youth Leader Approval</span>
                                     </div>
                                     <p className="text-amber-700 text-sm leading-relaxed">
-                                        Your Youth Leader or Admin must approve your membership before you can access the dashboard. You will be notified once approved — usually within 24–48 hours.
+                                        Your application has been sent to our Youth Leader and Admin for review. Once they approve and add you to the ministry, you will gain access to the Youth dashboard. This usually takes 24–48 hours.
                                     </p>
                                 </div>
                             </div>

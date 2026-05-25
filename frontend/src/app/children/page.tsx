@@ -112,7 +112,6 @@ export default function ChildrenMinistryPage() {
   const [error, setError] = useState('')
   const [authChecked, setAuthChecked] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [userId, setUserId] = useState('')
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
@@ -121,7 +120,6 @@ export default function ChildrenMinistryPage() {
       getCurrentUser()
         .then(user => {
           setIsLoggedIn(true)
-          setUserId(user.id)
           setForm(p => ({ ...p, parentName: user.name || '', email: user.email || '' }))
         })
         .catch(() => { /* token invalid */ })
@@ -138,21 +136,12 @@ export default function ChildrenMinistryPage() {
     setLoading(true)
     setError('')
     try {
-      const { joinDepartment, updateMember } = await import('@/lib/dept-api')
-      const joinResult = await joinDepartment('children')
-      // If backend activated the user immediately (status !== 'pending'), force them back to pending
-      // so coordinator/admin must explicitly approve before dashboard access is granted
-      const backendActivated = joinResult?.status && joinResult.status !== 'pending'
-      if (userId && (backendActivated || true)) {
-        // Always attempt — backend may default is_active=true; silently ignore if disallowed
-        try { await updateMember('children', userId, { is_active: false }) } catch { /* ignored */ }
-      }
-      // Log enrolment details via service request (non-critical)
-      try {
-        const { serviceRequestApi } = await import('@/lib/api')
-        const note = `Parent: ${form.parentName} | Child: ${form.childName} (Age ${form.childAge}) | Age Group: ${form.ageGroup} | Preferred Program: ${form.program} | Phone: ${form.phone}`
-        await serviceRequestApi.submitRequests(['Children Ministry'], note)
-      } catch { /* non-critical */ }
+      // Submit interest as a service request so the coordinator can review and manually add the member.
+      // We do NOT call joinDepartment here — that would enrol them immediately (possibly as active).
+      // The coordinator uses the Children Coordinator dashboard to add and approve members.
+      const { serviceRequestApi } = await import('@/lib/api')
+      const note = `Parent: ${form.parentName} | Child: ${form.childName} (Age ${form.childAge}) | Age Group: ${form.ageGroup} | Preferred Program: ${form.program} | Phone: ${form.phone}`
+      await serviceRequestApi.submitRequests(['Children Ministry'], note)
       setSubmitted(true)
     } catch {
       setError('Registration failed. Please try again or contact us directly.')
@@ -499,17 +488,17 @@ export default function ChildrenMinistryPage() {
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
                 <CheckCircle className="w-10 h-10 text-green-600" />
               </div>
-              <h3 className="text-2xl font-black text-green-800 mb-3">Enrolment Submitted! 🌟</h3>
+              <h3 className="text-2xl font-black text-green-800 mb-3">Application Received! 🌟</h3>
               <p className="text-green-700 leading-relaxed mb-5">
                 Thank you for registering your child with Children Ministry. God bless your family!
               </p>
               <div className="bg-amber-50 border border-amber-300 rounded-2xl px-5 py-4">
                 <div className="flex items-center gap-2 justify-center mb-2">
                   <Lock className="w-5 h-5 text-amber-700" />
-                  <span className="text-amber-800 font-black text-sm uppercase tracking-wide">Awaiting Approval</span>
+                  <span className="text-amber-800 font-black text-sm uppercase tracking-wide">Awaiting Coordinator Approval</span>
                 </div>
                 <p className="text-amber-700 text-sm leading-relaxed">
-                  Our Children&apos;s Coordinator or Admin must approve your membership before you can access the dashboard. You will be notified once confirmed — usually within 24–48 hours.
+                  Your application has been sent to our Children&apos;s Coordinator and Admin for review. Once they approve and add you to the ministry, you will gain access to the Parent Portal dashboard. This usually takes 24–48 hours.
                 </p>
               </div>
             </motion.div>
