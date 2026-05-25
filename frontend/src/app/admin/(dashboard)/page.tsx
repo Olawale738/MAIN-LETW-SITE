@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Video, Calendar, Users, Activity, TrendingUp, Megaphone, Loader2, FileText, Clock, User, ArrowRight, BookOpen, Music, Briefcase, HandHeart, Settings } from 'lucide-react'
+import { Video, Calendar, Users, Activity, TrendingUp, Megaphone, Loader2, FileText, Clock, User, ArrowRight, BookOpen, Music, Briefcase, HandHeart, Settings, Crown, Baby, Zap } from 'lucide-react'
 import { dashboardApi, DashboardStats, RecentActivity } from '@/lib/api'
 
 export default function AdminDashboardPage() {
@@ -179,6 +179,11 @@ export default function AdminDashboardPage() {
                             <span className="block font-bold">Manage Users</span>
                             <span className="text-xs text-white/60 group-hover:text-white/80">{stats?.total_users || 0} total users</span>
                         </Link>
+                        <Link href="/admin/nominations" className="p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-left group">
+                            <Crown className="w-6 h-6 mb-2 text-[#f5bb00]" />
+                            <span className="block font-bold">Nominations</span>
+                            <span className="text-xs text-white/60 group-hover:text-white/80">Assign leaders</span>
+                        </Link>
                     </CardContent>
                 </Card>
             </div>
@@ -218,6 +223,134 @@ export default function AdminDashboardPage() {
                         </CardContent>
                     </Card>
                 </Link>
+            </div>
+
+            {/* Ministry Departments */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-[#140152]">Ministry Departments</h2>
+                    <Link href="/admin/nominations" className="text-sm text-[#140152] hover:underline flex items-center gap-1 font-medium">
+                        <Crown className="w-4 h-4 text-amber-500" /> Manage Nominations
+                    </Link>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                    {/* Choir (Alter Sound) */}
+                    <Card className="border-none shadow-md hover:shadow-lg transition-all group border-t-4 border-t-indigo-500">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                                        <Music className="w-5 h-5 text-indigo-600" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-base text-[#140152]">Choir</CardTitle>
+                                        <p className="text-xs text-gray-400">Alter Sound</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-1.5">
+                            <Link href="/services/alter-sound/choirmaster" className="flex items-center justify-between p-2.5 hover:bg-indigo-50 rounded-xl transition-colors group/link">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700">Choirmaster Dashboard</p>
+                                    <p className="text-xs text-gray-400">Members, attendance, notices</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-gray-300 group-hover/link:text-indigo-500 transition-colors" />
+                            </Link>
+                            <Link href="/admin/alter-sound/tracks" className="flex items-center justify-between p-2.5 hover:bg-indigo-50 rounded-xl transition-colors group/link">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700">Manage Tracks</p>
+                                    <p className="text-xs text-gray-400">Upload choir audio</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-gray-300 group-hover/link:text-indigo-500 transition-colors" />
+                            </Link>
+                            <Link href="/admin/nominations" className="flex items-center justify-between p-2.5 hover:bg-indigo-50 rounded-xl transition-colors group/link">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700">Assign Choirmaster</p>
+                                    <p className="text-xs text-gray-400">Admin-only nomination</p>
+                                </div>
+                                <Crown className="w-4 h-4 text-gray-300 group-hover/link:text-amber-500 transition-colors" />
+                            </Link>
+                        </CardContent>
+                    </Card>
+
+                    {/* Youth Ministry */}
+                    <Card className="border-none shadow-md hover:shadow-lg transition-all group border-t-4 border-t-amber-500">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                                    <Zap className="w-5 h-5 text-amber-600" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-base text-[#140152]">Youth Ministry</CardTitle>
+                                    <p className="text-xs text-gray-400">Leader &amp; member access</p>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-1.5">
+                            <Link href="/youth/coordinator" className="flex items-center justify-between p-2.5 hover:bg-amber-50 rounded-xl transition-colors group/link">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700">Youth Leader Dashboard</p>
+                                    <p className="text-xs text-gray-400">Members, activities, attendance</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-gray-300 group-hover/link:text-amber-500 transition-colors" />
+                            </Link>
+                            <Link href="/youth/dashboard" className="flex items-center justify-between p-2.5 hover:bg-amber-50 rounded-xl transition-colors group/link">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700">Member Dashboard</p>
+                                    <p className="text-xs text-gray-400">View as a youth member</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-gray-300 group-hover/link:text-amber-500 transition-colors" />
+                            </Link>
+                            <Link href="/admin/nominations" className="flex items-center justify-between p-2.5 hover:bg-amber-50 rounded-xl transition-colors group/link">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700">Assign Youth Leader</p>
+                                    <p className="text-xs text-gray-400">Admin-only nomination</p>
+                                </div>
+                                <Crown className="w-4 h-4 text-gray-300 group-hover/link:text-amber-500 transition-colors" />
+                            </Link>
+                        </CardContent>
+                    </Card>
+
+                    {/* Children Ministry */}
+                    <Card className="border-none shadow-md hover:shadow-lg transition-all group border-t-4 border-t-violet-500">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
+                                    <Baby className="w-5 h-5 text-violet-600" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-base text-[#140152]">Children Ministry</CardTitle>
+                                    <p className="text-xs text-gray-400">Coordinator &amp; member access</p>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-1.5">
+                            <Link href="/children/coordinator" className="flex items-center justify-between p-2.5 hover:bg-violet-50 rounded-xl transition-colors group/link">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700">Coordinator Dashboard</p>
+                                    <p className="text-xs text-gray-400">Members, activities, attendance</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-gray-300 group-hover/link:text-violet-500 transition-colors" />
+                            </Link>
+                            <Link href="/children/dashboard" className="flex items-center justify-between p-2.5 hover:bg-violet-50 rounded-xl transition-colors group/link">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700">Member Dashboard</p>
+                                    <p className="text-xs text-gray-400">View as a children member</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-gray-300 group-hover/link:text-violet-500 transition-colors" />
+                            </Link>
+                            <Link href="/admin/nominations" className="flex items-center justify-between p-2.5 hover:bg-violet-50 rounded-xl transition-colors group/link">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700">Assign Coordinator</p>
+                                    <p className="text-xs text-gray-400">Admin-only nomination</p>
+                                </div>
+                                <Crown className="w-4 h-4 text-gray-300 group-hover/link:text-violet-500 transition-colors" />
+                            </Link>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
 
             {/* Services Management Section */}
