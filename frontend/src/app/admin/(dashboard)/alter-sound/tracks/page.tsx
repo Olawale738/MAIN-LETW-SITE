@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Edit, Trash2, ArrowLeft, Music, Upload, Star } from 'lucide-react'
+import { Plus, Edit, Trash2, ArrowLeft, Music, Upload, Star, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { alterSoundApi, AudioTrack, AudioCategory } from '@/lib/api'
 import { useToast } from '@/components/ui/toast'
@@ -19,6 +19,7 @@ export default function AlterSoundTracksPage() {
     const [showModal, setShowModal] = useState(false)
     const [editingTrack, setEditingTrack] = useState<AudioTrack | null>(null)
     const [uploading, setUploading] = useState(false)
+    const [categoriesError, setCategoriesError] = useState(false)
     const { showToast, ToastComponent } = useToast()
 
     const [formData, setFormData] = useState({
@@ -48,9 +49,14 @@ export default function AlterSoundTracksPage() {
                 alterSoundApi.getAllCategories()
             ])
             setTracks(tracksData.sort((a, b) => a.order_index - b.order_index))
-            setCategories(categoriesData.filter(c => c.is_active))
+            const activeCategories = categoriesData.filter(c => c.is_active)
+            setCategories(activeCategories)
+            setCategoriesError(false)
+            if (activeCategories.length === 0) setCategoriesError(true)
         } catch (error) {
             console.error('Failed to load data:', error)
+            setCategoriesError(true)
+            showToast('Failed to load categories. Please refresh.', 'error')
         } finally {
             setLoading(false)
         }
@@ -105,6 +111,12 @@ export default function AlterSoundTracksPage() {
         setUploading(true)
 
         try {
+            // Validate category
+            if (!formData.category_id) {
+                showToast('Please select a category', 'error')
+                setUploading(false)
+                return
+            }
             // Validate that audio file is provided for new tracks
             if (!editingTrack && !audioFile) {
                 showToast('Please upload an audio file', 'error')
@@ -161,12 +173,30 @@ export default function AlterSoundTracksPage() {
                 </div>
                 <Button
                     onClick={() => handleOpenModal()}
-                    className="bg-[#140152] text-white hover:bg-[#140152]/90"
+                    disabled={categories.length === 0}
+                    title={categories.length === 0 ? 'Create at least one category first' : ''}
+                    className="bg-[#140152] text-white hover:bg-[#140152]/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Track
                 </Button>
             </div>
+
+            {/* No-categories warning */}
+            {categoriesError && (
+                <div className="flex items-start gap-3 bg-amber-50 border border-amber-300 rounded-xl p-4 mb-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="font-semibold text-amber-800 text-sm">No categories found</p>
+                        <p className="text-amber-700 text-sm mt-0.5">
+                            You must create at least one category before adding tracks.{' '}
+                            <Link href="/admin/alter-sound/categories" className="underline font-semibold hover:text-amber-900">
+                                Go to Categories →
+                            </Link>
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Tracks List */}
             <div className="space-y-4">
@@ -281,17 +311,28 @@ export default function AlterSoundTracksPage() {
                                 <div className="grid md:grid-cols-2 gap-4">
                                     <div>
                                         <Label htmlFor="category_id" className="text-gray-900">Category</Label>
-                                        <select
-                                            id="category_id"
-                                            value={formData.category_id}
-                                            onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                                            required
-                                            className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
-                                        >
-                                            {categories.map((cat) => (
-                                                <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                            ))}
-                                        </select>
+                                        {categories.length === 0 ? (
+                                            <div className="flex items-center gap-2 border border-amber-300 bg-amber-50 rounded-md px-3 py-2 text-sm text-amber-700">
+                                                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                                                No categories yet.{' '}
+                                                <Link href="/admin/alter-sound/categories" className="underline font-semibold">
+                                                    Create one first
+                                                </Link>
+                                            </div>
+                                        ) : (
+                                            <select
+                                                id="category_id"
+                                                value={formData.category_id}
+                                                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                                                required
+                                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#140152]"
+                                            >
+                                                <option value="" disabled>— Select a category —</option>
+                                                {categories.map((cat) => (
+                                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                                ))}
+                                            </select>
+                                        )}
                                     </div>
 
                                     <div>
