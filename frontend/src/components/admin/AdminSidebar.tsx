@@ -70,6 +70,11 @@ const sidebarItems = [
         icon: Users
     },
     {
+        title: 'Nominations',
+        href: '/admin/nominations',
+        icon: Crown
+    },
+    {
         title: 'Skill Development',
         href: '/admin/skills',
         icon: BookOpen
