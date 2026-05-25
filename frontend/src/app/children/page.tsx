@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
   Star, Heart, BookOpen, Music, Shield, Users, Smile,
-  Sun, Sparkles, ArrowRight, CheckCircle, Baby, User, UserPlus
+  Sun, Sparkles, ArrowRight, CheckCircle, Baby, User,
+  LogIn, UserPlus, Lock, Loader2,
 } from 'lucide-react'
-import { serviceRequestApi } from '@/lib/api'
 
 const ageGroups = [
   {
@@ -110,6 +110,22 @@ export default function ChildrenMinistryPage() {
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [authChecked, setAuthChecked] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+    if (!token) { setAuthChecked(true); return }
+    import('@/lib/dept-api').then(({ getCurrentUser }) =>
+      getCurrentUser()
+        .then(user => {
+          setIsLoggedIn(true)
+          setForm(p => ({ ...p, parentName: user.name || '', email: user.email || '' }))
+        })
+        .catch(() => { /* token invalid */ })
+        .finally(() => setAuthChecked(true))
+    )
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -120,8 +136,14 @@ export default function ChildrenMinistryPage() {
     setLoading(true)
     setError('')
     try {
-      const note = `Parent: ${form.parentName} | Child: ${form.childName} (Age ${form.childAge}) | Age Group: ${form.ageGroup} | Preferred Program: ${form.program} | Phone: ${form.phone}`
-      await serviceRequestApi.submitRequests(['Children Ministry'], note)
+      const { joinDepartment } = await import('@/lib/dept-api')
+      await joinDepartment('children')
+      // Log enrolment details via service request (non-critical)
+      try {
+        const { serviceRequestApi } = await import('@/lib/api')
+        const note = `Parent: ${form.parentName} | Child: ${form.childName} (Age ${form.childAge}) | Age Group: ${form.ageGroup} | Preferred Program: ${form.program} | Phone: ${form.phone}`
+        await serviceRequestApi.submitRequests(['Children Ministry'], note)
+      } catch { /* non-critical */ }
       setSubmitted(true)
     } catch {
       setError('Registration failed. Please try again or contact us directly.')
@@ -208,12 +230,6 @@ export default function ChildrenMinistryPage() {
                 className="inline-flex items-center gap-2 border-2 border-[#f5bb00]/60 text-[#f5bb00] font-bold px-8 py-4 rounded-full text-lg hover:bg-[#f5bb00]/10 transition-all"
               >
                 <Shield className="w-5 h-5" /> Enter Dashboard
-              </Link>
-              <Link
-                href="/children/dashboard"
-                className="inline-flex items-center gap-2 bg-[#f5bb00] text-[#140152] font-black px-8 py-4 rounded-full text-lg hover:bg-yellow-300 transition-all shadow-lg"
-              >
-                <Users className="w-5 h-5" /> Join Children Ministry
               </Link>
             </div>
           </motion.div>
@@ -458,10 +474,14 @@ export default function ChildrenMinistryPage() {
             <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Join the Family</span>
             <h2 className="text-4xl md:text-5xl font-black text-[#140152] mt-3 mb-4">Enrol Your Child</h2>
             <div className="w-24 h-1.5 bg-[#f5bb00] mx-auto rounded-full mb-4" />
-            <p className="text-gray-600">Fill in the form below and our team will reach out to complete your child's enrolment.</p>
+            <p className="text-gray-600">Fill in the form below and our team will reach out to complete your child&apos;s enrolment.</p>
           </div>
 
-          {submitted ? (
+          {!authChecked ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="w-10 h-10 animate-spin text-[#140152]" />
+            </div>
+          ) : submitted ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -471,12 +491,42 @@ export default function ChildrenMinistryPage() {
                 <CheckCircle className="w-10 h-10 text-green-600" />
               </div>
               <h3 className="text-2xl font-black text-green-800 mb-3">Enrolment Received!</h3>
-              <p className="text-green-700 leading-relaxed">
-                Thank you for registering your child. Our Children's Ministry team will contact you within 24–48 hours to complete the process. God bless your family!
+              <p className="text-green-700 leading-relaxed mb-6">
+                Thank you for registering your child. Our Children&apos;s Ministry team will contact you within 24–48 hours to complete the process. God bless your family!
               </p>
+              <Link href="/children/dashboard"
+                className="inline-flex items-center gap-2 bg-[#140152] text-white font-black px-8 py-3 rounded-xl hover:bg-[#1d0175] transition-all">
+                <Shield className="w-5 h-5" /> Go to Dashboard
+              </Link>
             </motion.div>
+          ) : !isLoggedIn ? (
+            /* Guest — show clean login/register prompt */
+            <div className="bg-[#140152] rounded-3xl overflow-hidden shadow-2xl">
+              <div className="px-8 py-8 text-center">
+                <div className="w-16 h-16 bg-[#f5bb00]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Lock className="w-8 h-8 text-[#f5bb00]" />
+                </div>
+                <h3 className="text-white font-black text-2xl mb-2">Ready to Enrol?</h3>
+                <p className="text-blue-200 text-base mb-8">Sign in or create a free account to register your child for Children Ministry.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-sm mx-auto">
+                  <Link href="/auth/login?next=/children%23register"
+                    className="flex items-center justify-center gap-3 bg-white text-[#140152] font-black px-6 py-4 rounded-2xl hover:bg-gray-100 transition-all text-lg shadow-lg">
+                    <LogIn className="w-6 h-6" />
+                    Sign In
+                  </Link>
+                  <Link href="/auth/register?next=/children%23register"
+                    className="flex items-center justify-center gap-3 bg-[#f5bb00] text-[#140152] font-black px-6 py-4 rounded-2xl hover:bg-yellow-300 transition-all text-lg shadow-lg">
+                    <UserPlus className="w-6 h-6" />
+                    Create Account
+                  </Link>
+                </div>
+                <p className="text-blue-300/60 text-sm mt-6">It&apos;s free and takes less than a minute.</p>
+              </div>
+            </div>
           ) : (
+            /* Logged in — show enrolment form */
             <form onSubmit={handleSubmit} className="bg-gray-50 rounded-3xl p-8 space-y-5 border border-gray-200 shadow-sm">
+              {error && <p className="text-red-500 text-sm bg-red-50 border border-red-100 rounded-xl p-4">{error}</p>}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm font-bold text-[#140152] mb-2">Parent / Guardian Name *</label>
@@ -490,7 +540,7 @@ export default function ChildrenMinistryPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-[#140152] mb-2">Child's Name *</label>
+                  <label className="block text-sm font-bold text-[#140152] mb-2">Child&apos;s Name *</label>
                   <input
                     name="childName"
                     required
@@ -503,7 +553,7 @@ export default function ChildrenMinistryPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-bold text-[#140152] mb-2">Child's Age *</label>
+                  <label className="block text-sm font-bold text-[#140152] mb-2">Child&apos;s Age *</label>
                   <input
                     name="childAge"
                     required
@@ -572,16 +622,15 @@ export default function ChildrenMinistryPage() {
                   <option>Bible Quiz League</option>
                   <option>Vacation Bible School</option>
                   <option>Kids Prayer Hour</option>
-                  <option>Arts & Drama Ministry</option>
+                  <option>Arts &amp; Drama Ministry</option>
                 </select>
               </div>
-              {error && <p className="text-red-500 text-sm">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#140152] text-white font-black py-4 rounded-xl text-lg hover:bg-[#140152]/90 transition-all disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-xl"
+                className="w-full bg-[#140152] text-white font-black py-4 rounded-xl text-lg hover:bg-[#140152]/90 transition-all disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-xl flex items-center justify-center gap-2"
               >
-                {loading ? 'Submitting…' : 'Enrol My Child'}
+                {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Enrolling…</> : 'Enrol My Child'}
               </button>
               <p className="text-center text-xs text-gray-400">
                 Our team will contact you within 24–48 hours to confirm enrolment.

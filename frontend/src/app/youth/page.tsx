@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -12,7 +12,8 @@ import {
     Users, BookOpen, Briefcase, TrendingUp, Heart,
     Music, MessageCircle, Star, ArrowRight, CheckCircle,
     Loader2, Flame, Target, Zap, Globe, Tent, Wifi,
-    Dumbbell, DollarSign, Drama, HandHeart, ShieldCheck, Mic2
+    Dumbbell, DollarSign, Drama, HandHeart, ShieldCheck, Mic2,
+    LogIn, UserPlus, Lock,
 } from 'lucide-react'
 
 const programs = [
@@ -117,20 +118,41 @@ export default function YouthMinistryPage() {
     const [loading, setLoading] = useState(false)
     const [success, setSuccess] = useState(false)
     const [error, setError] = useState('')
+    const [authChecked, setAuthChecked] = useState(false)
+    const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+    useEffect(() => {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+        if (!token) { setAuthChecked(true); return }
+        import('@/lib/dept-api').then(({ getCurrentUser }) =>
+            getCurrentUser()
+                .then(user => {
+                    setIsLoggedIn(true)
+                    setFormData(p => ({ ...p, name: user.name || '', email: user.email || '' }))
+                })
+                .catch(() => { /* token invalid */ })
+                .finally(() => setAuthChecked(true))
+        )
+    }, [])
 
     const handleJoin = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
         setError('')
         try {
-            const { serviceRequestApi } = await import('@/lib/api')
-            await serviceRequestApi.submitRequests(
-                ['Youth Ministry'],
-                `Age group: ${formData.ageGroup}\nPhone: ${formData.phone}\nInterest: ${formData.interest}`
-            )
+            const { joinDepartment } = await import('@/lib/dept-api')
+            await joinDepartment('youth')
+            // optionally log interest via service request
+            try {
+                const { serviceRequestApi } = await import('@/lib/api')
+                await serviceRequestApi.submitRequests(
+                    ['Youth Ministry'],
+                    `Age group: ${formData.ageGroup}\nPhone: ${formData.phone}\nInterest: ${formData.interest}`
+                )
+            } catch { /* non-critical */ }
             setSuccess(true)
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Please log in to register.')
+            setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
         } finally {
             setLoading(false)
         }
@@ -180,10 +202,6 @@ export default function YouthMinistryPage() {
                             <Link href="/youth/dashboard"
                                 className="py-4 px-8 text-lg rounded-full border-2 border-[#f5bb00]/50 text-[#f5bb00] hover:bg-[#f5bb00]/10 transition-all font-semibold flex items-center gap-2 justify-center">
                                 <Zap className="w-5 h-5" /> Enter Dashboard
-                            </Link>
-                            <Link href="/youth/dashboard"
-                                className="py-4 px-8 text-lg rounded-full bg-[#f5bb00] text-[#140152] hover:bg-yellow-300 transition-all font-black flex items-center gap-2 justify-center shadow-lg">
-                                <Users className="w-5 h-5" /> Join Youth Ministry
                             </Link>
                         </div>
                     </motion.div>
@@ -377,27 +395,65 @@ export default function YouthMinistryPage() {
                             <p className="text-gray-500 mt-4 text-lg">Register your interest and we'll reach out to welcome you in.</p>
                         </div>
 
-                        {success ? (
+                        {!authChecked ? (
+                            /* Loading spinner while checking auth */
+                            <div className="flex justify-center py-16">
+                                <Loader2 className="w-10 h-10 animate-spin text-[#140152]" />
+                            </div>
+                        ) : success ? (
                             <div className="bg-green-50 border border-green-100 rounded-3xl p-12 text-center">
                                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                                     <CheckCircle className="w-10 h-10 text-green-600" />
                                 </div>
                                 <h3 className="text-2xl font-black text-[#140152] mb-3">Welcome to the Family!</h3>
-                                <p className="text-gray-600 mb-6">Your registration has been received. Our team will be in touch with next steps.</p>
-                                <Button onClick={() => setSuccess(false)} className="bg-[#140152] text-white px-8">
-                                    Register Another
-                                </Button>
+                                <p className="text-gray-600 mb-6">You are now registered in the Youth Ministry. Head to your dashboard to connect with the community.</p>
+                                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                                    <Link href="/youth/dashboard"
+                                        className="inline-flex items-center gap-2 bg-[#140152] text-white font-black px-8 py-3 rounded-xl hover:bg-[#1d0175] transition-all">
+                                        <Zap className="w-5 h-5" /> Go to Dashboard
+                                    </Link>
+                                    <Button onClick={() => setSuccess(false)} variant="outline" className="px-8">
+                                        Back
+                                    </Button>
+                                </div>
                             </div>
+                        ) : !isLoggedIn ? (
+                            /* Guest — show clean login/register prompt */
+                            <Card className="border-none shadow-2xl rounded-3xl overflow-hidden">
+                                <div className="bg-[#140152] px-8 py-8 text-center">
+                                    <div className="w-16 h-16 bg-[#f5bb00]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Lock className="w-8 h-8 text-[#f5bb00]" />
+                                    </div>
+                                    <h3 className="text-white font-black text-2xl mb-2">Ready to Join?</h3>
+                                    <p className="text-blue-200 text-base">Sign in or create a free account to register for Youth Ministry.</p>
+                                </div>
+                                <CardContent className="p-8">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <Link href="/auth/login?next=/youth%23join"
+                                            className="flex items-center justify-center gap-3 bg-[#140152] text-white font-black px-6 py-4 rounded-2xl hover:bg-[#1d0175] transition-all text-lg shadow-lg">
+                                            <LogIn className="w-6 h-6" />
+                                            Sign In
+                                        </Link>
+                                        <Link href="/auth/register?next=/youth%23join"
+                                            className="flex items-center justify-center gap-3 bg-[#f5bb00] text-[#140152] font-black px-6 py-4 rounded-2xl hover:bg-yellow-300 transition-all text-lg shadow-lg">
+                                            <UserPlus className="w-6 h-6" />
+                                            Create Account
+                                        </Link>
+                                    </div>
+                                    <p className="text-center text-sm text-gray-400 mt-6">It&apos;s free and takes less than a minute.</p>
+                                </CardContent>
+                            </Card>
                         ) : (
+                            /* Logged in — show registration form */
                             <Card className="border-none shadow-2xl rounded-3xl overflow-hidden">
                                 <div className="bg-[#140152] px-8 py-6">
                                     <h3 className="text-white font-black text-xl">Registration Form</h3>
-                                    <p className="text-blue-200 text-sm mt-1">You must be logged in to submit this form.</p>
+                                    <p className="text-blue-200 text-sm mt-1">Complete your details to join the Youth Ministry.</p>
                                 </div>
                                 <CardContent className="p-8">
                                     {error && (
                                         <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm border border-red-100">
-                                            {error} — <Link href="/auth/login" className="font-bold underline">Login here</Link>
+                                            {error}
                                         </div>
                                     )}
                                     <form onSubmit={handleJoin} className="space-y-5">
@@ -450,7 +506,7 @@ export default function YouthMinistryPage() {
                                         </div>
                                         <Button type="submit" disabled={loading}
                                             className="w-full bg-[#140152] hover:bg-[#1d0175] text-white font-black py-6 text-lg rounded-xl disabled:opacity-50 transition-all">
-                                            {loading ? <><Loader2 className="w-5 h-5 animate-spin mr-2 inline" />Submitting…</> : 'Register Now'}
+                                            {loading ? <><Loader2 className="w-5 h-5 animate-spin mr-2 inline" />Joining…</> : 'Join Youth Ministry'}
                                         </Button>
                                     </form>
                                 </CardContent>
