@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager } from '@/lib/api'
 import { useState, useEffect } from 'react'
@@ -73,6 +73,16 @@ const sidebarItems = [
         title: 'Nominations',
         href: '/admin/nominations',
         icon: Crown
+    },
+    {
+        title: 'Youth Ministry',
+        href: '/youth/coordinator',
+        icon: Zap
+    },
+    {
+        title: 'Children Ministry',
+        href: '/children/coordinator',
+        icon: Baby
     },
     {
         title: 'Skill Development',
