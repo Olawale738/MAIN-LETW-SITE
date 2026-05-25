@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
   Play, Pause, Music, Bell, MessageSquare, Flame, Mic2, Globe,
-  Sparkles, Music2, LogOut, User, Settings, BookOpen, Calendar,
+  Sparkles, Music2, LogOut, User, BookOpen, Calendar,
   Heart, LayoutDashboard, Library, Volume2, Clock, CheckCircle2,
   AlertCircle, Send, X, ChevronDown, ChevronRight, Download,
   Search, Users, Star, Award, TrendingUp, MapPin, Phone,
@@ -160,7 +160,18 @@ const MEMBER_SESSION_KEY = 'letw_choir_member_session'
 
 function loadMemberSession(): MemberSession | null {
   if (typeof window === 'undefined') return null
-  try { return JSON.parse(sessionStorage.getItem(MEMBER_SESSION_KEY) || 'null') }
+  try {
+    const raw = sessionStorage.getItem(MEMBER_SESSION_KEY)
+    if (!raw) return null
+    const s = JSON.parse(raw)
+    // Validate — must have name, initials and a valid voice part
+    const validVoices = ['Soprano', 'Alto', 'Tenor', 'Bass']
+    if (!s?.name || !s?.initials || !validVoices.includes(s?.voice)) {
+      sessionStorage.removeItem(MEMBER_SESSION_KEY)
+      return null
+    }
+    return s as MemberSession
+  }
   catch { return null }
 }
 
@@ -695,8 +706,14 @@ export default function ChoirDashboard() {
 
         {/* Bottom */}
         <div className="p-4 border-t border-white/10 space-y-1">
-          <button onClick={() => navigate('home')} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-white/60 hover:bg-white/10 hover:text-white transition-all">
-            <Settings className="w-4 h-4" /> Settings
+          <button
+            onClick={() => {
+              sessionStorage.removeItem(MEMBER_SESSION_KEY)
+              setMemberSession(null)
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-white/60 hover:bg-red-500/20 hover:text-red-300 transition-all"
+          >
+            <LogOut className="w-4 h-4" /> Sign Out
           </button>
           <Link href="/services/alter-sound" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-white/60 hover:bg-white/10 hover:text-white transition-all">
             <Globe className="w-4 h-4" /> Back to Alter Sound
