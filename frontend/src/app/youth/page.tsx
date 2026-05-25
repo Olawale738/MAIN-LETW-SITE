@@ -410,7 +410,7 @@ export default function YouthMinistryPage() {
                                     Your application to join Youth Ministry has been received.
                                 </p>
                                 <p className="text-amber-700 font-semibold text-sm mb-6 bg-amber-100 rounded-2xl px-5 py-3">
-                                    ⏳ Pending Approval — Your Youth Leader will review and approve your registration. You will see a pending status in your dashboard until approved.
+                                    ⏳ Pending Approval — Your Youth Leader or Admin will review and approve your registration. You will see a pending status in your dashboard until approved.
                                 </p>
                                 <Link href="/youth/dashboard"
                                     className="inline-flex items-center gap-2 bg-[#140152] text-white font-black px-8 py-3 rounded-xl hover:bg-[#1d0175] transition-all">

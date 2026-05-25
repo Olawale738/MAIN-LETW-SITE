@@ -526,7 +526,7 @@ export default function ChildrenDashboard() {
           <div className="mx-4 mb-3 bg-amber-400/20 border border-amber-400/40 rounded-2xl px-4 py-3 flex items-start gap-3">
             <Clock className="w-4 h-4 text-amber-300 flex-shrink-0 mt-0.5" />
             <p className="text-amber-200 text-xs leading-relaxed">
-              <span className="font-bold">Enrolment Under Review.</span> Your child&apos;s enrolment is pending. The coordinator will approve your registration shortly.
+              <span className="font-bold">Enrolment Under Review.</span> Your child&apos;s enrolment is pending. The Children&apos;s Coordinator or Admin will approve your registration shortly.
             </p>
           </div>
         )}

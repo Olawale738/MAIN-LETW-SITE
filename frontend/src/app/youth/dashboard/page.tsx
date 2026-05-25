@@ -380,7 +380,7 @@ export default function YouthDashboard() {
           </div>
           <h2 className="font-black text-xl mb-2" style={{ color: '#92400e' }}>Pending Approval</h2>
           <p className="text-amber-700 text-sm leading-relaxed">
-            Your registration is awaiting coordinator approval. You&apos;ll be notified when approved.
+            Your registration is awaiting approval from your Youth Leader or Admin. You&apos;ll gain full access once approved.
           </p>
         </div>
         <div className="px-8 py-5 text-center bg-amber-50/50">

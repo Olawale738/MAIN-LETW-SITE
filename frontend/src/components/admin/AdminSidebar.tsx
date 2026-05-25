@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { tokenManager } from '@/lib/api'
+import { tokenManager, chatApi } from '@/lib/api'
 import { useState, useEffect } from 'react'
-import { chatApi } from '@/lib/api'
+import { listMembers } from '@/lib/dept-api'
 
 const sidebarItems = [
     {
@@ -125,6 +125,8 @@ export default function AdminSidebar() {
     const pathname = usePathname()
     const [mobileOpen, setMobileOpen] = useState(false)
     const [chatUnread, setChatUnread] = useState(0)
+    const [youthPending, setYouthPending] = useState(0)
+    const [childrenPending, setChildrenPending] = useState(0)
 
     useEffect(() => {
         const fetchUnread = async () => {
@@ -135,6 +137,22 @@ export default function AdminSidebar() {
         }
         fetchUnread()
         const interval = setInterval(fetchUnread, 30000)
+        return () => clearInterval(interval)
+    }, [])
+
+    useEffect(() => {
+        const fetchPending = async () => {
+            try {
+                const [youthMembers, childrenMembers] = await Promise.all([
+                    listMembers('youth'),
+                    listMembers('children'),
+                ])
+                setYouthPending(youthMembers.filter(m => !m.is_active).length)
+                setChildrenPending(childrenMembers.filter(m => !m.is_active).length)
+            } catch { /* ignore — non-admin sessions won't have access */ }
+        }
+        fetchPending()
+        const interval = setInterval(fetchPending, 60000)
         return () => clearInterval(interval)
     }, [])
 
@@ -171,6 +189,16 @@ export default function AdminSidebar() {
                             {item.href === '/admin/chat' && chatUnread > 0 && (
                                 <span className="bg-[#f5bb00] text-[#140152] text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
                                     {chatUnread > 9 ? '9+' : chatUnread}
+                                </span>
+                            )}
+                            {item.href === '/youth/coordinator' && youthPending > 0 && (
+                                <span className="bg-amber-400 text-white text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
+                                    {youthPending > 9 ? '9+' : youthPending}
+                                </span>
+                            )}
+                            {item.href === '/children/coordinator' && childrenPending > 0 && (
+                                <span className="bg-amber-400 text-white text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
+                                    {childrenPending > 9 ? '9+' : childrenPending}
                                 </span>
                             )}
                         </Link>

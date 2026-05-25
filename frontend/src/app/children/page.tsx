@@ -495,7 +495,7 @@ export default function ChildrenMinistryPage() {
                 Thank you for registering your child with Children Ministry. God bless your family!
               </p>
               <p className="text-amber-700 font-semibold text-sm mb-6 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3">
-                ⏳ Pending Approval — Our Children&apos;s Coordinator will review and approve your enrolment. You will see a pending status in your dashboard until confirmed (usually within 24–48 hours).
+                ⏳ Pending Approval — Our Children&apos;s Coordinator or Admin will review and approve your enrolment. You will see a pending status in your dashboard until confirmed (usually within 24–48 hours).
               </p>
               <Link href="/children/dashboard"
                 className="inline-flex items-center gap-2 bg-[#140152] text-white font-black px-8 py-3 rounded-xl hover:bg-[#1d0175] transition-all">
