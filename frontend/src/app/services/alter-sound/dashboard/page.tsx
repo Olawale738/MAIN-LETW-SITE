@@ -709,7 +709,15 @@ export default function ChoirDashboard() {
           <button
             onClick={() => {
               sessionStorage.removeItem(MEMBER_SESSION_KEY)
+              // Reset all personal state so the next user starts fresh
               setMemberSession(null)
+              setSongs([])
+              setTasks([])
+              setChatMessages([])
+              setChatInput('')
+              setRealMembers([])
+              setHighlights([])
+              setMsgInput('')
             }}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-white/60 hover:bg-red-500/20 hover:text-red-300 transition-all"
           >
@@ -735,7 +743,9 @@ export default function ChoirDashboard() {
           </div>
           <button className="relative p-2 rounded-lg hover:bg-gray-100" onClick={() => navigate('announcements')}>
             <Bell className="w-5 h-5 text-gray-600" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+            {MOCK_ANNOUNCEMENTS.length > 0 && (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+            )}
           </button>
           <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm text-white flex-shrink-0" style={{ background: MEMBER_INFO.avatar }}>
             {MEMBER_INFO.initials}
@@ -755,26 +765,37 @@ export default function ChoirDashboard() {
                   <div className="absolute top-0 right-0 w-48 h-48 opacity-10"><Music2 className="w-full h-full" /></div>
                   <div className="relative z-10">
                     <p className="text-white/60 text-sm mb-1">{today}</p>
-                    <h2 className="text-2xl font-black mb-1">Welcome back, {MEMBER_INFO.name}! 🎶</h2>
-                    <p className="text-white/70 text-sm mb-5">You are a consecrated servant releasing heaven's sound.</p>
+                    <h2 className="text-2xl font-black mb-1">
+                      Welcome, {MEMBER_INFO.name.split(' ')[0]}! 🎶
+                    </h2>
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-full text-white/90"
+                        style={{ background: MEMBER_INFO.avatar + '99' }}>
+                        {MEMBER_INFO.voice}
+                      </span>
+                      {MEMBER_INFO.role && MEMBER_INFO.role !== 'Choir Member' && (
+                        <span className="text-white/60 text-xs">· {MEMBER_INFO.role}</span>
+                      )}
+                    </div>
+                    <p className="text-white/70 text-sm mb-5">You are a consecrated servant releasing heaven&apos;s sound.</p>
                     <div className="flex flex-wrap gap-3">
                       <button onClick={() => navigate('songs')} className="flex items-center gap-2 bg-[#f5bb00] text-[#140152] px-4 py-2 rounded-xl font-bold text-sm hover:bg-[#f5bb00]/90 transition-all">
-                        <Music className="w-4 h-4" /> This Week's Songs
+                        <Music className="w-4 h-4" /> Song Library
                       </button>
-                      <button onClick={() => navigate('events')} className="flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-xl font-semibold text-sm hover:bg-white/20 transition-all border border-white/20">
-                        <Calendar className="w-4 h-4" /> Next Rehearsal
+                      <button onClick={() => navigate('chat')} className="flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-xl font-semibold text-sm hover:bg-white/20 transition-all border border-white/20">
+                        <MessageSquare className="w-4 h-4" /> Group Chat
                       </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Quick stats */}
+                {/* Quick stats — show real values when available, dash otherwise */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { label: 'Attendance', value: ATTENDANCE.length === 0 ? '—' : `${attendancePct}%`, icon: BarChart2, color: 'text-green-600', bg: 'bg-green-50' },
-                    { label: 'Songs to Practice', value: songs.length === 0 ? '—' : `${songs.filter(s => s.status !== 'ready').length}`, icon: Music, color: 'text-blue-600', bg: 'bg-blue-50' },
-                    { label: 'Pending Tasks', value: tasks.length === 0 ? '—' : `${pendingTasks}`, icon: CheckSquare, color: 'text-red-600', bg: 'bg-red-50' },
-                    { label: 'Songs Ready', value: songs.length === 0 ? '—' : `${readySongs}/${songs.length}`, icon: CheckCircle2, color: 'text-purple-600', bg: 'bg-purple-50' },
+                    { label: 'My Attendance',    value: ATTENDANCE.length === 0 ? '—' : `${attendancePct}%`,                                          icon: BarChart2,    color: 'text-green-600',  bg: 'bg-green-50'  },
+                    { label: 'Songs in Library', value: songs.length === 0 ? '—' : `${songs.length}`,                                                 icon: Music,        color: 'text-blue-600',   bg: 'bg-blue-50'   },
+                    { label: 'My Tasks',         value: tasks.length === 0 ? '—' : `${pendingTasks} pending`,                                         icon: CheckSquare,  color: 'text-red-600',    bg: 'bg-red-50'    },
+                    { label: 'Songs Ready',      value: songs.length === 0 ? '—' : `${readySongs}/${songs.length}`,                                   icon: CheckCircle2, color: 'text-purple-600', bg: 'bg-purple-50' },
                   ].map((s, i) => (
                     <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
                       <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center mb-3`}>
@@ -786,41 +807,54 @@ export default function ChoirDashboard() {
                   ))}
                 </div>
 
-                {/* Next rehearsal reminder */}
-                <div className="bg-purple-50 border border-purple-200 rounded-2xl p-5 flex items-start gap-4">
-                  <div className="w-12 h-12 bg-purple-600 rounded-2xl flex items-center justify-center flex-shrink-0">
-                    <Calendar className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-bold text-purple-800">Next Rehearsal</span>
-                      {MOCK_EVENTS[0] && (
-                        <span className="text-xs bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full font-semibold">In {MOCK_EVENTS[0].daysLeft} days</span>
-                      )}
+                {/* Song library preview OR getting-started card */}
+                {songs.length > 0 ? (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-[#140152] text-base">Song Library</h3>
+                      <button onClick={() => navigate('songs')} className="text-xs font-bold text-[#140152] hover:underline flex items-center gap-1">
+                        View all <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    {MOCK_EVENTS[0] ? (
-                      <>
-                        <p className="text-purple-700 font-semibold">{MOCK_EVENTS[0].date} · {MOCK_EVENTS[0].time}</p>
-                        <p className="text-purple-500 text-sm flex items-center gap-1 mt-1"><MapPin className="w-3.5 h-3.5" /> {MOCK_EVENTS[0].venue}</p>
-                      </>
-                    ) : (
-                      <p className="text-purple-500 text-sm">No rehearsal scheduled yet. Check back soon.</p>
-                    )}
+                    <div className="space-y-2">
+                      {songs.slice(0, 3).map(song => {
+                        const cfg = STATUS_CONFIG[song.status]
+                        return (
+                          <div key={song.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                            <div className="w-8 h-8 bg-[#140152]/5 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Music2 className="w-4 h-4 text-[#140152]" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-[#140152] truncate">{song.title}</p>
+                              <p className="text-xs text-gray-400">{song.category} · {song.key}</p>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.color}`}>
+                              {cfg.label}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                  <button onClick={() => navigate('events')} className="text-purple-600 hover:text-purple-800 transition-colors"><ChevronRight className="w-5 h-5" /></button>
-                </div>
+                ) : (
+                  <div className="bg-[#140152]/5 border border-[#140152]/10 rounded-2xl p-6 text-center">
+                    <Music2 className="w-10 h-10 mx-auto mb-3 text-[#140152] opacity-40" />
+                    <p className="font-bold text-[#140152] mb-1">Song library is empty</p>
+                    <p className="text-sm text-gray-500">The choir director will add songs here. Check back soon!</p>
+                  </div>
+                )}
 
                 {/* Quick Actions */}
                 <div>
                   <h3 className="font-bold text-[#140152] mb-4 text-lg">Quick Actions</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {[
-                      { label: 'Mark Attendance', icon: CheckCircle2, color: 'bg-green-500', action: () => navigate('attendance') },
-                      { label: 'View Song Library', icon: Music, color: 'bg-purple-600', action: () => navigate('songs') },
-                      { label: 'Download Music', icon: Download, color: 'bg-blue-600', action: () => navigate('songs') },
-                      { label: 'Confirm Availability', icon: ThumbsUp, color: 'bg-amber-500', action: () => navigate('tasks') },
-                      { label: 'Rehearsal Schedule', icon: Calendar, color: 'bg-red-500', action: () => navigate('events') },
-                      { label: 'View Announcements', icon: Bell, color: 'bg-indigo-600', action: () => navigate('announcements') },
+                      { label: 'Song Library',       icon: Music,        color: 'bg-purple-600', action: () => navigate('songs')         },
+                      { label: 'Group Chat',         icon: MessageSquare,color: 'bg-[#140152]', action: () => navigate('chat')          },
+                      { label: 'Notices',            icon: Bell,         color: 'bg-indigo-600', action: () => navigate('announcements') },
+                      { label: 'Attendance',         icon: BarChart2,    color: 'bg-green-500',  action: () => navigate('attendance')   },
+                      { label: 'My Tasks',           icon: CheckSquare,  color: 'bg-amber-500',  action: () => navigate('tasks')        },
+                      { label: 'Members',            icon: Users,        color: 'bg-pink-500',   action: () => navigate('members')      },
                     ].map((a, i) => (
                       <button key={i} onClick={a.action}
                         className="flex flex-col items-center gap-3 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#140152]/20 transition-all group text-center">
@@ -833,20 +867,15 @@ export default function ChoirDashboard() {
                   </div>
                 </div>
 
-                {/* Recent announcements preview */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-[#140152] text-lg">Latest Notices</h3>
-                    <button onClick={() => navigate('announcements')} className="text-sm text-[#140152] font-semibold hover:underline">View all</button>
-                  </div>
-                  <div className="space-y-3">
-                    {MOCK_ANNOUNCEMENTS.length === 0 ? (
-                      <div className="text-center py-8 text-gray-400">
-                        <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                        <p className="text-sm">No notices yet. Check back after the coordinator posts.</p>
-                      </div>
-                    ) : (
-                      MOCK_ANNOUNCEMENTS.slice(0, 2).map(a => (
+                {/* Latest notices — only show if there are real notices */}
+                {MOCK_ANNOUNCEMENTS.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-[#140152] text-lg">Latest Notices</h3>
+                      <button onClick={() => navigate('announcements')} className="text-sm text-[#140152] font-semibold hover:underline">View all</button>
+                    </div>
+                    <div className="space-y-3">
+                      {MOCK_ANNOUNCEMENTS.slice(0, 2).map(a => (
                         <div key={a.id} className={`p-4 rounded-2xl border ${a.urgent ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
                           <div className="flex items-start gap-3">
                             {a.urgent && <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />}
@@ -856,10 +885,10 @@ export default function ChoirDashboard() {
                             </div>
                           </div>
                         </div>
-                      ))
-                    )}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </motion.div>
             )}
 
