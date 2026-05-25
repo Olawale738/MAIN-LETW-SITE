@@ -328,7 +328,7 @@ export default function YouthLeaderDashboard() {
     try {
       await updateMember(DEPT, m.user_id, { is_active: true })
       toast$(`${m.name} approved`)
-      setMembers(await listMembers(DEPT))
+      setMembers(prev => prev.map(x => x.user_id === m.user_id ? { ...x, is_active: true } : x))
     } catch (err: unknown) {
       toast$((err as Error).message || 'Failed to approve', false)
     }
@@ -339,7 +339,7 @@ export default function YouthLeaderDashboard() {
     try {
       await removeMember(DEPT, m.user_id)
       toast$(`${m.name} declined and removed`)
-      setMembers(await listMembers(DEPT))
+      setMembers(prev => prev.filter(x => x.user_id !== m.user_id))
     } catch (err: unknown) {
       toast$((err as Error).message || 'Failed to decline', false)
     }

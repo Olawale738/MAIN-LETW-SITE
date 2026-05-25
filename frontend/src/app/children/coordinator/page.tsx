@@ -202,7 +202,7 @@ export default function ChildrenCoordinatorPage() {
     try {
       await updateMember(DEPT, m.user_id, { is_active: true })
       notify(`${m.name} approved ✓`)
-      await loadAll()
+      setMembers(prev => prev.map(x => x.user_id === m.user_id ? { ...x, is_active: true } : x))
     } catch { notify('Approval failed', false) }
     finally { setBusy(false) }
   }
@@ -213,7 +213,7 @@ export default function ChildrenCoordinatorPage() {
     try {
       await removeMember(DEPT, m.user_id)
       notify(`Enrolment declined`)
-      await loadAll()
+      setMembers(prev => prev.filter(x => x.user_id !== m.user_id))
     } catch { notify('Failed to decline', false) }
     finally { setBusy(false) }
   }
