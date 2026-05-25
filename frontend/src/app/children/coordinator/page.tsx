@@ -223,7 +223,7 @@ export default function ChildrenCoordinatorPage() {
     try {
       await updateMember(DEPT, m.user_id, { is_active: !m.is_active })
       notify(m.is_active ? 'Deactivated' : 'Activated')
-      await loadAll()
+      setMembers(prev => prev.map(x => x.user_id === m.user_id ? { ...x, is_active: !m.is_active } : x))
     } catch { notify('Update failed', false) }
     finally { setBusy(false) }
   }
@@ -244,7 +244,7 @@ export default function ChildrenCoordinatorPage() {
     try {
       await removeMember(DEPT, m.user_id)
       notify('Child removed')
-      await loadAll()
+      setMembers(prev => prev.filter(x => x.user_id !== m.user_id))
     } catch { notify('Failed to remove', false) }
     finally { setBusy(false) }
   }

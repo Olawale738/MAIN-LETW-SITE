@@ -307,7 +307,7 @@ export default function YouthLeaderDashboard() {
     try {
       await updateMember(DEPT, m.user_id, { is_active: !m.is_active })
       toast$(m.is_active ? 'Member deactivated' : 'Member activated')
-      setMembers(await listMembers(DEPT))
+      setMembers(prev => prev.map(x => x.user_id === m.user_id ? { ...x, is_active: !m.is_active } : x))
     } catch (err: unknown) {
       toast$((err as Error).message || 'Failed to update', false)
     }
@@ -318,7 +318,7 @@ export default function YouthLeaderDashboard() {
     try {
       await removeMember(DEPT, m.user_id)
       toast$('Member removed')
-      setMembers(await listMembers(DEPT))
+      setMembers(prev => prev.filter(x => x.user_id !== m.user_id))
     } catch (err: unknown) {
       toast$((err as Error).message || 'Failed to remove', false)
     }
