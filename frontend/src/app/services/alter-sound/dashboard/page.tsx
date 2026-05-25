@@ -11,6 +11,7 @@ import {
   ArrowRight, Loader2, Globe, Crown, ChevronDown
 } from 'lucide-react'
 import { alterSoundApi, AudioTrack } from '@/lib/api'
+import type { DeptAnnouncement, DeptActivity, MyAttendanceRow } from '@/lib/dept-api'
 
 /* ═══════════════════════════════════════════════════════════════
    TYPES
@@ -85,6 +86,8 @@ function loadSession(): MemberSession | null {
 }
 function saveSession(s: MemberSession) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(s))
+  // Persist voice preference so JWT auto-login can restore it
+  try { localStorage.setItem('letw_choir_voice', s.voice) } catch { /* ok */ }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -303,12 +306,50 @@ export default function AlterSoundDashboard() {
   const [unreadChat, setUnreadChat]   = useState(0)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
 
+  /* ── Dept API data (requires JWT) ── */
+  const [deptAnnouncements, setDeptAnnouncements] = useState<DeptAnnouncement[]>([])
+  const [deptActivities, setDeptActivities]       = useState<DeptActivity[]>([])
+  const [myAttendanceRows, setMyAttendanceRows]   = useState<MyAttendanceRow[]>([])
+  const [deptDataLoading, setDeptDataLoading]     = useState(false)
+
   const chatBottomRef     = useRef<HTMLDivElement|null>(null)
   const chatLatestRef     = useRef('')
   const audioRef          = useRef<HTMLAudioElement|null>(null)
 
   /* ─── Keep ref in sync ─── */
   useEffect(() => { sessionRef.current = session }, [session])
+
+  /* ─── JWT auto-login: if user is already signed in site-wide, skip the gate ─── */
+  useEffect(() => {
+    if (session) return
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+    if (!token) return
+    import('@/lib/dept-api').then(({ getCurrentUser }) =>
+      getCurrentUser().then(user => {
+        const voicePref = localStorage.getItem('letw_choir_voice') as MemberSession['voice'] | null
+        const voice: MemberSession['voice'] = (voicePref && ['Soprano','Alto','Tenor','Bass'].includes(voicePref))
+          ? voicePref : 'Soprano'
+        const initials = user.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)
+        const s: MemberSession = { name: user.name, initials, voice, role: 'Choir Member', avatar: VOICE_COLOR[voice] }
+        saveSession(s); setSession(s)
+      }).catch(() => { /* no valid token, show LoginGate */ })
+    )
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ─── Fetch dept API data whenever session is established ─── */
+  useEffect(() => {
+    if (!session) return
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+    if (!token) return
+    setDeptDataLoading(true)
+    import('@/lib/dept-api').then(({ listAnnouncements, listActivities, myAttendance }) =>
+      Promise.allSettled([
+        listAnnouncements('choir').then(setDeptAnnouncements),
+        listActivities('choir').then(setDeptActivities),
+        myAttendance('choir').then(setMyAttendanceRows),
+      ]).finally(() => setDeptDataLoading(false))
+    )
+  }, [session?.initials]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ─── Load roster ─── */
   useEffect(() => {
@@ -1159,15 +1200,34 @@ export default function AlterSoundDashboard() {
                     ← More
                   </button>
                   <h2 className="font-black text-[#140152] text-lg mb-3">Announcements</h2>
-                  <div className="bg-[#140152]/5 rounded-2xl px-4 py-3 flex items-center gap-2 mb-2">
-                    <MessageSquare className="w-4 h-4 text-[#140152] flex-shrink-0" />
-                    <p className="text-xs text-[#140152] font-medium">Tap <strong>Reply</strong> to send a message directly to the Choir Director.</p>
-                  </div>
-                  <div className="bg-white rounded-3xl border border-dashed border-gray-200 py-14 text-center">
-                    <Bell className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                    <p className="font-semibold text-gray-400 mb-1">No announcements yet</p>
-                    <p className="text-xs text-gray-400">The choir director will post notices here.</p>
-                  </div>
+                  {deptDataLoading ? (
+                    <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-[#140152]" /></div>
+                  ) : deptAnnouncements.length === 0 ? (
+                    <div className="bg-white rounded-3xl border border-dashed border-gray-200 py-14 text-center">
+                      <Bell className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                      <p className="font-semibold text-gray-400 mb-1">No announcements yet</p>
+                      <p className="text-xs text-gray-400">The choir director will post notices here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {deptAnnouncements.map(ann => (
+                        <div key={ann.id} className={`bg-white rounded-3xl border p-5 shadow-sm ${ann.is_urgent ? 'border-red-200' : ann.is_pinned ? 'border-[#f5bb00]/50' : 'border-gray-100'}`}>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h4 className="font-black text-[#140152] text-sm leading-tight">{ann.title}</h4>
+                            <div className="flex gap-1 flex-shrink-0">
+                              {ann.is_urgent && <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Urgent</span>}
+                              {ann.is_pinned && <span className="text-[10px] font-bold bg-[#f5bb00]/20 text-[#140152] px-2 py-0.5 rounded-full">Pinned</span>}
+                            </div>
+                          </div>
+                          <p className="text-gray-600 text-xs leading-relaxed mb-3">{ann.body}</p>
+                          <div className="flex items-center justify-between text-[10px] text-gray-400">
+                            <span>{ann.author_name || 'Choir Director'}</span>
+                            <span>{new Date(ann.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
 
@@ -1178,11 +1238,39 @@ export default function AlterSoundDashboard() {
                     ← More
                   </button>
                   <h2 className="font-black text-[#140152] text-lg mb-3">Events & Rehearsals</h2>
-                  <div className="bg-white rounded-3xl border border-dashed border-gray-200 py-14 text-center">
-                    <Calendar className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                    <p className="font-semibold text-gray-400 mb-1">No events scheduled</p>
-                    <p className="text-xs text-gray-400">The coordinator will add upcoming rehearsals and services here.</p>
-                  </div>
+                  {deptDataLoading ? (
+                    <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-[#140152]" /></div>
+                  ) : deptActivities.length === 0 ? (
+                    <div className="bg-white rounded-3xl border border-dashed border-gray-200 py-14 text-center">
+                      <Calendar className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                      <p className="font-semibold text-gray-400 mb-1">No events scheduled</p>
+                      <p className="text-xs text-gray-400">The choir director will add upcoming rehearsals and services here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {deptActivities.map(act => (
+                        <div key={act.id} className="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm">
+                          <div className="flex items-start gap-3">
+                            <div className="w-12 h-12 bg-[#140152]/5 rounded-2xl flex items-center justify-center flex-shrink-0">
+                              <Calendar className="w-6 h-6 text-[#140152]" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <h4 className="font-black text-[#140152] text-sm">{act.title}</h4>
+                                <span className="text-[10px] font-bold bg-[#f5bb00]/20 text-[#140152] px-2 py-0.5 rounded-full capitalize">{act.activity_type}</span>
+                              </div>
+                              {act.description && <p className="text-xs text-gray-500 leading-relaxed mb-2">{act.description}</p>}
+                              <div className="flex flex-wrap gap-3 text-[10px] text-gray-400">
+                                {act.activity_date && <span>📅 {new Date(act.activity_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</span>}
+                                {act.activity_time && <span>🕐 {act.activity_time}</span>}
+                                {act.venue && <span>📍 {act.venue}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
 
@@ -1250,12 +1338,57 @@ export default function AlterSoundDashboard() {
                   <button onClick={() => setMoreSection(null)} className="flex items-center gap-1.5 text-sm font-bold text-[#140152] mb-1 hover:underline">
                     ← More
                   </button>
-                  <h2 className="font-black text-[#140152] text-lg mb-3">Attendance</h2>
-                  <div className="bg-white rounded-3xl border border-dashed border-gray-200 py-14 text-center">
-                    <BarChart2 className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                    <p className="font-semibold text-gray-400 mb-1">No attendance records yet</p>
-                    <p className="text-xs text-gray-400">Your choir director will log attendance after each session.</p>
-                  </div>
+                  <h2 className="font-black text-[#140152] text-lg mb-3">My Attendance</h2>
+
+                  {/* Summary stats */}
+                  {myAttendanceRows.length > 0 && (() => {
+                    const present = myAttendanceRows.filter(r => r.present).length
+                    const pct = Math.round((present / myAttendanceRows.length) * 100)
+                    return (
+                      <div className="grid grid-cols-3 gap-3 mb-4">
+                        {[
+                          { label: 'Sessions', val: myAttendanceRows.length, color: 'text-[#140152]', bg: 'bg-[#140152]/5' },
+                          { label: 'Present',  val: present,                  color: 'text-green-600', bg: 'bg-green-50'    },
+                          { label: 'Rate',     val: `${pct}%`,                color: pct>=80?'text-green-600':pct>=60?'text-amber-600':'text-red-600', bg: pct>=80?'bg-green-50':pct>=60?'bg-amber-50':'bg-red-50' },
+                        ].map((s, i) => (
+                          <div key={i} className={`${s.bg} rounded-2xl p-4 text-center`}>
+                            <p className={`text-2xl font-black ${s.color}`}>{s.val}</p>
+                            <p className="text-gray-400 text-[10px] mt-0.5">{s.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
+
+                  {deptDataLoading ? (
+                    <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-[#140152]" /></div>
+                  ) : myAttendanceRows.length === 0 ? (
+                    <div className="bg-white rounded-3xl border border-dashed border-gray-200 py-14 text-center">
+                      <BarChart2 className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                      <p className="font-semibold text-gray-400 mb-1">No attendance records yet</p>
+                      <p className="text-xs text-gray-400">Your choir director will log attendance after each session.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {myAttendanceRows.map((row, i) => (
+                        <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3 shadow-sm">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${row.present ? 'bg-green-100' : 'bg-red-50'}`}>
+                            {row.present
+                              ? <CheckCircle2 className="w-5 h-5 text-green-600" />
+                              : <AlertCircle  className="w-5 h-5 text-red-400"   />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-[#140152] text-sm truncate">{row.session_label}</p>
+                            <p className="text-[10px] text-gray-400">{new Date(row.session_date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</p>
+                            {row.notes && <p className="text-[10px] text-gray-500 mt-0.5 italic">{row.notes}</p>}
+                          </div>
+                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${row.present ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-500'}`}>
+                            {row.present ? 'Present' : 'Absent'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
 
