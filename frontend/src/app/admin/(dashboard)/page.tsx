@@ -3,13 +3,17 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Video, Calendar, Users, Activity, TrendingUp, Megaphone, Loader2, FileText, Clock, User, ArrowRight, BookOpen, Music, Briefcase, HandHeart, Settings, Crown, Baby, Zap } from 'lucide-react'
+import { Video, Calendar, Users, Activity, TrendingUp, Megaphone, Loader2, FileText, Clock, User, ArrowRight, BookOpen, Music, Briefcase, HandHeart, Settings, Crown, Baby, Zap, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 import { dashboardApi, DashboardStats, RecentActivity } from '@/lib/api'
+import { listMembers, updateMember, removeMember, DeptMember } from '@/lib/dept-api'
 
 export default function AdminDashboardPage() {
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [activities, setActivities] = useState<RecentActivity[]>([])
     const [loading, setLoading] = useState(true)
+    const [pendingYouth, setPendingYouth] = useState<DeptMember[]>([])
+    const [pendingChildren, setPendingChildren] = useState<DeptMember[]>([])
+    const [approvingId, setApprovingId] = useState<string | null>(null)
 
     useEffect(() => {
         loadDashboardData()
@@ -17,16 +21,46 @@ export default function AdminDashboardPage() {
 
     const loadDashboardData = async () => {
         try {
-            const [statsData, activityData] = await Promise.all([
+            const [statsData, activityData, youthMembers, childrenMembers] = await Promise.all([
                 dashboardApi.getStats(),
-                dashboardApi.getRecentActivity(5)
+                dashboardApi.getRecentActivity(5),
+                listMembers('youth').catch(() => [] as DeptMember[]),
+                listMembers('children').catch(() => [] as DeptMember[]),
             ])
             setStats(statsData)
             setActivities(activityData.activities)
+            setPendingYouth(youthMembers.filter(m => !m.is_active))
+            setPendingChildren(childrenMembers.filter(m => !m.is_active))
         } catch (err) {
             console.error('Failed to load dashboard data', err)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const approveMember = async (dept: 'youth' | 'children', member: DeptMember) => {
+        setApprovingId(member.user_id)
+        try {
+            await updateMember(dept, member.user_id, { is_active: true })
+            if (dept === 'youth') setPendingYouth(p => p.filter(m => m.user_id !== member.user_id))
+            else setPendingChildren(p => p.filter(m => m.user_id !== member.user_id))
+        } catch (err) {
+            console.error('Approval failed', err)
+        } finally {
+            setApprovingId(null)
+        }
+    }
+
+    const declineMember = async (dept: 'youth' | 'children', member: DeptMember) => {
+        setApprovingId(member.user_id + '-decline')
+        try {
+            await removeMember(dept, member.user_id)
+            if (dept === 'youth') setPendingYouth(p => p.filter(m => m.user_id !== member.user_id))
+            else setPendingChildren(p => p.filter(m => m.user_id !== member.user_id))
+        } catch (err) {
+            console.error('Decline failed', err)
+        } finally {
+            setApprovingId(null)
         }
     }
 
@@ -224,6 +258,119 @@ export default function AdminDashboardPage() {
                     </Card>
                 </Link>
             </div>
+
+            {/* Pending Ministry Approvals */}
+            {(pendingYouth.length > 0 || pendingChildren.length > 0) && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-500" />
+                        <h2 className="text-2xl font-bold text-[#140152]">Pending Ministry Approvals</h2>
+                        <span className="bg-amber-100 text-amber-800 text-xs font-black px-2.5 py-1 rounded-full">
+                            {pendingYouth.length + pendingChildren.length} waiting
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Youth Pending */}
+                        {pendingYouth.length > 0 && (
+                            <Card className="border-none shadow-md border-t-4 border-t-amber-500">
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                                                <Zap className="w-4 h-4 text-amber-600" />
+                                            </div>
+                                            <CardTitle className="text-base text-[#140152]">Youth Ministry</CardTitle>
+                                        </div>
+                                        <span className="text-xs bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">{pendingYouth.length} pending</span>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {pendingYouth.map(member => (
+                                        <div key={member.user_id} className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-bold text-[#140152] truncate">{member.name}</p>
+                                                <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2 ml-3 shrink-0">
+                                                <Button
+                                                    size="sm"
+                                                    disabled={!!approvingId}
+                                                    onClick={() => approveMember('youth', member)}
+                                                    className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 h-8"
+                                                >
+                                                    {approvingId === member.user_id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><CheckCircle className="w-3 h-3 mr-1" />Approve</>}
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    disabled={!!approvingId}
+                                                    onClick={() => declineMember('youth', member)}
+                                                    className="border-red-200 text-red-600 hover:bg-red-50 text-xs px-3 h-8"
+                                                >
+                                                    {approvingId === member.user_id + '-decline' ? <Loader2 className="w-3 h-3 animate-spin" /> : <><XCircle className="w-3 h-3 mr-1" />Decline</>}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <Link href="/youth/coordinator" className="flex items-center gap-1 text-xs text-amber-600 hover:underline font-medium pt-1">
+                                        View all in Youth Leader Dashboard <ArrowRight className="w-3 h-3" />
+                                    </Link>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Children Pending */}
+                        {pendingChildren.length > 0 && (
+                            <Card className="border-none shadow-md border-t-4 border-t-violet-500">
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+                                                <Baby className="w-4 h-4 text-violet-600" />
+                                            </div>
+                                            <CardTitle className="text-base text-[#140152]">Children Ministry</CardTitle>
+                                        </div>
+                                        <span className="text-xs bg-violet-100 text-violet-700 font-bold px-2 py-0.5 rounded-full">{pendingChildren.length} pending</span>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {pendingChildren.map(member => (
+                                        <div key={member.user_id} className="flex items-center justify-between bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-bold text-[#140152] truncate">{member.name}</p>
+                                                <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2 ml-3 shrink-0">
+                                                <Button
+                                                    size="sm"
+                                                    disabled={!!approvingId}
+                                                    onClick={() => approveMember('children', member)}
+                                                    className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 h-8"
+                                                >
+                                                    {approvingId === member.user_id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><CheckCircle className="w-3 h-3 mr-1" />Approve</>}
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    disabled={!!approvingId}
+                                                    onClick={() => declineMember('children', member)}
+                                                    className="border-red-200 text-red-600 hover:bg-red-50 text-xs px-3 h-8"
+                                                >
+                                                    {approvingId === member.user_id + '-decline' ? <Loader2 className="w-3 h-3 animate-spin" /> : <><XCircle className="w-3 h-3 mr-1" />Decline</>}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <Link href="/children/coordinator" className="flex items-center gap-1 text-xs text-violet-600 hover:underline font-medium pt-1">
+                                        View all in Coordinator Dashboard <ArrowRight className="w-3 h-3" />
+                                    </Link>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Ministry Departments */}
             <div className="space-y-4">

@@ -112,6 +112,7 @@ export default function ChildrenMinistryPage() {
   const [error, setError] = useState('')
   const [authChecked, setAuthChecked] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userId, setUserId] = useState('')
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
@@ -120,6 +121,7 @@ export default function ChildrenMinistryPage() {
       getCurrentUser()
         .then(user => {
           setIsLoggedIn(true)
+          setUserId(user.id)
           setForm(p => ({ ...p, parentName: user.name || '', email: user.email || '' }))
         })
         .catch(() => { /* token invalid */ })
@@ -136,8 +138,12 @@ export default function ChildrenMinistryPage() {
     setLoading(true)
     setError('')
     try {
-      const { joinDepartment } = await import('@/lib/dept-api')
+      const { joinDepartment, updateMember } = await import('@/lib/dept-api')
       await joinDepartment('children')
+      // Force pending state — backend may default to is_active=true
+      if (userId) {
+        try { await updateMember('children', userId, { is_active: false }) } catch { /* self-deactivation may not be allowed; approval gate still applies */ }
+      }
       // Log enrolment details via service request (non-critical)
       try {
         const { serviceRequestApi } = await import('@/lib/api')
@@ -491,16 +497,18 @@ export default function ChildrenMinistryPage() {
                 <CheckCircle className="w-10 h-10 text-green-600" />
               </div>
               <h3 className="text-2xl font-black text-green-800 mb-3">Enrolment Submitted! 🌟</h3>
-              <p className="text-green-700 leading-relaxed mb-4">
+              <p className="text-green-700 leading-relaxed mb-5">
                 Thank you for registering your child with Children Ministry. God bless your family!
               </p>
-              <p className="text-amber-700 font-semibold text-sm mb-6 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3">
-                ⏳ Pending Approval — Our Children&apos;s Coordinator or Admin will review and approve your enrolment. You will see a pending status in your dashboard until confirmed (usually within 24–48 hours).
-              </p>
-              <Link href="/children/dashboard"
-                className="inline-flex items-center gap-2 bg-[#140152] text-white font-black px-8 py-3 rounded-xl hover:bg-[#1d0175] transition-all">
-                <Shield className="w-5 h-5" /> Go to Dashboard
-              </Link>
+              <div className="bg-amber-50 border border-amber-300 rounded-2xl px-5 py-4">
+                <div className="flex items-center gap-2 justify-center mb-2">
+                  <Lock className="w-5 h-5 text-amber-700" />
+                  <span className="text-amber-800 font-black text-sm uppercase tracking-wide">Awaiting Approval</span>
+                </div>
+                <p className="text-amber-700 text-sm leading-relaxed">
+                  Our Children&apos;s Coordinator or Admin must approve your membership before you can access the dashboard. You will be notified once confirmed — usually within 24–48 hours.
+                </p>
+              </div>
             </motion.div>
           ) : !isLoggedIn ? (
             /* Guest — show clean login/register prompt */

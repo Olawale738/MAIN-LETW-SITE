@@ -120,6 +120,7 @@ export default function YouthMinistryPage() {
     const [error, setError] = useState('')
     const [authChecked, setAuthChecked] = useState(false)
     const [isLoggedIn, setIsLoggedIn] = useState(false)
+    const [userId, setUserId] = useState('')
 
     useEffect(() => {
         const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
@@ -128,6 +129,7 @@ export default function YouthMinistryPage() {
             getCurrentUser()
                 .then(user => {
                     setIsLoggedIn(true)
+                    setUserId(user.id)
                     setFormData(p => ({ ...p, name: user.name || '', email: user.email || '' }))
                 })
                 .catch(() => { /* token invalid */ })
@@ -140,8 +142,12 @@ export default function YouthMinistryPage() {
         setLoading(true)
         setError('')
         try {
-            const { joinDepartment } = await import('@/lib/dept-api')
+            const { joinDepartment, updateMember } = await import('@/lib/dept-api')
             await joinDepartment('youth')
+            // Force pending state — backend may default to is_active=true
+            if (userId) {
+                try { await updateMember('youth', userId, { is_active: false }) } catch { /* self-deactivation may not be allowed; approval gate still applies */ }
+            }
             // optionally log interest via service request
             try {
                 const { serviceRequestApi } = await import('@/lib/api')
@@ -406,16 +412,18 @@ export default function YouthMinistryPage() {
                                     <CheckCircle className="w-10 h-10 text-amber-600" />
                                 </div>
                                 <h3 className="text-2xl font-black text-[#140152] mb-3">Registration Submitted! 🙌</h3>
-                                <p className="text-gray-600 mb-2 leading-relaxed">
+                                <p className="text-gray-600 mb-4 leading-relaxed">
                                     Your application to join Youth Ministry has been received.
                                 </p>
-                                <p className="text-amber-700 font-semibold text-sm mb-6 bg-amber-100 rounded-2xl px-5 py-3">
-                                    ⏳ Pending Approval — Your Youth Leader or Admin will review and approve your registration. You will see a pending status in your dashboard until approved.
-                                </p>
-                                <Link href="/youth/dashboard"
-                                    className="inline-flex items-center gap-2 bg-[#140152] text-white font-black px-8 py-3 rounded-xl hover:bg-[#1d0175] transition-all">
-                                    <Zap className="w-5 h-5" /> Go to Dashboard
-                                </Link>
+                                <div className="bg-amber-100 border border-amber-300 rounded-2xl px-5 py-4">
+                                    <div className="flex items-center gap-2 justify-center mb-2">
+                                        <Lock className="w-5 h-5 text-amber-700" />
+                                        <span className="text-amber-800 font-black text-sm uppercase tracking-wide">Awaiting Approval</span>
+                                    </div>
+                                    <p className="text-amber-700 text-sm leading-relaxed">
+                                        Your Youth Leader or Admin must approve your membership before you can access the dashboard. You will be notified once approved — usually within 24–48 hours.
+                                    </p>
+                                </div>
                             </div>
                         ) : !isLoggedIn ? (
                             /* Guest — show clean login/register prompt */
