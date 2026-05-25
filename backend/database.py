@@ -76,18 +76,46 @@ async def get_db():
 
 
 async def init_db():
-    """Create all database tables."""
+    """Create all database tables and patch any missing columns on existing tables."""
     print("[init_db] Initializing database tables...", flush=True)
     print(f"[init_db] Tables registered in metadata: {sorted(Base.metadata.tables.keys())}", flush=True)
     try:
         async with engine.connect() as conn:
             from sqlalchemy import text
+
             result = await conn.execute(text("SELECT current_database(), current_schema()"))
             row = result.fetchone()
             print(f"[init_db] Connected to database='{row[0]}' schema='{row[1]}'", flush=True)
+
+            # Create any tables that don't exist yet
             await conn.run_sync(Base.metadata.create_all)
             await conn.commit()
-        print("[init_db] Database tables created successfully", flush=True)
+
+            # ── Patch missing columns on the manually-created `users` table ──
+            # These columns were added to the model after the table was created by hand.
+            missing_columns: list[tuple[str, str]] = [
+                ("users", "services",    "JSONB NOT NULL DEFAULT '[]'::jsonb"),
+                ("users", "avatar_url",  "VARCHAR(500)"),
+                ("users", "bio",         "TEXT"),
+                ("users", "phone",       "VARCHAR(40)"),
+                ("users", "location",    "VARCHAR(255)"),
+                ("users", "updated_at",  "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
+            ]
+
+            for table, column, col_def in missing_columns:
+                check = await conn.execute(text(
+                    "SELECT 1 FROM information_schema.columns "
+                    "WHERE table_schema = 'public' "
+                    "AND table_name = :tbl AND column_name = :col"
+                ), {"tbl": table, "col": column})
+                if check.fetchone() is None:
+                    print(f"[init_db] Adding missing column {table}.{column}", flush=True)
+                    await conn.execute(text(
+                        f'ALTER TABLE public."{table}" ADD COLUMN IF NOT EXISTS {column} {col_def}'
+                    ))
+                    await conn.commit()
+
+        print("[init_db] Database tables initialised successfully", flush=True)
     except Exception as e:
         print(f"[init_db] ERROR: {type(e).__name__}: {e}", flush=True)
         raise

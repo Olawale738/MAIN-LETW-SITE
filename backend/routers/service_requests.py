@@ -149,8 +149,9 @@ async def create_service_requests(
             db.add(service_request)
         
         # Notify admins about new requests
+        from models.user import UserRole
         admin_result = await db.execute(
-            select(User).where(User.role == "admin")
+            select(User).where(User.role == UserRole.ADMIN)
         )
         admins = admin_result.scalars().all()
         
