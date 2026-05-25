@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
@@ -8,7 +9,7 @@ import {
   ChevronRight, Send, Play, Pause, Volume2, Search, LogOut,
   BookOpen, Download, BarChart2, CheckSquare, Star, Calendar,
   Heart, Mic2, CheckCircle2, AlertCircle,
-  ArrowRight, Loader2, Globe, Crown, ChevronDown
+  Loader2, Globe, Crown, ChevronDown
 } from 'lucide-react'
 import { alterSoundApi, AudioTrack } from '@/lib/api'
 import type { DeptAnnouncement, DeptActivity, MyAttendanceRow } from '@/lib/dept-api'
@@ -64,30 +65,22 @@ const STATUS_CFG = {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SESSION
+   PROFILE (JWT-sourced)
 ═══════════════════════════════════════════════════════════════ */
 interface MemberSession {
   name: string; initials: string
   voice: 'Soprano' | 'Alto' | 'Tenor' | 'Bass'; role: string; avatar: string
 }
-const SESSION_KEY = 'letw_choir_member_session'
 
-function loadSession(): MemberSession | null {
-  if (typeof window === 'undefined') return null
+function getVoicePref(): MemberSession['voice'] {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY)
-    if (!raw) return null
-    const s = JSON.parse(raw)
-    if (!s?.name || !s?.initials || !['Soprano','Alto','Tenor','Bass'].includes(s?.voice)) {
-      sessionStorage.removeItem(SESSION_KEY); return null
-    }
-    return s as MemberSession
-  } catch { return null }
+    const v = localStorage.getItem('letw_choir_voice')
+    if (v && ['Soprano','Alto','Tenor','Bass'].includes(v)) return v as MemberSession['voice']
+  } catch { /* ok */ }
+  return 'Soprano'
 }
-function saveSession(s: MemberSession) {
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(s))
-  // Persist voice preference so JWT auto-login can restore it
-  try { localStorage.setItem('letw_choir_voice', s.voice) } catch { /* ok */ }
+function saveVoicePref(v: MemberSession['voice']) {
+  try { localStorage.setItem('letw_choir_voice', v) } catch { /* ok */ }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -99,161 +92,6 @@ function loadHighlights(): Highlight[] {
 }
 function saveHighlights(h: Highlight[]) {
   localStorage.setItem('letw_choir_highlights', JSON.stringify(h))
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   LOGIN GATE
-═══════════════════════════════════════════════════════════════ */
-interface RosterEntry { id:string; name:string; initials:string; voice:string; role?:string; active:boolean }
-
-function LoginGate({ apiBase, onLogin }: { apiBase:string; onLogin:(s:MemberSession)=>void }) {
-  const [roster, setRoster]         = useState<RosterEntry[]>([])
-  const [loading, setLoading]       = useState(true)
-  const [selectedId, setSelectedId] = useState('')
-  const [guestName, setGuestName]   = useState('')
-  const [guestVoice, setGuestVoice] = useState<MemberSession['voice']>('Soprano')
-  const [guestMode, setGuestMode]   = useState(false)
-  const [err, setErr]               = useState('')
-
-  useEffect(() => {
-    fetch(`${apiBase}/choir-chat/roster`)
-      .then(r => r.json())
-      .then((d: RosterEntry[]) => {
-        setRoster(Array.isArray(d) ? d.filter(m => m.active) : [])
-        setLoading(false)
-      })
-      .catch(() => { setLoading(false); setGuestMode(true) })
-  }, [apiBase])
-
-  const enter = () => {
-    let session: MemberSession
-    if (!guestMode && selectedId) {
-      const m = roster.find(x => x.id === selectedId)
-      if (!m) { setErr('Please select your name'); return }
-      session = { name: m.name, initials: m.initials, voice: m.voice as MemberSession['voice'],
-        role: m.role || 'Choir Member', avatar: VOICE_COLOR[m.voice] || '#7c3aed' }
-    } else {
-      const name = guestName.trim()
-      if (!name) { setErr('Please enter your name'); return }
-      const initials = name.split(' ').map((w:string) => w[0]).join('').toUpperCase().slice(0,2)
-      session = { name, initials, voice: guestVoice, role: 'Choir Member', avatar: VOICE_COLOR[guestVoice] }
-    }
-    saveSession(session); onLogin(session)
-  }
-
-  const sel = roster.find(m => m.id === selectedId)
-
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4"
-      style={{ background: 'linear-gradient(160deg,#0d0035 0%,#1e0050 45%,#2a006b 100%)' }}>
-
-      {/* Decorative rings */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/5" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full border border-white/5" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] rounded-full border border-white/10" />
-      </div>
-
-      <div className="relative w-full max-w-sm">
-        {/* Brand */}
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-[#f5bb00] rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-[0_0_40px_rgba(245,187,0,0.4)]">
-            <Flame className="w-10 h-10 text-[#140152]" />
-          </div>
-          <h1 className="text-3xl font-black text-white tracking-wide">ALTER SOUND</h1>
-          <p className="text-white/50 text-sm mt-1 tracking-widest uppercase">Member Portal</p>
-        </div>
-
-        {/* Card */}
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-          <div className="h-1.5 w-full" style={{ background: 'linear-gradient(90deg,#7c3aed,#db2777,#2563eb,#16a34a)' }} />
-          <div className="p-7">
-            <h2 className="font-black text-[#140152] text-xl mb-1">Welcome!</h2>
-            <p className="text-gray-500 text-sm mb-6">Identify yourself to access your choir portal.</p>
-
-            {loading ? (
-              <div className="flex items-center justify-center py-8 gap-2 text-gray-400">
-                <Loader2 className="w-5 h-5 animate-spin text-[#140152]" />
-                <span className="text-sm">Loading roster…</span>
-              </div>
-            ) : !guestMode && roster.length > 0 ? (
-              <>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select your name</label>
-                <select value={selectedId} onChange={e => { setSelectedId(e.target.value); setErr('') }}
-                  className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl text-sm focus:ring-0 focus:border-[#140152] outline-none mb-4 bg-white transition-colors">
-                  <option value="">— Choose your name —</option>
-                  {roster.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}  ({m.voice})</option>
-                  ))}
-                </select>
-
-                {sel && (
-                  <div className="flex items-center gap-3 rounded-2xl px-4 py-3 mb-4 border-2"
-                    style={{ borderColor: VOICE_COLOR[sel.voice]+'33', backgroundColor: VOICE_COLOR[sel.voice]+'0D' }}>
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-                      style={{ background: VOICE_COLOR[sel.voice] }}>
-                      {sel.initials}
-                    </div>
-                    <div>
-                      <p className="font-bold text-[#140152] text-sm">{sel.name}</p>
-                      <p className="text-xs text-gray-500">{sel.voice}{sel.role ? ` · ${sel.role}` : ''}</p>
-                    </div>
-                    <CheckCircle2 className="w-5 h-5 ml-auto flex-shrink-0" style={{ color: VOICE_COLOR[sel.voice] }} />
-                  </div>
-                )}
-
-                <button onClick={() => setGuestMode(true)} className="text-xs text-gray-400 hover:text-gray-600 underline mb-5 block">
-                  My name isn&apos;t listed — enter as guest
-                </button>
-              </>
-            ) : (
-              <>
-                {roster.length === 0 && !loading && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4">
-                    <p className="text-xs text-amber-700">No registered members yet. Ask your choir director to add you to the roster.</p>
-                  </div>
-                )}
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Your name</label>
-                <input value={guestName} onChange={e => { setGuestName(e.target.value); setErr('') }}
-                  placeholder="Enter your full name"
-                  className="w-full px-4 py-3 border-2 border-gray-100 rounded-2xl text-sm focus:ring-0 focus:border-[#140152] outline-none mb-4 transition-colors" />
-
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Your voice part</label>
-                <div className="grid grid-cols-4 gap-2 mb-5">
-                  {(['Soprano','Alto','Tenor','Bass'] as const).map(v => (
-                    <button key={v} onClick={() => setGuestVoice(v)}
-                      className={`py-2.5 rounded-xl text-xs font-bold transition-all border-2 ${guestVoice === v ? 'text-white border-transparent shadow-lg' : 'bg-gray-50 text-gray-600 border-gray-100 hover:border-gray-300'}`}
-                      style={guestVoice === v ? { background: VOICE_COLOR[v], borderColor: VOICE_COLOR[v] } : undefined}>
-                      {v}
-                    </button>
-                  ))}
-                </div>
-                {roster.length > 0 && (
-                  <button onClick={() => setGuestMode(false)} className="text-xs text-gray-400 hover:text-gray-600 underline mb-4 block">
-                    ← Back to member list
-                  </button>
-                )}
-              </>
-            )}
-
-            {err && (
-              <p className="text-xs text-red-600 mb-4 flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {err}
-              </p>
-            )}
-
-            <button onClick={enter} disabled={loading}
-              className="w-full py-3.5 text-white rounded-2xl font-black text-sm hover:opacity-90 transition-all disabled:opacity-40 flex items-center justify-center gap-2 shadow-lg"
-              style={{ background: 'linear-gradient(135deg,#140152,#2d0a6e)' }}>
-              Enter Portal <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        <p className="text-center text-white/30 text-xs mt-5">Alter Sound Choir · LETW</p>
-      </div>
-    </div>
-  )
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -271,7 +109,10 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 ]
 
 export default function AlterSoundDashboard() {
-  const [session, setSession]     = useState<MemberSession | null>(() => loadSession())
+  const router                    = useRouter()
+  const [session, setSession]     = useState<MemberSession | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [showVoicePicker, setShowVoicePicker] = useState(false)
   const sessionRef                = useRef<MemberSession | null>(null)
   const API                       = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
   const CHAT_API                  = API + '/choir-chat'
@@ -319,28 +160,25 @@ export default function AlterSoundDashboard() {
   /* ─── Keep ref in sync ─── */
   useEffect(() => { sessionRef.current = session }, [session])
 
-  /* ─── JWT auto-login: if user is already signed in site-wide, skip the gate ─── */
+  /* ─── JWT auth — redirect to login if not signed in ─── */
   useEffect(() => {
-    if (session) return
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
-    if (!token) return
+    if (!token) { router.replace('/auth/login?next=/services/alter-sound/dashboard'); return }
     import('@/lib/dept-api').then(({ getCurrentUser }) =>
-      getCurrentUser().then(user => {
-        const voicePref = localStorage.getItem('letw_choir_voice') as MemberSession['voice'] | null
-        const voice: MemberSession['voice'] = (voicePref && ['Soprano','Alto','Tenor','Bass'].includes(voicePref))
-          ? voicePref : 'Soprano'
-        const initials = user.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)
-        const s: MemberSession = { name: user.name, initials, voice, role: 'Choir Member', avatar: VOICE_COLOR[voice] }
-        saveSession(s); setSession(s)
-      }).catch(() => { /* no valid token, show LoginGate */ })
+      getCurrentUser()
+        .then(user => {
+          const voice = getVoicePref()
+          const initials = user.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)
+          setSession({ name: user.name, initials, voice, role: 'Choir Member', avatar: VOICE_COLOR[voice] })
+        })
+        .catch(() => router.replace('/auth/login?next=/services/alter-sound/dashboard'))
+        .finally(() => setAuthLoading(false))
     )
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ─── Fetch dept API data whenever session is established ─── */
   useEffect(() => {
     if (!session) return
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
-    if (!token) return
     setDeptDataLoading(true)
     import('@/lib/dept-api').then(({ listAnnouncements, listActivities, myAttendance }) =>
       Promise.allSettled([
@@ -374,7 +212,7 @@ export default function AlterSoundDashboard() {
         if (!Array.isArray(data)) return
         const sk = `letw_song_status_${session.initials}`
         let saved: Record<string,Song['status']> = {}
-        try { saved = JSON.parse(sessionStorage.getItem(sk)||'{}') } catch { /* ok */ }
+        try { saved = JSON.parse(localStorage.getItem(sk)||'{}') } catch { /* ok */ }
         setSongs(data.map(s => ({
           id: s.id, title: s.title, key: s.key||'—', tempo: s.tempo||'—',
           voicePart: s.voice_part||'All', status: (saved[s.id] as Song['status'])||'not-started',
@@ -451,7 +289,7 @@ export default function AlterSoundDashboard() {
       const updated = prev.map(s => s.id === id ? {...s, status} : s)
       try {
         const sk = `letw_song_status_${sessionRef.current?.initials||'X'}`
-        sessionStorage.setItem(sk, JSON.stringify(Object.fromEntries(updated.map(s => [s.id, s.status]))))
+        localStorage.setItem(sk, JSON.stringify(Object.fromEntries(updated.map(s => [s.id, s.status]))))
       } catch { /* ok */ }
       return updated
     })
@@ -506,10 +344,17 @@ export default function AlterSoundDashboard() {
   }
 
   const signOut = () => {
-    sessionStorage.removeItem(SESSION_KEY)
-    setSession(null); setSongs([]); setChat([]); setMembers([])
-    setHighlights([]); setTasks([]); setChatInput('')
-    setUnreadChat(0); setShowSignOutConfirm(false)
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    setShowSignOutConfirm(false)
+    router.replace('/auth/login')
+  }
+
+  /* ─── Change voice part preference ─── */
+  const changeVoice = (v: MemberSession['voice']) => {
+    saveVoicePref(v)
+    if (session) setSession({ ...session, voice: v, avatar: VOICE_COLOR[v] })
+    setShowVoicePicker(false)
   }
 
   const submitTestimony = () => {
@@ -549,8 +394,19 @@ export default function AlterSoundDashboard() {
   })
   const filteredMembers = memberFilter==='All' ? activeMembers : activeMembers.filter(m => m.voice===memberFilter)
 
-  /* ─── Login gate ─── */
-  if (!session) return <LoginGate apiBase={API} onLogin={s => setSession(s)} />
+  /* ─── Auth loading / redirect gate ─── */
+  if (authLoading || !session) return (
+    <div className="min-h-screen flex items-center justify-center"
+      style={{ background: 'linear-gradient(160deg,#0d0035 0%,#1e0050 45%,#2a006b 100%)' }}>
+      <div className="text-center">
+        <div className="w-20 h-20 bg-[#f5bb00] rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-[0_0_40px_rgba(245,187,0,0.4)]">
+          <Flame className="w-10 h-10 text-[#140152]" />
+        </div>
+        <Loader2 className="w-8 h-8 animate-spin text-[#f5bb00] mx-auto" />
+        <p className="text-white/50 text-sm mt-3">Loading your portal…</p>
+      </div>
+    </div>
+  )
 
   /* ─── Render helpers ─── */
   const VoicePill = ({ voice }: { voice: string }) => (
@@ -559,6 +415,31 @@ export default function AlterSoundDashboard() {
 
   return (
     <div className="flex flex-col h-screen bg-[#f5f5fa] overflow-hidden">
+
+      {/* Voice-part picker overlay */}
+      <AnimatePresence>
+        {showVoicePicker && (
+          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+            className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4"
+            onClick={() => setShowVoicePicker(false)}>
+            <motion.div initial={{scale:0.9,opacity:0}} animate={{scale:1,opacity:1}} exit={{scale:0.9,opacity:0}}
+              className="bg-white rounded-3xl p-7 w-full max-w-xs shadow-2xl"
+              onClick={e => e.stopPropagation()}>
+              <h3 className="font-black text-[#140152] text-lg text-center mb-1">Your Voice Part</h3>
+              <p className="text-gray-400 text-xs text-center mb-5">This personalises your dashboard colours.</p>
+              <div className="grid grid-cols-2 gap-3">
+                {(['Soprano','Alto','Tenor','Bass'] as const).map(v => (
+                  <button key={v} onClick={() => changeVoice(v)}
+                    className={`py-3.5 rounded-2xl font-black text-sm transition-all border-2 ${session.voice===v ? 'text-white border-transparent shadow-lg' : 'bg-gray-50 text-gray-600 border-gray-100 hover:border-gray-300'}`}
+                    style={session.voice===v ? {background:VOICE_COLOR[v], borderColor:VOICE_COLOR[v]} : undefined}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Sign-out confirm overlay */}
       <AnimatePresence>
@@ -620,7 +501,9 @@ export default function AlterSoundDashboard() {
             <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-sm truncate">{session.name}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <VoicePill voice={session.voice} />
+                <button onClick={() => setShowVoicePicker(true)} title="Change voice part">
+                  <VoicePill voice={session.voice} />
+                </button>
                 {session.role && session.role !== 'Choir Member' && (
                   <span className="text-white/40 text-[10px] truncate">{session.role}</span>
                 )}
