@@ -1148,7 +1148,7 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
                       <span className="text-xs font-bold text-gray-700">{msg.sender_name}</span>
                       <span
                         className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                        style={{ backgroundColor: isMine ? '#f5bb00', color: isMine ? '#140152' : 'white' } as React.CSSProperties}
+                        style={{ backgroundColor: isMine ? '#f5bb00' : bubbleColor, color: isMine ? '#140152' : 'white' } as React.CSSProperties}
                       >
                         {msg.voice_part}
                       </span>
