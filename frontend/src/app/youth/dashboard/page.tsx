@@ -338,38 +338,31 @@ export default function YouthDashboard() {
   )
 
   /* ═══════════════════════════════════════════════════════════════
-     NOT REGISTERED
+     MEMBERSHIP STILL LOADING (after auth completes)
   ═══════════════════════════════════════════════════════════════ */
-  if (membership && !membership.is_member) return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: BG }}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-sm text-center border border-violet-100">
-        <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-4"
-          style={{ background: `${PRIMARY}15` }}>
-          <Users className="w-8 h-8" style={{ color: PRIMARY }} />
-        </div>
-        <h2 className="font-black text-2xl mb-2" style={{ color: PRIMARY }}>Not Yet Registered</h2>
-        <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-          You are not yet a member of the Youth Ministry. Join to access events, notices, group chat, and more.
-        </p>
-        <button onClick={handleJoin} disabled={joining}
-          className="flex items-center gap-2 mx-auto px-6 py-3 rounded-2xl font-bold text-white text-sm disabled:opacity-60 transition-all hover:opacity-90 shadow-lg"
-          style={{ background: `linear-gradient(135deg,${PRIMARY},#7c3aed)` }}>
-          {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-          {joining ? 'Joining…' : 'Join Youth Ministry'}
-        </button>
-        <button onClick={() => { localStorage.removeItem('access_token'); router.replace('/auth/login') }}
-          className="mt-4 block mx-auto text-xs text-gray-400 hover:text-gray-600 transition-all">
-          Sign out
-        </button>
-      </motion.div>
+  if (!membership) return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: BG }}>
+      <div className="text-center">
+        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: PRIMARY }} />
+        <p className="text-sm font-medium" style={{ color: PRIMARY + '90' }}>Verifying membership…</p>
+      </div>
     </div>
   )
 
   /* ═══════════════════════════════════════════════════════════════
-     PENDING APPROVAL
+     NOT A MEMBER — redirect to registration page
+     (Coordinators and Admins bypass this check)
   ═══════════════════════════════════════════════════════════════ */
-  if (membership && membership.is_member && !membership.is_active) return (
+  if (!isCoordinator && !membership.is_member) {
+    router.replace('/youth')
+    return null
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     PENDING APPROVAL — member registered but not yet approved
+     (Coordinators and Admins bypass this check)
+  ═══════════════════════════════════════════════════════════════ */
+  if (!isCoordinator && membership.is_member && !membership.is_active) return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ background: BG }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden border border-amber-100">

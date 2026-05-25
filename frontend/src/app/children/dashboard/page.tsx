@@ -107,40 +107,48 @@ export default function ChildrenDashboard() {
   const [sessMarks, setSessMarks]               = useState<Record<string, boolean>>({})
   const [sessRecording, setSessRecording]       = useState(false)
 
-  /* ─── Auth ─── */
+  /* ─── Auth + membership check ─── */
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
     if (!token) { router.replace('/auth/login?next=/children/dashboard'); return }
     getCurrentUser()
-      .then(u => { setUser(u); setAuthLoading(false) })
+      .then(async u => {
+        setUser(u)
+        try {
+          const mem = await checkMembership(DEPT)
+          setMembership(mem)
+        } catch { /* membership fetch failed — keep null */ }
+      })
       .catch(() => {
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
         router.replace('/auth/login?next=/children/dashboard')
       })
+      .finally(() => setAuthLoading(false))
   }, [router])
 
-  /* ─── Load dept data ─── */
+  /* ─── Load dept data (only for approved members / coordinators) ─── */
   const loadData = useCallback(async () => {
     setLoadingData(true)
     try {
-      const [ann, act, att, mem] = await Promise.all([
+      const [ann, act, att] = await Promise.all([
         listAnnouncements(DEPT),
         listActivities(DEPT),
         myAttendance(DEPT),
-        checkMembership(DEPT),
       ])
       setAnnouncements(ann)
       setActivities(act)
       setAttendance(att)
-      setMembership(mem)
     } catch { /* silent */ }
     finally { setLoadingData(false) }
   }, [])
 
   useEffect(() => {
-    if (!authLoading && user) loadData()
-  }, [authLoading, user, loadData])
+    if (authLoading || !user) return
+    const isCoord = user.role === 'children_coordinator' || user.role === 'admin'
+    // Only fetch dept content for active approved members or coordinators/admins
+    if (isCoord || membership?.is_active) loadData()
+  }, [authLoading, user, membership?.is_active, loadData])
 
   /* ─── Chat polling ─── */
   const loadMessages = useCallback(async () => {
@@ -322,33 +330,59 @@ export default function ChildrenDashboard() {
     </div>
   )
 
-  /* ─── Not enrolled card ─── */
-  if (!authLoading && membership && !membership.is_member) return (
-    <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-sm text-center">
-        <div className="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center mx-auto mb-5">
-          <Baby className="w-10 h-10 text-blue-700" />
-        </div>
-        <h2 className="text-2xl font-black text-blue-900 mb-2">Not Yet Enrolled</h2>
-        <p className="text-gray-500 text-sm mb-2">Welcome, {parentFirst}!</p>
-        <p className="text-gray-400 text-sm mb-6">
-          Enrol your child in the Children Ministry to access programmes, notices, attendance records, and the parent chat.
-        </p>
-        {joinMsg && (
-          <p className={`text-sm mb-4 font-medium ${joinMsg.toLowerCase().includes('fail') ? 'text-red-500' : 'text-green-600'}`}>
-            {joinMsg}
+  /* ─── Membership still loading (auth done but membership not yet resolved) ─── */
+  if (!authLoading && user && !membership) return (
+    <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-700 mx-auto mb-3" />
+        <p className="text-blue-400 text-sm font-medium">Verifying enrolment…</p>
+      </div>
+    </div>
+  )
+
+  /* ─── Not enrolled — redirect to public registration page ─── */
+  if (!authLoading && membership && !membership.is_member && !isCoordinator) {
+    router.replace('/children')
+    return null
+  }
+
+  /* ─── Pending approval gate — full block, no dashboard content visible ─── */
+  if (!authLoading && membership?.is_member && !membership.is_active && !isCoordinator) return (
+    <div className="min-h-screen bg-blue-50 flex items-center justify-center p-6">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden border border-amber-100">
+        {/* Top band */}
+        <div className="px-8 py-8 text-center"
+          style={{ background: 'linear-gradient(160deg,#fffbeb 0%,#ffffff 100%)' }}>
+          <div className="w-16 h-16 rounded-3xl bg-amber-100 flex items-center justify-center mx-auto mb-4">
+            <Clock className="w-8 h-8 text-amber-500" />
+          </div>
+          <h2 className="font-black text-xl text-amber-900 mb-2">Enrolment Pending</h2>
+          <p className="text-amber-700 text-sm leading-relaxed">
+            Your child&apos;s enrolment is awaiting approval from the{' '}
+            <span className="font-bold">Children&apos;s Coordinator</span> or{' '}
+            <span className="font-bold">Admin</span>.
+            You will have full access to the Parent Portal once approved.
           </p>
-        )}
-        <button onClick={handleJoin} disabled={joining}
-          className="w-full bg-blue-800 text-white rounded-2xl py-3.5 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-900 disabled:opacity-50 transition-all">
-          {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-          {joining ? 'Submitting…' : 'Enrol My Child'}
-        </button>
-        <button onClick={() => { localStorage.removeItem('access_token'); router.replace('/auth/login') }}
-          className="mt-4 text-gray-400 text-sm hover:text-gray-600">
-          Sign out
-        </button>
+        </div>
+        {/* Bottom band */}
+        <div className="px-8 py-5 text-center bg-amber-50 border-t border-amber-100 space-y-3">
+          <p className="text-xs text-amber-600 font-medium">
+            Registered as <span className="font-bold">{user?.name}</span>
+          </p>
+          <p className="text-[11px] text-amber-400">
+            Approval usually takes 24–48 hours. Please check back later.
+          </p>
+          <button
+            onClick={() => {
+              localStorage.removeItem('access_token')
+              localStorage.removeItem('refresh_token')
+              router.replace('/auth/login')
+            }}
+            className="text-xs text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2">
+            Sign out
+          </button>
+        </div>
       </motion.div>
     </div>
   )
