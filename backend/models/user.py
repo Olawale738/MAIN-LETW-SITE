@@ -5,7 +5,7 @@ User database model.
 import uuid
 import enum
 from datetime import datetime
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 from sqlalchemy import String, DateTime, Enum as SQLEnum, JSON, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from models.announcement import Announcement
     from models.bible_study import UserReadingProgress
     from models.message import Conversation
+    from models.department import DepartmentMember
 
 
 class UserStatus(str, enum.Enum):
@@ -31,8 +32,11 @@ class UserStatus(str, enum.Enum):
 
 class UserRole(str, enum.Enum):
     """User role."""
-    USER = "user"
-    ADMIN = "admin"
+    USER                   = "user"
+    ADMIN                  = "admin"
+    CHOIRMASTER            = "choirmaster"
+    YOUTH_LEADER           = "youth_leader"
+    CHILDREN_COORDINATOR   = "children_coordinator"
 
 
 class User(Base):
@@ -131,6 +135,12 @@ class User(Base):
         "Conversation",
         foreign_keys="[Conversation.admin_id]",
         back_populates="admin",
+    )
+
+    # Department memberships
+    department_memberships: Mapped[List["DepartmentMember"]] = relationship(
+        "DepartmentMember", back_populates="user", cascade="all, delete-orphan",
+        foreign_keys="[DepartmentMember.user_id]"
     )
 
     def __repr__(self) -> str:

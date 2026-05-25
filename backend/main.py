@@ -111,6 +111,11 @@ app.include_router(chat.router)
 from routers import choir_chat
 app.include_router(choir_chat.router)
 
+# Department management (Choir, Youth, Children)
+from routers.departments import router as departments_router, admin_router as dept_admin_router
+app.include_router(departments_router)
+app.include_router(dept_admin_router)
+
 # Chat / messaging
 from routers import messages
 app.include_router(messages.router)

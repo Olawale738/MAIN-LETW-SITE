@@ -28,6 +28,11 @@ from models.bible_study import (
 from models.cms import CMSPage, CMSImage
 from models.chat import ChatConversation, ChatMessage
 from models.choir_chat import ChoirGroupMessage, ChoirMember, ChoirSong
+from models.department import (
+    DepartmentMember, DepartmentAnnouncement,
+    DepartmentActivity, AttendanceRecord,
+    DepartmentType, ActivityType,
+)
 
 from models.message import Conversation, Message, ConversationStatus
 
@@ -89,4 +94,10 @@ __all__ = [
     "ChoirGroupMessage",
     "ChoirMember",
     "ChoirSong",
+    "DepartmentMember",
+    "DepartmentAnnouncement",
+    "DepartmentActivity",
+    "AttendanceRecord",
+    "DepartmentType",
+    "ActivityType",
 ]
