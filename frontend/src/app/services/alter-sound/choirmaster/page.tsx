@@ -464,17 +464,6 @@ function ChoirmasterContent({ authRole }: { authRole: string }) {
     latestTimestampRef.current = ''
   }
 
-  const removeFile = (songId: string, type: 'lyrics' | 'sheet' | 'track') => {
-    const current = songFiles[songId]?.[type]
-    if (current?.url) URL.revokeObjectURL(current.url)
-    const updated = {
-      ...songFiles,
-      [songId]: { ...songFiles[songId], [type]: undefined },
-    }
-    setSongFiles(updated)
-    localStorage.setItem('letw_choir_song_files_meta', JSON.stringify(updated))
-  }
-
   // ── Member actions ────────────────────────────────────────────────
   const addMember = () => {
     if (!newMemberName.trim()) return
