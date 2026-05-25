@@ -9,10 +9,10 @@ import {
   ChevronRight, Send, Play, Pause, Volume2, Search, LogOut,
   BookOpen, Download, BarChart2, CheckSquare, Star, Calendar,
   Heart, Mic2, CheckCircle2, AlertCircle,
-  Loader2, Globe, Crown, ChevronDown
+  Loader2, Globe, Crown, ChevronDown, Plus, Trash2, X, UserPlus
 } from 'lucide-react'
 import { alterSoundApi, AudioTrack } from '@/lib/api'
-import type { DeptAnnouncement, DeptActivity, MyAttendanceRow } from '@/lib/dept-api'
+import type { DeptAnnouncement, DeptActivity, MyAttendanceRow, DeptMember } from '@/lib/dept-api'
 
 /* ═══════════════════════════════════════════════════════════════
    TYPES
@@ -152,6 +152,35 @@ export default function AlterSoundDashboard() {
   const [deptActivities, setDeptActivities]       = useState<DeptActivity[]>([])
   const [myAttendanceRows, setMyAttendanceRows]   = useState<MyAttendanceRow[]>([])
   const [deptDataLoading, setDeptDataLoading]     = useState(false)
+
+  /* ── Choirmaster form states ── */
+  const [showAnnForm, setShowAnnForm]         = useState(false)
+  const [annTitle, setAnnTitle]               = useState('')
+  const [annBody, setAnnBody]                 = useState('')
+  const [annUrgent, setAnnUrgent]             = useState(false)
+  const [annPinned, setAnnPinned]             = useState(false)
+  const [annPosting, setAnnPosting]           = useState(false)
+
+  const [showEventForm, setShowEventForm]     = useState(false)
+  const [evtTitle, setEvtTitle]               = useState('')
+  const [evtType, setEvtType]                 = useState('rehearsal')
+  const [evtDate, setEvtDate]                 = useState('')
+  const [evtTime, setEvtTime]                 = useState('')
+  const [evtVenue, setEvtVenue]               = useState('')
+  const [evtDesc, setEvtDesc]                 = useState('')
+  const [evtAdding, setEvtAdding]             = useState(false)
+
+  const [showAddMember, setShowAddMember]     = useState(false)
+  const [addMemberEmail, setAddMemberEmail]   = useState('')
+  const [addMemberLabel, setAddMemberLabel]   = useState('')
+  const [addMemberAdding, setAddMemberAdding] = useState(false)
+
+  const [showSessionForm, setShowSessionForm] = useState(false)
+  const [sessLabel, setSessLabel]             = useState('')
+  const [sessDate, setSessDate]               = useState('')
+  const [sessMarks, setSessMarks]             = useState<Record<string,boolean>>({})
+  const [sessRecording, setSessRecording]     = useState(false)
+  const [allDeptMembers, setAllDeptMembers]   = useState<DeptMember[]>([])
 
   const chatBottomRef     = useRef<HTMLDivElement|null>(null)
   const chatLatestRef     = useRef('')
@@ -357,6 +386,111 @@ export default function AlterSoundDashboard() {
     router.replace('/auth/login')
   }
 
+  /* ─── Choirmaster: Post Announcement ─── */
+  const postAnnouncement = async () => {
+    if (!annTitle.trim() || !annBody.trim() || annPosting) return
+    setAnnPosting(true)
+    try {
+      const { createAnnouncement, listAnnouncements } = await import('@/lib/dept-api')
+      await createAnnouncement('choir', { title: annTitle.trim(), body: annBody.trim(), is_urgent: annUrgent, is_pinned: annPinned })
+      setDeptAnnouncements(await listAnnouncements('choir'))
+      setAnnTitle(''); setAnnBody(''); setAnnUrgent(false); setAnnPinned(false); setShowAnnForm(false)
+    } catch (e: unknown) { alert((e as Error).message || 'Failed to post announcement') }
+    finally { setAnnPosting(false) }
+  }
+
+  /* ─── Choirmaster: Delete Announcement ─── */
+  const delAnnouncement = async (id: string) => {
+    if (!confirm('Delete this announcement?')) return
+    try {
+      const { deleteAnnouncement } = await import('@/lib/dept-api')
+      await deleteAnnouncement('choir', id)
+      setDeptAnnouncements(p => p.filter(a => a.id !== id))
+    } catch (e: unknown) { alert((e as Error).message || 'Failed to delete') }
+  }
+
+  /* ─── Choirmaster: Add Activity/Event ─── */
+  const addActivity = async () => {
+    if (!evtTitle.trim() || evtAdding) return
+    setEvtAdding(true)
+    try {
+      const { createActivity, listActivities } = await import('@/lib/dept-api')
+      await createActivity('choir', {
+        title: evtTitle.trim(),
+        description: evtDesc.trim() || undefined,
+        activity_type: evtType,
+        activity_date: evtDate || undefined,
+        activity_time: evtTime || undefined,
+        venue: evtVenue.trim() || undefined,
+      })
+      setDeptActivities(await listActivities('choir'))
+      setEvtTitle(''); setEvtDesc(''); setEvtDate(''); setEvtTime(''); setEvtVenue(''); setEvtType('rehearsal'); setShowEventForm(false)
+    } catch (e: unknown) { alert((e as Error).message || 'Failed to add event') }
+    finally { setEvtAdding(false) }
+  }
+
+  /* ─── Choirmaster: Delete Activity ─── */
+  const delActivity = async (id: string) => {
+    if (!confirm('Delete this event?')) return
+    try {
+      const { deleteActivity } = await import('@/lib/dept-api')
+      await deleteActivity('choir', id)
+      setDeptActivities(p => p.filter(a => a.id !== id))
+    } catch (e: unknown) { alert((e as Error).message || 'Failed to delete') }
+  }
+
+  /* ─── Choirmaster: Add Member (by email) ─── */
+  const doAddMember = async () => {
+    if (!addMemberEmail.trim() || addMemberAdding) return
+    setAddMemberAdding(true)
+    try {
+      const { addMember } = await import('@/lib/dept-api')
+      await addMember('choir', addMemberEmail.trim(), addMemberLabel.trim() || undefined)
+      setAddMemberEmail(''); setAddMemberLabel(''); setShowAddMember(false)
+      fetch(`${API}/choir-chat/roster`).then(r=>r.json()).then((d:Member[])=>{ if(Array.isArray(d)) setMembers(d) }).catch(()=>{})
+    } catch (e: unknown) { alert((e as Error).message || 'Failed to add member') }
+    finally { setAddMemberAdding(false) }
+  }
+
+  /* ─── Choirmaster: Remove Member ─── */
+  const doRemoveMember = async (userId: string, name: string) => {
+    if (!confirm(`Remove ${name} from Alter Sound?`)) return
+    try {
+      const { removeMember } = await import('@/lib/dept-api')
+      await removeMember('choir', userId)
+      setMembers(p => p.filter(m => m.id !== userId))
+    } catch (e: unknown) { alert((e as Error).message || 'Failed to remove member') }
+  }
+
+  /* ─── Choirmaster: Open attendance session form ─── */
+  const openSessionForm = async () => {
+    try {
+      const { listMembers } = await import('@/lib/dept-api')
+      const deptMems = await listMembers('choir')
+      setAllDeptMembers(deptMems)
+      const marks: Record<string,boolean> = {}
+      deptMems.forEach(m => { marks[m.user_id] = false })
+      setSessMarks(marks)
+      setSessLabel('')
+      setSessDate(new Date().toISOString().split('T')[0])
+      setShowSessionForm(true)
+    } catch (e: unknown) { alert('Failed to load members: ' + (e as Error).message) }
+  }
+
+  /* ─── Choirmaster: Submit attendance session ─── */
+  const submitSession = async () => {
+    if (!sessLabel.trim() || !sessDate || sessRecording) return
+    setSessRecording(true)
+    try {
+      const { recordSessionAttendance, myAttendance: myAtt } = await import('@/lib/dept-api')
+      const entries = Object.entries(sessMarks).map(([user_id, present]) => ({ user_id, present }))
+      await recordSessionAttendance('choir', sessLabel.trim(), sessDate, entries)
+      setShowSessionForm(false)
+      setMyAttendanceRows(await myAtt('choir'))
+    } catch (e: unknown) { alert((e as Error).message || 'Failed to record attendance') }
+    finally { setSessRecording(false) }
+  }
+
   /* ─── Change voice part preference ─── */
   const changeVoice = (v: MemberSession['voice']) => {
     saveVoicePref(v)
@@ -393,6 +527,7 @@ export default function AlterSoundDashboard() {
   const practiceSongs= songs.filter(s => s.status==='practicing').length
   const pendingTasks = tasks.filter(t => !t.done).length
   const activeMembers= members.filter(m => m.active)
+  const isChoirmaster = session?.role === 'Choirmaster' || session?.role === 'Admin'
 
   const filteredSongs = songs.filter(s => {
     const matchQ = s.title.toLowerCase().includes(songSearch.toLowerCase())
@@ -506,13 +641,20 @@ export default function AlterSoundDashboard() {
               {session.initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white font-bold text-sm truncate">{session.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-white font-bold text-sm truncate">{session.name}</p>
+                {isChoirmaster && (
+                  <span className="flex items-center gap-1 bg-[#f5bb00] text-[#140152] text-[9px] font-black px-2 py-0.5 rounded-full flex-shrink-0">
+                    <Crown className="w-2.5 h-2.5" /> {session.role}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2 mt-0.5">
                 <button onClick={() => setShowVoicePicker(true)} title="Change voice part">
                   <VoicePill voice={session.voice} />
                 </button>
-                {session.role && session.role !== 'Choir Member' && (
-                  <span className="text-white/40 text-[10px] truncate">{session.role}</span>
+                {session.role && session.role === 'Choir Member' && (
+                  <span className="text-white/40 text-[10px] truncate">Choir Member</span>
                 )}
               </div>
             </div>
@@ -555,6 +697,60 @@ export default function AlterSoundDashboard() {
                   </button>
                 </div>
               </div>
+
+              {/* ── Choirmaster Panel ── */}
+              {isChoirmaster && (
+                <div className="rounded-3xl overflow-hidden shadow-lg"
+                  style={{ background: 'linear-gradient(135deg,#f5bb00 0%,#f59300 100%)' }}>
+                  <div className="px-5 pt-5 pb-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-white/30 rounded-2xl flex items-center justify-center flex-shrink-0">
+                        <Crown className="w-5 h-5 text-[#140152]" />
+                      </div>
+                      <div>
+                        <p className="font-black text-[#140152] text-sm">Choirmaster Panel</p>
+                        <p className="text-[#140152]/60 text-[10px]">Quick administrative actions</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label:'Post Announcement', icon:Bell,      action:()=>{setTab('more');setMoreSection('announcements');setTimeout(()=>setShowAnnForm(true),100)} },
+                        { label:'Add Rehearsal',     icon:Calendar,  action:()=>{setTab('more');setMoreSection('events');setTimeout(()=>setShowEventForm(true),100)} },
+                        { label:'Take Attendance',   icon:BarChart2, action:()=>{setTab('more');setMoreSection('attendance')} },
+                        { label:'Add Member',        icon:UserPlus,  action:()=>{setTab('members');setTimeout(()=>setShowAddMember(true),100)} },
+                      ].map((a,i) => (
+                        <button key={i} onClick={a.action}
+                          className="flex items-center gap-2 p-3 bg-white/30 hover:bg-white/50 rounded-2xl transition-all text-left active:scale-95">
+                          <a.icon className="w-4 h-4 text-[#140152] flex-shrink-0" />
+                          <span className="text-[11px] font-bold text-[#140152] leading-tight">{a.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Stats bar */}
+                  <div className="bg-[#140152]/10 px-5 py-3 flex gap-4">
+                    <div className="text-center">
+                      <p className="font-black text-[#140152] text-lg leading-none">{activeMembers.length || '—'}</p>
+                      <p className="text-[#140152]/60 text-[9px] mt-0.5">Members</p>
+                    </div>
+                    <div className="w-px bg-[#140152]/20" />
+                    <div className="text-center">
+                      <p className="font-black text-[#140152] text-lg leading-none">{deptAnnouncements.length || '—'}</p>
+                      <p className="text-[#140152]/60 text-[9px] mt-0.5">Notices</p>
+                    </div>
+                    <div className="w-px bg-[#140152]/20" />
+                    <div className="text-center">
+                      <p className="font-black text-[#140152] text-lg leading-none">{deptActivities.length || '—'}</p>
+                      <p className="text-[#140152]/60 text-[9px] mt-0.5">Events</p>
+                    </div>
+                    <div className="w-px bg-[#140152]/20" />
+                    <div className="text-center">
+                      <p className="font-black text-[#140152] text-lg leading-none">{songs.length || '—'}</p>
+                      <p className="text-[#140152]/60 text-[9px] mt-0.5">Songs</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Quick stats */}
               <div className="grid grid-cols-2 gap-3">
@@ -926,6 +1122,47 @@ export default function AlterSoundDashboard() {
             <motion.div key="members" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0}}
               transition={{duration:0.18}} className="p-4 space-y-4 pb-24">
 
+              {/* Choirmaster: Add Member */}
+              {isChoirmaster && (
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                  <button onClick={() => setShowAddMember(p => !p)}
+                    className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-all">
+                    <div className="w-9 h-9 bg-[#f5bb00]/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <UserPlus className="w-4 h-4 text-[#f5bb00]" />
+                    </div>
+                    <span className="font-bold text-[#140152] flex-1 text-left text-sm">Add New Member</span>
+                    <span className="text-[10px] text-gray-400">{showAddMember ? 'Cancel' : 'Expand'}</span>
+                  </button>
+                  <AnimatePresence>
+                    {showAddMember && (
+                      <motion.div initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}}>
+                        <div className="px-5 pb-5 space-y-3 border-t border-gray-50">
+                          <div className="pt-3">
+                            <label className="text-[10px] font-bold text-gray-500 mb-1 block">Member Email *</label>
+                            <input value={addMemberEmail} onChange={e => setAddMemberEmail(e.target.value)}
+                              placeholder="member@example.com"
+                              className="w-full px-4 py-2.5 border-2 border-gray-100 rounded-2xl text-sm focus:outline-none focus:border-[#140152]/30" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 mb-1 block">Role Label (optional)</label>
+                            <input value={addMemberLabel} onChange={e => setAddMemberLabel(e.target.value)}
+                              placeholder="e.g. Section Leader, Soprano Lead…"
+                              className="w-full px-4 py-2.5 border-2 border-gray-100 rounded-2xl text-sm focus:outline-none focus:border-[#140152]/30" />
+                          </div>
+                          <button onClick={doAddMember}
+                            disabled={!addMemberEmail.trim() || addMemberAdding}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white disabled:opacity-50 transition-all"
+                            style={{ background: '#140152' }}>
+                            {addMemberAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                            {addMemberAdding ? 'Adding…' : 'Add to Choir'}
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
               {/* Voice filter */}
               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                 {['All','Soprano','Alto','Tenor','Bass'].map(v => (
@@ -990,6 +1227,13 @@ export default function AlterSoundDashboard() {
                                     <p className="font-bold text-[#140152] text-sm truncate">{m.name}</p>
                                     {m.role && <p className="text-[10px] text-gray-400">{m.role}</p>}
                                   </div>
+                                  {isChoirmaster && (
+                                    <button onClick={() => doRemoveMember(m.id, m.name)}
+                                      className="w-7 h-7 bg-red-50 hover:bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
+                                      title="Remove member">
+                                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                                    </button>
+                                  )}
                                 </div>
                               ))}
                             </div>
@@ -1015,6 +1259,13 @@ export default function AlterSoundDashboard() {
                           {m.role && <span className="text-[10px] text-gray-400">{m.role}</span>}
                         </div>
                       </div>
+                      {isChoirmaster && (
+                        <button onClick={() => doRemoveMember(m.id, m.name)}
+                          className="w-8 h-8 bg-red-50 hover:bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
+                          title="Remove member">
+                          <Trash2 className="w-4 h-4 text-red-400" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1031,12 +1282,24 @@ export default function AlterSoundDashboard() {
               {moreSection === null && (
                 <>
                   <h2 className="font-black text-[#140152] text-lg">More</h2>
+
+                  {/* Choirmaster shortcut strip */}
+                  {isChoirmaster && (
+                    <div className="bg-gradient-to-r from-[#f5bb00] to-[#f59300] rounded-2xl p-4 flex items-center gap-3">
+                      <Crown className="w-5 h-5 text-[#140152] flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-[#140152] text-xs">Choirmaster access active</p>
+                        <p className="text-[#140152]/60 text-[10px]">Post, delete, and record attendance below</p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     {[
-                      { label:'Announcements & Notices', icon:Bell,       color:'#7c3aed', section:'announcements' as MoreSection, desc:'Messages from the choir director' },
-                      { label:'Events & Rehearsals',     icon:Calendar,   color:'#2563eb', section:'events'        as MoreSection, desc:'Upcoming services and rehearsals'  },
+                      { label:'Announcements & Notices', icon:Bell,       color:'#7c3aed', section:'announcements' as MoreSection, desc: isChoirmaster ? `${deptAnnouncements.length} posted · Tap to post or delete` : 'Messages from the choir director' },
+                      { label:'Events & Rehearsals',     icon:Calendar,   color:'#2563eb', section:'events'        as MoreSection, desc: isChoirmaster ? `${deptActivities.length} scheduled · Tap to add or remove` : 'Upcoming services and rehearsals'  },
                       { label:'My Tasks',                icon:CheckSquare,color:'#d97706', section:'tasks'         as MoreSection, desc:`${pendingTasks} pending`            },
-                      { label:'Attendance',              icon:BarChart2,  color:'#16a34a', section:'attendance'    as MoreSection, desc:'Track your session attendance'      },
+                      { label:'Attendance',              icon:BarChart2,  color:'#16a34a', section:'attendance'    as MoreSection, desc: isChoirmaster ? 'View & record session attendance' : 'Track your session attendance' },
                       { label:'Highlights & Testimonies',icon:Star,       color:'#db2777', section:'highlights'    as MoreSection, desc:'Share what God is doing'            },
                     ].map(({label,icon:Icon,color,section,desc}) => (
                       <button key={section} onClick={() => setMoreSection(section)}
@@ -1089,24 +1352,79 @@ export default function AlterSoundDashboard() {
                   <button onClick={() => setMoreSection(null)} className="flex items-center gap-1.5 text-sm font-bold text-[#140152] mb-1 hover:underline">
                     ← More
                   </button>
-                  <h2 className="font-black text-[#140152] text-lg mb-3">Announcements</h2>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-black text-[#140152] text-lg">Announcements</h2>
+                    {isChoirmaster && (
+                      <button onClick={() => setShowAnnForm(p => !p)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold text-white transition-all active:scale-95"
+                        style={{ background: showAnnForm ? '#6b7280' : '#140152' }}>
+                        {showAnnForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                        {showAnnForm ? 'Cancel' : 'Post Notice'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Choirmaster: Post Announcement Form */}
+                  <AnimatePresence>
+                    {isChoirmaster && showAnnForm && (
+                      <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}
+                        className="bg-white rounded-3xl border-2 border-[#f5bb00]/40 p-5 shadow-sm mb-3 space-y-3">
+                        <p className="text-xs font-black text-[#140152] flex items-center gap-2">
+                          <Bell className="w-3.5 h-3.5 text-[#f5bb00]" /> New Announcement
+                        </p>
+                        <input value={annTitle} onChange={e => setAnnTitle(e.target.value)}
+                          placeholder="Title *"
+                          className="w-full px-4 py-2.5 border-2 border-gray-100 rounded-2xl text-sm focus:outline-none focus:border-[#140152]/30" />
+                        <textarea value={annBody} onChange={e => setAnnBody(e.target.value)}
+                          rows={3} placeholder="Message body *"
+                          className="w-full px-4 py-2.5 border-2 border-gray-100 rounded-2xl text-sm resize-none focus:outline-none focus:border-[#140152]/30" />
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={annUrgent} onChange={e => setAnnUrgent(e.target.checked)}
+                              className="w-4 h-4 accent-red-500 rounded" />
+                            <span className="text-xs font-bold text-red-600">Urgent</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={annPinned} onChange={e => setAnnPinned(e.target.checked)}
+                              className="w-4 h-4 accent-[#f5bb00] rounded" />
+                            <span className="text-xs font-bold text-[#140152]">Pin to top</span>
+                          </label>
+                        </div>
+                        <button onClick={postAnnouncement}
+                          disabled={!annTitle.trim() || !annBody.trim() || annPosting}
+                          className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white disabled:opacity-50 transition-all"
+                          style={{ background: '#140152' }}>
+                          {annPosting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                          {annPosting ? 'Posting…' : 'Post Announcement'}
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   {deptDataLoading ? (
                     <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-[#140152]" /></div>
                   ) : deptAnnouncements.length === 0 ? (
                     <div className="bg-white rounded-3xl border border-dashed border-gray-200 py-14 text-center">
                       <Bell className="w-10 h-10 mx-auto mb-2 text-gray-300" />
                       <p className="font-semibold text-gray-400 mb-1">No announcements yet</p>
-                      <p className="text-xs text-gray-400">The choir director will post notices here.</p>
+                      <p className="text-xs text-gray-400">{isChoirmaster ? 'Use "Post Notice" above to create one.' : 'The choir director will post notices here.'}</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       {deptAnnouncements.map(ann => (
                         <div key={ann.id} className={`bg-white rounded-3xl border p-5 shadow-sm ${ann.is_urgent ? 'border-red-200' : ann.is_pinned ? 'border-[#f5bb00]/50' : 'border-gray-100'}`}>
                           <div className="flex items-start justify-between gap-2 mb-2">
-                            <h4 className="font-black text-[#140152] text-sm leading-tight">{ann.title}</h4>
-                            <div className="flex gap-1 flex-shrink-0">
+                            <h4 className="font-black text-[#140152] text-sm leading-tight flex-1">{ann.title}</h4>
+                            <div className="flex items-center gap-1 flex-shrink-0">
                               {ann.is_urgent && <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Urgent</span>}
                               {ann.is_pinned && <span className="text-[10px] font-bold bg-[#f5bb00]/20 text-[#140152] px-2 py-0.5 rounded-full">Pinned</span>}
+                              {isChoirmaster && (
+                                <button onClick={() => delAnnouncement(ann.id)}
+                                  className="w-6 h-6 bg-red-50 hover:bg-red-100 rounded-lg flex items-center justify-center transition-all ml-1"
+                                  title="Delete announcement">
+                                  <Trash2 className="w-3 h-3 text-red-400" />
+                                </button>
+                              )}
                             </div>
                           </div>
                           <p className="text-gray-600 text-xs leading-relaxed mb-3">{ann.body}</p>
@@ -1127,14 +1445,77 @@ export default function AlterSoundDashboard() {
                   <button onClick={() => setMoreSection(null)} className="flex items-center gap-1.5 text-sm font-bold text-[#140152] mb-1 hover:underline">
                     ← More
                   </button>
-                  <h2 className="font-black text-[#140152] text-lg mb-3">Events & Rehearsals</h2>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-black text-[#140152] text-lg">Events & Rehearsals</h2>
+                    {isChoirmaster && (
+                      <button onClick={() => setShowEventForm(p => !p)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold text-white transition-all active:scale-95"
+                        style={{ background: showEventForm ? '#6b7280' : '#140152' }}>
+                        {showEventForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                        {showEventForm ? 'Cancel' : 'Add Event'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Choirmaster: Add Event Form */}
+                  <AnimatePresence>
+                    {isChoirmaster && showEventForm && (
+                      <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}
+                        className="bg-white rounded-3xl border-2 border-[#140152]/20 p-5 shadow-sm mb-3 space-y-3">
+                        <p className="text-xs font-black text-[#140152] flex items-center gap-2">
+                          <Calendar className="w-3.5 h-3.5 text-[#140152]" /> New Event / Rehearsal
+                        </p>
+                        <input value={evtTitle} onChange={e => setEvtTitle(e.target.value)}
+                          placeholder="Event title *"
+                          className="w-full px-4 py-2.5 border-2 border-gray-100 rounded-2xl text-sm focus:outline-none focus:border-[#140152]/30" />
+                        <textarea value={evtDesc} onChange={e => setEvtDesc(e.target.value)}
+                          rows={2} placeholder="Description (optional)"
+                          className="w-full px-4 py-2.5 border-2 border-gray-100 rounded-2xl text-sm resize-none focus:outline-none focus:border-[#140152]/30" />
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 mb-1 block">Type</label>
+                            <select value={evtType} onChange={e => setEvtType(e.target.value)}
+                              className="w-full px-3 py-2.5 border-2 border-gray-100 rounded-2xl text-sm focus:outline-none focus:border-[#140152]/30 bg-white">
+                              {['rehearsal','service','retreat','workshop','other'].map(t => (
+                                <option key={t} value={t} className="capitalize">{t.charAt(0).toUpperCase()+t.slice(1)}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 mb-1 block">Date</label>
+                            <input type="date" value={evtDate} onChange={e => setEvtDate(e.target.value)}
+                              className="w-full px-3 py-2.5 border-2 border-gray-100 rounded-2xl text-sm focus:outline-none focus:border-[#140152]/30" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 mb-1 block">Time</label>
+                            <input type="time" value={evtTime} onChange={e => setEvtTime(e.target.value)}
+                              className="w-full px-3 py-2.5 border-2 border-gray-100 rounded-2xl text-sm focus:outline-none focus:border-[#140152]/30" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 mb-1 block">Venue</label>
+                            <input value={evtVenue} onChange={e => setEvtVenue(e.target.value)}
+                              placeholder="Location…"
+                              className="w-full px-3 py-2.5 border-2 border-gray-100 rounded-2xl text-sm focus:outline-none focus:border-[#140152]/30" />
+                          </div>
+                        </div>
+                        <button onClick={addActivity}
+                          disabled={!evtTitle.trim() || evtAdding}
+                          className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white disabled:opacity-50 transition-all"
+                          style={{ background: '#140152' }}>
+                          {evtAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                          {evtAdding ? 'Saving…' : 'Add Event'}
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   {deptDataLoading ? (
                     <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-[#140152]" /></div>
                   ) : deptActivities.length === 0 ? (
                     <div className="bg-white rounded-3xl border border-dashed border-gray-200 py-14 text-center">
                       <Calendar className="w-10 h-10 mx-auto mb-2 text-gray-300" />
                       <p className="font-semibold text-gray-400 mb-1">No events scheduled</p>
-                      <p className="text-xs text-gray-400">The choir director will add upcoming rehearsals and services here.</p>
+                      <p className="text-xs text-gray-400">{isChoirmaster ? 'Use "Add Event" above to schedule one.' : 'The choir director will add upcoming rehearsals and services here.'}</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1156,6 +1537,13 @@ export default function AlterSoundDashboard() {
                                 {act.venue && <span>📍 {act.venue}</span>}
                               </div>
                             </div>
+                            {isChoirmaster && (
+                              <button onClick={() => delActivity(act.id)}
+                                className="w-8 h-8 bg-red-50 hover:bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
+                                title="Delete event">
+                                <Trash2 className="w-4 h-4 text-red-400" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -1228,7 +1616,123 @@ export default function AlterSoundDashboard() {
                   <button onClick={() => setMoreSection(null)} className="flex items-center gap-1.5 text-sm font-bold text-[#140152] mb-1 hover:underline">
                     ← More
                   </button>
-                  <h2 className="font-black text-[#140152] text-lg mb-3">My Attendance</h2>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-black text-[#140152] text-lg">{isChoirmaster ? 'Attendance' : 'My Attendance'}</h2>
+                    {isChoirmaster && (
+                      <button onClick={openSessionForm}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold text-white transition-all active:scale-95"
+                        style={{ background: '#140152' }}>
+                        <Plus className="w-3.5 h-3.5" /> Record Session
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Choirmaster: Record Session Overlay */}
+                  <AnimatePresence>
+                    {showSessionForm && (
+                      <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+                        className="fixed inset-0 bg-black/60 z-[300] flex items-end justify-center p-0"
+                        onClick={() => setShowSessionForm(false)}>
+                        <motion.div initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}}
+                          transition={{type:'spring',damping:26,stiffness:300}}
+                          className="bg-white w-full max-w-lg rounded-t-3xl shadow-2xl overflow-hidden"
+                          style={{maxHeight:'90vh'}}
+                          onClick={e => e.stopPropagation()}>
+                          {/* Sheet header */}
+                          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                            <div className="w-9 h-9 bg-[#140152]/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+                              <BarChart2 className="w-5 h-5 text-[#140152]" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-black text-[#140152] text-sm">Record Attendance Session</p>
+                              <p className="text-[10px] text-gray-400">Mark present / absent for each member</p>
+                            </div>
+                            <button onClick={() => setShowSessionForm(false)} className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center">
+                              <X className="w-4 h-4 text-gray-500" />
+                            </button>
+                          </div>
+                          <div className="overflow-y-auto" style={{maxHeight:'calc(90vh - 160px)'}}>
+                            <div className="px-5 py-4 space-y-3">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-[10px] font-bold text-gray-500 mb-1 block">Session Label *</label>
+                                  <input value={sessLabel} onChange={e => setSessLabel(e.target.value)}
+                                    placeholder="e.g. Sunday Service, Rehearsal…"
+                                    className="w-full px-3 py-2.5 border-2 border-gray-100 rounded-2xl text-sm focus:outline-none focus:border-[#140152]/30" />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] font-bold text-gray-500 mb-1 block">Date *</label>
+                                  <input type="date" value={sessDate} onChange={e => setSessDate(e.target.value)}
+                                    className="w-full px-3 py-2.5 border-2 border-gray-100 rounded-2xl text-sm focus:outline-none focus:border-[#140152]/30" />
+                                </div>
+                              </div>
+                              {/* Quick toggle all */}
+                              {allDeptMembers.length > 0 && (
+                                <div className="flex gap-2">
+                                  <button onClick={() => setSessMarks(Object.fromEntries(allDeptMembers.map(m => [m.user_id, true])))}
+                                    className="flex-1 py-2 text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100 rounded-2xl transition-all">
+                                    ✓ Mark All Present
+                                  </button>
+                                  <button onClick={() => setSessMarks(Object.fromEntries(allDeptMembers.map(m => [m.user_id, false])))}
+                                    className="flex-1 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-2xl transition-all">
+                                    ✗ Mark All Absent
+                                  </button>
+                                </div>
+                              )}
+                              {/* Member list */}
+                              {allDeptMembers.length === 0 ? (
+                                <div className="py-8 text-center text-gray-400 text-sm">No members found</div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {allDeptMembers.map(m => {
+                                    const present = sessMarks[m.user_id] ?? false
+                                    return (
+                                      <button key={m.user_id}
+                                        onClick={() => setSessMarks(p => ({...p, [m.user_id]: !present}))}
+                                        className={`w-full flex items-center gap-3 p-3 rounded-2xl border-2 transition-all text-left ${present ? 'border-green-300 bg-green-50' : 'border-gray-100 bg-white hover:bg-gray-50'}`}>
+                                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                                          style={{ background: present ? '#16a34a' : '#9ca3af' }}>
+                                          {(m.name || '?').split(' ').map((w:string)=>w[0]).join('').toUpperCase().slice(0,2)}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="font-bold text-[#140152] text-sm truncate">{m.name}</p>
+                                          {m.role_label && <p className="text-[10px] text-gray-400">{m.role_label}</p>}
+                                        </div>
+                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${present ? 'bg-green-500' : 'bg-gray-200'}`}>
+                                          {present
+                                            ? <CheckCircle2 className="w-4 h-4 text-white" />
+                                            : <X className="w-4 h-4 text-gray-400" />}
+                                        </div>
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {/* Submit footer */}
+                          <div className="px-5 py-4 border-t border-gray-100 bg-gray-50">
+                            <div className="flex items-center justify-between mb-3">
+                              <p className="text-xs text-gray-500">
+                                <span className="font-bold text-green-600">{Object.values(sessMarks).filter(Boolean).length} present</span>
+                                {' / '}
+                                <span className="font-bold text-red-500">{Object.values(sessMarks).filter(v=>!v).length} absent</span>
+                                {' of '}
+                                <span className="font-bold">{allDeptMembers.length} members</span>
+                              </p>
+                            </div>
+                            <button onClick={submitSession}
+                              disabled={!sessLabel.trim() || !sessDate || sessRecording}
+                              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-white disabled:opacity-50 transition-all"
+                              style={{ background: '#140152' }}>
+                              {sessRecording ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                              {sessRecording ? 'Saving…' : 'Save Attendance Record'}
+                            </button>
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* Summary stats */}
                   {myAttendanceRows.length > 0 && (() => {
