@@ -169,7 +169,14 @@ export default function AlterSoundDashboard() {
         .then(user => {
           const voice = getVoicePref()
           const initials = user.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)
-          setSession({ name: user.name, initials, voice, role: 'Choir Member', avatar: VOICE_COLOR[voice] })
+          const roleLabel: Record<string, string> = {
+            choirmaster: 'Choirmaster',
+            admin: 'Admin',
+            youth_leader: 'Youth Leader',
+            children_coordinator: 'Children Coordinator',
+          }
+          const role = roleLabel[user.role?.toLowerCase()] || 'Choir Member'
+          setSession({ name: user.name, initials, voice, role, avatar: VOICE_COLOR[voice] })
         })
         .catch(() => router.replace('/auth/login?next=/services/alter-sound/dashboard'))
         .finally(() => setAuthLoading(false))
