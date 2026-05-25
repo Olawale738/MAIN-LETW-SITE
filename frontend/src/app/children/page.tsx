@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
   Star, Heart, BookOpen, Music, Shield, Users, Smile,
-  Sun, Sparkles, ArrowRight, CheckCircle, Baby, User
+  Sun, Sparkles, ArrowRight, CheckCircle, Baby, User, UserPlus
 } from 'lucide-react'
 import { serviceRequestApi } from '@/lib/api'
 
@@ -208,6 +208,12 @@ export default function ChildrenMinistryPage() {
                 className="inline-flex items-center gap-2 border-2 border-[#f5bb00]/60 text-[#f5bb00] font-bold px-8 py-4 rounded-full text-lg hover:bg-[#f5bb00]/10 transition-all"
               >
                 <Shield className="w-5 h-5" /> Enter Dashboard
+              </Link>
+              <Link
+                href="/children/dashboard"
+                className="inline-flex items-center gap-2 bg-[#f5bb00] text-[#140152] font-black px-8 py-4 rounded-full text-lg hover:bg-yellow-300 transition-all shadow-lg"
+              >
+                <Users className="w-5 h-5" /> Join Children Ministry
               </Link>
             </div>
           </motion.div>

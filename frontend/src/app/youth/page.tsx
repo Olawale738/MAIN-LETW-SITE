@@ -181,6 +181,10 @@ export default function YouthMinistryPage() {
                                 className="py-4 px-8 text-lg rounded-full border-2 border-[#f5bb00]/50 text-[#f5bb00] hover:bg-[#f5bb00]/10 transition-all font-semibold flex items-center gap-2 justify-center">
                                 <Zap className="w-5 h-5" /> Enter Dashboard
                             </Link>
+                            <Link href="/youth/dashboard"
+                                className="py-4 px-8 text-lg rounded-full bg-[#f5bb00] text-[#140152] hover:bg-yellow-300 transition-all font-black flex items-center gap-2 justify-center shadow-lg">
+                                <Users className="w-5 h-5" /> Join Youth Ministry
+                            </Link>
                         </div>
                     </motion.div>
                 </div>

@@ -22,7 +22,7 @@ from database import get_db
 from models.user import User, UserRole
 from models.department import (
     DepartmentMember, DepartmentAnnouncement,
-    DepartmentActivity, AttendanceRecord,
+    DepartmentActivity, AttendanceRecord, DepartmentMessage,
     DepartmentType, ActivityType,
 )
 from utils.dependencies import get_current_active_user, get_admin_user
@@ -694,6 +694,126 @@ async def admin_list_leaders(
         {"id": u.id, "name": u.name, "email": u.email, "role": u.role.value}
         for u in leaders
     ]
+
+
+# ─── Self-join ────────────────────────────────────────────────────────────────
+
+@router.post("/{dept}/join")
+async def join_department(
+    dept: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Any authenticated user can request to join a department."""
+    d = _parse_dept(dept)
+
+    existing = await db.execute(
+        select(DepartmentMember).where(
+            and_(DepartmentMember.user_id == current_user.id, DepartmentMember.department == d)
+        )
+    )
+    dm = existing.scalar_one_or_none()
+
+    if dm:
+        if dm.is_active:
+            return {"message": "You are already a member of this department.", "status": "already_member"}
+        # Re-activate
+        dm.is_active = True
+        await db.commit()
+        return {"message": "Your membership has been reactivated!", "status": "reactivated"}
+
+    db.add(DepartmentMember(user_id=current_user.id, department=d))
+    await db.commit()
+    return {"message": f"You have successfully joined the {dept} ministry!", "status": "joined"}
+
+
+@router.get("/{dept}/membership/me")
+async def my_membership_status(
+    dept: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Check whether the current user is a member of a given department."""
+    d = _parse_dept(dept)
+    result = await db.execute(
+        select(DepartmentMember).where(
+            and_(DepartmentMember.user_id == current_user.id, DepartmentMember.department == d)
+        )
+    )
+    dm = result.scalar_one_or_none()
+    if not dm:
+        return {"is_member": False, "is_active": False, "role_label": None, "joined_at": None}
+    return {
+        "is_member": True,
+        "is_active": dm.is_active,
+        "role_label": dm.role_label,
+        "joined_at": dm.joined_at.isoformat(),
+    }
+
+
+# ─── Group Chat ───────────────────────────────────────────────────────────────
+
+class SendMessageRequest(BaseModel):
+    content: str
+
+    @field_validator("content")
+    @classmethod
+    def not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Message cannot be blank")
+        return v.strip()
+
+
+@router.get("/{dept}/chat")
+async def get_chat_messages(
+    dept: str,
+    limit: int = 60,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Return the latest messages for this department's group chat."""
+    d = _parse_dept(dept)
+    result = await db.execute(
+        select(DepartmentMessage)
+        .where(DepartmentMessage.department == d)
+        .order_by(DepartmentMessage.created_at.desc())
+        .limit(limit)
+    )
+    rows = list(reversed(result.scalars().all()))
+    return [
+        {
+            "id": r.id,
+            "user_id": r.user_id,
+            "sender_name": r.sender.name,
+            "content": r.content,
+            "created_at": r.created_at.isoformat(),
+            "is_mine": r.user_id == current_user.id,
+        }
+        for r in rows
+    ]
+
+
+@router.post("/{dept}/chat", status_code=201)
+async def send_chat_message(
+    dept: str,
+    body: SendMessageRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Send a message to the department group chat."""
+    d = _parse_dept(dept)
+    msg = DepartmentMessage(department=d, user_id=current_user.id, content=body.content)
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+    return {
+        "id": msg.id,
+        "user_id": msg.user_id,
+        "sender_name": current_user.name,
+        "content": msg.content,
+        "created_at": msg.created_at.isoformat(),
+        "is_mine": True,
+    }
 
 
 @admin_router.post("/role/assign")

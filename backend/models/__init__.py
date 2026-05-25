@@ -30,7 +30,7 @@ from models.chat import ChatConversation, ChatMessage
 from models.choir_chat import ChoirGroupMessage, ChoirMember, ChoirSong
 from models.department import (
     DepartmentMember, DepartmentAnnouncement,
-    DepartmentActivity, AttendanceRecord,
+    DepartmentActivity, AttendanceRecord, DepartmentMessage,
     DepartmentType, ActivityType,
 )
 
@@ -98,6 +98,7 @@ __all__ = [
     "DepartmentAnnouncement",
     "DepartmentActivity",
     "AttendanceRecord",
+    "DepartmentMessage",
     "DepartmentType",
     "ActivityType",
 ]

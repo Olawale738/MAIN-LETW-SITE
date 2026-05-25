@@ -133,6 +133,30 @@ class DepartmentActivity(Base):
     )
 
 
+class DepartmentMessage(Base):
+    """A group chat message in a department's chat room."""
+    __tablename__ = "department_messages"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    department: Mapped[DepartmentType] = mapped_column(
+        SQLEnum(DepartmentType, native_enum=False), nullable=False, index=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False, index=True
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+    sender: Mapped["User"] = relationship(
+        "User", foreign_keys=[user_id], lazy="joined"
+    )
+
+
 class AttendanceRecord(Base):
     """Attendance for a department member at a specific session."""
     __tablename__ = "dept_attendance_records"

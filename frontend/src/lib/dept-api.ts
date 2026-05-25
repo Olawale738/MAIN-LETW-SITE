@@ -70,6 +70,22 @@ export interface MyAttendanceRow {
   notes: string | null
 }
 
+export interface MembershipStatus {
+  is_member: boolean
+  is_active: boolean
+  role_label: string | null
+  joined_at: string | null
+}
+
+export interface DeptMessage {
+  id: string
+  user_id: string
+  sender_name: string
+  content: string
+  created_at: string
+  is_mine: boolean
+}
+
 export interface DeptStats {
   total_members: number
   total_announcements: number
@@ -232,6 +248,29 @@ export async function recordSessionAttendance(
 
 export async function myMemberships(): Promise<{ department: string; role_label: string | null; joined_at: string }[]> {
   return request('/departments/me')
+}
+
+// ─── Self-join ────────────────────────────────────────────────────────────────
+
+export async function joinDepartment(dept: Department): Promise<{ message: string; status: string }> {
+  return request(`/departments/${dept}/join`, { method: 'POST' })
+}
+
+export async function checkMembership(dept: Department): Promise<MembershipStatus> {
+  return request<MembershipStatus>(`/departments/${dept}/membership/me`)
+}
+
+// ─── Group Chat ───────────────────────────────────────────────────────────────
+
+export async function getDeptMessages(dept: Department, limit = 60): Promise<DeptMessage[]> {
+  return request<DeptMessage[]>(`/departments/${dept}/chat?limit=${limit}`)
+}
+
+export async function sendDeptMessage(dept: Department, content: string): Promise<DeptMessage> {
+  return request<DeptMessage>(`/departments/${dept}/chat`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  })
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
