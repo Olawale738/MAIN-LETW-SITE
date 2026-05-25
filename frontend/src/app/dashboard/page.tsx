@@ -8,6 +8,7 @@ import PremiumButton from '@/components/ui/PremiumButton'
 import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone, Send } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
 import { serviceRequestApi, notificationApi, Notification } from '@/lib/api'
+import { checkMembership } from '@/lib/dept-api'
 import { Spotlight } from '@/components/ui/spotlight'
 
 // Service configuration for cards
@@ -68,6 +69,7 @@ export default function UserDashboard() {
     const [bibleProgress, setBibleProgress] = useState(0)
     const [approvedServices, setApprovedServices] = useState<string[]>([])
     const [pendingServices, setPendingServices] = useState<string[]>([])
+    const [activeDeptNames, setActiveDeptNames] = useState<string[]>([])
     const [servicesLoading, setServicesLoading] = useState(true)
 
     // Notifications state
@@ -95,11 +97,35 @@ export default function UserDashboard() {
             try {
                 const myRequests = await serviceRequestApi.getMyRequests()
                 setApprovedServices(myRequests.approved.map(r => r.service_name))
-                setPendingServices(myRequests.pending.map(r => r.service_name))
+                // Deduplicate pending services
+                const rawPending = myRequests.pending.map(r => r.service_name)
+                setPendingServices([...new Set(rawPending)])
             } catch (err) {
                 console.error('Failed to load services', err)
             } finally {
                 setServicesLoading(false)
+            }
+
+            // Cross-check actual dept membership so approved members don't see stale "pending" cards
+            try {
+                const DEPT_SERVICE_MAP: Record<string, string> = {
+                    children: 'Children Ministry',
+                    youth: 'Youth Ministry',
+                }
+                const results = await Promise.allSettled([
+                    checkMembership('children'),
+                    checkMembership('youth'),
+                ])
+                const active: string[] = []
+                results.forEach((r, i) => {
+                    const dept = ['children', 'youth'][i]
+                    if (r.status === 'fulfilled' && r.value?.is_member && r.value?.is_active) {
+                        active.push(DEPT_SERVICE_MAP[dept])
+                    }
+                })
+                setActiveDeptNames(active)
+            } catch (err) {
+                console.error('Failed to check dept memberships', err)
             }
 
             // Fetch unread notification count
@@ -293,14 +319,14 @@ export default function UserDashboard() {
                                 </div>
 
                                 {/* Pending Services */}
-                                {pendingServices.filter(s => s !== 'Theology school').length > 0 && (
+                                {pendingServices.filter(s => s !== 'Theology school' && !activeDeptNames.includes(s)).length > 0 && (
                                     <div className="bg-amber-50 rounded-3xl p-8 border border-amber-100">
                                         <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider mb-6 flex items-center gap-3">
                                             <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                                             Pending Approvals
                                         </h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {pendingServices.filter(s => s !== 'Theology school').map((service) => (
+                                            {pendingServices.filter(s => s !== 'Theology school' && !activeDeptNames.includes(s)).map((service) => (
                                                 <div key={service} className="bg-white p-6 rounded-2xl shadow-sm border border-amber-100 flex items-center gap-5 hover:shadow-md transition-shadow">
                                                     <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
                                                         <Clock className="w-6 h-6" />
@@ -315,7 +341,7 @@ export default function UserDashboard() {
                                     </div>
                                 )}
 
-                                {approvedServices.filter(s => s !== 'Counselling' && s !== 'Theology school').length === 0 && pendingServices.filter(s => s !== 'Theology school').length === 0 && (
+                                {approvedServices.filter(s => s !== 'Counselling' && s !== 'Theology school').length === 0 && pendingServices.filter(s => s !== 'Theology school' && !activeDeptNames.includes(s)).length === 0 && (
                                     <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100 hover:border-blue-200 transition-colors">
                                         <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-300">
                                             <Briefcase className="w-10 h-10" />
