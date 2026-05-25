@@ -7,9 +7,8 @@ import {
   Music2, Flame, Bell, MessageSquare, Users, Home, Music,
   ChevronRight, Send, Play, Pause, Volume2, Search, LogOut,
   BookOpen, Download, BarChart2, CheckSquare, Star, Calendar,
-  Heart, Mic2, Award, TrendingUp, Zap, CheckCircle2, AlertCircle,
-  ArrowRight, Loader2, Globe, Crown, Quote, Clock, MapPin,
-  Filter, X, Plus, ChevronDown, Pin
+  Heart, Mic2, CheckCircle2, AlertCircle,
+  ArrowRight, Loader2, Globe, Crown, ChevronDown
 } from 'lucide-react'
 import { alterSoundApi, AudioTrack } from '@/lib/api'
 
@@ -44,7 +43,6 @@ interface Highlight {
   id: string; title: string; body: string
   type: 'testimony' | 'update' | 'praise'; postedBy: string; time: string
 }
-interface ChoirStats { membersThisYear: number; servicesMinistered: number; specialPrograms: number }
 
 /* ═══════════════════════════════════════════════════════════════
    CONSTANTS
@@ -98,13 +96,6 @@ function loadHighlights(): Highlight[] {
 }
 function saveHighlights(h: Highlight[]) {
   localStorage.setItem('letw_choir_highlights', JSON.stringify(h))
-}
-function loadStats(): ChoirStats {
-  if (typeof window === 'undefined') return { membersThisYear:0, servicesMinistered:0, specialPrograms:0 }
-  try {
-    return JSON.parse(localStorage.getItem('letw_choir_stats') || 'null') ||
-      { membersThisYear:0, servicesMinistered:0, specialPrograms:0 }
-  } catch { return { membersThisYear:0, servicesMinistered:0, specialPrograms:0 } }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -292,7 +283,6 @@ export default function AlterSoundDashboard() {
   const [chat, setChat]           = useState<ChatMsg[]>([])
   const [tracks, setTracks]       = useState<AudioTrack[]>([])
   const [highlights, setHighlights] = useState<Highlight[]>([])
-  const [stats, setStats]         = useState<ChoirStats>({ membersThisYear:0, servicesMinistered:0, specialPrograms:0 })
   const [tasks, setTasks]         = useState<Task[]>([])
 
   /* ── UI state ── */
@@ -363,7 +353,6 @@ export default function AlterSoundDashboard() {
   /* ─── Load highlights + stats ─── */
   useEffect(() => {
     setHighlights(loadHighlights())
-    setStats(loadStats())
   }, [])
 
   /* ─── Chat polling ─── */
@@ -1262,19 +1251,10 @@ export default function AlterSoundDashboard() {
                     ← More
                   </button>
                   <h2 className="font-black text-[#140152] text-lg mb-3">Attendance</h2>
-                  <div className="rounded-3xl p-8 text-center text-white mb-4"
-                    style={{background:'linear-gradient(135deg,#140152,#2d0a6e)'}}>
-                    <p className="text-white/60 text-sm mb-2">This Month</p>
-                    <p className="text-6xl font-black text-[#f5bb00] mb-2">—</p>
-                    <p className="text-white/60 text-sm">No sessions recorded yet</p>
-                  </div>
-                  <div className="bg-green-50 border border-green-200 rounded-3xl p-6 text-center">
-                    <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                    <h3 className="font-black text-green-800 mb-2">Mark Today&apos;s Attendance</h3>
-                    <p className="text-green-600 text-sm mb-4">Confirm your presence at today&apos;s rehearsal or service.</p>
-                    <button className="bg-green-500 text-white px-8 py-3 rounded-2xl font-bold hover:bg-green-600 transition-all">
-                      I&apos;m Present Today
-                    </button>
+                  <div className="bg-white rounded-3xl border border-dashed border-gray-200 py-14 text-center">
+                    <BarChart2 className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                    <p className="font-semibold text-gray-400 mb-1">No attendance records yet</p>
+                    <p className="text-xs text-gray-400">Your choir director will log attendance after each session.</p>
                   </div>
                 </>
               )}
@@ -1287,32 +1267,18 @@ export default function AlterSoundDashboard() {
                   </button>
                   <h2 className="font-black text-[#140152] text-lg mb-3">Highlights & Testimonies</h2>
 
-                  {/* Bible verse */}
-                  <div className="rounded-3xl p-6 text-white text-center relative overflow-hidden mb-3"
-                    style={{background:'linear-gradient(135deg,#140152,#2d0a6e)'}}>
-                    <div className="absolute inset-0 opacity-5"><Quote className="w-full h-full" /></div>
-                    <div className="relative z-10">
-                      <span className="text-[#f5bb00] text-[10px] font-bold uppercase tracking-widest block mb-3">Bible Verse of the Week</span>
-                      <p className="text-lg font-bold italic mb-3 leading-relaxed">
-                        &ldquo;Sing to him a new song; play skillfully, and shout for joy.&rdquo;
-                      </p>
-                      <p className="text-[#f5bb00] font-bold text-sm">— Psalm 33:3</p>
+                  {/* Choir stats — only real member count from roster API */}
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="rounded-2xl p-4 text-center bg-purple-50">
+                      <Users className="w-5 h-5 mx-auto mb-1.5 text-purple-600" />
+                      <p className="font-black text-xl text-purple-600">{activeMembers.length || '—'}</p>
+                      <p className="text-gray-500 text-[10px]">Active Members</p>
                     </div>
-                  </div>
-
-                  {/* Ministry stats */}
-                  <div className="grid grid-cols-3 gap-3 mb-3">
-                    {[
-                      {val:activeMembers.length||'—', label:'Members',  icon:Users, color:'#7c3aed', bg:'#f3f0ff'},
-                      {val:stats.servicesMinistered||'—', label:'Services', icon:Mic2,  color:'#2563eb', bg:'#eff6ff'},
-                      {val:stats.specialPrograms||'—',   label:'Programs',  icon:Star,  color:'#d97706', bg:'#fffbeb'},
-                    ].map((s,i) => (
-                      <div key={i} className="rounded-2xl p-4 text-center" style={{background:s.bg}}>
-                        <s.icon className="w-5 h-5 mx-auto mb-1.5" style={{color:s.color}} />
-                        <p className="font-black text-xl" style={{color:s.color}}>{s.val}</p>
-                        <p className="text-gray-500 text-[10px]">{s.label}</p>
-                      </div>
-                    ))}
+                    <div className="rounded-2xl p-4 text-center bg-[#140152]/5">
+                      <Star className="w-5 h-5 mx-auto mb-1.5 text-[#140152]" />
+                      <p className="font-black text-xl text-[#140152]">{highlights.length || '—'}</p>
+                      <p className="text-gray-500 text-[10px]">Testimonies Shared</p>
+                    </div>
                   </div>
 
                   {/* Submit testimony */}
@@ -1368,14 +1334,6 @@ export default function AlterSoundDashboard() {
                     </div>
                   )}
 
-                  {/* Encouragement */}
-                  <div className="bg-[#f5bb00] rounded-3xl p-7 text-[#140152] text-center mt-2">
-                    <Crown className="w-10 h-10 mx-auto mb-3" />
-                    <h3 className="text-xl font-black mb-2">You Are Called</h3>
-                    <p className="text-sm opacity-75 leading-relaxed">
-                      Your voice is not just music — it is ministry. Every note you sing carries the power to break chains, heal hearts, and usher in God&apos;s presence.
-                    </p>
-                  </div>
                 </>
               )}
             </motion.div>
