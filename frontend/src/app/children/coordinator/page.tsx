@@ -198,6 +198,7 @@ export default function ChildrenCoordinatorPage() {
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
   async function handleApproveEnrolment(m: DeptMember) {
+    if (!confirm(`Approve ${m.name} and grant access to the Children Ministry dashboard?`)) return
     setBusy(true)
     try {
       await updateMember(DEPT, m.user_id, { is_active: true })

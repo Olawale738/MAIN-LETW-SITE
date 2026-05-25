@@ -139,10 +139,13 @@ export default function ChildrenMinistryPage() {
     setError('')
     try {
       const { joinDepartment, updateMember } = await import('@/lib/dept-api')
-      await joinDepartment('children')
-      // Force pending state — backend may default to is_active=true
-      if (userId) {
-        try { await updateMember('children', userId, { is_active: false }) } catch { /* self-deactivation may not be allowed; approval gate still applies */ }
+      const joinResult = await joinDepartment('children')
+      // If backend activated the user immediately (status !== 'pending'), force them back to pending
+      // so coordinator/admin must explicitly approve before dashboard access is granted
+      const backendActivated = joinResult?.status && joinResult.status !== 'pending'
+      if (userId && (backendActivated || true)) {
+        // Always attempt — backend may default is_active=true; silently ignore if disallowed
+        try { await updateMember('children', userId, { is_active: false }) } catch { /* ignored */ }
       }
       // Log enrolment details via service request (non-critical)
       try {

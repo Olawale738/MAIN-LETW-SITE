@@ -144,9 +144,9 @@ export default function YouthMinistryPage() {
         try {
             const { joinDepartment, updateMember } = await import('@/lib/dept-api')
             await joinDepartment('youth')
-            // Force pending state — backend may default to is_active=true
+            // Always attempt to force pending — backend may default is_active=true; silently ignore if disallowed
             if (userId) {
-                try { await updateMember('youth', userId, { is_active: false }) } catch { /* self-deactivation may not be allowed; approval gate still applies */ }
+                try { await updateMember('youth', userId, { is_active: false }) } catch { /* ignored */ }
             }
             // optionally log interest via service request
             try {

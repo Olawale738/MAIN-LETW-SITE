@@ -325,6 +325,7 @@ export default function YouthLeaderDashboard() {
   }
 
   async function handleApprove(m: DeptMember) {
+    if (!confirm(`Approve ${m.name} and grant access to the Youth Ministry dashboard?`)) return
     try {
       await updateMember(DEPT, m.user_id, { is_active: true })
       toast$(`${m.name} approved`)

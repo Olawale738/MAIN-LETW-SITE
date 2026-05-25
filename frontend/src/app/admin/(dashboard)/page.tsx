@@ -39,6 +39,8 @@ export default function AdminDashboardPage() {
     }
 
     const approveMember = async (dept: 'youth' | 'children', member: DeptMember) => {
+        const label = dept === 'youth' ? 'Youth Ministry' : 'Children Ministry'
+        if (!confirm(`Approve ${member.name} and grant access to the ${label} dashboard?`)) return
         setApprovingId(member.user_id)
         try {
             await updateMember(dept, member.user_id, { is_active: true })

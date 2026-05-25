@@ -331,7 +331,8 @@ export default function ChildrenDashboard() {
   )
 
   /* ─── Membership still loading (auth done but membership not yet resolved) ─── */
-  if (!authLoading && user && !membership) return (
+  /* Coordinators/admins bypass this — they don't need dept membership to manage */
+  if (!authLoading && user && !membership && !isCoordinator) return (
     <div className="min-h-screen bg-blue-50 flex items-center justify-center">
       <div className="text-center">
         <Loader2 className="w-8 h-8 animate-spin text-blue-700 mx-auto mb-3" />
@@ -341,13 +342,14 @@ export default function ChildrenDashboard() {
   )
 
   /* ─── Not enrolled — redirect to public registration page ─── */
-  if (!authLoading && membership && !membership.is_member && !isCoordinator) {
+  if (!authLoading && !isCoordinator && membership && !membership.is_member) {
     router.replace('/children')
     return null
   }
 
   /* ─── Pending approval gate — full block, no dashboard content visible ─── */
-  if (!authLoading && membership?.is_member && !membership.is_active && !isCoordinator) return (
+  /* Blocks ANY non-coordinator whose membership is not yet active (is_active=false) */
+  if (!authLoading && !isCoordinator && membership && membership.is_member && !membership.is_active) return (
     <div className="min-h-screen bg-blue-50 flex items-center justify-center p-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden border border-amber-100">

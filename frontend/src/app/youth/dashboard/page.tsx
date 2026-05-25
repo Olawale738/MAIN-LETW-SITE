@@ -340,7 +340,8 @@ export default function YouthDashboard() {
   /* ═══════════════════════════════════════════════════════════════
      MEMBERSHIP STILL LOADING (after auth completes)
   ═══════════════════════════════════════════════════════════════ */
-  if (!membership) return (
+  /* Coordinators/admins bypass — they manage the ministry and don't need their own membership */
+  if (!membership && !isCoordinator) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: BG }}>
       <div className="text-center">
         <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: PRIMARY }} />
@@ -353,7 +354,7 @@ export default function YouthDashboard() {
      NOT A MEMBER — redirect to registration page
      (Coordinators and Admins bypass this check)
   ═══════════════════════════════════════════════════════════════ */
-  if (!isCoordinator && !membership.is_member) {
+  if (!isCoordinator && !membership?.is_member) {
     router.replace('/youth')
     return null
   }
@@ -362,7 +363,7 @@ export default function YouthDashboard() {
      PENDING APPROVAL — member registered but not yet approved
      (Coordinators and Admins bypass this check)
   ═══════════════════════════════════════════════════════════════ */
-  if (!isCoordinator && membership.is_member && !membership.is_active) return (
+  if (!isCoordinator && membership?.is_member && !membership?.is_active) return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ background: BG }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden border border-amber-100">
