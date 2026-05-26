@@ -31,9 +31,11 @@ export default function AdminSermonsPage() {
     const [documentUrl, setDocumentUrl] = useState('')
     const [isFeatured, setIsFeatured] = useState(false)
     const [isPublished, setIsPublished] = useState(true)
+    const [audioFile, setAudioFile] = useState<File | null>(null)
     const [documentFile, setDocumentFile] = useState<File | null>(null)
     const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
 
+    const audioInputRef = useRef<HTMLInputElement>(null)
     const documentInputRef = useRef<HTMLInputElement>(null)
     const thumbnailInputRef = useRef<HTMLInputElement>(null)
 
@@ -73,6 +75,7 @@ export default function AdminSermonsPage() {
         setDocumentUrl('')
         setIsFeatured(false)
         setIsPublished(true)
+        setAudioFile(null)
         setDocumentFile(null)
         setThumbnailFile(null)
         setEditingSermon(null)
@@ -109,6 +112,7 @@ export default function AdminSermonsPage() {
                 document_url: documentUrl || undefined,
                 is_featured: isFeatured,
                 is_published: isPublished,
+                audio: audioFile || undefined,
                 document: documentFile || undefined,
                 thumbnail: thumbnailFile || undefined,
             }
@@ -271,6 +275,40 @@ export default function AdminSermonsPage() {
                                         placeholder="https://example.com/book.pdf"
                                         className="w-full p-2 border rounded-lg"
                                     />
+                                </div>
+                            </div>
+
+                            {/* Audio Upload */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Upload Audio File (MP3, WAV, M4A)</label>
+                                <div
+                                    className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-purple-400 transition-colors bg-gray-50 hover:bg-white"
+                                    onClick={() => audioInputRef.current?.click()}
+                                >
+                                    <input
+                                        ref={audioInputRef}
+                                        type="file"
+                                        accept=".mp3,.wav,.m4a,.ogg,.aac"
+                                        className="hidden"
+                                        onChange={e => setAudioFile(e.target.files?.[0] || null)}
+                                    />
+                                    {audioFile ? (
+                                        <div className="flex items-center justify-center gap-2">
+                                            <span className="text-green-600 text-sm font-medium">{audioFile.name}</span>
+                                            <button
+                                                type="button"
+                                                onClick={e => { e.stopPropagation(); setAudioFile(null) }}
+                                                className="text-red-400 hover:text-red-600 text-xs"
+                                            >✕</button>
+                                        </div>
+                                    ) : editingSermon?.has_audio ? (
+                                        <span className="text-blue-600 text-sm font-medium">✓ {editingSermon.audio_filename} (click to replace)</span>
+                                    ) : (
+                                        <span className="text-gray-400 text-sm flex items-center justify-center gap-2">
+                                            <Upload className="w-5 h-5" />
+                                            <span>Choose Audio File (max 50MB)</span>
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 

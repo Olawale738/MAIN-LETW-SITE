@@ -126,7 +126,11 @@ export default function AlterSoundTracksPage() {
 
             // Save track
             if (editingTrack) {
-                await alterSoundApi.updateTrack(editingTrack.id, formData)
+                await alterSoundApi.updateTrack(editingTrack.id, {
+                    ...formData,
+                    ...(audioFile ? { audioFile } : {}),
+                    ...(coverFile ? { coverFile } : {}),
+                })
                 showToast('Track updated successfully!', 'success')
             } else {
                 await alterSoundApi.createTrack({ ...formData, audioFile: audioFile!, coverFile: coverFile || undefined })
@@ -348,7 +352,10 @@ export default function AlterSoundTracksPage() {
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="audio_file" className="text-gray-900">Audio File (mp3, wav, m4a, ogg, flac - max 50MB)</Label>
+                                    <Label htmlFor="audio_file" className="text-gray-900">
+                                        Audio File (mp3, wav, m4a, ogg, flac — max 50MB)
+                                        {editingTrack && <span className="ml-2 text-xs text-amber-600 font-normal">Leave blank to keep existing</span>}
+                                    </Label>
                                     <Input
                                         id="audio_file"
                                         type="file"
@@ -356,11 +363,19 @@ export default function AlterSoundTracksPage() {
                                         onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
                                         className="text-gray-900"
                                     />
-                                    {formData.audio_url && <p className="text-xs text-green-600 mt-1">✓ Audio file uploaded</p>}
+                                    {audioFile
+                                        ? <p className="text-xs text-green-600 mt-1">✓ New file selected: {audioFile.name}</p>
+                                        : editingTrack?.audio_url
+                                        ? <p className="text-xs text-blue-600 mt-1">✓ Audio already uploaded (select a file to replace)</p>
+                                        : null
+                                    }
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="cover_file" className="text-gray-900">Cover Image (jpg, png, webp - max 5MB)</Label>
+                                    <Label htmlFor="cover_file" className="text-gray-900">
+                                        Cover Image (jpg, png, webp — max 5MB)
+                                        {editingTrack && <span className="ml-2 text-xs text-amber-600 font-normal">Leave blank to keep existing</span>}
+                                    </Label>
                                     <Input
                                         id="cover_file"
                                         type="file"
@@ -368,7 +383,12 @@ export default function AlterSoundTracksPage() {
                                         onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
                                         className="text-gray-900"
                                     />
-                                    {coverFile && <p className="text-xs text-green-600 mt-1">✓ Cover image selected: {coverFile.name}</p>}
+                                    {coverFile
+                                        ? <p className="text-xs text-green-600 mt-1">✓ New image selected: {coverFile.name}</p>
+                                        : editingTrack?.cover_url
+                                        ? <p className="text-xs text-blue-600 mt-1">✓ Cover already uploaded (select a file to replace)</p>
+                                        : null
+                                    }
                                 </div>
 
                                 <div className="grid md:grid-cols-2 gap-4">

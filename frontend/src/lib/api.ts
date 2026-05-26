@@ -829,6 +829,7 @@ export const sermonApi = {
         if (data.description) formData.append('description', data.description);
         if (data.series) formData.append('series', data.series);
         if (data.video_url) formData.append('video_url', data.video_url);
+        if (data.document_url) formData.append('document_url', data.document_url);
         formData.append('is_featured', String(data.is_featured || false));
         formData.append('is_published', String(data.is_published !== false));
         if (data.audio) formData.append('audio', data.audio);
@@ -857,6 +858,7 @@ export const sermonApi = {
         if (data.description !== undefined) formData.append('description', data.description || '');
         if (data.series !== undefined) formData.append('series', data.series || '');
         if (data.video_url !== undefined) formData.append('video_url', data.video_url || '');
+        if (data.document_url !== undefined) formData.append('document_url', data.document_url || '');
         if (data.is_featured !== undefined) formData.append('is_featured', String(data.is_featured));
         if (data.is_published !== undefined) formData.append('is_published', String(data.is_published));
         if (data.audio) formData.append('audio', data.audio);
@@ -1856,21 +1858,46 @@ export const alterSoundApi = {
         const token = localStorage.getItem('access_token');
         const response = await fetch(`${API_BASE_URL}/alter-sound/admin/tracks`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
             body: formData,
         });
 
         if (!response.ok) {
-            const error = await response.json();
+            const error = await response.json().catch(() => ({ detail: 'Failed to create track' }));
             throw new Error(error.detail || 'Failed to create track');
         }
 
         return response.json();
     },
 
-    updateTrack: async (id: string, data: Partial<AudioTrackCreate>): Promise<AudioTrack> => {
+    updateTrack: async (id: string, data: Partial<AudioTrackCreate> & { audioFile?: File; coverFile?: File }): Promise<AudioTrack> => {
+        // If files are included, send multipart/form-data so the backend can store them
+        if (data.audioFile || data.coverFile) {
+            const fd = new FormData();
+            if (data.category_id) fd.append('category_id', data.category_id);
+            if (data.title) fd.append('title', data.title);
+            if (data.description !== undefined) fd.append('description', data.description || '');
+            if (data.artist !== undefined) fd.append('artist', data.artist || '');
+            if (data.duration !== undefined) fd.append('duration', data.duration || '');
+            if (data.is_featured !== undefined) fd.append('is_featured', String(data.is_featured));
+            if (data.is_active !== undefined) fd.append('is_active', String(data.is_active));
+            if (data.order_index !== undefined) fd.append('order_index', String(data.order_index));
+            if (data.audioFile) fd.append('audio', data.audioFile);
+            if (data.coverFile) fd.append('cover', data.coverFile);
+
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`${API_BASE_URL}/alter-sound/admin/tracks/${id}`, {
+                method: 'PUT',
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                body: fd,
+            });
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ detail: 'Failed to update track' }));
+                throw new Error(error.detail || 'Failed to update track');
+            }
+            return response.json();
+        }
+        // Metadata-only update — use JSON
         return fetchApi<AudioTrack>(`/alter-sound/admin/tracks/${id}`, {
             method: 'PUT',
             body: JSON.stringify(data),
