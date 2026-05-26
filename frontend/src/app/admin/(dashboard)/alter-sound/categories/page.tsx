@@ -47,6 +47,7 @@ export default function AlterSoundCategoriesPage() {
             setCategories(data.sort((a, b) => a.order_index - b.order_index))
         } catch (error) {
             console.error('Failed to load categories:', error)
+            showToast((error as Error).message || 'Failed to load categories', 'error')
         } finally {
             setLoading(false)
         }
@@ -94,7 +95,7 @@ export default function AlterSoundCategoriesPage() {
             handleCloseModal()
         } catch (error) {
             console.error('Failed to save category:', error)
-            showToast('Failed to save category', 'error')
+            showToast((error as Error).message || 'Failed to save category', 'error')
         }
     }
 
@@ -106,7 +107,7 @@ export default function AlterSoundCategoriesPage() {
             await fetchCategories()
         } catch (error) {
             console.error('Failed to delete category:', error)
-            showToast('Failed to delete category', 'error')
+            showToast((error as Error).message || 'Failed to delete category', 'error')
         }
     }
 

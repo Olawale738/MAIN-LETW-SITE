@@ -1871,37 +1871,30 @@ export const alterSoundApi = {
     },
 
     updateTrack: async (id: string, data: Partial<AudioTrackCreate> & { audioFile?: File; coverFile?: File }): Promise<AudioTrack> => {
-        // If files are included, send multipart/form-data so the backend can store them
-        if (data.audioFile || data.coverFile) {
-            const fd = new FormData();
-            if (data.category_id) fd.append('category_id', data.category_id);
-            if (data.title) fd.append('title', data.title);
-            if (data.description !== undefined) fd.append('description', data.description || '');
-            if (data.artist !== undefined) fd.append('artist', data.artist || '');
-            if (data.duration !== undefined) fd.append('duration', data.duration || '');
-            if (data.is_featured !== undefined) fd.append('is_featured', String(data.is_featured));
-            if (data.is_active !== undefined) fd.append('is_active', String(data.is_active));
-            if (data.order_index !== undefined) fd.append('order_index', String(data.order_index));
-            if (data.audioFile) fd.append('audio', data.audioFile);
-            if (data.coverFile) fd.append('cover', data.coverFile);
+        // Always send FormData — backend update_track only accepts Form parameters
+        const fd = new FormData();
+        if (data.category_id) fd.append('category_id', data.category_id);
+        if (data.title) fd.append('title', data.title);
+        if (data.description !== undefined) fd.append('description', data.description || '');
+        if (data.artist !== undefined) fd.append('artist', data.artist || '');
+        if (data.duration !== undefined) fd.append('duration', data.duration || '');
+        if (data.is_featured !== undefined) fd.append('is_featured', String(data.is_featured));
+        if (data.is_active !== undefined) fd.append('is_active', String(data.is_active));
+        if (data.order_index !== undefined) fd.append('order_index', String(data.order_index));
+        if (data.audioFile) fd.append('audio', data.audioFile);
+        if (data.coverFile) fd.append('cover', data.coverFile);
 
-            const token = localStorage.getItem('access_token');
-            const response = await fetch(`${API_BASE_URL}/alter-sound/admin/tracks/${id}`, {
-                method: 'PUT',
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-                body: fd,
-            });
-            if (!response.ok) {
-                const error = await response.json().catch(() => ({ detail: 'Failed to update track' }));
-                throw new Error(error.detail || 'Failed to update track');
-            }
-            return response.json();
-        }
-        // Metadata-only update — use JSON
-        return fetchApi<AudioTrack>(`/alter-sound/admin/tracks/${id}`, {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`${API_BASE_URL}/alter-sound/admin/tracks/${id}`, {
             method: 'PUT',
-            body: JSON.stringify(data),
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            body: fd,
         });
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ detail: 'Failed to update track' }));
+            throw new Error(error.detail || 'Failed to update track');
+        }
+        return response.json();
     },
 
     deleteTrack: async (id: string): Promise<void> => {

@@ -56,7 +56,7 @@ export default function AlterSoundTracksPage() {
         } catch (error) {
             console.error('Failed to load data:', error)
             setCategoriesError(true)
-            showToast('Failed to load categories. Please refresh.', 'error')
+            showToast((error as Error).message || 'Failed to load data. Please refresh.', 'error')
         } finally {
             setLoading(false)
         }
@@ -141,7 +141,7 @@ export default function AlterSoundTracksPage() {
             handleCloseModal()
         } catch (error) {
             console.error('Failed to save track:', error)
-            showToast('Failed to save track', 'error')
+            showToast((error as Error).message || 'Failed to save track', 'error')
         } finally {
             setUploading(false)
         }
@@ -155,7 +155,7 @@ export default function AlterSoundTracksPage() {
             await fetchData()
         } catch (error) {
             console.error('Failed to delete track:', error)
-            showToast('Failed to delete track', 'error')
+            showToast((error as Error).message || 'Failed to delete track', 'error')
         }
     }
 
