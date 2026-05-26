@@ -17,11 +17,11 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         id: 'about-section',
         type: 'content',
         data: {
-            title: "We Are More Than <br />A Church",
+            title: "We Are More Than <br /><span style='color:#f5bb00;'>A Church</span>",
             content: `
-                <p class="text-lg text-gray-600 leading-relaxed font-medium mb-4">We are a movement. Built on unshakeable faith, genuine love, and sacrificial service, Light Encounter Tabernacle exists to awaken destinies, restore the broken, and release people into the fullness of God's purpose — through the living, life-changing power of His Word.</p>
-                <p class="text-lg text-gray-600 leading-relaxed font-medium mb-6">Every message preached, every hand extended, every life touched is a declaration that God's light is real and His kingdom is advancing.</p>
-                <p class="text-lg text-[#140152] leading-relaxed font-semibold italic">"You are the light of the world. A town built on a hill cannot be hidden... let your light shine before others, that they may see your good deeds and glorify your Father in heaven." — Matthew 5:14-16</p>
+                <p class="text-lg text-gray-600 leading-relaxed font-medium mb-4">We are a movement — built on unshakeable faith, genuine love, and sacrificial service. Light Encounter Tabernacle exists to awaken destinies, restore the broken, and release people into the fullness of God's purpose through the living, life-changing power of His Word.</p>
+                <p class="text-lg text-gray-600 leading-relaxed font-medium mb-6">Every message preached, every hand extended, every life touched is a declaration that God's light is real and His kingdom is advancing — one transformed life at a time.</p>
+                <p class="text-lg text-[#140152] leading-relaxed font-semibold italic">"You are the light of the world. A town built on a hill cannot be hidden… let your light shine before others, that they may see your good deeds and glorify your Father in heaven." — Matthew 5:14–16</p>
             `,
             width: 'standard',
             bg_color: 'white',

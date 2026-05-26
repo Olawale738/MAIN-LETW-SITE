@@ -44,9 +44,10 @@ export default function ContentBlock({ data }: ContentBlockProps) {
         <section className={cn(bgClasses[bg_color], paddingClasses[padding])}>
             <div className={cn("container mx-auto px-4", widthClasses[width])}>
                 {title && (
-                    <h2 className="text-3xl font-bold mb-8 text-center">
-                        {title}
-                    </h2>
+                    <h2
+                        className="text-4xl md:text-5xl font-black mb-8 text-center text-[#140152] leading-tight tracking-tight"
+                        dangerouslySetInnerHTML={{ __html: title }}
+                    />
                 )}
 
                 <div
