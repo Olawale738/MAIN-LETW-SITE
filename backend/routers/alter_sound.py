@@ -268,11 +268,20 @@ async def create_track(
 @router.put("/admin/tracks/{track_id}", response_model=AudioTrackResponse)
 async def update_track(
     track_id: str,
-    track_data: AudioTrackUpdate,
+    category_id: Optional[str] = Form(None),
+    title: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    artist: Optional[str] = Form(None),
+    duration: Optional[str] = Form(None),
+    is_featured: Optional[bool] = Form(None),
+    is_active: Optional[bool] = Form(None),
+    order_index: Optional[int] = Form(None),
+    audio: Optional[UploadFile] = File(None),
+    cover: Optional[UploadFile] = File(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_admin_user)
 ):
-    """Update an audio track"""
+    """Update an audio track (supports optional file replacement)"""
     result = await db.execute(
         select(AudioTrack)
         .options(selectinload(AudioTrack.category))
@@ -283,17 +292,60 @@ async def update_track(
     if not track:
         raise HTTPException(status_code=404, detail="Track not found")
 
-    # If category is being updated, verify it exists
-    if track_data.category_id:
-        category_result = await db.execute(select(AudioCategory).where(AudioCategory.id == track_data.category_id))
+    # Update scalar fields if provided
+    if category_id is not None:
+        category_result = await db.execute(select(AudioCategory).where(AudioCategory.id == category_id))
         if not category_result.scalar_one_or_none():
             raise HTTPException(status_code=404, detail="Category not found")
+        track.category_id = category_id
+    if title is not None:
+        track.title = title
+    if description is not None:
+        track.description = description
+    if artist is not None:
+        track.artist = artist
+    if duration is not None:
+        track.duration = duration
+    if is_featured is not None:
+        track.is_featured = is_featured
+    if is_active is not None:
+        track.is_active = is_active
+    if order_index is not None:
+        track.order_index = order_index
 
-    for key, value in track_data.model_dump(exclude_unset=True).items():
-        setattr(track, key, value)
+    # Replace audio file if provided
+    if audio and audio.filename:
+        file_ext = get_file_extension(audio.filename)
+        if file_ext not in ALLOWED_AUDIO_EXTENSIONS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid audio file type. Allowed: {', '.join(ALLOWED_AUDIO_EXTENSIONS)}"
+            )
+        audio_data = await audio.read()
+        if len(audio_data) > MAX_AUDIO_SIZE:
+            raise HTTPException(status_code=400, detail=f"Audio file too large (max {MAX_AUDIO_SIZE // 1024 // 1024}MB)")
+        track.audio_data = audio_data
+        track.audio_filename = audio.filename
+        track.audio_mime_type = mimetypes.guess_type(audio.filename)[0] or 'audio/mpeg'
+        track.audio_size = len(audio_data)
+
+    # Replace cover image if provided
+    if cover and cover.filename:
+        cover_ext = get_file_extension(cover.filename)
+        if cover_ext not in ALLOWED_IMAGE_EXTENSIONS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid image file type. Allowed: {', '.join(ALLOWED_IMAGE_EXTENSIONS)}"
+            )
+        cover_data = await cover.read()
+        if len(cover_data) > MAX_IMAGE_SIZE:
+            raise HTTPException(status_code=400, detail=f"Cover image too large (max {MAX_IMAGE_SIZE // 1024 // 1024}MB)")
+        track.cover_image_data = cover_data
+        track.cover_image_mime_type = mimetypes.guess_type(cover.filename)[0] or 'image/jpeg'
 
     await db.commit()
     await db.refresh(track)
+    await db.refresh(track, ["category"])
     return track
 
 

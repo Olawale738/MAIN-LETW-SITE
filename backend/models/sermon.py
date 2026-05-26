@@ -61,6 +61,12 @@ class Sermon(Base):
         String(500),
         nullable=True
     )
+
+    # External document URL (PDF link, Google Drive, etc.)
+    document_url: Mapped[str] = mapped_column(
+        String(500),
+        nullable=True
+    )
     
     # Audio file stored in database
     audio_data: Mapped[bytes] = mapped_column(

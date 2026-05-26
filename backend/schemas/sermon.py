@@ -50,6 +50,7 @@ class SermonResponse(BaseModel):
     audio_size: Optional[int] = None
     has_document: bool = False
     document_filename: Optional[str] = None
+    document_url: Optional[str] = None
     document_size: Optional[int] = None
     has_thumbnail: bool = False
     is_featured: bool

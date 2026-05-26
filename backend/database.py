@@ -93,13 +93,15 @@ async def init_db():
 
             # ── Patch missing columns on the manually-created `users` table ──
             # These columns were added to the model after the table was created by hand.
-            missing_columns: list[tuple[str, str]] = [
-                ("users", "services",    "JSONB NOT NULL DEFAULT '[]'::jsonb"),
-                ("users", "avatar_url",  "VARCHAR(500)"),
-                ("users", "bio",         "TEXT"),
-                ("users", "phone",       "VARCHAR(40)"),
-                ("users", "location",    "VARCHAR(255)"),
-                ("users", "updated_at",  "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
+            missing_columns: list[tuple[str, str, str]] = [
+                ("users",   "services",     "JSONB NOT NULL DEFAULT '[]'::jsonb"),
+                ("users",   "avatar_url",   "VARCHAR(500)"),
+                ("users",   "bio",          "TEXT"),
+                ("users",   "phone",        "VARCHAR(40)"),
+                ("users",   "location",     "VARCHAR(255)"),
+                ("users",   "updated_at",   "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
+                # Sermon: external document URL (PDF link)
+                ("sermons", "document_url", "VARCHAR(500)"),
             ]
 
             for table, column, col_def in missing_columns:
