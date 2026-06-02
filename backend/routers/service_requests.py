@@ -318,26 +318,39 @@ async def approve_service_request(
         from sqlalchemy.orm.attributes import flag_modified
         flag_modified(user, "services")
     
+    # For Volunteer requests: extract department from message for richer notifications
+    display_name = service_request.service_name
+    notif_extra = ""
+    if service_request.service_name == "Volunteer" and service_request.message:
+        import re as _re
+        dept_match = _re.search(r'Department:\s*([^|]+)', service_request.message)
+        avail_match = _re.search(r'Availability:\s*([^|]+)', service_request.message)
+        if dept_match:
+            dept = dept_match.group(1).strip()
+            display_name = f"Volunteer – {dept}"
+            avail = avail_match.group(1).strip() if avail_match else None
+            notif_extra = f" You're assigned to the {dept} team" + (f" ({avail})" if avail else "") + ". Your coordinator will contact you soon."
+
     # Create notification for user
     notification = Notification(
         user_id=user.id,
-        title="Service Request Approved",
-        message=f"Your request to join '{service_request.service_name}' has been approved! You can now access this service.",
+        title="Volunteer Application Approved! 🎉" if service_request.service_name == "Volunteer" else "Service Request Approved",
+        message=f"Your request to join '{display_name}' has been approved!{notif_extra}",
         type=NotificationType.SERVICE_APPROVED,
         reference_id=service_request.id
     )
     db.add(notification)
-    
+
     await db.commit()
     await db.refresh(service_request)
-    
+
     # Send email notification in background
     if background_tasks:
         background_tasks.add_task(
             send_service_approved_email,
             user.email,
             user.name,
-            [service_request.service_name]
+            [display_name]
         )
     
     return _request_to_response(service_request)

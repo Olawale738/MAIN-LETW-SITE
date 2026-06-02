@@ -5,9 +5,9 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone, Send } from 'lucide-react'
+import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone, Send, HandHeart, CheckCircle2, Phone, CalendarDays } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
-import { serviceRequestApi, notificationApi, Notification } from '@/lib/api'
+import { serviceRequestApi, notificationApi, Notification, ServiceRequest } from '@/lib/api'
 import { checkMembership } from '@/lib/dept-api'
 import { Spotlight } from '@/components/ui/spotlight'
 
@@ -60,7 +60,72 @@ const SERVICE_CONFIG: Record<string, { icon: React.ReactNode; description: strin
         description: "Access your mentorship dashboard using our Mentorship Code feature.",
         buttonText: "Access Career Track",
         buttonLink: "/career-guidance"
+    },
+    "Volunteer": {
+        icon: <HandHeart className="w-8 h-8" />,
+        description: "You're an approved LETW volunteer. Your coordinator will reach out with next steps.",
+        buttonText: "View Volunteer Info",
+        buttonLink: "/volunteer"
     }
+}
+
+/** Parses "Department: X | Availability: Y | Phone: Z | Experience: W" from volunteer message */
+function parseVolunteerMessage(msg?: string) {
+    if (!msg) return {}
+    const extract = (key: string) => {
+        const match = msg.match(new RegExp(`${key}:\\s*([^|]+)`))
+        return match ? match[1].trim() : undefined
+    }
+    return {
+        department: extract('Department'),
+        availability: extract('Availability'),
+        phone: extract('Phone'),
+        experience: extract('Experience'),
+    }
+}
+
+function VolunteerCard({ request }: { request: ServiceRequest }) {
+    const { department, availability, phone } = parseVolunteerMessage(request.message)
+    return (
+        <div className="bg-gradient-to-br from-[#140152] to-purple-900 rounded-3xl p-6 text-white shadow-lg border border-purple-700/40 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-[#f5bb00]/20 flex items-center justify-center shrink-0">
+                    <HandHeart className="w-6 h-6 text-[#f5bb00]" />
+                </div>
+                <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#f5bb00]/80 mb-0.5">Active Volunteer</p>
+                    <h3 className="font-black text-lg leading-tight">{department || 'Church Volunteer'}</h3>
+                </div>
+                <CheckCircle2 className="w-5 h-5 text-green-400 ml-auto shrink-0" />
+            </div>
+
+            <div className="space-y-2">
+                {availability && (
+                    <div className="flex items-center gap-2 text-sm text-white/80">
+                        <CalendarDays className="w-4 h-4 text-[#f5bb00]/70 shrink-0" />
+                        <span>Available: <span className="text-white font-semibold">{availability}</span></span>
+                    </div>
+                )}
+                {phone && (
+                    <div className="flex items-center gap-2 text-sm text-white/80">
+                        <Phone className="w-4 h-4 text-[#f5bb00]/70 shrink-0" />
+                        <span>{phone}</span>
+                    </div>
+                )}
+            </div>
+
+            <div className="bg-white/10 rounded-2xl px-4 py-3 text-sm text-white/90 leading-relaxed">
+                🎉 Your coordinator will contact you soon with your first assignment and orientation details.
+            </div>
+
+            <Link
+                href="/volunteer"
+                className="text-center text-sm font-bold text-[#f5bb00] hover:text-yellow-300 transition-colors py-1"
+            >
+                View Volunteer Info →
+            </Link>
+        </div>
+    )
 }
 
 export default function UserDashboard() {
@@ -68,6 +133,7 @@ export default function UserDashboard() {
     const [userName, setUserName] = useState('')
     const [bibleProgress, setBibleProgress] = useState(0)
     const [approvedServices, setApprovedServices] = useState<string[]>([])
+    const [approvedRequests, setApprovedRequests] = useState<ServiceRequest[]>([])
     const [pendingServices, setPendingServices] = useState<string[]>([])
     const [activeDeptNames, setActiveDeptNames] = useState<string[]>([])
     const [servicesLoading, setServicesLoading] = useState(true)
@@ -97,6 +163,7 @@ export default function UserDashboard() {
             try {
                 const myRequests = await serviceRequestApi.getMyRequests()
                 setApprovedServices(myRequests.approved.map(r => r.service_name))
+                setApprovedRequests(myRequests.approved)
                 // Deduplicate pending services
                 const rawPending = myRequests.pending.map(r => r.service_name)
                 setPendingServices([...new Set(rawPending)])
@@ -292,6 +359,13 @@ export default function UserDashboard() {
 
                                     {/* Approved Services */}
                                     {approvedServices.filter(s => s !== 'Counselling' && s !== 'Theology school').map((service) => {
+                                        // Volunteer gets its own rich card showing department + availability
+                                        if (service === 'Volunteer') {
+                                            const volunteerRequest = approvedRequests.find(r => r.service_name === 'Volunteer')
+                                            return volunteerRequest
+                                                ? <VolunteerCard key={service} request={volunteerRequest} />
+                                                : null
+                                        }
                                         const config = SERVICE_CONFIG[service]
                                         if (config) {
                                             return (
