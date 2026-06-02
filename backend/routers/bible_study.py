@@ -636,6 +636,20 @@ async def get_quarterly_themes(db: AsyncSession = Depends(get_db)):
     return themes
 
 
+@router.get("/settings", response_model=BibleStudyPageSettingsResponse)
+async def get_public_page_settings(db: AsyncSession = Depends(get_db)):
+    """Public endpoint — returns Bible Study page settings incl. admin-managed
+    weekly topics, study groups, and session notes (read-only, no auth)."""
+    result = await db.execute(select(BibleStudyPageSettings))
+    settings = result.scalar_one_or_none()
+    if not settings:
+        settings = BibleStudyPageSettings()
+        db.add(settings)
+        await db.commit()
+        await db.refresh(settings)
+    return settings
+
+
 # ─── Admin: Week Reflections CRUD ────────────────────────────────────────────
 
 class WeekReflectionInput(BaseModel):

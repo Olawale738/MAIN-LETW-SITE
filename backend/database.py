@@ -102,6 +102,11 @@ async def init_db():
                 ("users",   "updated_at",   "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
                 # Sermon: external document URL (PDF link)
                 ("sermons", "document_url", "VARCHAR(500)"),
+                # Bible study page settings: admin-managed JSON content
+                ("bible_study_page_settings", "weekly_topics", "JSONB DEFAULT '[]'::jsonb"),
+                ("bible_study_page_settings", "study_groups",  "JSONB DEFAULT '[]'::jsonb"),
+                ("bible_study_page_settings", "session_notes", "JSONB DEFAULT '[]'::jsonb"),
+                ("bible_study_page_settings", "year_label",    "VARCHAR(20) DEFAULT '2026'"),
             ]
 
             for table, column, col_def in missing_columns:

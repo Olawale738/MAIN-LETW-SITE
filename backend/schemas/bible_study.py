@@ -173,6 +173,11 @@ class BibleStudyPageSettingsUpdate(BaseModel):
     hero_subtitle: Optional[str] = None
     hero_description: Optional[str] = None
     hero_background_url: Optional[str] = None
+    year_label: Optional[str] = None
+    # JSON content managed by admin
+    weekly_topics: Optional[list] = None
+    study_groups: Optional[list] = None
+    session_notes: Optional[list] = None
 
 
 class BibleStudyPageSettingsResponse(BaseModel):
@@ -181,6 +186,10 @@ class BibleStudyPageSettingsResponse(BaseModel):
     hero_subtitle: str
     hero_description: str
     hero_background_url: Optional[str]
+    year_label: str = "2026"
+    weekly_topics: Optional[list] = None
+    study_groups: Optional[list] = None
+    session_notes: Optional[list] = None
     created_at: datetime
     updated_at: datetime
 

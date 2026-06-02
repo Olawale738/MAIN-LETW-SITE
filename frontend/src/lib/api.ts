@@ -2008,6 +2008,37 @@ export interface BibleStudyResource {
     updated_at: string;
 }
 
+export interface BibleStudyWeeklyTopic {
+    id: number;
+    week: string;
+    title: string;
+    verse: string;
+    category: string;
+    color: string;
+    time?: string;
+    discussion_questions?: string[];
+}
+
+export interface BibleStudyGroup {
+    id: string;
+    name: string;
+    leader: string;
+    time: string;
+    size: number;
+    level: string;
+    is_open: boolean;
+    contact?: string;
+    description?: string;
+}
+
+export interface BibleStudySessionNote {
+    id: string;
+    title: string;
+    body: string;
+    date: string;
+    urgent: boolean;
+}
+
 export interface BibleStudyPageSettings {
     id: string;
     hero_title: string;
@@ -2015,6 +2046,9 @@ export interface BibleStudyPageSettings {
     hero_description: string;
     hero_background_url?: string;
     year_label: string;
+    weekly_topics?: BibleStudyWeeklyTopic[];
+    study_groups?: BibleStudyGroup[];
+    session_notes?: BibleStudySessionNote[];
     created_at: string;
     updated_at: string;
 }
@@ -2072,6 +2106,9 @@ export interface BibleStudyPageSettingsUpdate {
     hero_description?: string;
     hero_background_url?: string;
     year_label?: string;
+    weekly_topics?: BibleStudyWeeklyTopic[];
+    study_groups?: BibleStudyGroup[];
+    session_notes?: BibleStudySessionNote[];
 }
 
 export interface WeekReflection {
@@ -2224,6 +2261,11 @@ export const bibleStudyApi = {
             method: 'PUT',
             body: JSON.stringify(data),
         });
+    },
+
+    // Public - Settings (read-only, no auth) — includes admin-managed topics/groups/notes
+    getPublicSettings: async (): Promise<BibleStudyPageSettings> => {
+        return fetchApi<BibleStudyPageSettings>('/bible-study/settings');
     },
 
     // Public - Week Reflections & Quarterly Themes

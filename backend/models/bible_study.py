@@ -4,7 +4,7 @@ Bible Study models for reading plans and progress tracking
 import uuid
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import String, Text, Integer, Boolean, DateTime, ForeignKey, Date, Enum as SQLEnum, UniqueConstraint
+from sqlalchemy import String, Text, Integer, Boolean, DateTime, ForeignKey, Date, Enum as SQLEnum, UniqueConstraint, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 import enum
@@ -150,6 +150,14 @@ class BibleStudyPageSettings(Base):
     
     # Plan identity
     year_label: Mapped[str] = mapped_column(String(20), default="2026")
+
+    # Admin-managed JSON content (avoids separate tables for small datasets)
+    # weekly_topics: list of {id, week, title, verse, category, color, discussion_questions, time}
+    weekly_topics: Mapped[Optional[list]] = mapped_column(JSON, nullable=True, default=list)
+    # study_groups:  list of {id, name, leader, time, size, level, is_open, contact}
+    study_groups: Mapped[Optional[list]] = mapped_column(JSON, nullable=True, default=list)
+    # session_notes: list of {id, title, body, date, urgent}
+    session_notes: Mapped[Optional[list]] = mapped_column(JSON, nullable=True, default=list)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

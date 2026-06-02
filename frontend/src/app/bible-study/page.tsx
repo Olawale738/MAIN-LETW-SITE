@@ -191,7 +191,7 @@ export default function BibleStudyPage() {
     useEffect(() => {
         Promise.all([
             bibleStudyApi.getQuarterlyThemes().catch(() => []),
-            bibleStudyApi.getSettings().catch(() => null),
+            bibleStudyApi.getPublicSettings().catch(() => null),
         ]).then(([themes, settingsData]) => {
             if (themes.length > 0) setAdminThemes(themes)
             if (settingsData) setSettings(settingsData)
@@ -216,6 +216,20 @@ export default function BibleStudyPage() {
         ? adminThemes.map(t => ({ id: t.quarter_number, title: t.title, scripture: t.scripture, description: t.description ?? '', accent_color: t.accent_color, bgImage: QUARTER_BG[t.quarter_number] ?? QUARTER_BG[1] }))
         : FALLBACK_THEMES
     const yearLabel = settings?.year_label ?? '2026'
+
+    // Admin-managed content (falls back to built-in when not configured)
+    const adminTopics = settings?.weekly_topics ?? []
+    const activeTopics = adminTopics.length > 0
+        ? adminTopics.map((t, i) => ({ id: i, week: t.week, title: t.title, verse: t.verse, category: t.category, color: t.color }))
+        : WEEKLY_TOPICS
+    const adminGroups = settings?.study_groups ?? []
+    const sessionNotes = settings?.session_notes ?? []
+
+    // Normalize groups to a single display shape (admin overrides built-in)
+    const displayGroups: { name: string; leader: string; time: string; size: number; level: string; is_open: boolean; description?: string }[] =
+        adminGroups.length > 0
+            ? adminGroups.map(g => ({ name: g.name, leader: g.leader, time: g.time, size: g.size, level: g.level, is_open: g.is_open, description: g.description }))
+            : GROUPS.map(g => ({ name: g.name, leader: g.leader, time: g.time, size: g.size, level: g.level, is_open: true }))
 
     const todayVerse = useMemo(() => DAILY_VERSES[new Date().getDay() % DAILY_VERSES.length], [])
 
@@ -710,8 +724,25 @@ export default function BibleStudyPage() {
                             <p className="text-gray-500 mt-4 max-w-xl mx-auto">Every Tuesday at 6:00 PM. Each week builds on the last.</p>
                         </div>
 
+                        {/* Admin session notes / announcements */}
+                        {sessionNotes.length > 0 && (
+                            <div className="space-y-3 mb-8">
+                                {sessionNotes.map(note => (
+                                    <div key={note.id} className={`rounded-2xl border-l-4 p-5 ${note.urgent ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-[#f5bb00] bg-amber-50 dark:bg-amber-900/10'}`}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            {note.urgent && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">🔴 Urgent</span>}
+                                            <Bell className="w-4 h-4 text-[#f5bb00]" />
+                                            <span className="text-xs text-gray-400">{new Date(note.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</span>
+                                        </div>
+                                        <h4 className="font-black text-[#140152] dark:text-white">{note.title}</h4>
+                                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">{note.body}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
                         <div className="space-y-4 mb-16">
-                            {WEEKLY_TOPICS.map((topic, i) => {
+                            {activeTopics.map((topic, i) => {
                                 const isExpanded = expandedWeek === i
                                 const quizScore = studyState.quizScores?.[String(i)]
                                 const hasJournal = (studyState.journals?.[String(i)] ?? '').trim().length > 0
@@ -758,11 +789,13 @@ export default function BibleStudyPage() {
                                                                     <div className="flex gap-2 flex-wrap">
                                                                         <Button size="sm" className="bg-[#140152] text-white hover:bg-[#1a0270]"><Play className="w-4 h-4 mr-1" /> Watch Recording</Button>
                                                                         <Button size="sm" variant="outline" className="border-[#140152] text-[#140152]"><Download className="w-4 h-4 mr-1" /> Study Notes</Button>
-                                                                        <button onClick={() => startQuiz(i)}
-                                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700 transition-all">
-                                                                            <Brain className="w-3.5 h-3.5" />
-                                                                            {quizScore !== undefined ? `Retake Quiz (Best: ${quizScore}/5)` : 'Take Quiz'}
-                                                                        </button>
+                                                                        {QUIZZES[i] && (
+                                                                            <button onClick={() => startQuiz(i)}
+                                                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700 transition-all">
+                                                                                <Brain className="w-3.5 h-3.5" />
+                                                                                {quizScore !== undefined ? `Retake Quiz (Best: ${quizScore}/5)` : 'Take Quiz'}
+                                                                            </button>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                                 <div className="bg-white dark:bg-neutral-800 rounded-xl p-4 border border-gray-100 dark:border-neutral-600">
@@ -873,17 +906,22 @@ export default function BibleStudyPage() {
                             <p className="text-gray-500 mt-4 max-w-xl mx-auto">Smaller groups. Deeper conversations. Stronger community.</p>
                         </div>
                         <div className="grid md:grid-cols-2 gap-8 mb-16">
-                            {GROUPS.map((g, i) => (
+                            {displayGroups.map((g, i) => {
+                                const isOpen = g.is_open
+                                return (
                                 <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                                     className="bg-white dark:bg-neutral-800 rounded-2xl p-8 border border-gray-100 hover:shadow-xl hover:border-[#f5bb00] transition-all group">
-                                    <div className="flex items-start gap-5 mb-6">
-                                        <div className="w-14 h-14 bg-[#140152]/5 group-hover:bg-[#f5bb00]/10 rounded-2xl flex items-center justify-center transition-colors">
-                                            <Users className="w-7 h-7 text-[#140152] group-hover:text-[#f5bb00] transition-colors" />
+                                    <div className="flex items-start justify-between gap-5 mb-6">
+                                        <div className="flex items-start gap-5">
+                                            <div className="w-14 h-14 bg-[#140152]/5 group-hover:bg-[#f5bb00]/10 rounded-2xl flex items-center justify-center transition-colors shrink-0">
+                                                <Users className="w-7 h-7 text-[#140152] group-hover:text-[#f5bb00] transition-colors" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-[#140152] dark:text-white">{g.name}</h3>
+                                                <p className="text-[#f5bb00] font-semibold text-sm">Led by {g.leader}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-xl font-bold text-[#140152] dark:text-white">{g.name}</h3>
-                                            <p className="text-[#f5bb00] font-semibold text-sm">Led by {g.leader}</p>
-                                        </div>
+                                        {!isOpen && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-full shrink-0">Full</span>}
                                     </div>
                                     <div className="space-y-2 mb-6">
                                         {[{ icon: Clock, text: g.time }, { icon: Users, text: `${g.size} members` }, { icon: Shield, text: g.level }].map((r, j) => (
@@ -891,12 +929,18 @@ export default function BibleStudyPage() {
                                                 <r.icon className="w-4 h-4 text-[#f5bb00]" /> {r.text}
                                             </div>
                                         ))}
+                                        {g.description && (
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 pt-1">{g.description}</p>
+                                        )}
                                     </div>
                                     <Link href="/auth/register">
-                                        <Button className="w-full bg-[#140152] text-white hover:bg-[#1a0270] rounded-xl">Join This Group</Button>
+                                        <Button disabled={!isOpen} className="w-full bg-[#140152] text-white hover:bg-[#1a0270] rounded-xl disabled:opacity-50">
+                                            {isOpen ? 'Join This Group' : 'Group Full'}
+                                        </Button>
                                     </Link>
                                 </motion.div>
-                            ))}
+                                )
+                            })}
                         </div>
                         <div className="bg-gray-50 dark:bg-neutral-800 rounded-3xl p-10 text-center border border-dashed border-gray-300">
                             <Globe className="w-12 h-12 text-[#f5bb00] mx-auto mb-5" />
