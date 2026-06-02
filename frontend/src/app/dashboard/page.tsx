@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone, Send, HandHeart, CheckCircle2, Phone, CalendarDays } from 'lucide-react'
+import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone, Send, HandHeart, CheckCircle2, Phone, CalendarDays, Bell, X, ChevronRight, ArrowRight } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
 import { serviceRequestApi, notificationApi, Notification, ServiceRequest } from '@/lib/api'
 import { checkMembership } from '@/lib/dept-api'
@@ -226,129 +226,168 @@ export default function UserDashboard() {
         setShowNotifications(!showNotifications)
     }
 
-    return (
-        <div className="min-h-screen bg-gray-50 flex flex-col relative overflow-hidden font-sans">
+    const visiblePending = pendingServices.filter(s => s !== 'Theology school' && !activeDeptNames.includes(s))
+    const visibleApproved = approvedServices.filter(s => s !== 'Counselling' && s !== 'Theology school')
 
-            {/* Spotlight Hero Section */}
-            <div className="relative bg-[#140152] pt-32 pb-32 px-4 md:px-12 overflow-hidden">
+    return (
+        <div className="min-h-screen bg-[#f8f9fc] flex flex-col font-sans">
+
+            {/* ── Hero ── */}
+            <div className="relative bg-[#140152] pt-14 pb-24 px-4 md:px-12 overflow-hidden">
                 <Spotlight className="-top-10 left-0 md:left-60 md:-top-20" fill="white" />
-                <div className="max-w-5xl mx-auto relative z-10 flex flex-col md:flex-row justify-between items-end gap-8">
-                    <div>
-                        <h1 className="text-xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 mb-6 tracking-tight">
-                            Welcome back,<br /> {userName}.
-                        </h1>
-                        <p className="text-blue-200 text-md md:text-xl max-w-2xl font-light leading-relaxed">
-                            Your spiritual journey continues. Here's what's happening today.
-                        </p>
-                    </div>
+
+                {/* Notification bell */}
+                <div className="absolute top-4 right-4 md:right-12 z-20">
+                    <button onClick={toggleNotifications}
+                        className="relative w-10 h-10 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl flex items-center justify-center transition-all">
+                        <Bell className="w-5 h-5 text-white" />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#f5bb00] rounded-full flex items-center justify-center text-[#140152] text-[10px] font-black">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
+                    </button>
+
+                    {/* Notification dropdown */}
+                    {showNotifications && (
+                        <div className="absolute top-12 right-0 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
+                                <p className="font-black text-[#140152] text-sm">Notifications</p>
+                                <button onClick={() => setShowNotifications(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+                            </div>
+                            <div className="max-h-72 overflow-y-auto">
+                                {notificationsLoading ? (
+                                    <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-[#140152]" /></div>
+                                ) : notifications.length === 0 ? (
+                                    <p className="text-center text-sm text-gray-400 py-8">All caught up! 🎉</p>
+                                ) : notifications.map(n => (
+                                    <div key={n.id} className={`flex gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-50 transition-colors ${!n.is_read ? 'bg-blue-50/50' : ''}`}>
+                                        <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!n.is_read ? 'bg-[#f5bb00]' : 'bg-gray-200'}`} />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-bold text-[#140152] truncate">{n.title}</p>
+                                            <p className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">{n.message}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <Link href="/dashboard/notifications" onClick={() => setShowNotifications(false)}
+                                className="flex items-center justify-center gap-1.5 px-4 py-3 text-xs font-bold text-[#140152] hover:bg-gray-50 border-t border-gray-100 transition-colors">
+                                View all <ChevronRight className="w-3.5 h-3.5" />
+                            </Link>
+                        </div>
+                    )}
+                </div>
+
+                <div className="max-w-5xl mx-auto relative z-10">
+                    <p className="text-[#f5bb00]/70 text-sm font-semibold mb-1">
+                        {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    </p>
+                    <h1 className="text-3xl md:text-5xl font-black text-white leading-tight mb-2 tracking-tight">
+                        Welcome back, {userName}. 👋
+                    </h1>
+                    <p className="text-white/50 text-sm md:text-base font-light">
+                        Your spiritual journey continues. Here's what's happening.
+                    </p>
                 </div>
             </div>
 
-            <main className="flex-grow py-16 px-4 md:px-12 -mt-20 relative z-20">
-                <div className="max-w-5xl mx-auto space-y-16">
+            <main className="flex-grow px-4 md:px-12 -mt-12 relative z-20 pb-16">
+                <div className="max-w-5xl mx-auto space-y-8">
 
-                    {/* Top Highlights Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Bible Progress Card */}
-                        <Card className="bg-white/95 backdrop-blur-xl border-white/20 shadow-2xl hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.7)] transition-all duration-500 overflow-hidden group rounded-3xl h-full flex flex-col justify-between">
-                            <CardHeader className="pb-2 relative p-8">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100/50 rounded-full blur-3xl -mr-20 -mt-20 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                                <CardTitle className="text-blue-600 text-sm uppercase tracking-widest font-bold z-10 flex items-center gap-2">
-                                    <BookOpen className="w-4 h-4" />
-                                    Bible Reading Plan
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="relative z-10 px-8 pb-8 pt-0 flex-grow flex flex-col justify-end">
-                                <div className="flex items-baseline gap-2 mb-6">
-                                    <span className="text-5xl font-black text-[#140152] tracking-tighter">{bibleProgress}%</span>
-                                    <span className="text-gray-400 font-medium text-lg">completed</span>
+                    {/* ── Top cards ── */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        {/* Bible Progress */}
+                        <Card className="bg-white border border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group rounded-2xl">
+                            <CardContent className="p-6">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                                        <BookOpen className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Bible Reading Plan</span>
                                 </div>
-                                <div className="w-full bg-gray-100 rounded-full h-4 mb-8 overflow-hidden">
-                                    <div className="bg-gradient-to-r from-blue-600 to-[#140152] h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(20,1,82,0.3)]" style={{ width: `${bibleProgress}%` }} />
+                                <div className="flex items-baseline gap-2 mb-4">
+                                    <span className="text-4xl font-black text-[#140152]">{bibleProgress}%</span>
+                                    <span className="text-gray-400 font-medium">completed</span>
                                 </div>
-                                <PremiumButton href="/bible-reading" className="justify-center text-lg rounded-xl">Continue Reading</PremiumButton>
+                                <div className="w-full bg-gray-100 rounded-full h-2.5 mb-5 overflow-hidden">
+                                    <div className="bg-gradient-to-r from-blue-500 to-[#140152] h-full rounded-full transition-all duration-1000"
+                                        style={{ width: `${bibleProgress}%` }} />
+                                </div>
+                                <PremiumButton href="/bible-reading" className="justify-center rounded-xl">
+                                    Continue Reading
+                                </PremiumButton>
                             </CardContent>
                         </Card>
 
-                        {/* Up Next Card */}
-                        <Card className="bg-gradient-to-br from-[#f5bb00] to-[#e6a800] text-[#140152] border-none shadow-2xl hover:shadow-[0_20px_50px_rgba(245,187,0,0.4)] transition-all duration-500 rounded-3xl h-full flex flex-col justify-between">
-                            <CardHeader className="p-8 pb-2">
-                                <CardTitle className="text-[#140152]/60 text-sm uppercase tracking-widest font-bold flex items-center gap-2">
-                                    <Clock className="w-4 h-4" />
-                                    Upcoming Event
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-8 pt-4 flex-grow flex flex-col justify-end">
-                                <div className="mb-8">
-                                    <h3 className="text-4xl md:text-5xl font-black mb-3 tracking-tight">Sunday Service</h3>
-                                    <p className="font-semibold opacity-80 text-xl border-l-4 border-[#140152]/20 pl-4 py-1">9:00 AM • Main Sanctuary</p>
+                        {/* Upcoming */}
+                        <Card className="bg-gradient-to-br from-[#f5bb00] to-[#e6a800] text-[#140152] border-none shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl">
+                            <CardContent className="p-6 flex flex-col h-full justify-between">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Clock className="w-4 h-4 text-[#140152]/60" />
+                                    <span className="text-xs font-bold text-[#140152]/60 uppercase tracking-wider">Next Service</span>
                                 </div>
-                                <PremiumButton href="/services" className="bg-[#140152] text-white hover:bg-[#140152]/90 border-none justify-center text-lg rounded-xl shadow-none">
+                                <div className="mb-5">
+                                    <h3 className="text-3xl font-black mb-1.5">Sunday Service</h3>
+                                    <p className="font-semibold opacity-70 flex items-center gap-2">
+                                        <Clock className="w-4 h-4" /> 9:00 AM · Main Sanctuary
+                                    </p>
+                                </div>
+                                <PremiumButton href="/services"
+                                    className="bg-[#140152] text-white hover:bg-[#140152]/90 border-none justify-center rounded-xl shadow-none">
                                     View Full Schedule
                                 </PremiumButton>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* Quick Actions Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <button
-                            onClick={() => {
-                                const chatBtn = document.querySelector('[aria-label="Open chat"]') as HTMLButtonElement
-                                chatBtn?.click()
-                            }}
-                            className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all text-left flex items-center gap-4 group"
-                        >
-                            <div className="w-12 h-12 bg-[#140152] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
-                                <MessageCircle className="w-6 h-6 text-[#f5bb00]" />
-                            </div>
-                            <div>
-                                <p className="font-bold text-[#140152]">Chat with Admin</p>
-                                <p className="text-xs text-gray-400">Get support or ask a question</p>
-                            </div>
-                        </button>
-                        <Link href="/prayer-request" className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4 group">
-                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
-                                <Heart className="w-6 h-6 text-blue-600" />
-                            </div>
-                            <div>
-                                <p className="font-bold text-[#140152]">Prayer Request</p>
-                                <p className="text-xs text-gray-400">Submit a prayer request</p>
-                            </div>
-                        </Link>
-                        <Link href="/events" className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center gap-4 group">
-                            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
-                                <Clock className="w-6 h-6 text-amber-600" />
-                            </div>
-                            <div>
-                                <p className="font-bold text-[#140152]">Upcoming Events</p>
-                                <p className="text-xs text-gray-400">See what's happening</p>
-                            </div>
-                        </Link>
+                    {/* ── Quick Actions ── */}
+                    <div className="grid grid-cols-3 gap-3">
+                        {[
+                            {
+                                label: 'Chat Admin', sub: 'Get support', icon: MessageCircle, bg: '#140152', iconColor: '#f5bb00',
+                                action: () => (document.querySelector('[aria-label="Open chat"]') as HTMLButtonElement)?.click()
+                            },
+                            { label: 'Prayer Request', sub: 'Submit request', icon: Heart,          bg: '#dbeafe', iconColor: '#2563eb', href: '/prayer-request' },
+                            { label: 'Events',         sub: 'See schedule',  icon: CalendarDays,    bg: '#fef3c7', iconColor: '#d97706', href: '/events' },
+                        ].map((a, i) => {
+                            const inner = (
+                                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all flex flex-col items-center gap-2.5 text-center group">
+                                    <div className="w-11 h-11 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"
+                                        style={{ background: a.bg }}>
+                                        <a.icon className="w-5 h-5" style={{ color: a.iconColor }} />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-[#140152] text-sm">{a.label}</p>
+                                        <p className="text-[10px] text-gray-400">{a.sub}</p>
+                                    </div>
+                                </div>
+                            )
+                            if ('href' in a && a.href) return <Link key={i} href={a.href}>{inner}</Link>
+                            return <button key={i} onClick={a.action} className="text-left">{inner}</button>
+                        })}
                     </div>
 
-                    {/* Ministries Section */}
+                    {/* ── My Ministries ── */}
                     <div>
-                        <div className="flex items-center justify-between mb-10">
-                            <h2 className="text-3xl font-black text-[#140152] tracking-tight">My Ministries</h2>
-                            <Button
-                                onClick={() => router.push('/onboarding/services')}
-                                variant="outline"
-                                className="border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white transition-all rounded-full px-8 py-6 text-base font-bold shadow-sm hover:shadow-lg"
-                            >
-                                Manage Services
-                            </Button>
+                        <div className="flex items-center justify-between mb-5">
+                            <div>
+                                <h2 className="text-xl font-black text-[#140152]">My Ministries</h2>
+                                <p className="text-xs text-gray-500 mt-0.5">Your approved and enrolled services</p>
+                            </div>
+                            <button onClick={() => router.push('/onboarding/services')}
+                                className="flex items-center gap-1.5 text-xs font-bold text-[#140152] border border-[#140152]/20 hover:bg-[#140152] hover:text-white px-3.5 py-2 rounded-xl transition-all">
+                                Manage <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
                         </div>
 
                         {servicesLoading ? (
-                            <div className="flex items-center justify-center py-20">
-                                <Loader2 className="w-12 h-12 animate-spin text-[#140152]" />
+                            <div className="flex items-center justify-center py-16">
+                                <Loader2 className="w-8 h-8 animate-spin text-[#140152]/30" />
                             </div>
                         ) : (
-                            <div className="space-y-12">
-                                {/* Active Services Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {/* Counselling - Always accessible */}
+                            <div className="space-y-6">
+                                {/* Active grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                                     <ServiceCard
                                         title="Counselling"
                                         description="Access spiritual and pastoral counselling support services."
@@ -356,58 +395,40 @@ export default function UserDashboard() {
                                         buttonLink="/services/counselling"
                                         icon={<MessageCircle className="w-8 h-8" />}
                                     />
-
-                                    {/* Approved Services */}
-                                    {approvedServices.filter(s => s !== 'Counselling' && s !== 'Theology school').map((service) => {
-                                        // Volunteer gets its own rich card showing department + availability
+                                    {visibleApproved.map((service) => {
                                         if (service === 'Volunteer') {
-                                            const volunteerRequest = approvedRequests.find(r => r.service_name === 'Volunteer')
-                                            return volunteerRequest
-                                                ? <VolunteerCard key={service} request={volunteerRequest} />
-                                                : null
+                                            const req = approvedRequests.find(r => r.service_name === 'Volunteer')
+                                            return req ? <VolunteerCard key={service} request={req} /> : null
                                         }
                                         const config = SERVICE_CONFIG[service]
-                                        if (config) {
-                                            return (
-                                                <ServiceCard
-                                                    key={service}
-                                                    title={service}
-                                                    description={config.description}
-                                                    buttonText={config.buttonText}
-                                                    buttonLink={config.buttonLink}
-                                                    icon={config.icon}
-                                                />
-                                            )
-                                        }
-                                        return (
-                                            <ServiceCard
-                                                key={service}
-                                                title={service}
+                                        return config ? (
+                                            <ServiceCard key={service} title={service} description={config.description}
+                                                buttonText={config.buttonText} buttonLink={config.buttonLink} icon={config.icon} />
+                                        ) : (
+                                            <ServiceCard key={service} title={service}
                                                 description="Access your enrolled service and start participating."
-                                                buttonText="Access Service"
-                                                buttonLink="/services"
-                                                icon={<Briefcase className="w-8 h-8" />}
-                                            />
+                                                buttonText="Access Service" buttonLink="/services"
+                                                icon={<Briefcase className="w-8 h-8" />} />
                                         )
                                     })}
                                 </div>
 
-                                {/* Pending Services */}
-                                {pendingServices.filter(s => s !== 'Theology school' && !activeDeptNames.includes(s)).length > 0 && (
-                                    <div className="bg-amber-50 rounded-3xl p-8 border border-amber-100">
-                                        <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider mb-6 flex items-center gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                                            Pending Approvals
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {pendingServices.filter(s => s !== 'Theology school' && !activeDeptNames.includes(s)).map((service) => (
-                                                <div key={service} className="bg-white p-6 rounded-2xl shadow-sm border border-amber-100 flex items-center gap-5 hover:shadow-md transition-shadow">
-                                                    <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                                                        <Clock className="w-6 h-6" />
+                                {/* Pending */}
+                                {visiblePending.length > 0 && (
+                                    <div className="bg-amber-50 rounded-2xl p-5 border border-amber-100">
+                                        <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />
+                                            Awaiting Approval
+                                        </p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            {visiblePending.map((service) => (
+                                                <div key={service} className="bg-white px-4 py-3.5 rounded-xl border border-amber-100 flex items-center gap-3 shadow-sm">
+                                                    <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                                                        <Clock className="w-4 h-4 text-amber-600" />
                                                     </div>
-                                                    <div>
-                                                        <span className="font-bold text-gray-900 block text-lg mb-1">{service}</span>
-                                                        <span className="text-sm text-amber-700 font-medium bg-amber-100 px-3 py-1 rounded-full">Awaiting review</span>
+                                                    <div className="min-w-0">
+                                                        <p className="font-bold text-gray-800 text-sm truncate">{service}</p>
+                                                        <p className="text-[10px] text-amber-600 font-semibold">Under review</p>
                                                     </div>
                                                 </div>
                                             ))}
@@ -415,17 +436,16 @@ export default function UserDashboard() {
                                     </div>
                                 )}
 
-                                {approvedServices.filter(s => s !== 'Counselling' && s !== 'Theology school').length === 0 && pendingServices.filter(s => s !== 'Theology school' && !activeDeptNames.includes(s)).length === 0 && (
-                                    <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100 hover:border-blue-200 transition-colors">
-                                        <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-300">
-                                            <Briefcase className="w-10 h-10" />
+                                {/* Empty state */}
+                                {visibleApproved.length === 0 && visiblePending.length === 0 && (
+                                    <div className="text-center py-14 bg-white rounded-2xl border-2 border-dashed border-gray-100 hover:border-[#140152]/20 transition-colors">
+                                        <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                            <Briefcase className="w-7 h-7 text-gray-300" />
                                         </div>
-                                        <p className="text-gray-500 font-medium text-lg mb-4">You haven't joined any ministries yet.</p>
-                                        <PremiumButton
-                                            href="/onboarding/services"
-                                            className="justify-center py-6 text-lg rounded-xl mt-4"
-                                        >
-                                            Explore Available Ministries
+                                        <p className="text-gray-500 font-semibold mb-1">No ministries yet</p>
+                                        <p className="text-gray-400 text-sm mb-5">Explore and join ministries to grow in community</p>
+                                        <PremiumButton href="/onboarding/services" className="justify-center rounded-xl mx-auto">
+                                            Explore Ministries
                                         </PremiumButton>
                                     </div>
                                 )}

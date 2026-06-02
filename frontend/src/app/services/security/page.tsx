@@ -1,3 +1,4 @@
+'use client'
 import VolunteerDeptDashboard, { type DeptConfig } from '@/components/dept/VolunteerDeptDashboard'
 import { Shield } from 'lucide-react'
 
