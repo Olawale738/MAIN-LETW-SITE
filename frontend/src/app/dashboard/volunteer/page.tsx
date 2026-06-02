@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
-    HandHeart, Phone, Mail, CalendarDays, CheckCircle2,
+    HandHeart, Phone, CalendarDays, CheckCircle2,
     ArrowRight, BookOpen, Music, Users, Baby, Mic2,
     Heart, Camera, Coffee, Shield, Loader2, Clock,
     LayoutDashboard, Library, ChevronRight, Star
@@ -108,25 +108,48 @@ const DEPT_CONFIG: Record<string, DeptConfig> = {
         color: 'bg-violet-600',
         textColor: 'text-violet-700',
         description: 'You capture and create — photography, videography, graphics, and social media that spread the church\'s message.',
-        resources: [{ label: 'Visit Church Site', href: '/' }],
+        dashboard: {
+            label: 'Media Team Dashboard',
+            href: '/services/media',
+            icon: <LayoutDashboard className="w-5 h-5" />,
+            description: 'Access your media hub — view upcoming shoots, post notices, track attendance, and chat with the team.',
+        },
     },
     'Hospitality Team': {
         icon: <Coffee className="w-6 h-6" />,
         color: 'bg-amber-600',
         textColor: 'text-amber-700',
         description: 'You make everyone feel at home — through food, fellowship events, and a warm, welcoming environment.',
+        dashboard: {
+            label: 'Hospitality Dashboard',
+            href: '/services/hospitality',
+            icon: <LayoutDashboard className="w-5 h-5" />,
+            description: 'View upcoming events needing hospitality, team announcements, duty roster, and group chat.',
+        },
     },
     'Ushering & Welcome': {
         icon: <Users className="w-6 h-6" />,
         color: 'bg-cyan-600',
         textColor: 'text-cyan-700',
         description: 'You are the first face people see. You create a warm, orderly atmosphere that sets the tone for worship.',
+        dashboard: {
+            label: 'Ushering Dashboard',
+            href: '/services/ushering',
+            icon: <LayoutDashboard className="w-5 h-5" />,
+            description: 'View your service rota, briefing schedules, attendance records, and communicate with the ushering team.',
+        },
     },
     'Security & Safety': {
         icon: <Shield className="w-6 h-6" />,
         color: 'bg-slate-600',
         textColor: 'text-slate-700',
         description: 'You keep the church environment safe and orderly so that every member can worship in peace and security.',
+        dashboard: {
+            label: 'Security Dashboard',
+            href: '/services/security',
+            icon: <LayoutDashboard className="w-5 h-5" />,
+            description: 'Access duty shift schedules, incident tracking, team briefings, and the security group chat.',
+        },
     },
 }
 

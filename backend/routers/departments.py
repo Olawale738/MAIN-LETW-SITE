@@ -47,7 +47,7 @@ def _parse_dept(dept: str) -> DepartmentType:
     try:
         return DepartmentType(dept.lower())
     except ValueError:
-        raise HTTPException(status_code=404, detail=f"Department '{dept}' not found. Use choir, youth, or children.")
+        raise HTTPException(status_code=404, detail=f"Department '{dept}' not found. Valid: choir, youth, children, media, hospitality, ushering, security.")
 
 
 async def _require_leader(dept: DepartmentType, user: User) -> None:

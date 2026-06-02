@@ -7,7 +7,7 @@ const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type Department = 'choir' | 'youth' | 'children'
+export type Department = 'choir' | 'youth' | 'children' | 'media' | 'hospitality' | 'ushering' | 'security'
 
 export interface DeptUser {
   id: string

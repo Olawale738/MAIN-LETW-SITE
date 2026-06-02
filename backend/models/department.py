@@ -24,9 +24,13 @@ if TYPE_CHECKING:
 # ─── Enums ───────────────────────────────────────────────────────────────────
 
 class DepartmentType(str, enum.Enum):
-    CHOIR    = "choir"
-    YOUTH    = "youth"
-    CHILDREN = "children"
+    CHOIR        = "choir"
+    YOUTH        = "youth"
+    CHILDREN     = "children"
+    MEDIA        = "media"
+    HOSPITALITY  = "hospitality"
+    USHERING     = "ushering"
+    SECURITY     = "security"
 
 
 class ActivityType(str, enum.Enum):
