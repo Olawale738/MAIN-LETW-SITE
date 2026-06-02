@@ -2,9 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { tokenManager, chatApi } from '@/lib/api'
+import { tokenManager, chatApi, serviceRequestApi } from '@/lib/api'
 import { useState, useEffect } from 'react'
 import { listMembers } from '@/lib/dept-api'
 
@@ -23,6 +23,11 @@ const sidebarItems = [
         title: 'Service Requests',
         href: '/admin/service-requests',
         icon: ClipboardList
+    },
+    {
+        title: 'Volunteers',
+        href: '/admin/volunteers',
+        icon: UserCheck
     },
     {
         title: 'Announcements',
@@ -127,6 +132,7 @@ export default function AdminSidebar() {
     const [chatUnread, setChatUnread] = useState(0)
     const [youthPending, setYouthPending] = useState(0)
     const [childrenPending, setChildrenPending] = useState(0)
+    const [volunteerCount, setVolunteerCount] = useState(0)
 
     useEffect(() => {
         const fetchUnread = async () => {
@@ -154,6 +160,16 @@ export default function AdminSidebar() {
         fetchPending()
         const interval = setInterval(fetchPending, 60000)
         return () => clearInterval(interval)
+    }, [])
+
+    useEffect(() => {
+        const fetchVolunteers = async () => {
+            try {
+                const res = await serviceRequestApi.getAllRequests('approved')
+                setVolunteerCount(res.requests.filter(r => r.service_name === 'Volunteer').length)
+            } catch { /* non-admin */ }
+        }
+        fetchVolunteers()
     }, [])
 
     const handleLogout = () => {
@@ -189,6 +205,11 @@ export default function AdminSidebar() {
                             {item.href === '/admin/chat' && chatUnread > 0 && (
                                 <span className="bg-[#f5bb00] text-[#140152] text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
                                     {chatUnread > 9 ? '9+' : chatUnread}
+                                </span>
+                            )}
+                            {item.href === '/admin/volunteers' && volunteerCount > 0 && (
+                                <span className="bg-purple-500 text-white text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
+                                    {volunteerCount > 9 ? '9+' : volunteerCount}
                                 </span>
                             )}
                             {item.href === '/youth/coordinator' && youthPending > 0 && (

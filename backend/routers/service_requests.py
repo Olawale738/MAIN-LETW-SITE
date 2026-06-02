@@ -155,6 +155,22 @@ async def create_service_requests(
         )
         admins = admin_result.scalars().all()
         
+        # Build a detail string for the admin notification — for Volunteer requests include phone/dept
+        def _volunteer_detail(svc_name: str) -> str:
+            if svc_name == "Volunteer" and request.message:
+                import re as _re
+                dept = _re.search(r'Department:\s*([^|]+)', request.message)
+                phone = _re.search(r'Phone:\s*([^|]+)', request.message)
+                avail = _re.search(r'Availability:\s*([^|]+)', request.message)
+                parts = []
+                if dept:  parts.append(dept.group(1).strip())
+                if avail: parts.append(avail.group(1).strip())
+                if phone: parts.append(f"📞 {phone.group(1).strip()}")
+                return f"Volunteer ({', '.join(parts)})" if parts else svc_name
+            return svc_name
+
+        notif_services_str = ', '.join(_volunteer_detail(s) for s in pending_services)
+
         for admin in admins:
             # DB Notification
             notif_id = str(uuid.uuid4())
@@ -167,7 +183,7 @@ async def create_service_requests(
                     "id": notif_id,
                     "user_id": admin.id,
                     "title": "New Service Requests",
-                    "message": f"{current_user.name} has requested to join {len(pending_services)} service(s): {', '.join(pending_services)}",
+                    "message": f"{current_user.name} has requested to join: {notif_services_str}",
                     "type": NotificationType.NEW_SERVICE_REQUEST.name,
                     "is_read": False,
                     "reference_id": current_user.id,
