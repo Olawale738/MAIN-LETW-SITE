@@ -415,6 +415,14 @@ export const serviceRequestApi = {
             body: JSON.stringify({ note }),
         });
     },
+
+    /**
+     * Delete a service request entirely (admin only).
+     * If the request was approved, also revokes the service from the user's services list.
+     */
+    deleteRequest: async (requestId: string): Promise<void> => {
+        return fetchApi<void>(`/service-requests/${requestId}`, { method: 'DELETE' });
+    },
 };
 
 // ============= Notification API =============

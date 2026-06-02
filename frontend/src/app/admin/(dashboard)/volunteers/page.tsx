@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import {
     HandHeart, Phone, Mail, CalendarDays, Loader2,
     Search, Copy, CheckCheck, Users, BookOpen, Music,
-    Camera, Coffee, Mic2, Shield, Heart, ChevronDown, ChevronUp
+    Camera, Coffee, Mic2, Shield, Heart, ChevronDown, ChevronUp,
+    Trash2, AlertTriangle, X
 } from 'lucide-react'
 import { serviceRequestApi, ServiceRequest } from '@/lib/api'
 
@@ -40,7 +41,7 @@ const DEPT_ICONS: Record<string, React.ReactNode> = {
 
 // ── Volunteer Card ───────────────────────────────────────────────────────────
 
-function VolunteerCard({ request }: { request: ServiceRequest }) {
+function VolunteerCard({ request, onDelete }: { request: ServiceRequest; onDelete: (id: string) => void }) {
     const { department, availability, phone, experience } = parseVolunteerMessage(request.message)
     const [copied, setCopied] = useState(false)
     const [showExp, setShowExp] = useState(false)
@@ -79,9 +80,18 @@ function VolunteerCard({ request }: { request: ServiceRequest }) {
                             )}
                         </div>
                     </div>
-                    <span className="text-xs font-bold text-green-700 bg-green-100 px-2.5 py-1 rounded-full shrink-0">
-                        ✓ Approved
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs font-bold text-green-700 bg-green-100 px-2.5 py-1 rounded-full">
+                            ✓ Approved
+                        </span>
+                        <button
+                            onClick={() => onDelete(request.id)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Remove volunteer"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Department */}
@@ -152,6 +162,66 @@ function VolunteerCard({ request }: { request: ServiceRequest }) {
     )
 }
 
+// ── Delete Confirm Modal ─────────────────────────────────────────────────────
+
+function DeleteModal({
+    volunteer,
+    onConfirm,
+    onClose,
+    deleting,
+}: {
+    volunteer: ServiceRequest | null
+    onConfirm: () => void
+    onClose: () => void
+    deleting: boolean
+}) {
+    if (!volunteer) return null
+    const { department } = parseVolunteerMessage(volunteer.message)
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+                <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                            <AlertTriangle className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-white">Remove Volunteer</h3>
+                            <p className="text-red-100 text-sm">This will revoke their volunteer access</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="text-white/70 hover:text-white">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="p-6 space-y-4">
+                    <div className="bg-gray-50 rounded-xl p-4">
+                        <p className="text-sm text-gray-500">You are about to remove:</p>
+                        <p className="font-bold text-[#140152] mt-1">{volunteer.user_name || 'Unknown'}</p>
+                        {department && <p className="text-sm text-gray-500 mt-0.5">Department: {department}</p>}
+                    </div>
+                    <p className="text-sm text-gray-600">
+                        The volunteer will lose access and receive a notification. This action cannot be undone.
+                    </p>
+                </div>
+                <div className="px-6 py-4 bg-gray-50 border-t flex gap-3 justify-end">
+                    <Button variant="outline" onClick={onClose} disabled={deleting}>Cancel</Button>
+                    <Button
+                        onClick={onConfirm}
+                        disabled={deleting}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                        {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                        Remove Volunteer
+                    </Button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function VolunteersPage() {
@@ -160,21 +230,35 @@ export default function VolunteersPage() {
     const [error, setError] = useState('')
     const [search, setSearch] = useState('')
     const [deptFilter, setDeptFilter] = useState<string>('All')
+    const [deletingVolunteer, setDeletingVolunteer] = useState<ServiceRequest | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
-    useEffect(() => {
-        const load = async () => {
-            try {
-                const res = await serviceRequestApi.getAllRequests('approved')
-                const vols = res.requests.filter(r => r.service_name === 'Volunteer')
-                setVolunteers(vols)
-            } catch (e: any) {
-                setError(e.message || 'Failed to load volunteers')
-            } finally {
-                setLoading(false)
-            }
+    const load = async () => {
+        try {
+            const res = await serviceRequestApi.getAllRequests('approved')
+            setVolunteers(res.requests.filter(r => r.service_name === 'Volunteer'))
+        } catch (e: any) {
+            setError(e.message || 'Failed to load volunteers')
+        } finally {
+            setLoading(false)
         }
-        load()
-    }, [])
+    }
+
+    useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleDeleteConfirm = async () => {
+        if (!deletingVolunteer) return
+        setIsDeleting(true)
+        try {
+            await serviceRequestApi.deleteRequest(deletingVolunteer.id)
+            setVolunteers(prev => prev.filter(v => v.id !== deletingVolunteer.id))
+            setDeletingVolunteer(null)
+        } catch (e: any) {
+            setError(e.message || 'Failed to remove volunteer')
+        } finally {
+            setIsDeleting(false)
+        }
+    }
 
     // Collect unique departments from all volunteers
     const departments = ['All', ...Array.from(new Set(
@@ -285,9 +369,22 @@ export default function VolunteersPage() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {filtered.map(v => <VolunteerCard key={v.id} request={v} />)}
+                    {filtered.map(v => (
+                        <VolunteerCard
+                            key={v.id}
+                            request={v}
+                            onDelete={id => setDeletingVolunteer(volunteers.find(x => x.id === id) ?? null)}
+                        />
+                    ))}
                 </div>
             )}
+
+            <DeleteModal
+                volunteer={deletingVolunteer}
+                onConfirm={handleDeleteConfirm}
+                onClose={() => setDeletingVolunteer(null)}
+                deleting={isDeleting}
+            />
         </div>
     )
 }

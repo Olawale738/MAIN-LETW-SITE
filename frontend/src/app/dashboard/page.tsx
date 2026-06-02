@@ -119,10 +119,10 @@ function VolunteerCard({ request }: { request: ServiceRequest }) {
             </div>
 
             <Link
-                href="/volunteer"
+                href="/dashboard/volunteer"
                 className="text-center text-sm font-bold text-[#f5bb00] hover:text-yellow-300 transition-colors py-1"
             >
-                View Volunteer Info →
+                Open Volunteer Dashboard →
             </Link>
         </div>
     )

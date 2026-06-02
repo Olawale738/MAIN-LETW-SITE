@@ -372,6 +372,70 @@ async def approve_service_request(
     return _request_to_response(service_request)
 
 
+@router.delete("/{request_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_service_request(
+    request_id: str,
+    admin_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Delete a service request (admin only).
+    If the request was approved, removes the service from the user's services list.
+    Sends an in-app notification to the user informing them of the removal.
+    """
+    result = await db.execute(
+        select(ServiceRequest).where(ServiceRequest.id == request_id)
+    )
+    service_request = result.scalar_one_or_none()
+
+    if not service_request:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service request not found")
+
+    # If the request was approved, revoke access from user.services
+    if service_request.status == ServiceRequestStatus.APPROVED:
+        user_result = await db.execute(select(User).where(User.id == service_request.user_id))
+        user = user_result.scalar_one_or_none()
+        if user:
+            current_services = list(user.services) if user.services else []
+            # Only remove if no other approved request for the same service exists
+            other_approved = await db.execute(
+                select(ServiceRequest).where(
+                    ServiceRequest.user_id == service_request.user_id,
+                    ServiceRequest.service_name == service_request.service_name,
+                    ServiceRequest.status == ServiceRequestStatus.APPROVED,
+                    ServiceRequest.id != request_id
+                )
+            )
+            if not other_approved.scalar_one_or_none():
+                if service_request.service_name in current_services:
+                    current_services.remove(service_request.service_name)
+                    user.services = current_services
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(user, "services")
+
+            # Notify the user
+            notif_id = str(uuid.uuid4())
+            await db.execute(
+                text("""
+                    INSERT INTO notifications (id, user_id, title, message, type, is_read, reference_id, created_at)
+                    VALUES (:id, :user_id, :title, :message, :type, :is_read, :reference_id, :created_at)
+                """),
+                {
+                    "id": notif_id,
+                    "user_id": service_request.user_id,
+                    "title": "Volunteer Record Removed",
+                    "message": f"Your volunteer record for '{service_request.service_name}' has been removed by an administrator. Please contact the church office if you have questions.",
+                    "type": NotificationType.SERVICE_REJECTED.name,
+                    "is_read": False,
+                    "reference_id": service_request.id,
+                    "created_at": datetime.utcnow()
+                }
+            )
+
+    await db.delete(service_request)
+    await db.commit()
+
+
 @router.put("/{request_id}/reject", response_model=ServiceRequestResponse)
 async def reject_service_request(
     request_id: str,
