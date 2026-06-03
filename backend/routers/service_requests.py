@@ -372,6 +372,120 @@ async def approve_service_request(
     return _request_to_response(service_request)
 
 
+async def _set_volunteer_dept_memberships_active(db: AsyncSession, user_id: str, active: bool):
+    """Activate/deactivate a user's memberships in the volunteer departments."""
+    from models.department import DepartmentMember, DepartmentType
+    from sqlalchemy import update as _update
+    vol_depts = [DepartmentType.MEDIA, DepartmentType.HOSPITALITY, DepartmentType.USHERING, DepartmentType.SECURITY]
+    await db.execute(
+        _update(DepartmentMember)
+        .where(DepartmentMember.user_id == user_id, DepartmentMember.department.in_(vol_depts))
+        .values(is_active=active)
+    )
+
+
+@router.put("/{request_id}/suspend", response_model=ServiceRequestResponse)
+async def suspend_service_request(
+    request_id: str,
+    action: ServiceRequestAction | None = None,
+    admin_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Temporarily suspend an approved volunteer/service (admin only, reversible).
+    Revokes access (service + dept dashboards) but keeps the record so it can be
+    reinstated later."""
+    result = await db.execute(select(ServiceRequest).where(ServiceRequest.id == request_id))
+    sr = result.scalar_one_or_none()
+    if not sr:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service request not found")
+    if sr.status != ServiceRequestStatus.APPROVED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Only approved requests can be suspended (currently {sr.status.value}).")
+
+    sr.status = ServiceRequestStatus.SUSPENDED
+    sr.reviewed_by = admin_user.id
+    sr.reviewed_at = datetime.utcnow()
+    if action and action.note:
+        sr.admin_note = action.note
+
+    # Revoke service access (unless another approved request grants the same service)
+    user_result = await db.execute(select(User).where(User.id == sr.user_id))
+    user = user_result.scalar_one_or_none()
+    if user:
+        other_approved = await db.execute(
+            select(ServiceRequest).where(
+                ServiceRequest.user_id == sr.user_id,
+                ServiceRequest.service_name == sr.service_name,
+                ServiceRequest.status == ServiceRequestStatus.APPROVED,
+                ServiceRequest.id != request_id,
+            )
+        )
+        if not other_approved.scalar_one_or_none():
+            current = list(user.services) if user.services else []
+            if sr.service_name in current:
+                current.remove(sr.service_name)
+                user.services = current
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(user, "services")
+        if sr.service_name == "Volunteer":
+            await _set_volunteer_dept_memberships_active(db, sr.user_id, False)
+
+        db.add(Notification(
+            user_id=user.id,
+            title="Volunteer access suspended" if sr.service_name == "Volunteer" else "Service suspended",
+            message=f"Your access to '{sr.service_name}' has been temporarily suspended by an admin."
+                    + (f" Reason: {action.note}" if action and action.note else ""),
+            type=NotificationType.GENERAL,
+            reference_id=sr.id,
+        ))
+
+    await db.commit()
+    await db.refresh(sr)
+    return _request_to_response(sr)
+
+
+@router.put("/{request_id}/reinstate", response_model=ServiceRequestResponse)
+async def reinstate_service_request(
+    request_id: str,
+    admin_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Reinstate a suspended volunteer/service (admin only)."""
+    result = await db.execute(select(ServiceRequest).where(ServiceRequest.id == request_id))
+    sr = result.scalar_one_or_none()
+    if not sr:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service request not found")
+    if sr.status != ServiceRequestStatus.SUSPENDED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Only suspended requests can be reinstated (currently {sr.status.value}).")
+
+    sr.status = ServiceRequestStatus.APPROVED
+    sr.reviewed_by = admin_user.id
+    sr.reviewed_at = datetime.utcnow()
+
+    user_result = await db.execute(select(User).where(User.id == sr.user_id))
+    user = user_result.scalar_one_or_none()
+    if user:
+        current = list(user.services) if user.services else []
+        if sr.service_name not in current:
+            current.append(sr.service_name)
+            user.services = current
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(user, "services")
+        if sr.service_name == "Volunteer":
+            await _set_volunteer_dept_memberships_active(db, sr.user_id, True)
+
+        db.add(Notification(
+            user_id=user.id,
+            title="Volunteer access reinstated 🎉" if sr.service_name == "Volunteer" else "Service reinstated",
+            message=f"Your access to '{sr.service_name}' has been reinstated. Welcome back!",
+            type=NotificationType.SERVICE_APPROVED,
+            reference_id=sr.id,
+        ))
+
+    await db.commit()
+    await db.refresh(sr)
+    return _request_to_response(sr)
+
+
 @router.delete("/{request_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_service_request(
     request_id: str,

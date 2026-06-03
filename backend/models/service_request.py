@@ -18,6 +18,7 @@ class ServiceRequestStatus(str, enum.Enum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+    SUSPENDED = "suspended"   # temporarily paused by an admin; reversible
 
 
 class ServiceRequest(Base):

@@ -7,7 +7,7 @@ import {
     HandHeart, Phone, Mail, CalendarDays, Loader2,
     Search, Copy, CheckCheck, Users, BookOpen, Music,
     Camera, Coffee, Mic2, Shield, Heart, ChevronDown, ChevronUp,
-    Trash2, AlertTriangle, X
+    Trash2, AlertTriangle, X, PauseCircle, Play
 } from 'lucide-react'
 import { serviceRequestApi, ServiceRequest } from '@/lib/api'
 
@@ -41,7 +41,13 @@ const DEPT_ICONS: Record<string, React.ReactNode> = {
 
 // ── Volunteer Card ───────────────────────────────────────────────────────────
 
-function VolunteerCard({ request, onDelete }: { request: ServiceRequest; onDelete: (id: string) => void }) {
+function VolunteerCard({ request, onDelete, onSuspend, onReinstate }: {
+    request: ServiceRequest
+    onDelete: (id: string) => void
+    onSuspend: (id: string) => void
+    onReinstate: (id: string) => void
+}) {
+    const isSuspended = String(request.status) === 'suspended'
     const { department, availability, phone, experience } = parseVolunteerMessage(request.message)
     const [copied, setCopied] = useState(false)
     const [showExp, setShowExp] = useState(false)
@@ -81,14 +87,24 @@ function VolunteerCard({ request, onDelete }: { request: ServiceRequest; onDelet
                         </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs font-bold text-green-700 bg-green-100 px-2.5 py-1 rounded-full">
-                            ✓ Approved
-                        </span>
-                        <button
-                            onClick={() => onDelete(request.id)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Remove volunteer"
-                        >
+                        {isSuspended ? (
+                            <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">⏸ Suspended</span>
+                        ) : (
+                            <span className="text-xs font-bold text-green-700 bg-green-100 px-2.5 py-1 rounded-full">✓ Approved</span>
+                        )}
+                        {isSuspended ? (
+                            <button onClick={() => onReinstate(request.id)} title="Reinstate volunteer"
+                                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                                <Play className="w-4 h-4" />
+                            </button>
+                        ) : (
+                            <button onClick={() => onSuspend(request.id)} title="Suspend volunteer"
+                                className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+                                <PauseCircle className="w-4 h-4" />
+                            </button>
+                        )}
+                        <button onClick={() => onDelete(request.id)} title="Delete volunteer"
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                             <Trash2 className="w-4 h-4" />
                         </button>
                     </div>
@@ -235,8 +251,12 @@ export default function VolunteersPage() {
 
     const load = async () => {
         try {
-            const res = await serviceRequestApi.getAllRequests('approved')
-            setVolunteers(res.requests.filter(r => r.service_name === 'Volunteer'))
+            const [approvedRes, suspendedRes] = await Promise.all([
+                serviceRequestApi.getAllRequests('approved' as never),
+                serviceRequestApi.getAllRequests('suspended' as never).catch(() => ({ requests: [] })),
+            ])
+            const all = [...approvedRes.requests, ...suspendedRes.requests]
+            setVolunteers(all.filter(r => r.service_name === 'Volunteer'))
         } catch (e: any) {
             setError(e.message || 'Failed to load volunteers')
         } finally {
@@ -258,6 +278,21 @@ export default function VolunteersPage() {
         } finally {
             setIsDeleting(false)
         }
+    }
+
+    const handleSuspend = async (id: string) => {
+        if (!confirm('Suspend this volunteer? Their access is paused until you reinstate them.')) return
+        try {
+            const updated = await serviceRequestApi.suspend(id)
+            setVolunteers(prev => prev.map(v => v.id === id ? updated : v))
+        } catch (e: any) { setError(e.message || 'Failed to suspend volunteer') }
+    }
+
+    const handleReinstate = async (id: string) => {
+        try {
+            const updated = await serviceRequestApi.reinstate(id)
+            setVolunteers(prev => prev.map(v => v.id === id ? updated : v))
+        } catch (e: any) { setError(e.message || 'Failed to reinstate volunteer') }
     }
 
     // Collect unique departments from all volunteers
@@ -374,6 +409,8 @@ export default function VolunteersPage() {
                             key={v.id}
                             request={v}
                             onDelete={id => setDeletingVolunteer(volunteers.find(x => x.id === id) ?? null)}
+                            onSuspend={handleSuspend}
+                            onReinstate={handleReinstate}
                         />
                     ))}
                 </div>

@@ -423,6 +423,21 @@ export const serviceRequestApi = {
     deleteRequest: async (requestId: string): Promise<void> => {
         return fetchApi<void>(`/service-requests/${requestId}`, { method: 'DELETE' });
     },
+
+    /** Temporarily suspend an approved volunteer/service (admin only, reversible) */
+    suspend: async (requestId: string, note?: string): Promise<ServiceRequest> => {
+        return fetchApi<ServiceRequest>(`/service-requests/${requestId}/suspend`, {
+            method: 'PUT',
+            body: JSON.stringify({ note }),
+        });
+    },
+
+    /** Reinstate a suspended volunteer/service (admin only) */
+    reinstate: async (requestId: string): Promise<ServiceRequest> => {
+        return fetchApi<ServiceRequest>(`/service-requests/${requestId}/reinstate`, {
+            method: 'PUT',
+        });
+    },
 };
 
 // ============= Notification API =============
