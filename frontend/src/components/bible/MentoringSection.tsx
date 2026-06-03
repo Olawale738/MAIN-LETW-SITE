@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
   Users, Video, Phone, BookOpen, HandHeart, MessageCircle, UserCheck,
-  ArrowRight, Loader2, CheckCircle2, Bell,
+  ArrowRight, Loader2, CheckCircle2, Bell, Star, Plus, TrendingUp, X,
 } from 'lucide-react'
 import { serviceRequestApi, bibleStudyApi, BibleStudyMentor } from '@/lib/api'
 
@@ -32,6 +32,10 @@ const MENTOR_BENEFITS = [
 
 interface MentoringRequest { focus: string; style: string; availability: string; message: string; status: 'pending' | 'connected'; createdAt: string }
 
+const EVAL_KEY = 'bibleMentoringEvaluations'
+const EVAL_AREAS = ['Understanding Scripture', 'Prayer & devotion', 'Applying the Word', 'Consistency'] as const
+interface Evaluation { id: string; date: string; ratings: Record<string, number>; note: string }
+
 export default function MentoringSection() {
   const [request, setRequest] = useState<MentoringRequest | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -39,14 +43,32 @@ export default function MentoringSection() {
   const [loggedIn, setLoggedIn] = useState(false)
   const [mentors, setMentors] = useState<BibleStudyMentor[]>([])
   const [form, setForm] = useState({ focus: FOCUS_AREAS[0], style: 'virtual', availability: '', message: '' })
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([])
+  const [showEval, setShowEval] = useState(false)
+  const [evalForm, setEvalForm] = useState<{ ratings: Record<string, number>; note: string }>({ ratings: {}, note: '' })
 
   useEffect(() => {
     try { const r = localStorage.getItem(MENTORING_KEY); if (r) setRequest(JSON.parse(r)) } catch { /* ignore */ }
+    try { const e = localStorage.getItem(EVAL_KEY); if (e) setEvaluations(JSON.parse(e)) } catch { /* ignore */ }
     setLoggedIn(!!localStorage.getItem('isLoggedIn'))
     bibleStudyApi.getPublicSettings()
       .then(s => { if (s?.mentors?.length) setMentors(s.mentors) })
       .catch(() => { /* fall back to no mentor list */ })
   }, [])
+
+  const saveEvaluation = () => {
+    const e: Evaluation = { id: Date.now().toString(36), date: new Date().toISOString(), ratings: evalForm.ratings, note: evalForm.note }
+    const next = [e, ...evaluations]
+    setEvaluations(next)
+    localStorage.setItem(EVAL_KEY, JSON.stringify(next))
+    setEvalForm({ ratings: {}, note: '' })
+    setShowEval(false)
+  }
+  const removeEvaluation = (id: string) => {
+    const next = evaluations.filter(e => e.id !== id)
+    setEvaluations(next)
+    localStorage.setItem(EVAL_KEY, JSON.stringify(next))
+  }
 
   const submit = async () => {
     setSubmitting(true)
@@ -96,6 +118,75 @@ export default function MentoringSection() {
             </div>
             <button onClick={() => { localStorage.removeItem(MENTORING_KEY); setRequest(null) }}
               className="text-xs text-gray-400 hover:text-gray-600 mt-4 font-semibold">Cancel / edit request</button>
+
+            {/* ── Growth Evaluations ── */}
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-[#7c3aed]" />
+                  <h4 className="font-black text-[#140152] text-sm">My Growth Evaluations</h4>
+                </div>
+                {!showEval && (
+                  <button onClick={() => setShowEval(true)}
+                    className="flex items-center gap-1 text-xs font-bold text-[#7c3aed] hover:text-[#6d28d9]">
+                    <Plus className="w-3.5 h-3.5" /> New check-in
+                  </button>
+                )}
+              </div>
+
+              {showEval && (
+                <div className="bg-[#f5f3ff] rounded-2xl p-4 space-y-3 mb-4">
+                  {EVAL_AREAS.map(area => (
+                    <div key={area} className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-semibold text-[#140152]">{area}</span>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map(n => (
+                          <button key={n} onClick={() => setEvalForm(p => ({ ...p, ratings: { ...p.ratings, [area]: n } }))}>
+                            <Star className={`w-4 h-4 ${(evalForm.ratings[area] ?? 0) >= n ? 'fill-[#f5bb00] text-[#f5bb00]' : 'text-gray-300'}`} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <textarea value={evalForm.note} onChange={e => setEvalForm(p => ({ ...p, note: e.target.value }))}
+                    rows={2} placeholder="What has God been teaching you? Where do you want to grow?"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-900 resize-none focus:outline-none focus:border-[#7c3aed]" />
+                  <div className="flex gap-2">
+                    <button onClick={saveEvaluation}
+                      className="bg-[#7c3aed] text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-[#6d28d9]">Save check-in</button>
+                    <button onClick={() => { setShowEval(false); setEvalForm({ ratings: {}, note: '' }) }}
+                      className="text-xs font-semibold text-gray-500 px-3 py-2">Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {evaluations.length === 0 && !showEval ? (
+                <p className="text-xs text-gray-400">No check-ins yet. Log your first growth evaluation to track your journey with your mentor.</p>
+              ) : (
+                <div className="space-y-2">
+                  {evaluations.map(ev => {
+                    const vals = Object.values(ev.ratings)
+                    const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '—'
+                    return (
+                      <div key={ev.id} className="bg-white border border-gray-100 rounded-xl p-3 relative group">
+                        <button onClick={() => removeEvaluation(ev.id)}
+                          className="absolute top-2 right-2 text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100"><X className="w-3.5 h-3.5" /></button>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[11px] font-bold text-[#7c3aed]">Avg {avg}/5</span>
+                          <span className="text-[10px] text-gray-400">{new Date(ev.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mb-1">
+                          {Object.entries(ev.ratings).map(([k, v]) => (
+                            <span key={k} className="text-[10px] text-gray-500">{k}: <span className="font-bold text-[#140152]">{v}/5</span></span>
+                          ))}
+                        </div>
+                        {ev.note && <p className="text-xs text-gray-600 mt-1 italic">&ldquo;{ev.note}&rdquo;</p>}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <>

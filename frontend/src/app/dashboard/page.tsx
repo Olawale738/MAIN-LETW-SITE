@@ -66,6 +66,12 @@ const SERVICE_CONFIG: Record<string, { icon: React.ReactNode; description: strin
         description: "You're an approved LETW volunteer. Your coordinator will reach out with next steps.",
         buttonText: "View Volunteer Info",
         buttonLink: "/volunteer"
+    },
+    "Bible Mentoring": {
+        icon: <Users className="w-8 h-8" />,
+        description: "Meet your mentor, track your mentoring sessions, and log growth evaluations.",
+        buttonText: "Open Mentoring",
+        buttonLink: "/bible-study?focus=mentoring"
     }
 }
 

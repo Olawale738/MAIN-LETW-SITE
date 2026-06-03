@@ -16,10 +16,10 @@ import {
     Palette, Hash, ToggleLeft, ToggleRight, UserCheck, Mail,
 } from 'lucide-react'
 import {
-    bibleStudyApi, WeekReflection, QuarterlyTheme, BibleStudyPageSettings,
+    bibleStudyApi, dashboardApi, WeekReflection, QuarterlyTheme, BibleStudyPageSettings,
     BibleStudyWeeklyTopic, BibleStudyGroup, BibleStudySessionNote,
     BibleStudyTopicResource, BibleStudyLibraryResource, BibleStudyTool, BibleStudyPodcast,
-    BibleStudyMentor,
+    BibleStudyMentor, AdminUser,
 } from '@/lib/api'
 import { useToast } from '@/components/ui/toast'
 
@@ -95,7 +95,7 @@ const LEVEL_OPTIONS = ['Open to all', 'Beginners', 'Intermediate', 'Advanced', '
 type Tab = 'overview' | 'topics' | 'groups' | 'notes' | 'mentors' | 'library' | 'plan' | 'reflections' | 'settings'
 
 const DEFAULT_MENTOR: Omit<BibleStudyMentor, 'id'> = {
-    name: '', title: 'Bible Study Leader', bio: '', focus: '', availability: '', photo: '', contact: '', is_available: true,
+    name: '', title: 'Bible Study Leader', bio: '', focus: '', availability: '', photo: '', contact: '', is_available: true, user_id: '',
 }
 
 const DEFAULT_TOPIC: Omit<BibleStudyWeeklyTopic, 'id'> = {
@@ -155,6 +155,7 @@ export default function BibleStudyAdminPage() {
     const [editingMentorId, setEditingMentorId] = useState<string | null>(null)
     const [mentorForm, setMentorForm] = useState<Omit<BibleStudyMentor, 'id'>>(DEFAULT_MENTOR)
     const [showAddMentor, setShowAddMentor] = useState(false)
+    const [regUsers, setRegUsers] = useState<AdminUser[]>([])
 
     // ── Form state ──
     const [editingTheme, setEditingTheme]   = useState<number | null>(null)
@@ -191,11 +192,13 @@ export default function BibleStudyAdminPage() {
     const loadAll = useCallback(async () => {
         setLoading(true)
         try {
-            const [themesData, reflectionsData, settingsData] = await Promise.all([
+            const [themesData, reflectionsData, settingsData, usersData] = await Promise.all([
                 bibleStudyApi.adminGetQuarterlyThemes().catch(() => []),
                 bibleStudyApi.adminGetWeekReflections().catch(() => []),
                 bibleStudyApi.getSettings().catch(() => null),
+                dashboardApi.getUsers(undefined, 500, 0).then(r => r.users).catch(() => [] as AdminUser[]),
             ])
+            setRegUsers(usersData)
             setThemes(themesData)
             setReflections(reflectionsData)
             if (settingsData) {
@@ -1124,6 +1127,24 @@ export default function BibleStudyAdminPage() {
                             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                                 className="bg-purple-50 border border-purple-200 rounded-2xl p-5 space-y-4">
                                 <h3 className="font-bold text-[#140152] text-sm">{showAddMentor ? 'New Mentor' : 'Edit Mentor'}</h3>
+                                {/* Assign from a registered user */}
+                                <div className="bg-white rounded-xl border border-purple-100 p-3">
+                                    <SectionLabel>Assign from registered users</SectionLabel>
+                                    <select
+                                        value={mentorForm.user_id || ''}
+                                        onChange={e => {
+                                            const u = regUsers.find(x => x.id === e.target.value)
+                                            if (u) setMentorForm(p => ({ ...p, user_id: u.id, name: u.name, contact: u.email }))
+                                            else setMentorForm(p => ({ ...p, user_id: '' }))
+                                        }}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white text-gray-900 focus:outline-none focus:border-[#7c3aed]">
+                                        <option value="">— Pick a registered user —</option>
+                                        {regUsers.map(u => (
+                                            <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[11px] text-gray-400 mt-1.5">Selecting a user fills their name & email. You can still edit the details below.</p>
+                                </div>
                                 <div className="grid md:grid-cols-2 gap-3">
                                     <div>
                                         <SectionLabel>Name *</SectionLabel>
@@ -1204,7 +1225,7 @@ export default function BibleStudyAdminPage() {
                                         <button onClick={() => toggleMentorAvailable(m.id)} className="text-xs font-semibold text-gray-500 hover:text-[#140152] px-2 py-1 rounded-lg hover:bg-gray-50">
                                             {m.is_available ? 'Mark Full' : 'Mark Available'}
                                         </button>
-                                        <button onClick={() => { setEditingMentorId(m.id); setShowAddMentor(false); setMentorForm({ name: m.name, title: m.title, bio: m.bio, focus: m.focus, availability: m.availability, photo: m.photo, contact: m.contact, is_available: m.is_available }) }}
+                                        <button onClick={() => { setEditingMentorId(m.id); setShowAddMentor(false); setMentorForm({ name: m.name, title: m.title, bio: m.bio, focus: m.focus, availability: m.availability, photo: m.photo, contact: m.contact, is_available: m.is_available, user_id: m.user_id }) }}
                                             className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500"><Pencil className="w-3.5 h-3.5" /></button>
                                         <button onClick={() => deleteMentor(m.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
                                     </div>

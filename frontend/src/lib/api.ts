@@ -2097,6 +2097,7 @@ export interface BibleStudyMentor {
     photo?: string;         // optional avatar URL
     contact?: string;       // optional contact detail shown to coordinator
     is_available: boolean;  // accepting new mentees
+    user_id?: string;       // linked registered user (when assigned from users)
 }
 
 export interface BibleStudyPageSettings {

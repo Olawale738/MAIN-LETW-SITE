@@ -210,6 +210,15 @@ export default function BibleStudyPage() {
         saveState(updated)
         setStudyState(updated)
         setJournalText(s.journals ?? {})
+
+        // Deep-link: /bible-study?focus=mentoring → open Journey tab and scroll to mentoring
+        try {
+            const params = new URLSearchParams(window.location.search)
+            if (params.get('focus') === 'mentoring') {
+                setActiveSection('journey')
+                setTimeout(() => document.getElementById('mentoring')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 600)
+            }
+        } catch { /* ignore */ }
     }, [])
 
     // Derived
@@ -674,7 +683,7 @@ export default function BibleStudyPage() {
                         </div>
 
                         {/* Personal Bible Mentoring — available to all Bible Study users */}
-                        <div className="mt-8">
+                        <div className="mt-8 scroll-mt-24" id="mentoring">
                             <MentoringSection />
                         </div>
                     </div>
