@@ -266,6 +266,15 @@ export default function VolunteersPage() {
 
     useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+    const describeErr = (e: any, action: string) => {
+        const status = e?.status ?? e?.response?.status
+        if (status === 404 || status === 405 || /not found|404|405/i.test(e?.message || '')) {
+            return `Could not ${action}: the server endpoint isn't available yet. The backend needs to be redeployed for this feature.`
+        }
+        if (status === 401 || status === 403) return `Could not ${action}: you don't have permission (admin only). Try signing in again.`
+        return `Could not ${action}: ${e?.message || 'unknown error'}`
+    }
+
     const handleDeleteConfirm = async () => {
         if (!deletingVolunteer) return
         setIsDeleting(true)
@@ -274,7 +283,8 @@ export default function VolunteersPage() {
             setVolunteers(prev => prev.filter(v => v.id !== deletingVolunteer.id))
             setDeletingVolunteer(null)
         } catch (e: any) {
-            setError(e.message || 'Failed to remove volunteer')
+            const msg = describeErr(e, 'delete volunteer')
+            setError(msg); alert(msg)
         } finally {
             setIsDeleting(false)
         }
@@ -285,14 +295,14 @@ export default function VolunteersPage() {
         try {
             const updated = await serviceRequestApi.suspend(id)
             setVolunteers(prev => prev.map(v => v.id === id ? updated : v))
-        } catch (e: any) { setError(e.message || 'Failed to suspend volunteer') }
+        } catch (e: any) { const msg = describeErr(e, 'suspend volunteer'); setError(msg); alert(msg) }
     }
 
     const handleReinstate = async (id: string) => {
         try {
             const updated = await serviceRequestApi.reinstate(id)
             setVolunteers(prev => prev.map(v => v.id === id ? updated : v))
-        } catch (e: any) { setError(e.message || 'Failed to reinstate volunteer') }
+        } catch (e: any) { const msg = describeErr(e, 'reinstate volunteer'); setError(msg); alert(msg) }
     }
 
     // Collect unique departments from all volunteers
