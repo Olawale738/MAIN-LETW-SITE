@@ -205,3 +205,18 @@ class QuarterlyTheme(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+
+class BibleStudyGroupMember(Base):
+    """A registered user who has joined a Bible Study group (groups live in the
+    settings JSON; this just records membership by group_id). No admin approval —
+    any logged-in user can join/leave instantly."""
+    __tablename__ = "bible_study_group_members"
+    __table_args__ = (
+        UniqueConstraint("user_id", "group_id", name="uq_bs_group_member"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    group_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    joined_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+

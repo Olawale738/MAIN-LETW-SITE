@@ -192,8 +192,12 @@ export default function BibleStudyPage() {
 
     const toggleGroupJoin = useCallback((groupId: string) => {
         setJoinedGroups(prev => {
-            const next = prev.includes(groupId) ? prev.filter(g => g !== groupId) : [...prev, groupId]
+            const isJoining = !prev.includes(groupId)
+            const next = isJoining ? [...prev, groupId] : prev.filter(g => g !== groupId)
             try { localStorage.setItem('letw_bs_joined_groups', JSON.stringify(next)) } catch { /* ignore */ }
+            // Persist server-side (best-effort; localStorage is the instant fallback)
+            const call = isJoining ? bibleStudyApi.joinGroup(groupId) : bibleStudyApi.leaveGroup(groupId)
+            call.catch(() => { /* offline / not-logged-in — local state still reflects the choice */ })
             return next
         })
     }, [])
@@ -209,7 +213,17 @@ export default function BibleStudyPage() {
         }).finally(() => setLoading(false))
 
         try { setJoinedGroups(JSON.parse(localStorage.getItem('letw_bs_joined_groups') || '[]')) } catch { /* ignore */ }
-        setIsLoggedIn(!!localStorage.getItem('isLoggedIn') || !!localStorage.getItem('access_token'))
+        const loggedIn = !!localStorage.getItem('isLoggedIn') || !!localStorage.getItem('access_token')
+        setIsLoggedIn(loggedIn)
+        // Server is the source of truth for joined groups (cross-device)
+        if (loggedIn) {
+            bibleStudyApi.getMyGroups()
+                .then(({ group_ids }) => {
+                    setJoinedGroups(group_ids)
+                    try { localStorage.setItem('letw_bs_joined_groups', JSON.stringify(group_ids)) } catch { /* ignore */ }
+                })
+                .catch(() => { /* keep localStorage fallback */ })
+        }
 
         const s = loadState()
         // Update streak

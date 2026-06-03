@@ -2364,6 +2364,20 @@ export const bibleStudyApi = {
         return fetchApi<BibleStudyPageSettings>('/bible-study/settings');
     },
 
+    // Study group membership (any logged-in user, no approval)
+    getMyGroups: async (): Promise<{ group_ids: string[] }> => {
+        return fetchApi<{ group_ids: string[] }>('/bible-study/groups/my-groups');
+    },
+    joinGroup: async (groupId: string): Promise<{ status: string; group_id: string }> => {
+        return fetchApi(`/bible-study/groups/${groupId}/join`, { method: 'POST' });
+    },
+    leaveGroup: async (groupId: string): Promise<{ status: string; group_id: string }> => {
+        return fetchApi(`/bible-study/groups/${groupId}/leave`, { method: 'DELETE' });
+    },
+    getGroupMemberCounts: async (): Promise<{ counts: Record<string, number> }> => {
+        return fetchApi<{ counts: Record<string, number> }>('/bible-study/groups/member-counts');
+    },
+
     // Public - Week Reflections & Quarterly Themes
     getWeekReflections: async (): Promise<WeekReflection[]> => {
         return fetchApi<WeekReflection[]>('/bible-study/week-reflections');

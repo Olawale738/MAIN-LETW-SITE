@@ -650,6 +650,73 @@ async def get_public_page_settings(db: AsyncSession = Depends(get_db)):
     return settings
 
 
+# ─── Study Group membership (any logged-in user can join/leave, no approval) ──
+
+from models.bible_study import BibleStudyGroupMember  # noqa: E402
+
+
+@router.get("/groups/my-groups")
+async def my_study_groups(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return the group_ids the current user has joined."""
+    result = await db.execute(
+        select(BibleStudyGroupMember.group_id).where(BibleStudyGroupMember.user_id == current_user.id)
+    )
+    return {"group_ids": [row[0] for row in result.all()]}
+
+
+@router.post("/groups/{group_id}/join")
+async def join_study_group(
+    group_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Join a study group instantly — no re-registration, no admin approval."""
+    existing = await db.execute(
+        select(BibleStudyGroupMember).where(
+            BibleStudyGroupMember.user_id == current_user.id,
+            BibleStudyGroupMember.group_id == group_id,
+        )
+    )
+    if existing.scalar_one_or_none():
+        return {"status": "already_member", "group_id": group_id}
+    db.add(BibleStudyGroupMember(user_id=current_user.id, group_id=group_id))
+    await db.commit()
+    return {"status": "joined", "group_id": group_id}
+
+
+@router.delete("/groups/{group_id}/leave")
+async def leave_study_group(
+    group_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Leave a study group."""
+    result = await db.execute(
+        select(BibleStudyGroupMember).where(
+            BibleStudyGroupMember.user_id == current_user.id,
+            BibleStudyGroupMember.group_id == group_id,
+        )
+    )
+    member = result.scalar_one_or_none()
+    if member:
+        await db.delete(member)
+        await db.commit()
+    return {"status": "left", "group_id": group_id}
+
+
+@router.get("/groups/member-counts")
+async def group_member_counts(db: AsyncSession = Depends(get_db)):
+    """Public — actual join counts per group_id (added on top of the admin base size)."""
+    result = await db.execute(
+        select(BibleStudyGroupMember.group_id, func.count(BibleStudyGroupMember.id))
+        .group_by(BibleStudyGroupMember.group_id)
+    )
+    return {"counts": {row[0]: row[1] for row in result.all()}}
+
+
 # ─── Admin: Week Reflections CRUD ────────────────────────────────────────────
 
 class WeekReflectionInput(BaseModel):
