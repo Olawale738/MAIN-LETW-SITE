@@ -107,6 +107,11 @@ async def init_db():
                 ("bible_study_page_settings", "study_groups",  "JSONB DEFAULT '[]'::jsonb"),
                 ("bible_study_page_settings", "session_notes", "JSONB DEFAULT '[]'::jsonb"),
                 ("bible_study_page_settings", "year_label",    "VARCHAR(20) DEFAULT '2026'"),
+                ("bible_study_page_settings", "library_resources", "JSONB DEFAULT '[]'::jsonb"),
+                ("bible_study_page_settings", "study_tools",       "JSONB DEFAULT '[]'::jsonb"),
+                ("bible_study_page_settings", "podcasts",          "JSONB DEFAULT '[]'::jsonb"),
+                ("bible_study_page_settings", "resources_heading",  "VARCHAR(255)"),
+                ("bible_study_page_settings", "resources_subtitle", "TEXT"),
             ]
 
             for table, column, col_def in missing_columns:

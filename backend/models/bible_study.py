@@ -159,6 +159,17 @@ class BibleStudyPageSettings(Base):
     # session_notes: list of {id, title, body, date, urgent}
     session_notes: Mapped[Optional[list]] = mapped_column(JSON, nullable=True, default=list)
 
+    # ── Resources / Library section (admin-managed) ──
+    # library_resources: list of {id, title, type, url, meta}  (direct downloads, no sign-in)
+    library_resources: Mapped[Optional[list]] = mapped_column(JSON, nullable=True, default=list)
+    # study_tools: list of {id, name, desc, tag, href}
+    study_tools: Mapped[Optional[list]] = mapped_column(JSON, nullable=True, default=list)
+    # podcasts: list of {id, name, host, topic, url}
+    podcasts: Mapped[Optional[list]] = mapped_column(JSON, nullable=True, default=list)
+    # Editable write-up for the Resources section
+    resources_heading: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    resources_subtitle: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

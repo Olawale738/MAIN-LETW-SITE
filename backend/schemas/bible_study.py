@@ -178,6 +178,11 @@ class BibleStudyPageSettingsUpdate(BaseModel):
     weekly_topics: Optional[list] = None
     study_groups: Optional[list] = None
     session_notes: Optional[list] = None
+    library_resources: Optional[list] = None
+    study_tools: Optional[list] = None
+    podcasts: Optional[list] = None
+    resources_heading: Optional[str] = None
+    resources_subtitle: Optional[str] = None
 
 
 class BibleStudyPageSettingsResponse(BaseModel):
@@ -190,6 +195,11 @@ class BibleStudyPageSettingsResponse(BaseModel):
     weekly_topics: Optional[list] = None
     study_groups: Optional[list] = None
     session_notes: Optional[list] = None
+    library_resources: Optional[list] = None
+    study_tools: Optional[list] = None
+    podcasts: Optional[list] = None
+    resources_heading: Optional[str] = None
+    resources_subtitle: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

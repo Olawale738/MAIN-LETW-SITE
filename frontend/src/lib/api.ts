@@ -2063,6 +2063,30 @@ export interface BibleStudySessionNote {
     urgent: boolean;
 }
 
+export interface BibleStudyLibraryResource {
+    id: string;
+    title: string;
+    type: 'pdf' | 'video' | 'audio';
+    url: string;          // direct download/watch/listen link (no sign-in)
+    meta?: string;        // "24 pages" or "38 min"
+}
+
+export interface BibleStudyTool {
+    id: string;
+    name: string;
+    desc: string;
+    tag: string;          // "Free" | "Paid"
+    href: string;
+}
+
+export interface BibleStudyPodcast {
+    id: string;
+    name: string;
+    host: string;
+    topic: string;
+    url?: string;
+}
+
 export interface BibleStudyPageSettings {
     id: string;
     hero_title: string;
@@ -2073,6 +2097,11 @@ export interface BibleStudyPageSettings {
     weekly_topics?: BibleStudyWeeklyTopic[];
     study_groups?: BibleStudyGroup[];
     session_notes?: BibleStudySessionNote[];
+    library_resources?: BibleStudyLibraryResource[];
+    study_tools?: BibleStudyTool[];
+    podcasts?: BibleStudyPodcast[];
+    resources_heading?: string;
+    resources_subtitle?: string;
     created_at: string;
     updated_at: string;
 }
@@ -2133,6 +2162,11 @@ export interface BibleStudyPageSettingsUpdate {
     weekly_topics?: BibleStudyWeeklyTopic[];
     study_groups?: BibleStudyGroup[];
     session_notes?: BibleStudySessionNote[];
+    library_resources?: BibleStudyLibraryResource[];
+    study_tools?: BibleStudyTool[];
+    podcasts?: BibleStudyPodcast[];
+    resources_heading?: string;
+    resources_subtitle?: string;
 }
 
 export interface WeekReflection {

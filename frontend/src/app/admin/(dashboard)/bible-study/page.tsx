@@ -18,7 +18,7 @@ import {
 import {
     bibleStudyApi, WeekReflection, QuarterlyTheme, BibleStudyPageSettings,
     BibleStudyWeeklyTopic, BibleStudyGroup, BibleStudySessionNote,
-    BibleStudyTopicResource,
+    BibleStudyTopicResource, BibleStudyLibraryResource, BibleStudyTool, BibleStudyPodcast,
 } from '@/lib/api'
 import { useToast } from '@/components/ui/toast'
 
@@ -91,7 +91,7 @@ const CATEGORY_OPTIONS = ['Foundation', 'Christology', 'Pneumatology', 'Devotion
 
 const LEVEL_OPTIONS = ['Open to all', 'Beginners', 'Intermediate', 'Advanced', 'Men only', 'Women only', 'Youth only', 'Married couples']
 
-type Tab = 'overview' | 'topics' | 'groups' | 'notes' | 'plan' | 'reflections' | 'settings'
+type Tab = 'overview' | 'topics' | 'groups' | 'notes' | 'library' | 'plan' | 'reflections' | 'settings'
 
 const DEFAULT_TOPIC: Omit<BibleStudyWeeklyTopic, 'id'> = {
     week: 'Week 1', title: '', verse: '', category: 'Foundation', color: '#7c3aed',
@@ -141,6 +141,11 @@ export default function BibleStudyAdminPage() {
     const [topics, setTopics]         = useState<BibleStudyWeeklyTopic[]>([])
     const [groups, setGroups]         = useState<BibleStudyGroup[]>([])
     const [notes, setNotes]           = useState<BibleStudySessionNote[]>([])
+    const [library, setLibrary]       = useState<BibleStudyLibraryResource[]>([])
+    const [tools, setTools]           = useState<BibleStudyTool[]>([])
+    const [podcasts, setPodcasts]     = useState<BibleStudyPodcast[]>([])
+    const [resHeading, setResHeading] = useState('')
+    const [resSubtitle, setResSubtitle] = useState('')
 
     // ── Form state ──
     const [editingTheme, setEditingTheme]   = useState<number | null>(null)
@@ -196,6 +201,11 @@ export default function BibleStudyAdminPage() {
                 setTopics(settingsData.weekly_topics ?? [])
                 setGroups(settingsData.study_groups ?? [])
                 setNotes(settingsData.session_notes ?? [])
+                setLibrary(settingsData.library_resources ?? [])
+                setTools(settingsData.study_tools ?? [])
+                setPodcasts(settingsData.podcasts ?? [])
+                setResHeading(settingsData.resources_heading || '')
+                setResSubtitle(settingsData.resources_subtitle || '')
             }
         } catch (err) { console.error(err) }
         finally { setLoading(false) }
@@ -209,6 +219,11 @@ export default function BibleStudyAdminPage() {
         weekly_topics?: BibleStudyWeeklyTopic[]
         study_groups?: BibleStudyGroup[]
         session_notes?: BibleStudySessionNote[]
+        library_resources?: BibleStudyLibraryResource[]
+        study_tools?: BibleStudyTool[]
+        podcasts?: BibleStudyPodcast[]
+        resources_heading?: string
+        resources_subtitle?: string
     }) => {
         try {
             await bibleStudyApi.updateSettings(patch)
@@ -422,6 +437,58 @@ export default function BibleStudyAdminPage() {
         showToast('Note deleted', 'success')
     }
 
+    // ── Library: Resources / Tools / Podcasts ───────────────────────────────────
+
+    const saveLibrary = async (updated: BibleStudyLibraryResource[]) => {
+        setLibrary(updated); await persistContent({ library_resources: updated })
+    }
+    const saveTools = async (updated: BibleStudyTool[]) => {
+        setTools(updated); await persistContent({ study_tools: updated })
+    }
+    const savePodcasts = async (updated: BibleStudyPodcast[]) => {
+        setPodcasts(updated); await persistContent({ podcasts: updated })
+    }
+
+    const saveResourcesWriteup = async () => {
+        setSaving(true)
+        try {
+            await persistContent({ resources_heading: resHeading, resources_subtitle: resSubtitle })
+            showToast('Resources write-up saved!', 'success')
+        } finally { setSaving(false) }
+    }
+
+    const seedLibraryDefaults = async () => {
+        await saveLibrary([
+            { id: uid(), title: 'Q1 Study Guide — The Cost of Discipleship', type: 'pdf',   url: '', meta: '24 pages' },
+            { id: uid(), title: 'Introduction to Expository Bible Study',     type: 'video', url: '', meta: '38 min' },
+            { id: uid(), title: 'How to Study the Bible Effectively',          type: 'pdf',   url: '', meta: '16 pages' },
+            { id: uid(), title: 'Lectio Divina — Ancient Bible Meditation',    type: 'audio', url: '', meta: '22 min' },
+            { id: uid(), title: 'Prayer & Bible Study Journal Template',       type: 'pdf',   url: '', meta: '8 pages' },
+            { id: uid(), title: 'Understanding Biblical Context & Culture',    type: 'video', url: '', meta: '45 min' },
+        ])
+        showToast('6 resources loaded! Edit each to paste the download/watch link.', 'success')
+    }
+    const seedToolsDefaults = async () => {
+        await saveTools([
+            { id: uid(), name: 'YouVersion Bible App', desc: 'Free Bible + reading plans',   tag: 'Free', href: 'https://www.bible.com' },
+            { id: uid(), name: 'Blue Letter Bible',    desc: 'Deep word & commentary study', tag: 'Free', href: 'https://www.blueletterbible.org' },
+            { id: uid(), name: 'Logos Bible Software', desc: 'Professional study library',   tag: 'Paid', href: 'https://www.logos.com' },
+            { id: uid(), name: 'Bible Project',        desc: 'Visual book overviews',        tag: 'Free', href: 'https://bibleproject.com' },
+        ])
+        showToast('4 tools loaded!', 'success')
+    }
+    const seedPodcastsDefaults = async () => {
+        await savePodcasts([
+            { id: uid(), name: 'The Bible Project Podcast',      host: 'Tim Mackie & Jon Collins',  topic: 'Biblical theology & book overviews', url: '' },
+            { id: uid(), name: 'In The Word with Alistair Begg', host: 'Alistair Begg',             topic: 'Expository preaching & application', url: '' },
+            { id: uid(), name: 'Ask Pastor John',                host: 'John Piper',                 topic: 'Q&A on Scripture & Christian life',  url: '' },
+            { id: uid(), name: 'Knowing Faith',                  host: 'Jen Wilkin & J.T. English',  topic: 'Theology for everyday believers',    url: '' },
+            { id: uid(), name: 'The Gospel Coalition',           host: 'Various authors',            topic: 'Reformed Bible teaching',            url: '' },
+            { id: uid(), name: 'RBC Ministries',                 host: 'Our Daily Bread team',       topic: 'Daily devotional Bible teaching',    url: '' },
+        ])
+        showToast('6 podcasts loaded!', 'success')
+    }
+
     // ── Derived stats ──────────────────────────────────────────────────────────
 
     const quartersConfigured = themes.length
@@ -434,6 +501,7 @@ export default function BibleStudyAdminPage() {
         { id: 'topics',      label: 'Weekly Topics',   icon: <Hash className="w-4 h-4" />,     badge: topics.length },
         { id: 'groups',      label: 'Study Groups',    icon: <Users className="w-4 h-4" />,    badge: groups.length },
         { id: 'notes',       label: 'Session Notes',   icon: <Bell className="w-4 h-4" />,     badge: notes.length },
+        { id: 'library',     label: 'Library',         icon: <FileText className="w-4 h-4" />, badge: library.length + tools.length + podcasts.length },
         { id: 'plan',        label: 'Quarterly Plan',  icon: <Layers className="w-4 h-4" />,   badge: quartersConfigured },
         { id: 'reflections', label: 'Reflections',     icon: <Quote className="w-4 h-4" />,    badge: reflectionsSet },
         { id: 'settings',    label: 'Page Settings',   icon: <Settings className="w-4 h-4" /> },
@@ -970,6 +1038,145 @@ export default function BibleStudyAdminPage() {
                             ))}
                         </div>
                     )}
+                </motion.div>
+            )}
+
+            {/* ═══════════ LIBRARY (Resources / Tools / Podcasts) ═══════════ */}
+            {activeTab === 'library' && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+
+                    {/* Write-up */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 space-y-3">
+                        <h2 className="text-base font-black text-[#140152]">Resources Section Write-up</h2>
+                        <div>
+                            <SectionLabel>Heading</SectionLabel>
+                            <Input value={resHeading} onChange={e => setResHeading(e.target.value)} placeholder="Study Resources" className="text-gray-900 text-sm" />
+                        </div>
+                        <div>
+                            <SectionLabel>Subtitle</SectionLabel>
+                            <Textarea value={resSubtitle} onChange={e => setResSubtitle(e.target.value)} rows={2} placeholder="Guides, videos, audio, and templates to deepen your personal Bible study." className="text-gray-900 text-sm" />
+                        </div>
+                        <Button onClick={saveResourcesWriteup} disabled={saving} className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />} Save Write-up
+                        </Button>
+                    </div>
+
+                    {/* Downloadable Resources */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-base font-black text-[#140152]">Downloadable Resources</h2>
+                                <p className="text-xs text-gray-500 mt-0.5">PDFs, videos & audio — members download directly, no sign-in required.</p>
+                            </div>
+                            <div className="flex gap-2">
+                                {library.length === 0 && (
+                                    <Button onClick={seedLibraryDefaults} variant="outline" className="text-sm border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white">
+                                        <Sparkles className="w-4 h-4 mr-1" /> Load 6 Defaults
+                                    </Button>
+                                )}
+                                <Button onClick={() => saveLibrary([...library, { id: uid(), title: '', type: 'pdf', url: '', meta: '' }])}
+                                    className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
+                                    <Plus className="w-4 h-4 mr-1" /> Add Resource
+                                </Button>
+                            </div>
+                        </div>
+                        {library.length === 0 ? (
+                            <div className="text-center py-10 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                                <FileText className="w-9 h-9 text-gray-200 mx-auto mb-2" />
+                                <p className="text-gray-400 text-sm">No resources yet. The public page shows placeholders until you add real files.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {library.map((r, i) => (
+                                    <div key={r.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 grid grid-cols-12 gap-2 items-center">
+                                        <Input value={r.title} onChange={e => { const u = [...library]; u[i] = { ...u[i], title: e.target.value }; setLibrary(u) }}
+                                            onBlur={() => saveLibrary(library)} placeholder="Title" className="col-span-4 text-gray-900 text-xs" />
+                                        <select value={r.type} onChange={e => { const u = [...library]; u[i] = { ...u[i], type: e.target.value as BibleStudyLibraryResource['type'] }; saveLibrary(u) }}
+                                            className="col-span-2 px-2 py-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-900">
+                                            <option value="pdf">PDF</option><option value="video">Video</option><option value="audio">Audio</option>
+                                        </select>
+                                        <Input value={r.url} onChange={e => { const u = [...library]; u[i] = { ...u[i], url: e.target.value }; setLibrary(u) }}
+                                            onBlur={() => saveLibrary(library)} placeholder="https://…download link" className="col-span-3 text-gray-900 text-xs" />
+                                        <Input value={r.meta ?? ''} onChange={e => { const u = [...library]; u[i] = { ...u[i], meta: e.target.value }; setLibrary(u) }}
+                                            onBlur={() => saveLibrary(library)} placeholder="24 pages" className="col-span-2 text-gray-900 text-xs" />
+                                        <button onClick={() => saveLibrary(library.filter((_, idx) => idx !== i))} className="col-span-1 p-1.5 rounded-lg hover:bg-red-50 text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Study Tools */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-base font-black text-[#140152]">Recommended Tools</h2>
+                            <div className="flex gap-2">
+                                {tools.length === 0 && (
+                                    <Button onClick={seedToolsDefaults} variant="outline" className="text-sm border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white">
+                                        <Sparkles className="w-4 h-4 mr-1" /> Load 4 Defaults
+                                    </Button>
+                                )}
+                                <Button onClick={() => saveTools([...tools, { id: uid(), name: '', desc: '', tag: 'Free', href: '' }])}
+                                    className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
+                                    <Plus className="w-4 h-4 mr-1" /> Add Tool
+                                </Button>
+                            </div>
+                        </div>
+                        {tools.length > 0 && (
+                            <div className="space-y-2">
+                                {tools.map((t, i) => (
+                                    <div key={t.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 grid grid-cols-12 gap-2 items-center">
+                                        <Input value={t.name} onChange={e => { const u = [...tools]; u[i] = { ...u[i], name: e.target.value }; setTools(u) }}
+                                            onBlur={() => saveTools(tools)} placeholder="Tool name" className="col-span-3 text-gray-900 text-xs" />
+                                        <Input value={t.desc} onChange={e => { const u = [...tools]; u[i] = { ...u[i], desc: e.target.value }; setTools(u) }}
+                                            onBlur={() => saveTools(tools)} placeholder="Description" className="col-span-4 text-gray-900 text-xs" />
+                                        <select value={t.tag} onChange={e => { const u = [...tools]; u[i] = { ...u[i], tag: e.target.value }; saveTools(u) }}
+                                            className="col-span-2 px-2 py-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-900">
+                                            <option value="Free">Free</option><option value="Paid">Paid</option>
+                                        </select>
+                                        <Input value={t.href} onChange={e => { const u = [...tools]; u[i] = { ...u[i], href: e.target.value }; setTools(u) }}
+                                            onBlur={() => saveTools(tools)} placeholder="https://…" className="col-span-2 text-gray-900 text-xs" />
+                                        <button onClick={() => saveTools(tools.filter((_, idx) => idx !== i))} className="col-span-1 p-1.5 rounded-lg hover:bg-red-50 text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Podcasts */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-base font-black text-[#140152]">Recommended Podcasts</h2>
+                            <div className="flex gap-2">
+                                {podcasts.length === 0 && (
+                                    <Button onClick={seedPodcastsDefaults} variant="outline" className="text-sm border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white">
+                                        <Sparkles className="w-4 h-4 mr-1" /> Load 6 Defaults
+                                    </Button>
+                                )}
+                                <Button onClick={() => savePodcasts([...podcasts, { id: uid(), name: '', host: '', topic: '', url: '' }])}
+                                    className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
+                                    <Plus className="w-4 h-4 mr-1" /> Add Podcast
+                                </Button>
+                            </div>
+                        </div>
+                        {podcasts.length > 0 && (
+                            <div className="space-y-2">
+                                {podcasts.map((p, i) => (
+                                    <div key={p.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 grid grid-cols-12 gap-2 items-center">
+                                        <Input value={p.name} onChange={e => { const u = [...podcasts]; u[i] = { ...u[i], name: e.target.value }; setPodcasts(u) }}
+                                            onBlur={() => savePodcasts(podcasts)} placeholder="Podcast name" className="col-span-3 text-gray-900 text-xs" />
+                                        <Input value={p.host} onChange={e => { const u = [...podcasts]; u[i] = { ...u[i], host: e.target.value }; setPodcasts(u) }}
+                                            onBlur={() => savePodcasts(podcasts)} placeholder="Host" className="col-span-3 text-gray-900 text-xs" />
+                                        <Input value={p.topic} onChange={e => { const u = [...podcasts]; u[i] = { ...u[i], topic: e.target.value }; setPodcasts(u) }}
+                                            onBlur={() => savePodcasts(podcasts)} placeholder="Topic" className="col-span-3 text-gray-900 text-xs" />
+                                        <Input value={p.url ?? ''} onChange={e => { const u = [...podcasts]; u[i] = { ...u[i], url: e.target.value }; setPodcasts(u) }}
+                                            onBlur={() => savePodcasts(podcasts)} placeholder="https://…" className="col-span-2 text-gray-900 text-xs" />
+                                        <button onClick={() => savePodcasts(podcasts.filter((_, idx) => idx !== i))} className="col-span-1 p-1.5 rounded-lg hover:bg-red-50 text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </motion.div>
             )}
 

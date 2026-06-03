@@ -231,6 +231,35 @@ export default function BibleStudyPage() {
             ? adminGroups.map(g => ({ name: g.name, leader: g.leader, time: g.time, size: g.size, level: g.level, is_open: g.is_open, description: g.description }))
             : GROUPS.map(g => ({ name: g.name, leader: g.leader, time: g.time, size: g.size, level: g.level, is_open: true }))
 
+    // ── Library / Resources section (admin-managed, falls back to built-in) ──
+    const adminLibrary = settings?.library_resources ?? []
+    const displayResources: { title: string; type: string; url?: string; meta?: string }[] =
+        adminLibrary.length > 0
+            ? adminLibrary.map(r => ({ title: r.title, type: r.type, url: r.url, meta: r.meta }))
+            : RESOURCES.map(r => ({ title: r.title, type: r.type, url: undefined, meta: r.pages ?? r.duration }))
+    const adminTools = settings?.study_tools ?? []
+    const displayTools = adminTools.length > 0
+        ? adminTools
+        : [
+            { id: 't1', name: 'YouVersion Bible App', desc: 'Free Bible + reading plans',   tag: 'Free', href: 'https://www.bible.com' },
+            { id: 't2', name: 'Blue Letter Bible',    desc: 'Deep word & commentary study', tag: 'Free', href: 'https://www.blueletterbible.org' },
+            { id: 't3', name: 'Logos Bible Software', desc: 'Professional study library',   tag: 'Paid', href: 'https://www.logos.com' },
+            { id: 't4', name: 'Bible Project',        desc: 'Visual book overviews',        tag: 'Free', href: 'https://bibleproject.com' },
+        ]
+    const adminPodcasts = settings?.podcasts ?? []
+    const displayPodcasts = adminPodcasts.length > 0
+        ? adminPodcasts
+        : [
+            { id: 'p1', name: 'The Bible Project Podcast',      host: 'Tim Mackie & Jon Collins',  topic: 'Biblical theology & book overviews', url: '' },
+            { id: 'p2', name: 'In The Word with Alistair Begg', host: 'Alistair Begg',             topic: 'Expository preaching & application', url: '' },
+            { id: 'p3', name: 'Ask Pastor John',                host: 'John Piper',                 topic: 'Q&A on Scripture & Christian life',  url: '' },
+            { id: 'p4', name: 'Knowing Faith',                  host: 'Jen Wilkin & J.T. English',  topic: 'Theology for everyday believers',    url: '' },
+            { id: 'p5', name: 'The Gospel Coalition',           host: 'Various authors',            topic: 'Reformed Bible teaching',            url: '' },
+            { id: 'p6', name: 'RBC Ministries',                 host: 'Our Daily Bread team',       topic: 'Daily devotional Bible teaching',    url: '' },
+        ]
+    const resourcesHeading = settings?.resources_heading || 'Study Resources'
+    const resourcesSubtitle = settings?.resources_subtitle || 'Guides, videos, audio, and templates to deepen your personal Bible study.'
+
     const todayVerse = useMemo(() => DAILY_VERSES[new Date().getDay() % DAILY_VERSES.length], [])
 
     const earnedBadges = useMemo(() => BADGES.filter(b => b.condition(studyState)), [studyState])
@@ -992,37 +1021,43 @@ export default function BibleStudyPage() {
                     <>
                         <div className="text-center mb-12">
                             <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Library</span>
-                            <h2 className="text-4xl font-black text-[#140152] dark:text-white mt-2">Study Resources</h2>
-                            <p className="text-gray-500 mt-4 max-w-xl mx-auto">Guides, videos, audio, and templates to deepen your personal Bible study.</p>
+                            <h2 className="text-4xl font-black text-[#140152] dark:text-white mt-2">{resourcesHeading}</h2>
+                            <p className="text-gray-500 mt-4 max-w-xl mx-auto">{resourcesSubtitle}</p>
                         </div>
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-                            {RESOURCES.map((r, i) => (
-                                <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-                                    className="bg-white dark:bg-neutral-800 rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg hover:border-[#f5bb00] transition-all">
-                                    <div className={`w-12 h-12 ${r.color} rounded-xl flex items-center justify-center mb-5`}>
-                                        <r.icon className="w-6 h-6" />
-                                    </div>
-                                    <h3 className="font-bold text-[#140152] dark:text-white mb-2">{r.title}</h3>
-                                    <p className="text-sm text-gray-400 mb-5">{r.pages ?? r.duration}</p>
-                                    <Link href="/auth/login">
-                                        <Button size="sm" className="w-full bg-[#140152] text-white hover:bg-[#1a0270] rounded-lg">
-                                            {r.type === 'pdf' ? 'Download' : r.type === 'video' ? 'Watch' : 'Listen'} — Sign In
-                                        </Button>
-                                    </Link>
-                                </motion.div>
-                            ))}
+                            {displayResources.map((r, i) => {
+                                const ResIcon = r.type === 'video' ? Play : r.type === 'audio' ? Mic2 : Download
+                                const colorCls = r.type === 'video' ? 'bg-blue-100 text-blue-600' : r.type === 'audio' ? 'bg-purple-100 text-purple-600' : 'bg-red-100 text-red-600'
+                                const actionLabel = r.type === 'pdf' ? 'Download' : r.type === 'video' ? 'Watch' : 'Listen'
+                                return (
+                                    <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                                        className="bg-white dark:bg-neutral-800 rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg hover:border-[#f5bb00] transition-all flex flex-col">
+                                        <div className={`w-12 h-12 ${colorCls} rounded-xl flex items-center justify-center mb-5`}>
+                                            <ResIcon className="w-6 h-6" />
+                                        </div>
+                                        <h3 className="font-bold text-[#140152] dark:text-white mb-2 flex-1">{r.title}</h3>
+                                        {r.meta && <p className="text-sm text-gray-400 mb-5">{r.meta}</p>}
+                                        {r.url ? (
+                                            <a href={r.url} target="_blank" rel="noopener noreferrer" download={r.type === 'pdf' ? true : undefined}>
+                                                <Button size="sm" className="w-full bg-[#140152] text-white hover:bg-[#1a0270] rounded-lg">
+                                                    {actionLabel}
+                                                </Button>
+                                            </a>
+                                        ) : (
+                                            <Button size="sm" disabled className="w-full bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed">
+                                                Coming Soon
+                                            </Button>
+                                        )}
+                                    </motion.div>
+                                )
+                            })}
                         </div>
 
                         {/* Recommended Tools */}
                         <div className="bg-[#140152] rounded-3xl p-10 mb-12">
                             <h3 className="text-2xl font-black text-white mb-8 text-center">Recommended Bible Study Tools</h3>
                             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-                                {[
-                                    { name: 'YouVersion Bible App',  desc: 'Free Bible + reading plans',     tag: 'Free', href: 'https://www.bible.com' },
-                                    { name: 'Blue Letter Bible',     desc: 'Deep word & commentary study',   tag: 'Free', href: 'https://www.blueletterbible.org' },
-                                    { name: 'Logos Bible Software',  desc: 'Professional study library',     tag: 'Paid', href: 'https://www.logos.com' },
-                                    { name: 'Bible Project',         desc: 'Visual book overviews',          tag: 'Free', href: 'https://bibleproject.com' },
-                                ].map((tool, i) => (
+                                {displayTools.map((tool, i) => (
                                     <a key={i} href={tool.href} target="_blank" rel="noopener noreferrer"
                                         className="bg-white/10 hover:bg-white/20 rounded-2xl p-5 transition-all group">
                                         <div className="flex items-center justify-between mb-3">
@@ -1042,23 +1077,24 @@ export default function BibleStudyPage() {
                                 <Mic2 className="w-5 h-5 text-[#f5bb00]" /> Recommended Podcasts
                             </h3>
                             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                {[
-                                    { name: 'The Bible Project Podcast',   host: 'Tim Mackie & Jon Collins',  topic: 'Biblical theology & book overviews' },
-                                    { name: 'In The Word with Alistair Begg', host: 'Alistair Begg',         topic: 'Expository preaching & application' },
-                                    { name: 'Ask Pastor John',             host: 'John Piper',                topic: 'Q&A on Scripture & Christian life' },
-                                    { name: 'Knowing Faith',               host: 'Jen Wilkin & J.T. English', topic: 'Theology for everyday believers' },
-                                    { name: 'The Gospel Coalition',        host: 'Various authors',           topic: 'Reformed Bible teaching' },
-                                    { name: 'RBC Ministries',              host: 'Our Daily Bread team',      topic: 'Daily devotional Bible teaching' },
-                                ].map((p, i) => (
-                                    <div key={i} className="bg-gray-50 dark:bg-neutral-700 rounded-2xl p-4">
-                                        <div className="w-9 h-9 bg-[#140152]/10 rounded-xl flex items-center justify-center mb-3">
-                                            <Mic2 className="w-4 h-4 text-[#140152]" />
-                                        </div>
-                                        <p className="font-bold text-[#140152] dark:text-white text-sm">{p.name}</p>
-                                        <p className="text-xs text-[#f5bb00] font-semibold">{p.host}</p>
-                                        <p className="text-xs text-gray-500 mt-1">{p.topic}</p>
-                                    </div>
-                                ))}
+                                {displayPodcasts.map((p, i) => {
+                                    const inner = (
+                                        <>
+                                            <div className="w-9 h-9 bg-[#140152]/10 rounded-xl flex items-center justify-center mb-3">
+                                                <Mic2 className="w-4 h-4 text-[#140152]" />
+                                            </div>
+                                            <p className="font-bold text-[#140152] dark:text-white text-sm">{p.name}</p>
+                                            <p className="text-xs text-[#f5bb00] font-semibold">{p.host}</p>
+                                            <p className="text-xs text-gray-500 mt-1">{p.topic}</p>
+                                        </>
+                                    )
+                                    return ('url' in p && p.url) ? (
+                                        <a key={i} href={p.url} target="_blank" rel="noopener noreferrer"
+                                            className="bg-gray-50 dark:bg-neutral-700 rounded-2xl p-4 hover:shadow-md transition-all">{inner}</a>
+                                    ) : (
+                                        <div key={i} className="bg-gray-50 dark:bg-neutral-700 rounded-2xl p-4">{inner}</div>
+                                    )
+                                })}
                             </div>
                         </div>
                     </>
