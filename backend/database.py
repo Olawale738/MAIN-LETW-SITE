@@ -113,6 +113,7 @@ async def init_db():
                 ("bible_study_page_settings", "resources_heading",  "VARCHAR(255)"),
                 ("bible_study_page_settings", "resources_subtitle", "TEXT"),
                 ("bible_study_page_settings", "mentors",            "JSONB DEFAULT '[]'::jsonb"),
+                ("department_members", "is_coordinator", "BOOLEAN NOT NULL DEFAULT FALSE"),
             ]
 
             for table, column, col_def in missing_columns:

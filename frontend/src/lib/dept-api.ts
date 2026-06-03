@@ -24,6 +24,7 @@ export interface DeptMember {
   email: string
   role_label: string | null
   is_active: boolean
+  is_coordinator?: boolean
   notes: string | null
   extra_info: Record<string, unknown> | null
   joined_at: string
@@ -73,6 +74,7 @@ export interface MyAttendanceRow {
 export interface MembershipStatus {
   is_member: boolean
   is_active: boolean
+  is_coordinator?: boolean
   role_label: string | null
   joined_at: string | null
 }
@@ -162,7 +164,7 @@ export async function addMember(
 export async function updateMember(
   dept: Department,
   userId: string,
-  data: { role_label?: string; is_active?: boolean; notes?: string; extra_info?: Record<string, unknown> }
+  data: { role_label?: string; is_active?: boolean; is_coordinator?: boolean; notes?: string; extra_info?: Record<string, unknown> }
 ): Promise<{ message: string }> {
   return request(`/departments/${dept}/members/${userId}`, {
     method: 'PATCH',

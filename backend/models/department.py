@@ -67,6 +67,8 @@ class DepartmentMember(Base):
     # dept-specific label, e.g. "Soprano", "Form 3A", "Nursery"
     role_label: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # admin-assigned coordinator for this department (can manage + chat with members)
+    is_coordinator: Mapped[bool] = mapped_column(Boolean, default=False)
     # free-text notes (allergies, special needs, guardian info, etc.)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # flexible JSON bag for extra dept-specific data

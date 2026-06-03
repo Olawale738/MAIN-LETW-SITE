@@ -217,9 +217,10 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
     getCurrentUser()
       .then(async u => {
         setUser(u)
-        setIsCoordinator(u.role === 'admin')
         const mem = await checkMembership(dept)
         setMembership(mem)
+        // Admins AND admin-assigned coordinators get coordinator powers
+        setIsCoordinator(u.role === 'admin' || !!mem.is_coordinator)
       })
       .catch(() => router.replace(`/auth/login?next=${loginRedirect}`))
       .finally(() => setAuthLoading(false))
@@ -392,6 +393,12 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
 
   const doApproveMember = async (userId: string) => {
     try { await updateMember(dept, userId, { is_active: true }); setMembers(await listMembers(dept)) }
+    catch (e: unknown) { alert((e as Error).message) }
+  }
+
+  const doSetCoordinator = async (userId: string, memberName: string, makeCoordinator: boolean) => {
+    if (!confirm(makeCoordinator ? `Make ${memberName} the coordinator of ${name}?` : `Remove ${memberName} as coordinator?`)) return
+    try { await updateMember(dept, userId, { is_coordinator: makeCoordinator }); setMembers(await listMembers(dept)) }
     catch (e: unknown) { alert((e as Error).message) }
   }
 
@@ -1214,7 +1221,12 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-sm text-gray-800 truncate">{m.name}</p>
                             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                              {m.role_label && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: primary }}>{m.role_label}</span>}
+                              {m.is_coordinator && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f5bb00] text-[#140152] flex items-center gap-1">
+                                  <Crown className="w-2.5 h-2.5" /> Coordinator
+                                </span>
+                              )}
+                              {m.role_label && m.role_label !== 'Coordinator' && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: primary }}>{m.role_label}</span>}
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${m.is_active ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                                 {m.is_active ? '✓ Active' : '⌛ Pending'}
                               </span>
@@ -1227,6 +1239,14 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
                                   className="h-8 px-2.5 bg-green-50 rounded-xl flex items-center gap-1 hover:bg-green-100 transition-colors">
                                   <Check className="w-3.5 h-3.5 text-green-600" />
                                   <span className="text-[11px] font-bold text-green-700">Approve</span>
+                                </button>
+                              )}
+                              {user?.role === 'admin' && m.is_active && (
+                                <button onClick={() => doSetCoordinator(m.user_id, m.name, !m.is_coordinator)}
+                                  title={m.is_coordinator ? 'Remove as coordinator' : 'Make coordinator'}
+                                  className={`h-8 px-2.5 rounded-xl flex items-center gap-1 transition-colors ${m.is_coordinator ? 'bg-amber-100 hover:bg-amber-200' : 'bg-[#140152]/5 hover:bg-[#140152]/10'}`}>
+                                  <Crown className={`w-3.5 h-3.5 ${m.is_coordinator ? 'text-amber-600' : 'text-[#140152]'}`} />
+                                  <span className={`text-[11px] font-bold ${m.is_coordinator ? 'text-amber-700' : 'text-[#140152]'}`}>{m.is_coordinator ? 'Unset' : 'Coordinator'}</span>
                                 </button>
                               )}
                               <button onClick={() => doRemoveMember(m.user_id, m.name)} title={m.is_active ? 'Revoke access' : 'Remove request'}

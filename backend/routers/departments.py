@@ -50,13 +50,25 @@ def _parse_dept(dept: str) -> DepartmentType:
         raise HTTPException(status_code=404, detail=f"Department '{dept}' not found. Valid: choir, youth, children, media, hospitality, ushering, security.")
 
 
-async def _require_leader(dept: DepartmentType, user: User) -> None:
-    """Raise 403 unless the user is Admin or the leader of this dept."""
+async def _require_leader(dept: DepartmentType, user: User, db: AsyncSession | None = None) -> None:
+    """Raise 403 unless the user is Admin, the role-based leader of this dept,
+    or an admin-assigned coordinator (active DepartmentMember with is_coordinator)."""
     if user.role == UserRole.ADMIN:
         return
-    expected = ROLE_DEPT.get(user.role)
-    if expected != dept:
-        raise HTTPException(status_code=403, detail="Access denied for this department.")
+    if ROLE_DEPT.get(user.role) == dept:
+        return
+    if db is not None:
+        result = await db.execute(
+            select(DepartmentMember).where(and_(
+                DepartmentMember.user_id == user.id,
+                DepartmentMember.department == dept,
+                DepartmentMember.is_active == True,
+                DepartmentMember.is_coordinator == True,
+            ))
+        )
+        if result.scalar_one_or_none():
+            return
+    raise HTTPException(status_code=403, detail="Access denied for this department.")
 
 
 async def _require_member_or_leader(dept: DepartmentType, user: User, db: AsyncSession) -> None:
@@ -83,6 +95,7 @@ class MemberOut(BaseModel):
     email: str
     role_label: Optional[str]
     is_active: bool
+    is_coordinator: bool = False
     notes: Optional[str]
     extra_info: Optional[dict]
     joined_at: str
@@ -101,6 +114,7 @@ class AddMemberRequest(BaseModel):
 class UpdateMemberRequest(BaseModel):
     role_label: Optional[str] = None
     is_active: Optional[bool] = None
+    is_coordinator: Optional[bool] = None
     notes: Optional[str] = None
     extra_info: Optional[dict] = None
 
@@ -216,7 +230,7 @@ async def get_dept_stats(
     current_user: User = Depends(get_current_active_user),
 ):
     d = _parse_dept(dept)
-    await _require_leader(d, current_user)
+    await _require_leader(d, current_user, db)
 
     members_result = await db.execute(
         select(DepartmentMember).where(
@@ -248,7 +262,7 @@ async def list_members(
     current_user: User = Depends(get_current_active_user),
 ):
     d = _parse_dept(dept)
-    await _require_leader(d, current_user)
+    await _require_leader(d, current_user, db)
 
     result = await db.execute(
         select(DepartmentMember)
@@ -264,6 +278,7 @@ async def list_members(
             email=r.user.email,
             role_label=r.role_label,
             is_active=r.is_active,
+            is_coordinator=r.is_coordinator,
             notes=r.notes,
             extra_info=r.extra_info,
             joined_at=r.joined_at.isoformat(),
@@ -280,7 +295,7 @@ async def add_member(
     current_user: User = Depends(get_current_active_user),
 ):
     d = _parse_dept(dept)
-    await _require_leader(d, current_user)
+    await _require_leader(d, current_user, db)
 
     # Find target user by email
     result = await db.execute(select(User).where(User.email == body.email.lower().strip()))
@@ -325,7 +340,7 @@ async def update_member(
     current_user: User = Depends(get_current_active_user),
 ):
     d = _parse_dept(dept)
-    await _require_leader(d, current_user)
+    await _require_leader(d, current_user, db)
 
     result = await db.execute(
         select(DepartmentMember).where(
@@ -340,6 +355,15 @@ async def update_member(
         dm.role_label = body.role_label
     if body.is_active is not None:
         dm.is_active = body.is_active
+    if body.is_coordinator is not None:
+        # Only an Admin may appoint/remove a department coordinator
+        if current_user.role != UserRole.ADMIN:
+            raise HTTPException(status_code=403, detail="Only an admin can assign a coordinator.")
+        dm.is_coordinator = body.is_coordinator
+        if body.is_coordinator:
+            dm.is_active = True  # a coordinator must be active
+            if not dm.role_label:
+                dm.role_label = "Coordinator"
     if body.notes is not None:
         dm.notes = body.notes
     if body.extra_info is not None:
@@ -357,7 +381,7 @@ async def remove_member(
     current_user: User = Depends(get_current_active_user),
 ):
     d = _parse_dept(dept)
-    await _require_leader(d, current_user)
+    await _require_leader(d, current_user, db)
 
     result = await db.execute(
         select(DepartmentMember).where(
@@ -413,7 +437,7 @@ async def create_announcement(
     current_user: User = Depends(get_current_active_user),
 ):
     d = _parse_dept(dept)
-    await _require_leader(d, current_user)
+    await _require_leader(d, current_user, db)
 
     db.add(DepartmentAnnouncement(
         department=d,
@@ -435,7 +459,7 @@ async def delete_announcement(
     current_user: User = Depends(get_current_active_user),
 ):
     d = _parse_dept(dept)
-    await _require_leader(d, current_user)
+    await _require_leader(d, current_user, db)
 
     await db.execute(
         delete(DepartmentAnnouncement).where(
@@ -488,7 +512,7 @@ async def create_activity(
     current_user: User = Depends(get_current_active_user),
 ):
     d = _parse_dept(dept)
-    await _require_leader(d, current_user)
+    await _require_leader(d, current_user, db)
 
     act_date = None
     if body.activity_date:
@@ -524,7 +548,7 @@ async def delete_activity(
     current_user: User = Depends(get_current_active_user),
 ):
     d = _parse_dept(dept)
-    await _require_leader(d, current_user)
+    await _require_leader(d, current_user, db)
 
     await db.execute(
         delete(DepartmentActivity).where(
@@ -545,7 +569,7 @@ async def list_attendance(
     current_user: User = Depends(get_current_active_user),
 ):
     d = _parse_dept(dept)
-    await _require_leader(d, current_user)
+    await _require_leader(d, current_user, db)
 
     q = select(AttendanceRecord).where(AttendanceRecord.department == d)
     if session_label:
@@ -602,7 +626,7 @@ async def record_session_attendance(
     current_user: User = Depends(get_current_active_user),
 ):
     d = _parse_dept(dept)
-    await _require_leader(d, current_user)
+    await _require_leader(d, current_user, db)
 
     try:
         sess_date = date_type.fromisoformat(body.session_date)
@@ -755,10 +779,11 @@ async def my_membership_status(
     )
     dm = result.scalar_one_or_none()
     if not dm:
-        return {"is_member": False, "is_active": False, "role_label": None, "joined_at": None}
+        return {"is_member": False, "is_active": False, "is_coordinator": False, "role_label": None, "joined_at": None}
     return {
         "is_member": True,
         "is_active": dm.is_active,
+        "is_coordinator": dm.is_coordinator,
         "role_label": dm.role_label,
         "joined_at": dm.joined_at.isoformat(),
     }
