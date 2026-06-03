@@ -16,7 +16,7 @@ import {
     Palette, Hash, ToggleLeft, ToggleRight, UserCheck, Mail,
 } from 'lucide-react'
 import {
-    bibleStudyApi, dashboardApi, WeekReflection, QuarterlyTheme, BibleStudyPageSettings,
+    bibleStudyApi, dashboardApi, messageApi, WeekReflection, QuarterlyTheme, BibleStudyPageSettings,
     BibleStudyWeeklyTopic, BibleStudyGroup, BibleStudySessionNote,
     BibleStudyTopicResource, BibleStudyLibraryResource, BibleStudyTool, BibleStudyPodcast,
     BibleStudyMentor, AdminUser,
@@ -156,6 +156,9 @@ export default function BibleStudyAdminPage() {
     const [mentorForm, setMentorForm] = useState<Omit<BibleStudyMentor, 'id'>>(DEFAULT_MENTOR)
     const [showAddMentor, setShowAddMentor] = useState(false)
     const [regUsers, setRegUsers] = useState<AdminUser[]>([])
+    const [assignMenteeId, setAssignMenteeId] = useState('')
+    const [assignMentorId, setAssignMentorId] = useState('')
+    const [assigning, setAssigning] = useState(false)
 
     // ── Form state ──
     const [editingTheme, setEditingTheme]   = useState<number | null>(null)
@@ -531,6 +534,22 @@ export default function BibleStudyAdminPage() {
         setMentors(updated)
         await persistContent({ mentors: updated })
     }
+    const assignMentorship = async () => {
+        if (!assignMenteeId || !assignMentorId) { showToast('Pick both a mentee and a mentor', 'error'); return }
+        const mentor = mentors.find(m => m.user_id === assignMentorId)
+        if (!mentor) { showToast('Selected mentor has no linked user account', 'error'); return }
+        if (assignMenteeId === assignMentorId) { showToast('Mentee and mentor must be different', 'error'); return }
+        setAssigning(true)
+        try {
+            await messageApi.admin.assignMentor({ mentee_id: assignMenteeId, mentor_id: assignMentorId, subject: 'Bible Mentoring' })
+            const menteeName = regUsers.find(u => u.id === assignMenteeId)?.name || 'mentee'
+            showToast(`${mentor.name} ↔ ${menteeName} chat opened!`, 'success')
+            setAssignMenteeId(''); setAssignMentorId('')
+        } catch (e) {
+            showToast(e instanceof Error ? e.message : 'Failed to assign mentor', 'error')
+        } finally { setAssigning(false) }
+    }
+
     const seedDefaultMentors = async () => {
         setSaving(true)
         try {
@@ -1119,6 +1138,40 @@ export default function BibleStudyAdminPage() {
                                 <Plus className="w-4 h-4 mr-1" /> Add Mentor
                             </Button>
                         </div>
+                    </div>
+
+                    {/* ── Assign a mentorship (opens a mentor↔mentee chat) ── */}
+                    <div className="bg-gradient-to-br from-[#f5f3ff] to-[#ede9fe] border border-purple-200 rounded-2xl p-5">
+                        <div className="flex items-center gap-2 mb-1">
+                            <MessageSquare className="w-4 h-4 text-[#7c3aed]" />
+                            <h3 className="font-black text-[#140152] text-sm">Assign &amp; Approve a Mentorship</h3>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-4">Pair a mentee with a mentor. This opens a private chat between them so they can interact directly.</p>
+                        <div className="grid md:grid-cols-3 gap-3 items-end">
+                            <div>
+                                <SectionLabel>Mentee (registered user)</SectionLabel>
+                                <select value={assignMenteeId} onChange={e => setAssignMenteeId(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white text-gray-900 focus:outline-none focus:border-[#7c3aed]">
+                                    <option value="">— Select mentee —</option>
+                                    {regUsers.map(u => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <SectionLabel>Mentor</SectionLabel>
+                                <select value={assignMentorId} onChange={e => setAssignMentorId(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white text-gray-900 focus:outline-none focus:border-[#7c3aed]">
+                                    <option value="">— Select mentor —</option>
+                                    {mentors.filter(m => m.user_id).map(m => <option key={m.id} value={m.user_id}>{m.name} · {m.title}</option>)}
+                                </select>
+                            </div>
+                            <Button onClick={assignMentorship} disabled={assigning}
+                                className="bg-[#7c3aed] text-white hover:bg-[#6d28d9] text-sm">
+                                {assigning ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <MessageSquare className="w-4 h-4 mr-1" />} Assign &amp; Open Chat
+                            </Button>
+                        </div>
+                        {mentors.filter(m => m.user_id).length === 0 && (
+                            <p className="text-[11px] text-amber-600 mt-2 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> Only mentors linked to a registered user can be assigned. Edit a mentor and pick a user account first.</p>
+                        )}
                     </div>
 
                     {/* Add/edit form */}

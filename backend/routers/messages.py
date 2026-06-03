@@ -41,6 +41,14 @@ from schemas.message import (
 from schemas.auth import MessageResponse as ApiMessage
 from utils.dependencies import get_current_active_user, get_admin_user
 from utils.security import decode_token
+from pydantic import BaseModel
+
+
+class AssignMentorRequest(BaseModel):
+    mentee_id: str
+    mentor_id: str
+    subject: Optional[str] = None
+    intro_message: Optional[str] = None
 
 
 router = APIRouter(prefix="/api/messages", tags=["Messages"])
@@ -210,9 +218,15 @@ async def list_conversations(
             .order_by(Conversation.last_message_at.desc().nulls_last(), Conversation.created_at.desc())
         )
     else:
+        # A regular user sees conversations where they are the user (mentee/member)
+        # OR the admin-slot party (e.g. an assigned mentor — a non-admin placed in
+        # admin_id for a mentorship thread).
         q = (
             select(Conversation)
-            .where(Conversation.user_id == current_user.id)
+            .where(or_(
+                Conversation.user_id == current_user.id,
+                Conversation.admin_id == current_user.id,
+            ))
             .options(selectinload(Conversation.user), selectinload(Conversation.admin))
             .order_by(Conversation.last_message_at.desc().nulls_last(), Conversation.created_at.desc())
         )
@@ -501,9 +515,16 @@ async def unread_count(
             )
         )
     else:
-        q = select(func.coalesce(func.sum(Conversation.unread_for_user), 0)).where(
+        # Count unread where the user is the mentee (user slot) plus unread where
+        # they are an assigned mentor (admin slot).
+        as_user = select(func.coalesce(func.sum(Conversation.unread_for_user), 0)).where(
             Conversation.user_id == current_user.id
         )
+        as_mentor = select(func.coalesce(func.sum(Conversation.unread_for_admin), 0)).where(
+            Conversation.admin_id == current_user.id
+        )
+        total = ((await db.execute(as_user)).scalar() or 0) + ((await db.execute(as_mentor)).scalar() or 0)
+        return {"unread_count": int(total)}
     total = (await db.execute(q)).scalar() or 0
     return {"unread_count": int(total)}
 
@@ -526,6 +547,98 @@ async def admin_inbox(
         total=len(items),
         total_unread=sum(c.unread_for_admin for c in convs),
     )
+
+
+@router.post("/admin/assign-mentor", response_model=ConversationDetailResponse, status_code=201)
+async def assign_mentor(
+    payload: AssignMentorRequest,
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Admin assigns + approves a mentorship: opens a direct chat thread between a
+    mentor and a mentee. The mentee is stored in user_id, the mentor in admin_id.
+    Idempotent — returns the existing thread if one already links the two.
+    """
+    if payload.mentee_id == payload.mentor_id:
+        raise HTTPException(status_code=400, detail="Mentor and mentee must be different users.")
+
+    res = await db.execute(select(User).where(User.id.in_([payload.mentee_id, payload.mentor_id])))
+    users = {u.id: u for u in res.scalars().all()}
+    mentee = users.get(payload.mentee_id)
+    mentor = users.get(payload.mentor_id)
+    if mentee is None or mentor is None:
+        raise HTTPException(status_code=404, detail="Mentor or mentee user not found.")
+
+    # Reuse an existing mentorship thread if present (either orientation)
+    existing = await db.execute(
+        select(Conversation).where(or_(
+            and_(Conversation.user_id == mentee.id, Conversation.admin_id == mentor.id),
+            and_(Conversation.user_id == mentor.id, Conversation.admin_id == mentee.id),
+        ))
+    )
+    conv = existing.scalars().first()
+
+    if conv is None:
+        intro = payload.intro_message or (
+            f"Hi {mentee.name}, I'm {mentor.name} — your assigned Bible study mentor. "
+            f"I'm looking forward to walking through Scripture with you. Feel free to message me here anytime!"
+        )
+        now = datetime.utcnow()
+        conv = Conversation(
+            user_id=mentee.id,
+            admin_id=mentor.id,
+            subject=payload.subject or "Bible Mentoring",
+            status=ConversationStatus.OPEN,
+            last_message_preview=intro[:200],
+            last_message_at=now,
+            unread_for_user=1,   # mentee has the mentor's intro waiting
+            unread_for_admin=0,
+        )
+        db.add(conv)
+        await db.flush()
+
+        db.add(Message(conversation_id=conv.id, sender_id=mentor.id, body=intro))
+
+        # Notify both parties
+        db.add(Notification(
+            user_id=mentee.id,
+            title=f"{mentor.name} is now your Bible mentor",
+            message="Your mentorship has been approved. Open chat to say hello!",
+            type=NotificationType.GENERAL,
+            reference_id=conv.id,
+        ))
+        db.add(Notification(
+            user_id=mentor.id,
+            title=f"You've been assigned to mentor {mentee.name}",
+            message="A mentee has been assigned to you. Open chat to connect.",
+            type=NotificationType.GENERAL,
+            reference_id=conv.id,
+        ))
+        await db.commit()
+
+    # Reload with eager loads
+    res = await db.execute(
+        select(Conversation).where(Conversation.id == conv.id).options(
+            selectinload(Conversation.user),
+            selectinload(Conversation.admin),
+            selectinload(Conversation.messages).selectinload(Message.sender),
+        )
+    )
+    conv = res.scalar_one()
+    detail = ConversationDetailResponse(
+        **_serialize_conversation(conv, current_user.id).model_dump(),
+        messages=[_serialize_message(m) for m in conv.messages],
+    )
+
+    # Realtime: notify both parties a thread now exists
+    for uid in (mentee.id, mentor.id):
+        await manager.send_personal(uid, {
+            "type": "conversation.created",
+            "conversation": detail.model_dump(mode="json"),
+        })
+
+    return detail
 
 
 # ---------------------------------------------------------------------------

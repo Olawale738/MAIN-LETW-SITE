@@ -2744,6 +2744,15 @@ export const messageApi = {
             fetchApi<MessageResponse>(`/messages/conversations/${conversationId}/close`, {
                 method: 'POST',
             }),
+
+        /** Admin: assign a mentor to a mentee and open a chat thread between them */
+        assignMentor: async (
+            body: { mentee_id: string; mentor_id: string; subject?: string; intro_message?: string }
+        ): Promise<ChatConversationDetail> =>
+            fetchApi<ChatConversationDetail>('/messages/admin/assign-mentor', {
+                method: 'POST',
+                body: JSON.stringify(body),
+            }),
     },
 };
 
