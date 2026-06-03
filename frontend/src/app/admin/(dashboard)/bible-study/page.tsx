@@ -18,6 +18,7 @@ import {
 import {
     bibleStudyApi, WeekReflection, QuarterlyTheme, BibleStudyPageSettings,
     BibleStudyWeeklyTopic, BibleStudyGroup, BibleStudySessionNote,
+    BibleStudyTopicResource,
 } from '@/lib/api'
 import { useToast } from '@/components/ui/toast'
 
@@ -94,8 +95,17 @@ type Tab = 'overview' | 'topics' | 'groups' | 'notes' | 'plan' | 'reflections' |
 
 const DEFAULT_TOPIC: Omit<BibleStudyWeeklyTopic, 'id'> = {
     week: 'Week 1', title: '', verse: '', category: 'Foundation', color: '#7c3aed',
-    time: 'Tuesdays 6:00 PM', discussion_questions: ['', '', ''],
+    time: 'Tuesdays 6:00 PM', study_focus: '', video_url: '', notes_url: '',
+    discussion_questions: ['', '', ''], resources: [],
 }
+
+const RESOURCE_TYPES: { value: BibleStudyTopicResource['type']; label: string }[] = [
+    { value: 'pdf',   label: 'PDF' },
+    { value: 'video', label: 'Video' },
+    { value: 'audio', label: 'Audio' },
+    { value: 'doc',   label: 'Document' },
+    { value: 'link',  label: 'Link' },
+]
 
 const DEFAULT_GROUP: Omit<BibleStudyGroup, 'id'> = {
     name: '', leader: '', time: 'Tuesdays 6:00 PM', size: 15, level: 'Open to all',
@@ -293,6 +303,24 @@ export default function BibleStudyAdminPage() {
             await persistContent({ weekly_topics: updated })
             showToast(showAddTopic ? 'Topic added!' : 'Topic updated!', 'success')
             setShowAddTopic(false); setEditingTopicId(null); setTopicForm(DEFAULT_TOPIC)
+        } catch { /* already toasted */ }
+        finally { setSaving(false) }
+    }
+
+    const seedDefaultTopics = async () => {
+        setSaving(true)
+        try {
+            const defaults: BibleStudyWeeklyTopic[] = [
+                { id: 0, week: 'Week 1', title: 'The Nature of God',           verse: 'Exodus 34:6-7',      category: 'Foundation',    color: '#7c3aed', time: 'Tuesdays 6:00 PM', study_focus: '', video_url: '', notes_url: '', discussion_questions: ['What stands out most in this passage?', 'How does this change your view of God?', 'What one step will you take this week?'], resources: [] },
+                { id: 1, week: 'Week 2', title: 'The Person of Jesus',         verse: 'Colossians 1:15-20', category: 'Christology',   color: '#0284c7', time: 'Tuesdays 6:00 PM', study_focus: '', video_url: '', notes_url: '', discussion_questions: ['Who is Jesus according to this text?', 'How does His supremacy affect your faith?', 'What will you surrender to Him this week?'], resources: [] },
+                { id: 2, week: 'Week 3', title: 'The Work of the Holy Spirit', verse: 'John 16:5-15',       category: 'Pneumatology',  color: '#059669', time: 'Tuesdays 6:00 PM', study_focus: '', video_url: '', notes_url: '', discussion_questions: ['What does the Spirit do in this passage?', 'How have you experienced the Holy Spirit?', 'How can you yield to Him more?'], resources: [] },
+                { id: 3, week: 'Week 4', title: 'Prayer & Intimacy with God',  verse: 'Matthew 6:5-13',     category: 'Devotional',    color: '#d97706', time: 'Tuesdays 6:00 PM', study_focus: '', video_url: '', notes_url: '', discussion_questions: ['What does Jesus teach about prayer here?', 'What hinders your prayer life?', 'How will you grow in prayer this week?'], resources: [] },
+                { id: 4, week: 'Week 5', title: 'Living by Faith',             verse: 'Hebrews 11:1-6',     category: 'Christian Life', color: '#dc2626', time: 'Tuesdays 6:00 PM', study_focus: '', video_url: '', notes_url: '', discussion_questions: ['How is faith defined in this text?', 'Where is God asking you to trust Him?', 'What faith step will you take?'], resources: [] },
+                { id: 5, week: 'Week 6', title: 'The Church & Community',       verse: 'Acts 2:42-47',       category: 'Ecclesiology',  color: '#0891b2', time: 'Tuesdays 6:00 PM', study_focus: '', video_url: '', notes_url: '', discussion_questions: ['What marked the early church?', 'How can you contribute to community?', 'Who will you reach out to this week?'], resources: [] },
+            ]
+            setTopics(defaults)
+            await persistContent({ weekly_topics: defaults })
+            showToast('6 default topics loaded! Edit each to add recordings, notes & resources.', 'success')
         } catch { /* already toasted */ }
         finally { setSaving(false) }
     }
@@ -554,10 +582,18 @@ export default function BibleStudyAdminPage() {
                             <h2 className="text-base font-black text-[#140152]">Weekly Study Topics</h2>
                             <p className="text-xs text-gray-500 mt-0.5">These appear on the public Bible Study page under "Weekly Topics". Drag to reorder.</p>
                         </div>
-                        <Button onClick={() => { setShowAddTopic(true); setEditingTopicId(null); setTopicForm(DEFAULT_TOPIC) }}
-                            className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
-                            <Plus className="w-4 h-4 mr-1" /> Add Topic
-                        </Button>
+                        <div className="flex gap-2">
+                            {topics.length === 0 && (
+                                <Button onClick={seedDefaultTopics} disabled={saving} variant="outline"
+                                    className="text-sm border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white">
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Sparkles className="w-4 h-4 mr-1" />} Load Default 6 Topics
+                                </Button>
+                            )}
+                            <Button onClick={() => { setShowAddTopic(true); setEditingTopicId(null); setTopicForm(DEFAULT_TOPIC) }}
+                                className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
+                                <Plus className="w-4 h-4 mr-1" /> Add Topic
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Add form */}
@@ -606,20 +642,68 @@ export default function BibleStudyAdminPage() {
                                     </div>
                                 </div>
                                 <div>
-                                    <SectionLabel>Discussion Questions (one per line)</SectionLabel>
+                                    <SectionLabel>Study Focus (intro paragraph shown to members)</SectionLabel>
+                                    <Textarea value={topicForm.study_focus ?? ''} onChange={e => setTopicForm(p => ({ ...p, study_focus: e.target.value }))}
+                                        rows={2} placeholder="What this week's study covers and how to prepare…" className="text-gray-900 text-sm" />
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-3">
+                                    <div>
+                                        <SectionLabel>🎬 Recording URL (Watch Recording)</SectionLabel>
+                                        <Input value={topicForm.video_url ?? ''} onChange={e => setTopicForm(p => ({ ...p, video_url: e.target.value }))}
+                                            placeholder="https://youtube.com/watch?v=…" className="text-gray-900 text-sm" />
+                                    </div>
+                                    <div>
+                                        <SectionLabel>📄 Study Notes URL (PDF/Doc)</SectionLabel>
+                                        <Input value={topicForm.notes_url ?? ''} onChange={e => setTopicForm(p => ({ ...p, notes_url: e.target.value }))}
+                                            placeholder="https://…/study-notes.pdf" className="text-gray-900 text-sm" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <SectionLabel>Discussion Questions</SectionLabel>
                                     {(topicForm.discussion_questions ?? ['', '', '']).map((q, qi) => (
-                                        <Input key={qi} value={q}
-                                            onChange={e => setTopicForm(p => {
-                                                const dq = [...(p.discussion_questions ?? ['', '', ''])]
-                                                dq[qi] = e.target.value
-                                                return { ...p, discussion_questions: dq }
-                                            })}
-                                            placeholder={`Discussion question ${qi + 1}`}
-                                            className="text-gray-900 text-sm mb-2" />
+                                        <div key={qi} className="flex gap-2 mb-2">
+                                            <Input value={q}
+                                                onChange={e => setTopicForm(p => {
+                                                    const dq = [...(p.discussion_questions ?? ['', '', ''])]
+                                                    dq[qi] = e.target.value
+                                                    return { ...p, discussion_questions: dq }
+                                                })}
+                                                placeholder={`Discussion question ${qi + 1}`}
+                                                className="text-gray-900 text-sm" />
+                                            <button onClick={() => setTopicForm(p => ({ ...p, discussion_questions: (p.discussion_questions ?? []).filter((_, idx) => idx !== qi) }))}
+                                                className="p-2 rounded-lg hover:bg-red-50 text-red-400 flex-shrink-0"><X className="w-3.5 h-3.5" /></button>
+                                        </div>
                                     ))}
                                     <button onClick={() => setTopicForm(p => ({ ...p, discussion_questions: [...(p.discussion_questions ?? []), ''] }))}
                                         className="text-xs text-[#140152] hover:underline font-semibold">+ Add question</button>
                                 </div>
+
+                                {/* Resources */}
+                                <div className="bg-white rounded-xl border border-blue-100 p-4">
+                                    <SectionLabel>📚 Resources for Members (PDFs, videos, links)</SectionLabel>
+                                    <div className="space-y-2 mt-2">
+                                        {(topicForm.resources ?? []).map((r, ri) => (
+                                            <div key={ri} className="grid grid-cols-12 gap-2 items-center">
+                                                <Input value={r.title} onChange={e => setTopicForm(p => {
+                                                    const rs = [...(p.resources ?? [])]; rs[ri] = { ...rs[ri], title: e.target.value }; return { ...p, resources: rs }
+                                                })} placeholder="Title" className="col-span-4 text-gray-900 text-xs" />
+                                                <Input value={r.url} onChange={e => setTopicForm(p => {
+                                                    const rs = [...(p.resources ?? [])]; rs[ri] = { ...rs[ri], url: e.target.value }; return { ...p, resources: rs }
+                                                })} placeholder="https://…" className="col-span-5 text-gray-900 text-xs" />
+                                                <select value={r.type} onChange={e => setTopicForm(p => {
+                                                    const rs = [...(p.resources ?? [])]; rs[ri] = { ...rs[ri], type: e.target.value as BibleStudyTopicResource['type'] }; return { ...p, resources: rs }
+                                                })} className="col-span-2 px-2 py-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-900">
+                                                    {RESOURCE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                                </select>
+                                                <button onClick={() => setTopicForm(p => ({ ...p, resources: (p.resources ?? []).filter((_, idx) => idx !== ri) }))}
+                                                    className="col-span-1 p-1.5 rounded-lg hover:bg-red-50 text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button onClick={() => setTopicForm(p => ({ ...p, resources: [...(p.resources ?? []), { title: '', url: '', type: 'pdf' }] }))}
+                                        className="text-xs text-[#140152] hover:underline font-semibold mt-2">+ Add resource</button>
+                                </div>
+
                                 <div className="flex gap-2">
                                     <Button onClick={saveTopic} disabled={saving} className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
                                         {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Check className="w-4 h-4 mr-1" />} Save Topic
@@ -633,8 +717,13 @@ export default function BibleStudyAdminPage() {
                     {topics.length === 0 ? (
                         <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
                             <Hash className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-                            <p className="text-gray-400 font-semibold">No custom topics yet</p>
-                            <p className="text-xs text-gray-300 mt-1">The public page shows built-in topics. Add custom ones to override them.</p>
+                            <p className="text-gray-500 font-semibold">No custom topics yet</p>
+                            <p className="text-xs text-gray-400 mt-1 mb-4">The public page shows built-in placeholder topics until you add your own.</p>
+                            <Button onClick={seedDefaultTopics} disabled={saving}
+                                className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Sparkles className="w-4 h-4 mr-1" />} Load Default 6 Topics to Edit
+                            </Button>
+                            <p className="text-[11px] text-gray-400 mt-3">Then click ✏️ on each topic to add recording links, study-note PDFs, and resources.</p>
                         </div>
                     ) : (
                         <div className="space-y-2">
@@ -646,6 +735,9 @@ export default function BibleStudyAdminPage() {
                                         <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                             <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style={{ backgroundColor: topic.color }}>{topic.category}</span>
                                             <span className="text-[10px] text-gray-400">{topic.week}</span>
+                                            {topic.video_url && <span className="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">🎬 Recording</span>}
+                                            {topic.notes_url && <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">📄 Notes</span>}
+                                            {(topic.resources?.length ?? 0) > 0 && <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">📚 {topic.resources!.length}</span>}
                                         </div>
                                         <p className="font-bold text-[#140152] truncate">{topic.title}</p>
                                         <p className="text-xs text-gray-500">{topic.verse}</p>
@@ -653,7 +745,7 @@ export default function BibleStudyAdminPage() {
                                     <div className="flex items-center gap-1 flex-shrink-0">
                                         <button onClick={() => moveTopic(topic.id, -1)} disabled={i === 0} className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5 text-gray-500" /></button>
                                         <button onClick={() => moveTopic(topic.id, 1)} disabled={i === topics.length - 1} className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5 text-gray-500" /></button>
-                                        <button onClick={() => { setEditingTopicId(topic.id); setShowAddTopic(false); setTopicForm({ week: topic.week, title: topic.title, verse: topic.verse, category: topic.category, color: topic.color, time: topic.time, discussion_questions: topic.discussion_questions }) }}
+                                        <button onClick={() => { setEditingTopicId(topic.id); setShowAddTopic(false); setTopicForm({ week: topic.week, title: topic.title, verse: topic.verse, category: topic.category, color: topic.color, time: topic.time, study_focus: topic.study_focus, video_url: topic.video_url, notes_url: topic.notes_url, discussion_questions: topic.discussion_questions, resources: topic.resources }) }}
                                             className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500"><Pencil className="w-3.5 h-3.5" /></button>
                                         <button onClick={() => deleteTopic(topic.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
                                     </div>

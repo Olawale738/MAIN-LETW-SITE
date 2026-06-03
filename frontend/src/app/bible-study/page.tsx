@@ -15,7 +15,7 @@ import {
     BarChart2, Bookmark, AlarmClock, Pen, CheckCheck, Save,
 } from 'lucide-react'
 import Link from 'next/link'
-import { bibleStudyApi, QuarterlyTheme, BibleStudyPageSettings } from '@/lib/api'
+import { bibleStudyApi, QuarterlyTheme, BibleStudyPageSettings, BibleStudyWeeklyTopic } from '@/lib/api'
 
 // ── Static data ────────────────────────────────────────────────────────────────
 
@@ -219,9 +219,9 @@ export default function BibleStudyPage() {
 
     // Admin-managed content (falls back to built-in when not configured)
     const adminTopics = settings?.weekly_topics ?? []
-    const activeTopics = adminTopics.length > 0
-        ? adminTopics.map((t, i) => ({ id: i, week: t.week, title: t.title, verse: t.verse, category: t.category, color: t.color }))
-        : WEEKLY_TOPICS
+    const activeTopics: BibleStudyWeeklyTopic[] = adminTopics.length > 0
+        ? adminTopics.map((t, i) => ({ ...t, id: i }))
+        : WEEKLY_TOPICS.map((t, i) => ({ ...t, id: i }))
     const adminGroups = settings?.study_groups ?? []
     const sessionNotes = settings?.session_notes ?? []
 
@@ -784,11 +784,23 @@ export default function BibleStudyPage() {
                                                                 <div className="md:col-span-2">
                                                                     <h4 className="font-bold text-[#140152] dark:text-white mb-3">Study Focus</h4>
                                                                     <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
-                                                                        This week we explore <strong>{topic.title}</strong> through <em>{topic.verse}</em>. Come prepared to engage the text, ask questions, and share how this truth applies to your daily walk.
+                                                                        {topic.study_focus
+                                                                            ? topic.study_focus
+                                                                            : <>This week we explore <strong>{topic.title}</strong> through <em>{topic.verse}</em>. Come prepared to engage the text, ask questions, and share how this truth applies to your daily walk.</>}
                                                                     </p>
                                                                     <div className="flex gap-2 flex-wrap">
-                                                                        <Button size="sm" className="bg-[#140152] text-white hover:bg-[#1a0270]"><Play className="w-4 h-4 mr-1" /> Watch Recording</Button>
-                                                                        <Button size="sm" variant="outline" className="border-[#140152] text-[#140152]"><Download className="w-4 h-4 mr-1" /> Study Notes</Button>
+                                                                        {topic.video_url && (
+                                                                            <a href={topic.video_url} target="_blank" rel="noopener noreferrer"
+                                                                                className="inline-flex items-center px-3 py-1.5 bg-[#140152] text-white rounded-lg text-xs font-bold hover:bg-[#1a0270] transition-all">
+                                                                                <Play className="w-4 h-4 mr-1" /> Watch Recording
+                                                                            </a>
+                                                                        )}
+                                                                        {topic.notes_url && (
+                                                                            <a href={topic.notes_url} target="_blank" rel="noopener noreferrer"
+                                                                                className="inline-flex items-center px-3 py-1.5 border border-[#140152] text-[#140152] rounded-lg text-xs font-bold hover:bg-[#140152]/5 transition-all">
+                                                                                <Download className="w-4 h-4 mr-1" /> Study Notes
+                                                                            </a>
+                                                                        )}
                                                                         {QUIZZES[i] && (
                                                                             <button onClick={() => startQuiz(i)}
                                                                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700 transition-all">
@@ -797,13 +809,37 @@ export default function BibleStudyPage() {
                                                                             </button>
                                                                         )}
                                                                     </div>
+
+                                                                    {/* Resources */}
+                                                                    {(topic.resources?.filter(r => r.url?.trim()).length ?? 0) > 0 && (
+                                                                        <div className="mt-4">
+                                                                            <h4 className="font-bold text-[#140152] dark:text-white mb-2 text-sm flex items-center gap-1.5"><BookMarked className="w-4 h-4 text-[#f5bb00]" /> Resources</h4>
+                                                                            <div className="space-y-1.5">
+                                                                                {topic.resources!.filter(r => r.url?.trim()).map((r, ri) => (
+                                                                                    <a key={ri} href={r.url} target="_blank" rel="noopener noreferrer"
+                                                                                        className="flex items-center gap-2 text-sm text-[#140152] dark:text-blue-300 hover:underline bg-white dark:bg-neutral-800 border border-gray-100 dark:border-neutral-600 rounded-lg px-3 py-2">
+                                                                                        {r.type === 'video' ? <Play className="w-3.5 h-3.5 text-red-500" />
+                                                                                            : r.type === 'audio' ? <Mic2 className="w-3.5 h-3.5 text-purple-500" />
+                                                                                            : r.type === 'link' ? <Globe className="w-3.5 h-3.5 text-blue-500" />
+                                                                                            : <Download className="w-3.5 h-3.5 text-green-600" />}
+                                                                                        <span className="flex-1">{r.title || r.url}</span>
+                                                                                        <span className="text-[9px] font-bold uppercase text-gray-400">{r.type}</span>
+                                                                                    </a>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                                 <div className="bg-white dark:bg-neutral-800 rounded-xl p-4 border border-gray-100 dark:border-neutral-600">
                                                                     <h4 className="font-bold text-[#140152] dark:text-white mb-3 text-sm">Discussion Questions</h4>
                                                                     <ol className="text-sm text-gray-600 dark:text-gray-300 space-y-2 list-decimal pl-4">
-                                                                        <li>What stands out most in this passage?</li>
-                                                                        <li>How does this change your view of God?</li>
-                                                                        <li>What one step will you take this week?</li>
+                                                                        {(topic.discussion_questions?.filter(q => q.trim()).length ?? 0) > 0
+                                                                            ? topic.discussion_questions!.filter(q => q.trim()).map((q, qi) => <li key={qi}>{q}</li>)
+                                                                            : <>
+                                                                                <li>What stands out most in this passage?</li>
+                                                                                <li>How does this change your view of God?</li>
+                                                                                <li>What one step will you take this week?</li>
+                                                                            </>}
                                                                     </ol>
                                                                 </div>
                                                             </div>
