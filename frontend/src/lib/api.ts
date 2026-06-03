@@ -2087,6 +2087,18 @@ export interface BibleStudyPodcast {
     url?: string;
 }
 
+export interface BibleStudyMentor {
+    id: string;
+    name: string;
+    title: string;          // e.g. "Pastor", "Bible Study Leader"
+    bio: string;
+    focus: string;          // areas they mentor in
+    availability: string;   // e.g. "Weekday evenings"
+    photo?: string;         // optional avatar URL
+    contact?: string;       // optional contact detail shown to coordinator
+    is_available: boolean;  // accepting new mentees
+}
+
 export interface BibleStudyPageSettings {
     id: string;
     hero_title: string;
@@ -2102,6 +2114,7 @@ export interface BibleStudyPageSettings {
     podcasts?: BibleStudyPodcast[];
     resources_heading?: string;
     resources_subtitle?: string;
+    mentors?: BibleStudyMentor[];
     created_at: string;
     updated_at: string;
 }
@@ -2167,6 +2180,7 @@ export interface BibleStudyPageSettingsUpdate {
     podcasts?: BibleStudyPodcast[];
     resources_heading?: string;
     resources_subtitle?: string;
+    mentors?: BibleStudyMentor[];
 }
 
 export interface WeekReflection {

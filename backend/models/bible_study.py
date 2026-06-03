@@ -169,6 +169,8 @@ class BibleStudyPageSettings(Base):
     # Editable write-up for the Resources section
     resources_heading: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     resources_subtitle: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # mentors: list of {id, name, title, bio, focus, availability, photo, contact, is_available}
+    mentors: Mapped[Optional[list]] = mapped_column(JSON, nullable=True, default=list)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

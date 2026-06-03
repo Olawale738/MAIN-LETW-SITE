@@ -7,7 +7,7 @@ import {
   Users, Video, Phone, BookOpen, HandHeart, MessageCircle, UserCheck,
   ArrowRight, Loader2, CheckCircle2, Bell,
 } from 'lucide-react'
-import { serviceRequestApi } from '@/lib/api'
+import { serviceRequestApi, bibleStudyApi, BibleStudyMentor } from '@/lib/api'
 
 const MENTORING_KEY = 'bibleMentoringRequest'
 const FOCUS_AREAS = [
@@ -37,11 +37,15 @@ export default function MentoringSection() {
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [loggedIn, setLoggedIn] = useState(false)
+  const [mentors, setMentors] = useState<BibleStudyMentor[]>([])
   const [form, setForm] = useState({ focus: FOCUS_AREAS[0], style: 'virtual', availability: '', message: '' })
 
   useEffect(() => {
     try { const r = localStorage.getItem(MENTORING_KEY); if (r) setRequest(JSON.parse(r)) } catch { /* ignore */ }
     setLoggedIn(!!localStorage.getItem('isLoggedIn'))
+    bibleStudyApi.getPublicSettings()
+      .then(s => { if (s?.mentors?.length) setMentors(s.mentors) })
+      .catch(() => { /* fall back to no mentor list */ })
   }, [])
 
   const submit = async () => {
@@ -110,6 +114,30 @@ export default function MentoringSection() {
                 </div>
               ))}
             </div>
+
+            {/* Meet our mentors (admin-managed) */}
+            {mentors.length > 0 && (
+              <div className="mb-6">
+                <p className="text-xs font-bold uppercase tracking-widest text-[#6d28d9] mb-3">Meet our mentors</p>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {mentors.map(m => (
+                    <div key={m.id} className="bg-white rounded-2xl p-4 border border-[#ddd6fe] flex items-start gap-3">
+                      <div className="w-11 h-11 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-black flex-shrink-0 overflow-hidden">
+                        {m.photo ? <img src={m.photo} alt={m.name} className="w-full h-full object-cover" /> : (m.name.charAt(0) || '?')}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-bold text-[#140152] text-sm truncate">{m.name}</p>
+                          {!m.is_available && <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">Full</span>}
+                        </div>
+                        <p className="text-[11px] text-[#7c3aed] font-semibold">{m.title}</p>
+                        {m.focus && <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-2">{m.focus}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {!showForm ? (
               <button onClick={() => setShowForm(true)}

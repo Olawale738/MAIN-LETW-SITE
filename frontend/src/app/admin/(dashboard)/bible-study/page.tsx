@@ -13,12 +13,13 @@ import {
     BarChart2, Users, Calendar, MessageSquare, Bell, BookOpen,
     FileText, Music2, ArrowRight, ExternalLink, AlertCircle,
     RefreshCw, Tag, Clock, ChevronRight, Eye, Star, Globe,
-    Palette, Hash, ToggleLeft, ToggleRight,
+    Palette, Hash, ToggleLeft, ToggleRight, UserCheck, Mail,
 } from 'lucide-react'
 import {
     bibleStudyApi, WeekReflection, QuarterlyTheme, BibleStudyPageSettings,
     BibleStudyWeeklyTopic, BibleStudyGroup, BibleStudySessionNote,
     BibleStudyTopicResource, BibleStudyLibraryResource, BibleStudyTool, BibleStudyPodcast,
+    BibleStudyMentor,
 } from '@/lib/api'
 import { useToast } from '@/components/ui/toast'
 
@@ -91,7 +92,11 @@ const CATEGORY_OPTIONS = ['Foundation', 'Christology', 'Pneumatology', 'Devotion
 
 const LEVEL_OPTIONS = ['Open to all', 'Beginners', 'Intermediate', 'Advanced', 'Men only', 'Women only', 'Youth only', 'Married couples']
 
-type Tab = 'overview' | 'topics' | 'groups' | 'notes' | 'library' | 'plan' | 'reflections' | 'settings'
+type Tab = 'overview' | 'topics' | 'groups' | 'notes' | 'mentors' | 'library' | 'plan' | 'reflections' | 'settings'
+
+const DEFAULT_MENTOR: Omit<BibleStudyMentor, 'id'> = {
+    name: '', title: 'Bible Study Leader', bio: '', focus: '', availability: '', photo: '', contact: '', is_available: true,
+}
 
 const DEFAULT_TOPIC: Omit<BibleStudyWeeklyTopic, 'id'> = {
     week: 'Week 1', title: '', verse: '', category: 'Foundation', color: '#7c3aed',
@@ -146,6 +151,10 @@ export default function BibleStudyAdminPage() {
     const [podcasts, setPodcasts]     = useState<BibleStudyPodcast[]>([])
     const [resHeading, setResHeading] = useState('')
     const [resSubtitle, setResSubtitle] = useState('')
+    const [mentors, setMentors]       = useState<BibleStudyMentor[]>([])
+    const [editingMentorId, setEditingMentorId] = useState<string | null>(null)
+    const [mentorForm, setMentorForm] = useState<Omit<BibleStudyMentor, 'id'>>(DEFAULT_MENTOR)
+    const [showAddMentor, setShowAddMentor] = useState(false)
 
     // ── Form state ──
     const [editingTheme, setEditingTheme]   = useState<number | null>(null)
@@ -206,6 +215,7 @@ export default function BibleStudyAdminPage() {
                 setPodcasts(settingsData.podcasts ?? [])
                 setResHeading(settingsData.resources_heading || '')
                 setResSubtitle(settingsData.resources_subtitle || '')
+                setMentors(settingsData.mentors ?? [])
             }
         } catch (err) { console.error(err) }
         finally { setLoading(false) }
@@ -224,6 +234,7 @@ export default function BibleStudyAdminPage() {
         podcasts?: BibleStudyPodcast[]
         resources_heading?: string
         resources_subtitle?: string
+        mentors?: BibleStudyMentor[]
     }) => {
         try {
             await bibleStudyApi.updateSettings(patch)
@@ -489,6 +500,49 @@ export default function BibleStudyAdminPage() {
         showToast('6 podcasts loaded!', 'success')
     }
 
+    // ── Bible Mentors CRUD ──────────────────────────────────────────────────────
+
+    const saveMentor = async () => {
+        if (!mentorForm.name.trim()) { showToast('Mentor name is required', 'error'); return }
+        setSaving(true)
+        try {
+            const updated = showAddMentor
+                ? [...mentors, { ...mentorForm, id: uid() }]
+                : mentors.map(m => m.id === editingMentorId ? { ...mentorForm, id: m.id } : m)
+            setMentors(updated)
+            await persistContent({ mentors: updated })
+            showToast(showAddMentor ? 'Mentor added!' : 'Mentor updated!', 'success')
+            setShowAddMentor(false); setEditingMentorId(null); setMentorForm(DEFAULT_MENTOR)
+        } catch { /* toasted */ }
+        finally { setSaving(false) }
+    }
+    const deleteMentor = async (id: string) => {
+        if (!confirm('Remove this mentor?')) return
+        const updated = mentors.filter(m => m.id !== id)
+        setMentors(updated)
+        await persistContent({ mentors: updated })
+        showToast('Mentor removed', 'success')
+    }
+    const toggleMentorAvailable = async (id: string) => {
+        const updated = mentors.map(m => m.id === id ? { ...m, is_available: !m.is_available } : m)
+        setMentors(updated)
+        await persistContent({ mentors: updated })
+    }
+    const seedDefaultMentors = async () => {
+        setSaving(true)
+        try {
+            const defaults: BibleStudyMentor[] = [
+                { id: uid(), name: 'Pastor Wale', title: 'Senior Pastor', bio: 'Passionate about discipleship and helping believers build a deep, lasting foundation in the Word.', focus: 'Spiritual maturity, leadership, doctrine', availability: 'Weekday evenings', photo: '', contact: '', is_available: true },
+                { id: uid(), name: 'Sis. Grace', title: 'Women\'s Bible Study Leader', bio: 'Loves walking with women through Scripture, prayer, and life\'s seasons.', focus: 'Prayer life, women\'s discipleship, new believers', availability: 'Saturday mornings', photo: '', contact: '', is_available: true },
+                { id: uid(), name: 'Bro. Emmanuel', title: 'Young Adults Mentor', bio: 'Helping young adults navigate faith, doubt, and purpose through honest Bible study.', focus: 'Apologetics, difficult Scriptures, purpose', availability: 'Flexible / virtual', photo: '', contact: '', is_available: true },
+            ]
+            setMentors(defaults)
+            await persistContent({ mentors: defaults })
+            showToast('3 sample mentors loaded! Edit each with real details.', 'success')
+        } catch { /* toasted */ }
+        finally { setSaving(false) }
+    }
+
     // ── Derived stats ──────────────────────────────────────────────────────────
 
     const quartersConfigured = themes.length
@@ -501,6 +555,7 @@ export default function BibleStudyAdminPage() {
         { id: 'topics',      label: 'Weekly Topics',   icon: <Hash className="w-4 h-4" />,     badge: topics.length },
         { id: 'groups',      label: 'Study Groups',    icon: <Users className="w-4 h-4" />,    badge: groups.length },
         { id: 'notes',       label: 'Session Notes',   icon: <Bell className="w-4 h-4" />,     badge: notes.length },
+        { id: 'mentors',     label: 'Bible Mentors',   icon: <UserCheck className="w-4 h-4" />, badge: mentors.length },
         { id: 'library',     label: 'Library',         icon: <FileText className="w-4 h-4" />, badge: library.length + tools.length + podcasts.length },
         { id: 'plan',        label: 'Quarterly Plan',  icon: <Layers className="w-4 h-4" />,   badge: quartersConfigured },
         { id: 'reflections', label: 'Reflections',     icon: <Quote className="w-4 h-4" />,    badge: reflectionsSet },
@@ -1033,6 +1088,125 @@ export default function BibleStudyAdminPage() {
                                                 className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500"><Pencil className="w-3.5 h-3.5" /></button>
                                             <button onClick={() => deleteNote(note.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
                                         </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </motion.div>
+            )}
+
+            {/* ═══════════ BIBLE MENTORS ═══════════ */}
+            {activeTab === 'mentors' && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-base font-black text-[#140152]">Bible Mentors</h2>
+                            <p className="text-xs text-gray-500 mt-0.5">Mentor profiles shown publicly when members request a mentor. Requests arrive in <Link href="/admin/service-requests" className="underline font-semibold">Service Requests</Link>.</p>
+                        </div>
+                        <div className="flex gap-2">
+                            {mentors.length === 0 && (
+                                <Button onClick={seedDefaultMentors} disabled={saving} variant="outline"
+                                    className="text-sm border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white">
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Sparkles className="w-4 h-4 mr-1" />} Load 3 Samples
+                                </Button>
+                            )}
+                            <Button onClick={() => { setShowAddMentor(true); setEditingMentorId(null); setMentorForm(DEFAULT_MENTOR) }}
+                                className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
+                                <Plus className="w-4 h-4 mr-1" /> Add Mentor
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Add/edit form */}
+                    <AnimatePresence>
+                        {(showAddMentor || editingMentorId !== null) && (
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                                className="bg-purple-50 border border-purple-200 rounded-2xl p-5 space-y-4">
+                                <h3 className="font-bold text-[#140152] text-sm">{showAddMentor ? 'New Mentor' : 'Edit Mentor'}</h3>
+                                <div className="grid md:grid-cols-2 gap-3">
+                                    <div>
+                                        <SectionLabel>Name *</SectionLabel>
+                                        <Input value={mentorForm.name} onChange={e => setMentorForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Pastor Wale" className="text-gray-900 text-sm" />
+                                    </div>
+                                    <div>
+                                        <SectionLabel>Title / Role</SectionLabel>
+                                        <Input value={mentorForm.title} onChange={e => setMentorForm(p => ({ ...p, title: e.target.value }))} placeholder="e.g. Senior Pastor" className="text-gray-900 text-sm" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <SectionLabel>Short Bio</SectionLabel>
+                                    <Textarea value={mentorForm.bio} onChange={e => setMentorForm(p => ({ ...p, bio: e.target.value }))} rows={2} placeholder="A sentence about this mentor's heart and experience…" className="text-gray-900 text-sm" />
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-3">
+                                    <div>
+                                        <SectionLabel>Mentoring Focus</SectionLabel>
+                                        <Input value={mentorForm.focus} onChange={e => setMentorForm(p => ({ ...p, focus: e.target.value }))} placeholder="e.g. Prayer life, new believers" className="text-gray-900 text-sm" />
+                                    </div>
+                                    <div>
+                                        <SectionLabel>Availability</SectionLabel>
+                                        <Input value={mentorForm.availability} onChange={e => setMentorForm(p => ({ ...p, availability: e.target.value }))} placeholder="e.g. Weekday evenings" className="text-gray-900 text-sm" />
+                                    </div>
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-3">
+                                    <div>
+                                        <SectionLabel>Photo URL (optional)</SectionLabel>
+                                        <Input value={mentorForm.photo ?? ''} onChange={e => setMentorForm(p => ({ ...p, photo: e.target.value }))} placeholder="https://…" className="text-gray-900 text-sm" />
+                                    </div>
+                                    <div>
+                                        <SectionLabel>Contact (admin only)</SectionLabel>
+                                        <Input value={mentorForm.contact ?? ''} onChange={e => setMentorForm(p => ({ ...p, contact: e.target.value }))} placeholder="email / phone" className="text-gray-900 text-sm" />
+                                    </div>
+                                </div>
+                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                    <input type="checkbox" checked={mentorForm.is_available} onChange={e => setMentorForm(p => ({ ...p, is_available: e.target.checked }))} className="rounded" />
+                                    Accepting new mentees (shown publicly)
+                                </label>
+                                <div className="flex gap-2">
+                                    <Button onClick={saveMentor} disabled={saving} className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
+                                        {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Check className="w-4 h-4 mr-1" />} Save Mentor
+                                    </Button>
+                                    <Button variant="outline" onClick={() => { setShowAddMentor(false); setEditingMentorId(null) }} className="text-sm"><X className="w-4 h-4 mr-1" /> Cancel</Button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {mentors.length === 0 ? (
+                        <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                            <UserCheck className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                            <p className="text-gray-500 font-semibold">No mentors yet</p>
+                            <p className="text-xs text-gray-400 mt-1">Add mentors so members can see who will guide them when they request mentoring.</p>
+                        </div>
+                    ) : (
+                        <div className="grid md:grid-cols-2 gap-4">
+                            {mentors.map(m => (
+                                <div key={m.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center text-purple-700 font-black text-lg flex-shrink-0 overflow-hidden">
+                                            {m.photo ? <img src={m.photo} alt={m.name} className="w-full h-full object-cover" /> : (m.name.charAt(0) || '?')}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <h3 className="font-black text-[#140152]">{m.name}</h3>
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${m.is_available ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                    {m.is_available ? 'Available' : 'Full'}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-[#7c3aed] font-semibold">{m.title}</p>
+                                            {m.bio && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{m.bio}</p>}
+                                            {m.focus && <p className="text-[11px] text-gray-400 mt-1"><span className="font-semibold">Focus:</span> {m.focus}</p>}
+                                            {m.availability && <p className="text-[11px] text-gray-400"><span className="font-semibold">Available:</span> {m.availability}</p>}
+                                            {m.contact && <p className="text-[11px] text-gray-400 flex items-center gap-1"><Mail className="w-3 h-3" /> {m.contact}</p>}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1 justify-end mt-3 pt-3 border-t border-gray-50">
+                                        <button onClick={() => toggleMentorAvailable(m.id)} className="text-xs font-semibold text-gray-500 hover:text-[#140152] px-2 py-1 rounded-lg hover:bg-gray-50">
+                                            {m.is_available ? 'Mark Full' : 'Mark Available'}
+                                        </button>
+                                        <button onClick={() => { setEditingMentorId(m.id); setShowAddMentor(false); setMentorForm({ name: m.name, title: m.title, bio: m.bio, focus: m.focus, availability: m.availability, photo: m.photo, contact: m.contact, is_available: m.is_available }) }}
+                                            className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500"><Pencil className="w-3.5 h-3.5" /></button>
+                                        <button onClick={() => deleteMentor(m.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
                                     </div>
                                 </div>
                             ))}

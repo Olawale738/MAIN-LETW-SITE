@@ -183,6 +183,7 @@ class BibleStudyPageSettingsUpdate(BaseModel):
     podcasts: Optional[list] = None
     resources_heading: Optional[str] = None
     resources_subtitle: Optional[str] = None
+    mentors: Optional[list] = None
 
 
 class BibleStudyPageSettingsResponse(BaseModel):
@@ -200,6 +201,7 @@ class BibleStudyPageSettingsResponse(BaseModel):
     podcasts: Optional[list] = None
     resources_heading: Optional[str] = None
     resources_subtitle: Optional[str] = None
+    mentors: Optional[list] = None
     created_at: datetime
     updated_at: datetime
 
