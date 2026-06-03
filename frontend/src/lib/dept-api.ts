@@ -252,8 +252,8 @@ export async function myMemberships(): Promise<{ department: string; role_label:
 
 // ─── Self-join ────────────────────────────────────────────────────────────────
 
-export async function joinDepartment(dept: Department): Promise<{ message: string; status: string }> {
-  return request(`/departments/${dept}/join`, { method: 'POST' })
+export async function joinDepartment(dept: Department, pending = false): Promise<{ message: string; status: string }> {
+  return request(`/departments/${dept}/join${pending ? '?pending=true' : ''}`, { method: 'POST' })
 }
 
 export async function checkMembership(dept: Department): Promise<MembershipStatus> {

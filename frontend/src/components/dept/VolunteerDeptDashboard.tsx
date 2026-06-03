@@ -23,7 +23,7 @@ import {
   getCurrentUser, checkMembership, joinDepartment,
   listAnnouncements, listActivities, myAttendance,
   getDeptMessages, sendDeptMessage,
-  listMembers, addMember, removeMember,
+  listMembers, addMember, removeMember, updateMember,
   createAnnouncement, deleteAnnouncement,
   createActivity, deleteActivity,
   recordSessionAttendance,
@@ -308,7 +308,9 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
   /* ─── Actions ─── */
   const handleJoin = async () => {
     setJoining(true)
-    try { await joinDepartment(dept); const mem = await checkMembership(dept); setMembership(mem) }
+    // Volunteer departments require admin/coordinator approval — request a
+    // PENDING membership; the member only gains access once approved.
+    try { await joinDepartment(dept, true); const mem = await checkMembership(dept); setMembership(mem) }
     catch (e: unknown) { alert((e as Error).message) }
     finally { setJoining(false) }
   }
@@ -382,9 +384,14 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
     finally { setAddingMember(false) }
   }
 
-  const doRemoveMember = async (memberId: string, memberName: string) => {
-    if (!confirm(`Remove ${memberName} from ${name}?`)) return
-    try { await removeMember(dept, memberId); setMembers(p => p.filter(m => m.id !== memberId)) }
+  const doRemoveMember = async (userId: string, memberName: string) => {
+    if (!confirm(`Revoke ${memberName}'s access to ${name}?`)) return
+    try { await removeMember(dept, userId); setMembers(await listMembers(dept)) }
+    catch (e: unknown) { alert((e as Error).message) }
+  }
+
+  const doApproveMember = async (userId: string) => {
+    try { await updateMember(dept, userId, { is_active: true }); setMembers(await listMembers(dept)) }
     catch (e: unknown) { alert((e as Error).message) }
   }
 
@@ -1214,10 +1221,19 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
                             </div>
                           </div>
                           {isCoordinator && (
-                            <button onClick={() => doRemoveMember(m.id, m.name)}
-                              className="w-8 h-8 bg-red-50 rounded-xl flex items-center justify-center hover:bg-red-100 transition-colors flex-shrink-0">
-                              <UserMinus className="w-3.5 h-3.5 text-red-500" />
-                            </button>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {!m.is_active && (
+                                <button onClick={() => doApproveMember(m.user_id)} title="Approve member"
+                                  className="h-8 px-2.5 bg-green-50 rounded-xl flex items-center gap-1 hover:bg-green-100 transition-colors">
+                                  <Check className="w-3.5 h-3.5 text-green-600" />
+                                  <span className="text-[11px] font-bold text-green-700">Approve</span>
+                                </button>
+                              )}
+                              <button onClick={() => doRemoveMember(m.user_id, m.name)} title={m.is_active ? 'Revoke access' : 'Remove request'}
+                                className="w-8 h-8 bg-red-50 rounded-xl flex items-center justify-center hover:bg-red-100 transition-colors">
+                                <UserMinus className="w-3.5 h-3.5 text-red-500" />
+                              </button>
+                            </div>
                           )}
                         </motion.div>
                       ))}

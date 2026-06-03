@@ -701,10 +701,19 @@ async def admin_list_leaders(
 @router.post("/{dept}/join")
 async def join_department(
     dept: str,
+    pending: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Any authenticated user can request to join a department."""
+    """
+    Join a department.
+
+    - pending=False (default): join immediately as an active member. Used for
+      open ministries (e.g. choir) where access is granted on request.
+    - pending=True: create an INACTIVE membership that an admin/coordinator must
+      approve before the member gains dashboard access. Used for the volunteer
+      departments (media, hospitality, ushering, security).
+    """
     d = _parse_dept(dept)
 
     existing = await db.execute(
@@ -717,13 +726,17 @@ async def join_department(
     if dm:
         if dm.is_active:
             return {"message": "You are already a member of this department.", "status": "already_member"}
-        # Re-activate
+        if pending:
+            # Leave as pending — still awaiting approval
+            return {"message": "Your request is awaiting admin approval.", "status": "pending"}
         dm.is_active = True
         await db.commit()
         return {"message": "Your membership has been reactivated!", "status": "reactivated"}
 
-    db.add(DepartmentMember(user_id=current_user.id, department=d))
+    db.add(DepartmentMember(user_id=current_user.id, department=d, is_active=not pending))
     await db.commit()
+    if pending:
+        return {"message": "Request submitted — awaiting admin approval.", "status": "pending"}
     return {"message": f"You have successfully joined the {dept} ministry!", "status": "joined"}
 
 
