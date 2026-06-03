@@ -372,6 +372,22 @@ export default function BibleStudyAdminPage() {
         showToast('Group removed', 'success')
     }
 
+    const seedDefaultGroups = async () => {
+        setSaving(true)
+        try {
+            const defaults: BibleStudyGroup[] = [
+                { id: uid(), name: 'Young Adults Group',     leader: 'Bro. Emmanuel', time: 'Tuesdays 6:00 PM',  size: 18, level: 'Open to all', is_open: true, contact: '', description: '' },
+                { id: uid(), name: "Women's Bible Circle",   leader: 'Sis. Grace',    time: 'Thursdays 5:00 PM', size: 22, level: 'Women only',  is_open: true, contact: '', description: '' },
+                { id: uid(), name: 'Men\'s Study Fellowship', leader: 'Bro. Daniel',   time: 'Saturdays 8:00 AM', size: 14, level: 'Men only',    is_open: true, contact: '', description: '' },
+                { id: uid(), name: 'Deeper Life Class',      leader: 'Pastor Wale',   time: 'Sundays 2:00 PM',   size: 30, level: 'Advanced',    is_open: true, contact: '', description: '' },
+            ]
+            setGroups(defaults)
+            await persistContent({ study_groups: defaults })
+            showToast('4 default groups loaded! Edit each to set leader, time & contact.', 'success')
+        } catch { /* already toasted */ }
+        finally { setSaving(false) }
+    }
+
     const toggleGroupOpen = async (id: string) => {
         const updated = groups.map(g => g.id === id ? { ...g, is_open: !g.is_open } : g)
         setGroups(updated)
@@ -764,10 +780,18 @@ export default function BibleStudyAdminPage() {
                             <h2 className="text-base font-black text-[#140152]">Study Groups</h2>
                             <p className="text-xs text-gray-500 mt-0.5">Groups shown on the public Bible Study page. Members can join via the "Join This Group" button.</p>
                         </div>
-                        <Button onClick={() => { setShowAddGroup(true); setEditingGroupId(null); setGroupForm(DEFAULT_GROUP) }}
-                            className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
-                            <Plus className="w-4 h-4 mr-1" /> New Group
-                        </Button>
+                        <div className="flex gap-2">
+                            {groups.length === 0 && (
+                                <Button onClick={seedDefaultGroups} disabled={saving} variant="outline"
+                                    className="text-sm border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white">
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Sparkles className="w-4 h-4 mr-1" />} Load Default 4 Groups
+                                </Button>
+                            )}
+                            <Button onClick={() => { setShowAddGroup(true); setEditingGroupId(null); setGroupForm(DEFAULT_GROUP) }}
+                                className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
+                                <Plus className="w-4 h-4 mr-1" /> New Group
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Add/edit form */}
@@ -830,7 +854,12 @@ export default function BibleStudyAdminPage() {
                     {groups.length === 0 ? (
                         <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
                             <Users className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-                            <p className="text-gray-400 font-semibold">No groups yet</p>
+                            <p className="text-gray-500 font-semibold">No groups yet</p>
+                            <p className="text-xs text-gray-400 mt-1 mb-4">The public page shows built-in placeholder groups until you add your own.</p>
+                            <Button onClick={seedDefaultGroups} disabled={saving}
+                                className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Sparkles className="w-4 h-4 mr-1" />} Load Default 4 Groups to Edit
+                            </Button>
                         </div>
                     ) : (
                         <div className="grid md:grid-cols-2 gap-4">
