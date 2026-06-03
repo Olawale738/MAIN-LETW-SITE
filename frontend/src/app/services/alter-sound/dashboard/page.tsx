@@ -216,13 +216,18 @@ export default function AlterSoundDashboard() {
   useEffect(() => {
     if (!session) return
     setDeptDataLoading(true)
-    import('@/lib/dept-api').then(({ listAnnouncements, listActivities, myAttendance }) =>
-      Promise.allSettled([
+    import('@/lib/dept-api').then(async ({ listAnnouncements, listActivities, myAttendance, joinDepartment }) => {
+      // Ensure this Alter Sound member is enrolled in the 'choir' department so
+      // they actually receive what the choirmaster posts (announcements, events,
+      // attendance). The join endpoint is idempotent — a no-op if already a member.
+      try { await joinDepartment('choir') } catch { /* already a member or non-fatal */ }
+      await Promise.allSettled([
         listAnnouncements('choir').then(setDeptAnnouncements),
         listActivities('choir').then(setDeptActivities),
         myAttendance('choir').then(setMyAttendanceRows),
-      ]).finally(() => setDeptDataLoading(false))
-    )
+      ])
+      setDeptDataLoading(false)
+    }).catch(() => setDeptDataLoading(false))
   }, [session?.initials]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ─── Load roster ─── */
