@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { bibleStudyApi, QuarterlyTheme, BibleStudyPageSettings, BibleStudyWeeklyTopic } from '@/lib/api'
+import MentoringSection from '@/components/bible/MentoringSection'
 
 // ── Static data ────────────────────────────────────────────────────────────────
 
@@ -670,6 +671,11 @@ export default function BibleStudyPage() {
                                     </div>
                                 ))}
                             </div>
+                        </div>
+
+                        {/* Personal Bible Mentoring — available to all Bible Study users */}
+                        <div className="mt-8">
+                            <MentoringSection />
                         </div>
                     </div>
                 )}
