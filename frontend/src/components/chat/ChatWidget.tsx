@@ -21,6 +21,7 @@ export default function ChatWidget() {
     const [sendState,     setSendState]     = useState<SendState>('idle')
     const [errorMsg,      setErrorMsg]      = useState('')
     const [loadError,     setLoadError]     = useState('')
+    const [myId,          setMyId]          = useState<string | null>(null)
 
     const activeIdRef    = useRef<string | null>(null)
     const myIdRef        = useRef<string | null>(null)
@@ -35,8 +36,12 @@ export default function ChatWidget() {
         mountedRef.current = true
         setMounted(true)
         setIsLoggedIn(!!localStorage.getItem('isLoggedIn') || !!localStorage.getItem('access_token'))
-        // Resolve the real logged-in user id so we can align messages correctly
-        getCurrentUser().then(u => { myIdRef.current = (u as { id?: string })?.id ?? null }).catch(() => {})
+        // Resolve the real logged-in user id so we can align messages correctly.
+        // Store in BOTH a ref (for WS callbacks) and state (so the UI re-renders
+        // with the correct counterpart/alignment once it resolves).
+        getCurrentUser()
+            .then(u => { const id = (u as { id?: string })?.id ?? null; myIdRef.current = id; if (mountedRef.current) setMyId(id) })
+            .catch(() => {})
         return () => { mountedRef.current = false }
     }, [])
 
@@ -46,12 +51,13 @@ export default function ChatWidget() {
     const addMsg = (msg: ChatMessage) =>
         setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg])
 
+    // Render-time alignment uses the myId STATE (re-renders when it resolves).
     const isMine = (msg: ChatMessage) =>
-        myIdRef.current ? msg.sender_id === myIdRef.current : msg.sender?.role !== 'admin'
+        myId ? msg.sender_id === myId : msg.sender?.role !== 'admin'
 
     /** The other party in a conversation relative to the logged-in user. */
     const counterpart = (c: ChatConversation) => {
-        const me = myIdRef.current
+        const me = myId
         if (me && c.user?.id === me) return c.admin
         if (me && c.admin?.id === me) return c.user
         // Fallback: assume I'm the user, counterpart is admin
@@ -126,9 +132,10 @@ export default function ChatWidget() {
                 const frame = JSON.parse(evt.data)
                 if (frame?.type === 'message.new' && frame.message) {
                     const m = frame.message as ChatMessage
+                    const mineByRef = myIdRef.current ? m.sender_id === myIdRef.current : m.sender?.role !== 'admin'
                     if (frame.conversation_id === activeIdRef.current) {
                         addMsg(m)
-                        if (!isMine(m) && activeIdRef.current) messageApi.markRead(activeIdRef.current).catch(() => {})
+                        if (!mineByRef && activeIdRef.current) messageApi.markRead(activeIdRef.current).catch(() => {})
                     } else {
                         setUnread(u => u + 1)
                         loadList()
