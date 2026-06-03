@@ -2008,6 +2008,26 @@ export interface BibleStudyResource {
     updated_at: string;
 }
 
+export interface BibleStudyTopicResource {
+    title: string;
+    url: string;
+    type: 'pdf' | 'video' | 'audio' | 'link' | 'doc';
+}
+
+export interface BibleStudyDownloadableResource {
+    id: string;
+    title: string;
+    description?: string;
+    type: 'pdf' | 'video' | 'audio' | 'doc';
+    download_url: string;
+    cover_image?: string;
+    duration?: string;        // "24 pages" or "38 min"
+    category?: string;        // "Study Guide", "Teaching", "Tools", etc.
+    is_featured?: boolean;
+    order_index?: number;
+    created_at?: string;
+}
+
 export interface BibleStudyWeeklyTopic {
     id: number;
     week: string;
@@ -2016,7 +2036,11 @@ export interface BibleStudyWeeklyTopic {
     category: string;
     color: string;
     time?: string;
+    study_focus?: string;          // admin-written focus paragraph
+    video_url?: string;            // "Watch Recording" link
+    notes_url?: string;            // "Study Notes" PDF/doc link
     discussion_questions?: string[];
+    resources?: BibleStudyTopicResource[]; // extra downloads/links per week
 }
 
 export interface BibleStudyGroup {
