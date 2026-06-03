@@ -183,9 +183,19 @@ export default function BibleStudyPage() {
     const [discText, setDiscText] = useState<Record<number, string>>({})
     const [expandedDisc, setExpandedDisc] = useState<number | null>(null)
     const [attendanceDate, setAttendanceDate] = useState('')
+    const [joinedGroups, setJoinedGroups] = useState<string[]>([])
+    const [isLoggedIn, setIsLoggedIn] = useState(false)
 
     const updateState = useCallback((patch: Partial<StudyState>) => {
         setStudyState(prev => { const next = { ...prev, ...patch }; saveState(next); return next })
+    }, [])
+
+    const toggleGroupJoin = useCallback((groupId: string) => {
+        setJoinedGroups(prev => {
+            const next = prev.includes(groupId) ? prev.filter(g => g !== groupId) : [...prev, groupId]
+            try { localStorage.setItem('letw_bs_joined_groups', JSON.stringify(next)) } catch { /* ignore */ }
+            return next
+        })
     }, [])
 
     // Load on mount + update streak
@@ -197,6 +207,9 @@ export default function BibleStudyPage() {
             if (themes.length > 0) setAdminThemes(themes)
             if (settingsData) setSettings(settingsData)
         }).finally(() => setLoading(false))
+
+        try { setJoinedGroups(JSON.parse(localStorage.getItem('letw_bs_joined_groups') || '[]')) } catch { /* ignore */ }
+        setIsLoggedIn(!!localStorage.getItem('isLoggedIn') || !!localStorage.getItem('access_token'))
 
         const s = loadState()
         // Update streak
@@ -236,10 +249,10 @@ export default function BibleStudyPage() {
     const sessionNotes = settings?.session_notes ?? []
 
     // Normalize groups to a single display shape (admin overrides built-in)
-    const displayGroups: { name: string; leader: string; time: string; size: number; level: string; is_open: boolean; description?: string }[] =
+    const displayGroups: { id: string; name: string; leader: string; time: string; size: number; level: string; is_open: boolean; description?: string; resources?: { title: string; url: string; type: string; meta?: string }[] }[] =
         adminGroups.length > 0
-            ? adminGroups.map(g => ({ name: g.name, leader: g.leader, time: g.time, size: g.size, level: g.level, is_open: g.is_open, description: g.description }))
-            : GROUPS.map(g => ({ name: g.name, leader: g.leader, time: g.time, size: g.size, level: g.level, is_open: true }))
+            ? adminGroups.map(g => ({ id: g.id, name: g.name, leader: g.leader, time: g.time, size: g.size, level: g.level, is_open: g.is_open, description: g.description, resources: g.resources }))
+            : GROUPS.map((g, i) => ({ id: `builtin-${i}`, name: g.name, leader: g.leader, time: g.time, size: g.size, level: g.level, is_open: true }))
 
     // ── Library / Resources section (admin-managed, falls back to built-in) ──
     const adminLibrary = settings?.library_resources ?? []
@@ -988,9 +1001,11 @@ export default function BibleStudyPage() {
                         <div className="grid md:grid-cols-2 gap-8 mb-16">
                             {displayGroups.map((g, i) => {
                                 const isOpen = g.is_open
+                                const joined = joinedGroups.includes(g.id)
+                                const groupResources = (g.resources ?? []).filter(r => r.url?.trim())
                                 return (
-                                <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                                    className="bg-white dark:bg-neutral-800 rounded-2xl p-8 border border-gray-100 hover:shadow-xl hover:border-[#f5bb00] transition-all group">
+                                <motion.div key={g.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                                    className={`bg-white dark:bg-neutral-800 rounded-2xl p-8 border transition-all group ${joined ? 'border-[#f5bb00] shadow-lg' : 'border-gray-100 hover:shadow-xl hover:border-[#f5bb00]'}`}>
                                     <div className="flex items-start justify-between gap-5 mb-6">
                                         <div className="flex items-start gap-5">
                                             <div className="w-14 h-14 bg-[#140152]/5 group-hover:bg-[#f5bb00]/10 rounded-2xl flex items-center justify-center transition-colors shrink-0">
@@ -1001,10 +1016,12 @@ export default function BibleStudyPage() {
                                                 <p className="text-[#f5bb00] font-semibold text-sm">Led by {g.leader}</p>
                                             </div>
                                         </div>
-                                        {!isOpen && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-full shrink-0">Full</span>}
+                                        {joined
+                                            ? <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full shrink-0 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Joined</span>
+                                            : !isOpen && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-full shrink-0">Full</span>}
                                     </div>
                                     <div className="space-y-2 mb-6">
-                                        {[{ icon: Clock, text: g.time }, { icon: Users, text: `${g.size} members` }, { icon: Shield, text: g.level }].map((r, j) => (
+                                        {[{ icon: Clock, text: g.time }, { icon: Users, text: `${g.size + (joined ? 1 : 0)} members` }, { icon: Shield, text: g.level }].map((r, j) => (
                                             <div key={j} className="flex items-center gap-3 text-gray-600 dark:text-gray-300 text-sm">
                                                 <r.icon className="w-4 h-4 text-[#f5bb00]" /> {r.text}
                                             </div>
@@ -1013,11 +1030,40 @@ export default function BibleStudyPage() {
                                             <p className="text-sm text-gray-500 dark:text-gray-400 pt-1">{g.description}</p>
                                         )}
                                     </div>
-                                    <Link href="/auth/register">
-                                        <Button disabled={!isOpen} className="w-full bg-[#140152] text-white hover:bg-[#1a0270] rounded-xl disabled:opacity-50">
-                                            {isOpen ? 'Join This Group' : 'Group Full'}
+
+                                    {/* Group resources — revealed to members */}
+                                    {joined && groupResources.length > 0 && (
+                                        <div className="mb-5 bg-[#f5bb00]/5 border border-[#f5bb00]/20 rounded-xl p-3">
+                                            <p className="text-[11px] font-bold uppercase tracking-wider text-[#b45309] mb-2 flex items-center gap-1.5"><BookMarked className="w-3.5 h-3.5" /> Group Resources</p>
+                                            <div className="space-y-1.5">
+                                                {groupResources.map((r, ri) => (
+                                                    <a key={ri} href={r.url} target="_blank" rel="noopener noreferrer"
+                                                        download={r.type === 'pdf' || r.type === 'doc' ? true : undefined}
+                                                        className="flex items-center gap-2 text-sm text-[#140152] dark:text-blue-300 hover:underline bg-white dark:bg-neutral-800 border border-gray-100 dark:border-neutral-600 rounded-lg px-3 py-2">
+                                                        {r.type === 'video' ? <Play className="w-3.5 h-3.5 text-red-500" />
+                                                            : r.type === 'audio' ? <Mic2 className="w-3.5 h-3.5 text-purple-500" />
+                                                            : r.type === 'link' ? <Globe className="w-3.5 h-3.5 text-blue-500" />
+                                                            : <Download className="w-3.5 h-3.5 text-green-600" />}
+                                                        <span className="flex-1 truncate">{r.title || r.url}</span>
+                                                        {r.meta && <span className="text-[10px] text-gray-400">{r.meta}</span>}
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {isLoggedIn ? (
+                                        <Button onClick={() => toggleGroupJoin(g.id)} disabled={!isOpen && !joined}
+                                            className={`w-full rounded-xl disabled:opacity-50 ${joined ? 'bg-white border-2 border-[#140152] text-[#140152] hover:bg-gray-50' : 'bg-[#140152] text-white hover:bg-[#1a0270]'}`}>
+                                            {joined ? 'Leave Group' : isOpen ? 'Join This Group' : 'Group Full'}
                                         </Button>
-                                    </Link>
+                                    ) : (
+                                        <Link href="/auth/login?next=/bible-study">
+                                            <Button disabled={!isOpen} className="w-full bg-[#140152] text-white hover:bg-[#1a0270] rounded-xl disabled:opacity-50">
+                                                {isOpen ? 'Sign in to Join' : 'Group Full'}
+                                            </Button>
+                                        </Link>
+                                    )}
                                 </motion.div>
                                 )
                             })}

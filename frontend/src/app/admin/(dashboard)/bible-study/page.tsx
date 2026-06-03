@@ -19,7 +19,7 @@ import {
     bibleStudyApi, dashboardApi, messageApi, WeekReflection, QuarterlyTheme, BibleStudyPageSettings,
     BibleStudyWeeklyTopic, BibleStudyGroup, BibleStudySessionNote,
     BibleStudyTopicResource, BibleStudyLibraryResource, BibleStudyTool, BibleStudyPodcast,
-    BibleStudyMentor, AdminUser,
+    BibleStudyMentor, AdminUser, BibleStudyGroupResource,
 } from '@/lib/api'
 import { useToast } from '@/components/ui/toast'
 
@@ -114,7 +114,7 @@ const RESOURCE_TYPES: { value: BibleStudyTopicResource['type']; label: string }[
 
 const DEFAULT_GROUP: Omit<BibleStudyGroup, 'id'> = {
     name: '', leader: '', time: 'Tuesdays 6:00 PM', size: 15, level: 'Open to all',
-    is_open: true, contact: '', description: '',
+    is_open: true, contact: '', description: '', resources: [],
 }
 
 const DEFAULT_NOTE: Omit<BibleStudySessionNote, 'id'> = {
@@ -986,6 +986,36 @@ export default function BibleStudyAdminPage() {
                                     <input type="checkbox" checked={groupForm.is_open} onChange={e => setGroupForm(p => ({ ...p, is_open: e.target.checked }))} className="w-4 h-4 rounded" />
                                     <span className="text-sm font-semibold text-gray-700">Open for new members</span>
                                 </label>
+
+                                {/* Group resources */}
+                                <div className="bg-white rounded-xl border border-green-100 p-4">
+                                    <SectionLabel>📚 Group Resources (PDFs, audio, video, links for members)</SectionLabel>
+                                    <div className="space-y-2 mt-2">
+                                        {(groupForm.resources ?? []).map((r, ri) => (
+                                            <div key={ri} className="grid grid-cols-12 gap-2 items-center">
+                                                <Input value={r.title} onChange={e => setGroupForm(p => {
+                                                    const rs = [...(p.resources ?? [])]; rs[ri] = { ...rs[ri], title: e.target.value }; return { ...p, resources: rs }
+                                                })} placeholder="Title" className="col-span-3 text-gray-900 text-xs" />
+                                                <Input value={r.url} onChange={e => setGroupForm(p => {
+                                                    const rs = [...(p.resources ?? [])]; rs[ri] = { ...rs[ri], url: e.target.value }; return { ...p, resources: rs }
+                                                })} placeholder="https://…" className="col-span-4 text-gray-900 text-xs" />
+                                                <select value={r.type} onChange={e => setGroupForm(p => {
+                                                    const rs = [...(p.resources ?? [])]; rs[ri] = { ...rs[ri], type: e.target.value as BibleStudyGroupResource['type'] }; return { ...p, resources: rs }
+                                                })} className="col-span-2 px-2 py-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-900">
+                                                    {RESOURCE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                                </select>
+                                                <Input value={r.meta ?? ''} onChange={e => setGroupForm(p => {
+                                                    const rs = [...(p.resources ?? [])]; rs[ri] = { ...rs[ri], meta: e.target.value }; return { ...p, resources: rs }
+                                                })} placeholder="24 pages" className="col-span-2 text-gray-900 text-xs" />
+                                                <button onClick={() => setGroupForm(p => ({ ...p, resources: (p.resources ?? []).filter((_, idx) => idx !== ri) }))}
+                                                    className="col-span-1 p-1.5 rounded-lg hover:bg-red-50 text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button onClick={() => setGroupForm(p => ({ ...p, resources: [...(p.resources ?? []), { title: '', url: '', type: 'pdf', meta: '' }] }))}
+                                        className="text-xs text-[#140152] hover:underline font-semibold mt-2">+ Add resource</button>
+                                </div>
+
                                 <div className="flex gap-2">
                                     <Button onClick={saveGroup} disabled={saving} className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
                                         {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Check className="w-4 h-4 mr-1" />} Save Group
@@ -1020,7 +1050,7 @@ export default function BibleStudyAdminPage() {
                                                 className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${group.is_open ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                                                 {group.is_open ? 'Open' : 'Closed'}
                                             </button>
-                                            <button onClick={() => { setEditingGroupId(group.id); setShowAddGroup(false); setGroupForm({ name: group.name, leader: group.leader, time: group.time, size: group.size, level: group.level, is_open: group.is_open, contact: group.contact, description: group.description }) }}
+                                            <button onClick={() => { setEditingGroupId(group.id); setShowAddGroup(false); setGroupForm({ name: group.name, leader: group.leader, time: group.time, size: group.size, level: group.level, is_open: group.is_open, contact: group.contact, description: group.description, resources: group.resources }) }}
                                                 className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500"><Pencil className="w-3.5 h-3.5" /></button>
                                             <button onClick={() => deleteGroup(group.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
                                         </div>

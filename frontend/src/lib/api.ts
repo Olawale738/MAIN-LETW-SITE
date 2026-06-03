@@ -2058,6 +2058,13 @@ export interface BibleStudyWeeklyTopic {
     resources?: BibleStudyTopicResource[]; // extra downloads/links per week
 }
 
+export interface BibleStudyGroupResource {
+    title: string;
+    url: string;
+    type: 'pdf' | 'audio' | 'video' | 'link' | 'doc';
+    meta?: string;
+}
+
 export interface BibleStudyGroup {
     id: string;
     name: string;
@@ -2068,6 +2075,7 @@ export interface BibleStudyGroup {
     is_open: boolean;
     contact?: string;
     description?: string;
+    resources?: BibleStudyGroupResource[];
 }
 
 export interface BibleStudySessionNote {
