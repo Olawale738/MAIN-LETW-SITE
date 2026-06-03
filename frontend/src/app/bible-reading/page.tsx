@@ -6,7 +6,8 @@ import ServicePageLayout from '@/components/shared/ServicePageLayout'
 import {
   Check, Flame, BookOpen, ChevronDown, ChevronUp, Star, Trophy, Quote,
   Search, X, Share2, CheckCheck, PenLine, Award, Target, Zap,
-  Calendar, Clock
+  Calendar, Clock, Bookmark, BookmarkCheck, Heart, TrendingUp, TrendingDown,
+  Bell, BellRing, Sun, Sparkles
 } from 'lucide-react'
 import { bibleReadingApi, bibleStudyApi, QuarterlyTheme, WeekReflection } from '@/lib/api'
 
@@ -212,6 +213,58 @@ const MILESTONES = [
   { weeks: 54, label: 'Bible Finisher', emoji: '🏆', color: '#f5bb00', bg: '#fefce8', border: '#fde68a' },
 ]
 
+// ─── Verse of the Day pool ───────────────────────────────────────────────────────
+const DAILY_VERSES = [
+  { verse: 'Your word is a lamp for my feet, a light on my path.', ref: 'Psalm 119:105' },
+  { verse: 'Trust in the LORD with all your heart and lean not on your own understanding.', ref: 'Proverbs 3:5' },
+  { verse: 'I can do all this through him who gives me strength.', ref: 'Philippians 4:13' },
+  { verse: 'Be strong and courageous. Do not be afraid; the LORD your God will be with you.', ref: 'Joshua 1:9' },
+  { verse: 'The LORD is my shepherd, I lack nothing.', ref: 'Psalm 23:1' },
+  { verse: 'And we know that in all things God works for the good of those who love him.', ref: 'Romans 8:28' },
+  { verse: 'Come to me, all you who are weary and burdened, and I will give you rest.', ref: 'Matthew 11:28' },
+  { verse: 'For I know the plans I have for you, declares the LORD, plans to prosper you.', ref: 'Jeremiah 29:11' },
+  { verse: 'But those who hope in the LORD will renew their strength.', ref: 'Isaiah 40:31' },
+  { verse: 'This is the day the LORD has made; let us rejoice and be glad in it.', ref: 'Psalm 118:24' },
+  { verse: 'Cast all your anxiety on him because he cares for you.', ref: '1 Peter 5:7' },
+  { verse: 'The name of the LORD is a fortified tower; the righteous run to it and are safe.', ref: 'Proverbs 18:10' },
+  { verse: 'Delight yourself in the LORD, and he will give you the desires of your heart.', ref: 'Psalm 37:4' },
+  { verse: 'Let everything that has breath praise the LORD.', ref: 'Psalm 150:6' },
+]
+
+interface SavedVerse { verse: string; ref: string; week?: number; savedAt: string }
+const SAVED_VERSES_KEY = 'bibleReadingSavedVerses'
+const START_DATE_KEY = 'bibleReadingStartDate'
+const REMINDER_KEY = 'bibleReadingReminderDay'
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+// ─── Verse of the Day Card ───────────────────────────────────────────────────────
+function VerseOfTheDay() {
+  const todayVerse = useMemo(() => {
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
+    return DAILY_VERSES[dayOfYear % DAILY_VERSES.length]
+  }, [])
+
+  return (
+    <motion.div
+      className="relative rounded-3xl overflow-hidden p-6 md:p-8 border"
+      style={{ background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)', borderColor: '#fde68a' }}
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+    >
+      <div className="absolute top-0 right-0 w-40 h-40 bg-[#f5bb00] rounded-full blur-3xl opacity-20 pointer-events-none" />
+      <div className="relative z-10">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 rounded-xl bg-[#f5bb00] flex items-center justify-center">
+            <Sun className="w-4 h-4 text-[#140152]" />
+          </div>
+          <span className="text-xs font-bold uppercase tracking-widest text-[#b45309]">Verse of the Day</span>
+        </div>
+        <p className="text-[#140152] text-xl md:text-2xl font-bold leading-relaxed mb-2">&ldquo;{todayVerse.verse}&rdquo;</p>
+        <p className="text-[#b45309] font-bold text-sm">— {todayVerse.ref}</p>
+      </div>
+    </motion.div>
+  )
+}
+
 // ─── Circular SVG Progress Ring ─────────────────────────────────────────────────
 function CircularProgress({ pct }: { pct: number }) {
   const r = 52
@@ -366,6 +419,7 @@ function StatPill({ icon, label, value, color }: { icon: React.ReactNode; label:
 // ─── This Week Hero ─────────────────────────────────────────────────────────────
 function ThisWeekHero({
   weekData, content, quarter, isCompleted, onToggle, registered, onRegister,
+  isBookmarked, onBookmark, progressPct,
 }: {
   weekData: typeof READING_PLAN[0]
   content: WeekContent
@@ -374,6 +428,9 @@ function ThisWeekHero({
   onToggle: () => void
   registered: boolean
   onRegister: () => void
+  isBookmarked: boolean
+  onBookmark: () => void
+  progressPct: number
 }) {
   return (
     <motion.div
@@ -421,7 +478,19 @@ function ThisWeekHero({
         {/* Key verse */}
         <div className="bg-white/8 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/10 relative">
           <Quote className="absolute top-4 left-4 w-6 h-6 text-[#f5bb00]/30" />
-          <p className="text-white/90 text-lg leading-relaxed font-light italic pl-6 mb-3">
+          {registered && (
+            <button
+              onClick={onBookmark}
+              aria-label={isBookmarked ? 'Remove bookmark' : 'Save this verse'}
+              className="absolute top-4 right-4 w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:scale-110"
+              style={{ background: isBookmarked ? '#f5bb00' : 'rgba(255,255,255,0.12)' }}
+            >
+              {isBookmarked
+                ? <BookmarkCheck className="w-4.5 h-4.5 text-[#140152]" />
+                : <Bookmark className="w-4.5 h-4.5 text-white/70" />}
+            </button>
+          )}
+          <p className="text-white/90 text-lg leading-relaxed font-light italic pl-6 mb-3 pr-10">
             &ldquo;{content.verse}&rdquo;
           </p>
           <p className="text-[#f5bb00] text-sm font-bold pl-6">— {content.ref}</p>
@@ -456,7 +525,7 @@ function ThisWeekHero({
             </button>
           )}
           {registered && (
-            <ShareProgress week={weekData.week} pct={Math.round((Object.values({}).filter(Boolean).length / TOTAL_WEEKS) * 100)} />
+            <ShareProgress week={weekData.week} pct={progressPct} />
           )}
         </div>
 
@@ -695,12 +764,121 @@ function SearchResults({
   )
 }
 
+// ─── Reading Pace Card ───────────────────────────────────────────────────────────
+function PaceCard({ completedCount, startDate }: { completedCount: number; startDate: string | null }) {
+  if (!startDate) return null
+  const weeksSinceStart = Math.max(1, Math.floor((Date.now() - new Date(startDate).getTime()) / (7 * 86400000)) + 1)
+  const expected = Math.min(weeksSinceStart, TOTAL_WEEKS)
+  const diff = completedCount - expected
+  const onTrack = diff >= 0
+  const finished = completedCount >= TOTAL_WEEKS
+
+  return (
+    <motion.div
+      className="bg-white rounded-2xl p-5 shadow-sm border flex items-center gap-4"
+      style={{ borderColor: finished ? '#a7f3d0' : onTrack ? '#bae6fd' : '#fde68a' }}
+      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+    >
+      <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+        style={{ background: finished ? '#ecfdf5' : onTrack ? '#e0f2fe' : '#fffbeb' }}>
+        {finished ? <Trophy className="w-6 h-6 text-emerald-600" />
+          : onTrack ? <TrendingUp className="w-6 h-6 text-sky-600" />
+          : <TrendingDown className="w-6 h-6 text-amber-600" />}
+      </div>
+      <div className="flex-1">
+        <div className="font-black text-[#140152]">
+          {finished ? 'Plan Complete! 🎉'
+            : onTrack
+              ? (diff === 0 ? 'Right on schedule!' : `${diff} week${diff !== 1 ? 's' : ''} ahead 🔥`)
+              : `${Math.abs(diff)} week${Math.abs(diff) !== 1 ? 's' : ''} behind`}
+        </div>
+        <div className="text-xs text-gray-500 mt-0.5">
+          {finished ? 'You read through the entire plan. Well done!'
+            : `Week ${expected} of your schedule · ${completedCount} completed`}
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Reading Reminder ────────────────────────────────────────────────────────────
+function ReminderCard({ day, onSet }: { day: number | null; onSet: (d: number | null) => void }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-3 text-left">
+        <div className="w-10 h-10 rounded-xl bg-[#140152]/5 flex items-center justify-center flex-shrink-0">
+          {day !== null ? <BellRing className="w-5 h-5 text-[#f5bb00]" /> : <Bell className="w-5 h-5 text-gray-400" />}
+        </div>
+        <div className="flex-1">
+          <div className="font-bold text-[#140152] text-sm">Weekly Reading Reminder</div>
+          <div className="text-xs text-gray-500 mt-0.5">
+            {day !== null ? `Set for every ${DAYS[day]}` : 'Pick a day to be reminded each week'}
+          </div>
+        </div>
+        {day !== null && (
+          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">ON</span>
+        )}
+        {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="flex flex-wrap gap-2 mt-4">
+              {DAYS.map((d, i) => (
+                <button key={d} onClick={() => onSet(day === i ? null : i)}
+                  className={`text-xs font-bold px-3 py-2 rounded-xl transition-all ${day === i ? 'bg-[#140152] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  {d.slice(0, 3)}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-gray-400 mt-3">Your reminder day is saved on this device. We'll highlight it when you visit.</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ─── Saved Verses Section ────────────────────────────────────────────────────────
+function SavedVersesSection({ verses, onRemove }: { verses: SavedVerse[]; onRemove: (ref: string) => void }) {
+  if (verses.length === 0) return null
+  return (
+    <div>
+      <h2 className="text-base font-black text-[#140152] mb-4 flex items-center gap-2">
+        <Heart className="w-4 h-4 text-[#f5bb00]" /> My Saved Verses
+        <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{verses.length}</span>
+      </h2>
+      <div className="grid sm:grid-cols-2 gap-3">
+        {verses.map((v) => (
+          <motion.div key={v.ref + v.savedAt} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative group">
+            <button onClick={() => onRemove(v.ref)}
+              className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-gray-50 hover:bg-red-50 text-gray-300 hover:text-red-400 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100">
+              <X className="w-3.5 h-3.5" />
+            </button>
+            <Quote className="w-5 h-5 text-[#f5bb00]/40 mb-2" />
+            <p className="text-[#140152] text-sm leading-relaxed font-medium italic mb-2 pr-6">&ldquo;{v.verse}&rdquo;</p>
+            <div className="flex items-center justify-between">
+              <p className="text-[#f5bb00] text-xs font-bold">— {v.ref}</p>
+              {v.week && <span className="text-[10px] text-gray-400">Week {v.week}</span>}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ──────────────────────────────────────────────────────────────────
 export default function BibleReadingPage() {
   const [completed, setCompleted] = useState<Record<number, boolean>>({})
   const [registered, setRegistered] = useState(false)
   const [saving, setSaving] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [savedVerses, setSavedVerses] = useState<SavedVerse[]>([])
+  const [startDate, setStartDate] = useState<string | null>(null)
+  const [reminderDay, setReminderDay] = useState<number | null>(null)
 
   // Admin dynamic content
   const [adminThemes, setAdminThemes] = useState<QuarterlyTheme[]>([])
@@ -731,6 +909,12 @@ export default function BibleReadingPage() {
     const cachedRegistered = localStorage.getItem('bibleReadingRegistered')
     if (cachedCompleted) setCompleted(JSON.parse(cachedCompleted))
     if (cachedRegistered) setRegistered(true)
+
+    // Saved verses, start date, reminder
+    try { setSavedVerses(JSON.parse(localStorage.getItem(SAVED_VERSES_KEY) || '[]')) } catch { /* ignore */ }
+    setStartDate(localStorage.getItem(START_DATE_KEY))
+    const rd = localStorage.getItem(REMINDER_KEY)
+    if (rd !== null) setReminderDay(Number(rd))
 
     Promise.all([
       bibleStudyApi.getQuarterlyThemes().catch(() => []),
@@ -777,7 +961,38 @@ export default function BibleReadingPage() {
   const handleRegister = async () => {
     setRegistered(true)
     localStorage.setItem('bibleReadingRegistered', 'true')
+    if (!localStorage.getItem(START_DATE_KEY)) {
+      const now = new Date().toISOString()
+      localStorage.setItem(START_DATE_KEY, now)
+      setStartDate(now)
+    }
     try { await bibleReadingApi.register() } catch { /* no-op */ }
+  }
+
+  // Bookmark / saved verses
+  const toggleBookmark = (verse: string, ref: string, week?: number) => {
+    setSavedVerses(prev => {
+      const exists = prev.some(v => v.ref === ref)
+      const next = exists
+        ? prev.filter(v => v.ref !== ref)
+        : [{ verse, ref, week, savedAt: new Date().toISOString() }, ...prev]
+      localStorage.setItem(SAVED_VERSES_KEY, JSON.stringify(next))
+      return next
+    })
+  }
+  const removeVerse = (ref: string) => {
+    setSavedVerses(prev => {
+      const next = prev.filter(v => v.ref !== ref)
+      localStorage.setItem(SAVED_VERSES_KEY, JSON.stringify(next))
+      return next
+    })
+  }
+
+  // Reminder
+  const setReminder = (d: number | null) => {
+    setReminderDay(d)
+    if (d === null) localStorage.removeItem(REMINDER_KEY)
+    else localStorage.setItem(REMINDER_KEY, String(d))
   }
 
   // Derived stats
@@ -884,13 +1099,24 @@ export default function BibleReadingPage() {
             </div>
           </div>
 
+          {/* ── VERSE OF THE DAY ── */}
+          <VerseOfTheDay />
+
           {/* ── STATS ROW ── */}
           {registered && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <StatPill icon={<Flame className="w-4 h-4" />} label="Week Streak" value={streak > 0 ? `${streak} 🔥` : '—'} color="#d97706" />
               <StatPill icon={<Check className="w-4 h-4" />} label="Weeks Done" value={`${completedCount}/${TOTAL_WEEKS}`} color="#059669" />
               <StatPill icon={<Target className="w-4 h-4" />} label="Progress" value={`${progressPct}%`} color="#140152" />
-              <StatPill icon={<Trophy className="w-4 h-4" />} label="Current Quarter" value={`Q${currentQuarter.id}`} color={currentQuarter.accent} />
+              <StatPill icon={<Heart className="w-4 h-4" />} label="Saved Verses" value={savedVerses.length} color="#e11d48" />
+            </div>
+          )}
+
+          {/* ── PACE + REMINDER ── */}
+          {registered && (
+            <div className="grid md:grid-cols-2 gap-3">
+              <PaceCard completedCount={completedCount} startDate={startDate} />
+              <ReminderCard day={reminderDay} onSet={setReminder} />
             </div>
           )}
 
@@ -963,7 +1189,13 @@ export default function BibleReadingPage() {
             onToggle={() => toggleComplete(currentWeek)}
             registered={registered}
             onRegister={handleRegister}
+            isBookmarked={savedVerses.some(v => v.ref === currentContent.ref)}
+            onBookmark={() => toggleBookmark(currentContent.verse, currentContent.ref, currentWeek)}
+            progressPct={progressPct}
           />
+
+          {/* ── SAVED VERSES ── */}
+          {registered && <SavedVersesSection verses={savedVerses} onRemove={removeVerse} />}
 
           {/* ── SEARCH ── */}
           <div>
