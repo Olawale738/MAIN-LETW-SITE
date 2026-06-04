@@ -23,7 +23,11 @@ import {
     Zap,
     ExternalLink,
     KeyRound,
-    Save
+    Save,
+    Trash2,
+    AlertTriangle,
+    MessageCircle,
+    RefreshCw
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -62,9 +66,36 @@ export default function AdminSettingsPage() {
     const searchParams = useSearchParams()
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'registrations' | 'ministry'>(
-        (searchParams.get('tab') as 'profile' | 'security' | 'registrations' | 'ministry') || 'profile'
+    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'registrations' | 'ministry' | 'danger'>(
+        (searchParams.get('tab') as 'profile' | 'security' | 'registrations' | 'ministry' | 'danger') || 'profile'
     )
+
+    // Danger zone state
+    const [resetting, setResetting] = useState(false)
+    const [resetResult, setResetResult] = useState<{ total: number; deleted: Record<string, number> } | null>(null)
+    const [resetConfirmText, setResetConfirmText] = useState('')
+
+    const handleResetAllChats = async () => {
+        if (resetConfirmText !== 'RESET ALL CHATS') return
+        setResetting(true)
+        setResetResult(null)
+        try {
+            const token = localStorage.getItem('access_token')
+            const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+            const res = await fetch(`${base}/messages/admin/reset-all-chats`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            if (!res.ok) throw new Error(await res.text())
+            const data = await res.json()
+            setResetResult(data)
+            setResetConfirmText('')
+        } catch (e: any) {
+            alert('Reset failed: ' + (e?.message || 'Unknown error'))
+        } finally {
+            setResetting(false)
+        }
+    }
 
     // Registration Settings state
     const [theologyRegistrationOpen, setTheologyRegistrationOpen] = useState(true)
@@ -211,6 +242,7 @@ export default function AdminSettingsPage() {
     const tabs = [
         { id: 'profile'      as const, label: 'Profile',         icon: UserIcon },
         { id: 'security'     as const, label: 'Security',         icon: Shield   },
+        { id: 'danger'       as const, label: 'Danger Zone',      icon: AlertTriangle },
         { id: 'registrations'as const, label: 'Registrations',    icon: School   },
         { id: 'ministry'     as const, label: 'Ministry Roles',   icon: Users    },
     ]
@@ -590,6 +622,96 @@ export default function AdminSettingsPage() {
                                 </form>
                             </motion.div>
                         )}
+                        {/* ── Danger Zone tab ── */}
+                        {activeTab === 'danger' && (
+                            <motion.div key="danger" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                                <div className="p-6 space-y-6">
+                                    <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl">
+                                        <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+                                        <p className="text-sm text-red-700 font-medium">
+                                            Actions in this zone are <strong>permanent and irreversible</strong>. Proceed only if you are absolutely certain.
+                                        </p>
+                                    </div>
+
+                                    {/* Reset All Chats */}
+                                    <div className="border-2 border-red-100 rounded-2xl overflow-hidden">
+                                        <div className="bg-red-50 px-5 py-4 flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
+                                                <MessageCircle className="w-5 h-5 text-red-600" />
+                                            </div>
+                                            <div>
+                                                <p className="font-black text-red-800">Reset All Chats</p>
+                                                <p className="text-xs text-red-600 mt-0.5">
+                                                    Permanently deletes every message across all 5 chat systems
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-5 bg-white space-y-4">
+                                            {/* What will be deleted */}
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                                                {[
+                                                    { icon: '💬', label: 'DM Conversations' },
+                                                    { icon: '📢', label: 'Live Chat (widget)' },
+                                                    { icon: '🎵', label: 'Choir Group Chat' },
+                                                    { icon: '🏢', label: 'All 7 Dept Chats' },
+                                                    { icon: '👥', label: 'Mentor ↔ Mentee DMs' },
+                                                    { icon: '📋', label: 'Coordinator DMs' },
+                                                ].map(item => (
+                                                    <div key={item.label} className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-2.5 py-1.5 text-gray-600">
+                                                        <span>{item.icon}</span>
+                                                        <span>{item.label}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Success result */}
+                                            {resetResult && (
+                                                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <CheckCircle className="w-4 h-4 text-green-600" />
+                                                        <p className="text-sm font-bold text-green-700">
+                                                            Reset complete — {resetResult.total} records deleted
+                                                        </p>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-1.5 text-xs text-green-700">
+                                                        {Object.entries(resetResult.deleted).map(([key, count]) => (
+                                                            <span key={key}>{key.replace(/_/g, ' ')}: <strong>{count}</strong></span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Confirmation input */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Type <code className="bg-gray-100 px-1 py-0.5 rounded text-red-600 text-xs font-mono">RESET ALL CHATS</code> to confirm
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={resetConfirmText}
+                                                    onChange={e => setResetConfirmText(e.target.value)}
+                                                    placeholder="RESET ALL CHATS"
+                                                    className="w-full p-3 border-2 border-gray-200 rounded-xl font-mono text-sm focus:outline-none focus:border-red-400 transition-colors"
+                                                />
+                                            </div>
+
+                                            <button
+                                                onClick={handleResetAllChats}
+                                                disabled={resetConfirmText !== 'RESET ALL CHATS' || resetting}
+                                                className="flex items-center gap-2 px-5 py-3 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                                            >
+                                                {resetting
+                                                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Resetting…</>
+                                                    : <><RefreshCw className="w-4 h-4" /> Reset All Chats Now</>
+                                                }
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+
                     </AnimatePresence>
                 </div>
             </div>

@@ -32,6 +32,9 @@ from sqlalchemy.orm import selectinload
 from database import get_db, AsyncSessionLocal
 from models.user import User, UserRole
 from models.message import Conversation, Message, ConversationStatus
+from models.chat import ChatMessage, ChatConversation
+from models.choir_chat import ChoirGroupMessage
+from models.department import DepartmentMessage
 from models.notification import Notification, NotificationType
 from schemas.message import (
     MessageCreate, ConversationCreate,
@@ -787,3 +790,59 @@ async def chat_ws(websocket: WebSocket, token: str = Query(...)):
         pass
     finally:
         await manager.disconnect(user_id, websocket)
+
+
+
+# ─── Admin: Reset all chats ───────────────────────────────────────────────────
+
+@router.delete("/admin/reset-all-chats")
+async def reset_all_chats(
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Permanently delete every message and conversation across all chat systems:
+      - Conversation messages  (messages table)
+      - Conversations          (conversations table)
+      - Live-chat widget       (chat_messages_v2 + chat_conversations tables)
+      - Choir/Alter-Sound chat (choir_group_messages table)
+      - All dept group chats   (department_messages table)
+
+    Returns a summary of how many rows were deleted per system.
+    Admin-only. Irreversible.
+    """
+    from sqlalchemy import delete as sql_delete
+
+    # Count before deleting so we can report back
+    counts = {}
+
+    # 1. DM messages (child first, then parent)
+    r = await db.execute(sql_delete(Message))
+    counts["dm_messages"] = r.rowcount
+
+    r = await db.execute(sql_delete(Conversation))
+    counts["dm_conversations"] = r.rowcount
+
+    # 2. Live-chat widget
+    r = await db.execute(sql_delete(ChatMessage))
+    counts["livechat_messages"] = r.rowcount
+
+    r = await db.execute(sql_delete(ChatConversation))
+    counts["livechat_conversations"] = r.rowcount
+
+    # 3. Choir / Alter-Sound group chat
+    r = await db.execute(sql_delete(ChoirGroupMessage))
+    counts["choir_messages"] = r.rowcount
+
+    # 4. Department group chats (all 7 depts)
+    r = await db.execute(sql_delete(DepartmentMessage))
+    counts["dept_messages"] = r.rowcount
+
+    await db.commit()
+
+    total = sum(counts.values())
+    return {
+        "message": f"All chats reset. {total} records deleted.",
+        "deleted": counts,
+        "total": total,
+    }
