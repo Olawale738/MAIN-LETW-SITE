@@ -8,7 +8,7 @@ import PremiumButton from '@/components/ui/PremiumButton'
 import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone, Send, HandHeart, CheckCircle2, Phone, CalendarDays, Bell, X, ChevronRight, ArrowRight } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
 import { serviceRequestApi, notificationApi, Notification, ServiceRequest } from '@/lib/api'
-import { checkMembership } from '@/lib/dept-api'
+import { checkMembership, type Department } from '@/lib/dept-api'
 import { Spotlight } from '@/components/ui/spotlight'
 
 // Service configuration for cards
@@ -142,6 +142,8 @@ export default function UserDashboard() {
     const [approvedRequests, setApprovedRequests] = useState<ServiceRequest[]>([])
     const [pendingServices, setPendingServices] = useState<string[]>([])
     const [activeDeptNames, setActiveDeptNames] = useState<string[]>([])
+    // All dept memberships with their status
+    const [deptMemberships, setDeptMemberships] = useState<{ dept: string; label: string; url: string; active: boolean }[]>([])
     const [servicesLoading, setServicesLoading] = useState(true)
 
     // Notifications state
@@ -179,24 +181,29 @@ export default function UserDashboard() {
                 setServicesLoading(false)
             }
 
-            // Cross-check actual dept membership so approved members don't see stale "pending" cards
+            // Check membership in ALL departments and surface them on the main dashboard
             try {
-                const DEPT_SERVICE_MAP: Record<string, string> = {
-                    children: 'Children Ministry',
-                    youth: 'Youth Ministry',
-                }
-                const results = await Promise.allSettled([
-                    checkMembership('children'),
-                    checkMembership('youth'),
-                ])
-                const active: string[] = []
+                const ALL_DEPTS: { key: Department; label: string; url: string }[] = [
+                    { key: 'choir',       label: 'Worship Team',        url: '/services/alter-sound/dashboard' },
+                    { key: 'media',       label: 'Media & Creative',     url: '/services/media' },
+                    { key: 'hospitality', label: 'Hospitality Team',     url: '/services/hospitality' },
+                    { key: 'ushering',    label: 'Ushering & Welcome',   url: '/services/ushering' },
+                    { key: 'security',    label: 'Security & Safety',    url: '/services/security' },
+                    { key: 'youth',       label: 'Youth Ministry',       url: '/youth/dashboard' },
+                    { key: 'children',    label: "Children's Ministry",  url: '/children/dashboard' },
+                ]
+                const results = await Promise.allSettled(ALL_DEPTS.map(d => checkMembership(d.key)))
+                const memberships: { dept: string; label: string; url: string; active: boolean }[] = []
+                const activeNames: string[] = []
                 results.forEach((r, i) => {
-                    const dept = ['children', 'youth'][i]
-                    if (r.status === 'fulfilled' && r.value?.is_member && r.value?.is_active) {
-                        active.push(DEPT_SERVICE_MAP[dept])
+                    const d = ALL_DEPTS[i]
+                    if (r.status === 'fulfilled' && r.value?.is_member) {
+                        memberships.push({ dept: d.key, label: d.label, url: d.url, active: !!r.value.is_active })
+                        if (r.value.is_active) activeNames.push(d.label)
                     }
                 })
-                setActiveDeptNames(active)
+                setDeptMemberships(memberships)
+                setActiveDeptNames(activeNames)
             } catch (err) {
                 console.error('Failed to check dept memberships', err)
             }
@@ -442,8 +449,40 @@ export default function UserDashboard() {
                                     </div>
                                 )}
 
+                                {/* Volunteer / Dept memberships */}
+                                {deptMemberships.length > 0 && (
+                                    <div className="bg-gradient-to-r from-[#140152]/5 to-purple-50 rounded-2xl p-5 border border-[#140152]/10">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <HandHeart className="w-4 h-4 text-[#140152]" />
+                                                <p className="text-sm font-black text-[#140152] uppercase tracking-wider">Volunteer Departments</p>
+                                            </div>
+                                            <Link href="/dashboard/volunteer" className="text-xs font-bold text-[#140152] hover:underline flex items-center gap-1">
+                                                Volunteer Dashboard <ChevronRight className="w-3.5 h-3.5" />
+                                            </Link>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                            {deptMemberships.map(m => (
+                                                <Link key={m.dept} href={m.active ? m.url : '/dashboard/volunteer'}
+                                                    className="bg-white rounded-xl px-4 py-3 flex items-center gap-3 border border-gray-100 hover:border-[#140152]/30 hover:shadow-sm transition-all group">
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${m.active ? 'bg-[#140152]' : 'bg-amber-100'}`}>
+                                                        <HandHeart className={`w-4 h-4 ${m.active ? 'text-[#f5bb00]' : 'text-amber-600'}`} />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-bold text-sm text-[#140152] truncate">{m.label}</p>
+                                                        <p className={`text-[11px] font-semibold ${m.active ? 'text-green-600' : 'text-amber-600'}`}>
+                                                            {m.active ? '✓ Approved — Open Dashboard' : '⌛ Awaiting Approval'}
+                                                        </p>
+                                                    </div>
+                                                    {m.active && <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#140152] transition-colors shrink-0" />}
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Empty state */}
-                                {visibleApproved.length === 0 && visiblePending.length === 0 && (
+                                {visibleApproved.length === 0 && visiblePending.length === 0 && deptMemberships.length === 0 && (
                                     <div className="text-center py-14 bg-white rounded-2xl border-2 border-dashed border-gray-100 hover:border-[#140152]/20 transition-colors">
                                         <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                                             <Briefcase className="w-7 h-7 text-gray-300" />

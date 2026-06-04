@@ -420,7 +420,9 @@ export default function VolunteersPage() {
 
     const load = async () => {
         try {
-            const VOLUNTEER_SERVICES = ['Volunteer', 'Bible study', 'Counselling']
+            // Only service_name === 'Volunteer' belongs in this section.
+            // 'Bible study' and 'Counselling' are regular services, not volunteer roles.
+            const VOLUNTEER_SERVICES = ['Volunteer']
             const [approvedRes, suspendedRes] = await Promise.all([
                 serviceRequestApi.getAllRequests('approved'),
                 serviceRequestApi.getAllRequests('suspended').catch(() => ({ requests: [] })),
