@@ -241,13 +241,16 @@ function MessagesContent() {
         }
     }
 
-    /** Determine the peer name shown at top of the open thread. */
+    /** Determine the peer name shown at top of the open thread.
+     *  Works for member↔admin AND mentor↔mentee conversations:
+     *  - If I am the user_id party  → peer is admin slot (mentor/admin)
+     *  - If I am the admin_id party → peer is user slot  (mentee/member)
+     *  - Fallback: whoever is not null                                   */
     const peer = useMemo(() => {
         if (!active) return null
-        if (me?.id && active.user?.id === me.id) return active.admin
-        return active.admin && active.user
-            ? (active.admin.role === 'admin' ? active.admin : active.user)
-            : (active.admin || active.user)
+        if (me?.id && active.user?.id === me.id) return active.admin   // I'm the user  → show admin/mentor
+        if (me?.id && active.admin?.id === me.id) return active.user   // I'm the admin/mentor → show mentee
+        return active.admin || active.user                              // fallback
     }, [active, me?.id])
 
     return (
@@ -309,7 +312,14 @@ function MessagesContent() {
                                     </button>
                                 </div>
                             ) : filtered.map(c => {
-                                const peerName = c.admin?.name || 'Pastor / Admin'
+                                // Show the OTHER person's name — not the current user's own name.
+                                // A mentee (user_id slot) sees the mentor/admin (admin slot).
+                                // A mentor (admin_id slot) sees the mentee (user slot).
+                                const peerName = me?.id === c.user?.id
+                                    ? (c.admin?.name || 'Mentor / Pastor')
+                                    : me?.id === c.admin?.id
+                                        ? (c.user?.name || 'Member')
+                                        : (c.admin?.name || c.user?.name || 'Pastor / Admin')
                                 const isActive = c.id === activeId
                                 return (
                                     <button
@@ -380,7 +390,9 @@ function MessagesContent() {
                                     )}
                                     <div className="space-y-3">
                                         {active.messages.map(m => {
-                                            const mine = me?.id ? m.sender_id === me.id : m.sender?.role !== 'admin'
+                                            // A message is "mine" if I sent it (compare sender_id to my user ID).
+                                            // The role-based fallback was wrong for mentor chats (both parties are role='user').
+                                            const mine = m.sender_id === me?.id
                                             return (
                                                 <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                                                     <div className={`max-w-[78%] rounded-2xl px-4 py-2.5 ${mine
@@ -388,7 +400,7 @@ function MessagesContent() {
                                                         : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
                                                         } shadow-sm`}>
                                                         {!mine && (
-                                                            <p className="text-[11px] font-bold text-[#140152] mb-1">{m.sender?.name || 'Pastor'}</p>
+                                                            <p className="text-[11px] font-bold text-[#140152] mb-1">{m.sender?.name || peer?.name || 'Mentor'}</p>
                                                         )}
                                                         <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
                                                         <div className={`text-[10px] mt-1 flex items-center gap-1 ${mine ? 'text-blue-200 justify-end' : 'text-gray-400'}`}>
