@@ -404,8 +404,8 @@ export default function VolunteersPage() {
         try {
             const VOLUNTEER_SERVICES = ['Volunteer', 'Bible study', 'Counselling']
             const [approvedRes, suspendedRes] = await Promise.all([
-                serviceRequestApi.getAllRequests('approved' as never),
-                serviceRequestApi.getAllRequests('suspended' as never).catch(() => ({ requests: [] })),
+                serviceRequestApi.getAllRequests('approved'),
+                serviceRequestApi.getAllRequests('suspended').catch(() => ({ requests: [] })),
             ])
             const all = [...approvedRes.requests, ...suspendedRes.requests]
             setVolunteers(all.filter(r => VOLUNTEER_SERVICES.includes(r.service_name)))
@@ -446,14 +446,21 @@ export default function VolunteersPage() {
         if (!confirm('Suspend this volunteer? Their access is paused until you reinstate them.')) return
         try {
             const updated = await serviceRequestApi.suspend(id)
-            setVolunteers(prev => prev.map(v => v.id === id ? updated : v))
+            // Merge so we never lose user_name / user_email if the response omits them
+            setVolunteers(prev => prev.map(v => v.id === id
+                ? { ...v, ...updated, user_name: updated.user_name || v.user_name, user_email: updated.user_email || v.user_email }
+                : v
+            ))
         } catch (e: any) { const msg = describeErr(e, 'suspend volunteer'); setError(msg); alert(msg) }
     }
 
     const handleReinstate = async (id: string) => {
         try {
             const updated = await serviceRequestApi.reinstate(id)
-            setVolunteers(prev => prev.map(v => v.id === id ? updated : v))
+            setVolunteers(prev => prev.map(v => v.id === id
+                ? { ...v, ...updated, user_name: updated.user_name || v.user_name, user_email: updated.user_email || v.user_email }
+                : v
+            ))
         } catch (e: any) { const msg = describeErr(e, 'reinstate volunteer'); setError(msg); alert(msg) }
     }
 

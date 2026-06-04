@@ -440,7 +440,8 @@ async def suspend_service_request(
 
     await db.commit()
     await db.refresh(sr)
-    return _request_to_response(sr)
+    await db.refresh(sr, ["user"])   # load user relationship so name/email are returned
+    return _request_to_response(sr, include_user=True)
 
 
 @router.put("/{request_id}/reinstate", response_model=ServiceRequestResponse)
@@ -483,7 +484,8 @@ async def reinstate_service_request(
 
     await db.commit()
     await db.refresh(sr)
-    return _request_to_response(sr)
+    await db.refresh(sr, ["user"])   # load user relationship so name/email are returned
+    return _request_to_response(sr, include_user=True)
 
 
 @router.delete("/{request_id}", status_code=status.HTTP_204_NO_CONTENT)

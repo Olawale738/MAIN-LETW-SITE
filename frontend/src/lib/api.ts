@@ -186,7 +186,17 @@ async function fetchApi<T>(
         throw new ApiError(response.status, errorData.detail || 'An error occurred');
     }
 
-    return response.json();
+    // 204 No Content — body is empty, return undefined rather than crashing on JSON.parse
+    if (response.status === 204) return undefined as T;
+
+    // Some successful responses have an empty body (e.g. certain 200s from proxies)
+    const text = await response.text();
+    if (!text) return undefined as T;
+    try {
+        return JSON.parse(text) as T;
+    } catch {
+        return undefined as T;
+    }
 }
 
 // ============= Auth API =============
@@ -320,7 +330,7 @@ export const userApi = {
 
 // ============= Service Request Types =============
 
-export type ServiceRequestStatus = 'pending' | 'approved' | 'rejected';
+export type ServiceRequestStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 
 export interface ServiceRequest {
     id: string;
