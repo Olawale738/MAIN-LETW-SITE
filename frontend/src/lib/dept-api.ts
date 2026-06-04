@@ -120,11 +120,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   })
   if (res.status === 401) {
     if (typeof window !== 'undefined') window.location.href = '/auth/login'
-    throw new Error('Unauthorized')
+    throw Object.assign(new Error('Unauthorized'), { status: 401 })
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error(err.detail || 'Request failed')
+    throw Object.assign(new Error(err.detail || 'Request failed'), { status: res.status })
   }
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
@@ -256,6 +256,24 @@ export async function myMemberships(): Promise<{ department: string; role_label:
 
 export async function joinDepartment(dept: Department, pending = false): Promise<{ message: string; status: string }> {
   return request(`/departments/${dept}/join${pending ? '?pending=true' : ''}`, { method: 'POST' })
+}
+
+// ─── Admin: all department members across every department ───────────────────────
+
+export interface AdminDeptMember {
+  id: string
+  user_id: string
+  name: string
+  email: string
+  department: string
+  role_label: string | null
+  is_active: boolean
+  is_coordinator: boolean
+  joined_at: string | null
+}
+
+export async function adminAllDeptMembers(): Promise<AdminDeptMember[]> {
+  return request<AdminDeptMember[]>('/admin/department-members')
 }
 
 export async function checkMembership(dept: Department): Promise<MembershipStatus> {

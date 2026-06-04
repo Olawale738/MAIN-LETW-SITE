@@ -707,6 +707,36 @@ async def admin_list_users(
     return items
 
 
+@admin_router.get("/department-members")
+async def admin_all_department_members(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user),
+):
+    """All department memberships across every department, with user info and
+    status — powers the admin Volunteer Directory so it reflects exactly what
+    volunteers see on their dashboard."""
+    result = await db.execute(
+        select(DepartmentMember, User)
+        .join(User, User.id == DepartmentMember.user_id)
+        .order_by(DepartmentMember.department, User.name.asc())
+    )
+    rows = result.all()
+    return [
+        {
+            "id": dm.id,
+            "user_id": dm.user_id,
+            "name": u.name,
+            "email": u.email,
+            "department": dm.department.value,
+            "role_label": dm.role_label,
+            "is_active": dm.is_active,
+            "is_coordinator": getattr(dm, "is_coordinator", False),
+            "joined_at": dm.joined_at.isoformat() if dm.joined_at else None,
+        }
+        for dm, u in rows
+    ]
+
+
 @admin_router.get("/leaders")
 async def admin_list_leaders(
     db: AsyncSession = Depends(get_db),

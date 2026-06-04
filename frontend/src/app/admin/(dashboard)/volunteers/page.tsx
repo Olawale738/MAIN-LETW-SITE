@@ -7,9 +7,17 @@ import {
     HandHeart, Phone, Mail, CalendarDays, Loader2,
     Search, Copy, CheckCheck, Users, BookOpen, Music,
     Camera, Coffee, Mic2, Shield, Heart, ChevronDown, ChevronUp,
-    Trash2, AlertTriangle, X, PauseCircle, Play
+    Trash2, AlertTriangle, X, PauseCircle, Play, Check, UserMinus, Crown
 } from 'lucide-react'
 import { serviceRequestApi, ServiceRequest } from '@/lib/api'
+import { adminAllDeptMembers, updateMember, removeMember, type AdminDeptMember, type Department } from '@/lib/dept-api'
+
+const DEPT_LABELS: Record<string, string> = {
+    choir: 'Worship Team', media: 'Media & Creative', hospitality: 'Hospitality Team',
+    ushering: 'Ushering & Welcome', security: 'Security & Safety',
+    youth: 'Youth Ministry', children: "Children's Ministry",
+    'Bible study': 'Bible Study Facilitator', 'Counselling': 'Counselling Support',
+}
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -48,7 +56,10 @@ function VolunteerCard({ request, onDelete, onSuspend, onReinstate }: {
     onReinstate: (id: string) => void
 }) {
     const isSuspended = String(request.status) === 'suspended'
-    const { department, availability, phone, experience } = parseVolunteerMessage(request.message)
+    const parsed = parseVolunteerMessage(request.message)
+    // For service-based types (Bible study, Counselling), fall back to service_name
+    const department = parsed.department || (request.service_name !== 'Volunteer' ? DEPT_LABELS[request.service_name] || request.service_name : undefined)
+    const { availability, phone, experience } = parsed
     const [copied, setCopied] = useState(false)
     const [showExp, setShowExp] = useState(false)
 
@@ -238,6 +249,146 @@ function DeleteModal({
 }
 
 
+// ── Department Volunteers (membership-based, matches the volunteer dashboard) ──
+
+function DeptMembersSection() {
+    const [members, setMembers] = useState<AdminDeptMember[]>([])
+    const [loading, setLoading] = useState(true)
+    const [busy, setBusy] = useState<string | null>(null)
+    const [loadError, setLoadError] = useState<string | null>(null)
+
+    const load = async () => {
+        setLoading(true)
+        setLoadError(null)
+        try { setMembers(await adminAllDeptMembers()) }
+        catch (e: any) {
+            const status = e?.status ?? e?.response?.status
+            if (status === 404 || /not found|404/i.test(e?.message || '')) {
+                setLoadError('The /admin/department-members endpoint returned 404 — the backend needs to be redeployed.')
+            } else if (status === 403 || status === 401) {
+                setLoadError('Permission denied — make sure you are signed in as an admin.')
+            } else {
+                setLoadError(e?.message || 'Failed to load department members. Check the backend logs.')
+            }
+        }
+        finally { setLoading(false) }
+    }
+    useEffect(() => { load() }, [])
+
+    const act = async (m: AdminDeptMember, action: 'approve' | 'suspend' | 'remove' | 'coordinator' | 'uncoord') => {
+        const key = m.id + action
+        setBusy(key)
+        try {
+            if (action === 'remove') {
+                if (!confirm(`Remove ${m.name} from ${DEPT_LABELS[m.department] ?? m.department}?`)) { setBusy(null); return }
+                await removeMember(m.department as Department, m.user_id)
+            } else if (action === 'approve') {
+                await updateMember(m.department as Department, m.user_id, { is_active: true })
+            } else if (action === 'suspend') {
+                await updateMember(m.department as Department, m.user_id, { is_active: false })
+            } else if (action === 'coordinator') {
+                await updateMember(m.department as Department, m.user_id, { is_coordinator: true } as never)
+            } else if (action === 'uncoord') {
+                await updateMember(m.department as Department, m.user_id, { is_coordinator: false } as never)
+            }
+            await load()
+        } catch (e: any) {
+            const status = e?.status
+            alert(status === 404 ? 'This action needs the backend to be redeployed.' : `Action failed: ${e?.message || 'error'}`)
+        } finally { setBusy(null) }
+    }
+
+    const byDept = members.reduce((acc, m) => {
+        (acc[m.department] ??= []).push(m); return acc
+    }, {} as Record<string, AdminDeptMember[]>)
+    const depts = Object.keys(byDept).sort()
+    const pendingCount = members.filter(m => !m.is_active).length
+
+    return (
+        <Card className="border border-gray-100">
+            <CardHeader className="flex flex-row items-start justify-between gap-2">
+                <div>
+                    <CardTitle className="text-lg font-black text-[#140152] flex items-center gap-2">
+                        <Users className="w-5 h-5 text-[#f5bb00]" /> Department Volunteers
+                        {pendingCount > 0 && <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">{pendingCount} pending approval</span>}
+                    </CardTitle>
+                    <p className="text-xs text-gray-500 mt-1">Live from each volunteer's dashboard. Approve pending requests, suspend, or remove access.</p>
+                </div>
+                <button onClick={load} disabled={loading}
+                    className="shrink-0 text-xs font-bold text-[#140152] bg-[#140152]/5 hover:bg-[#140152]/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1">
+                    {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : '↻'} Refresh
+                </button>
+            </CardHeader>
+            <CardContent>
+                {loading ? (
+                    <div className="flex justify-center py-10"><Loader2 className="w-7 h-7 animate-spin text-[#140152]/40" /></div>
+                ) : loadError ? (
+                    <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-4 space-y-2">
+                        <p className="text-sm font-bold text-red-700">⚠ Could not load department volunteers</p>
+                        <p className="text-xs text-red-600">{loadError}</p>
+                        <button onClick={load} className="text-xs font-bold text-red-700 underline hover:no-underline">
+                            Retry
+                        </button>
+                    </div>
+                ) : members.length === 0 ? (
+                    <div className="text-center py-10 text-sm text-gray-400">
+                        No department volunteers yet.
+                        <button onClick={load} className="block mx-auto mt-2 text-xs text-[#140152] underline hover:no-underline">Refresh</button>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {depts.map(dept => (
+                            <div key={dept}>
+                                <h3 className="text-sm font-black text-[#140152] mb-2">{DEPT_LABELS[dept] ?? dept}
+                                    <span className="text-xs font-medium text-gray-400 ml-2">{byDept[dept].length} member{byDept[dept].length !== 1 ? 's' : ''}</span>
+                                </h3>
+                                <div className="space-y-2">
+                                    {byDept[dept].map(m => (
+                                        <div key={m.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5 flex-wrap">
+                                            <div className="w-9 h-9 rounded-full bg-[#140152] text-white flex items-center justify-center font-black text-sm shrink-0">
+                                                {m.name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-sm text-[#140152] truncate">{m.name}
+                                                    {m.is_coordinator && <Crown className="w-3.5 h-3.5 text-[#f5bb00] inline ml-1" />}
+                                                </p>
+                                                <p className="text-xs text-gray-400 truncate">{m.email}</p>
+                                            </div>
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${m.is_active ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                {m.is_active ? '✓ Active' : '⌛ Pending'}
+                                            </span>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                {!m.is_active ? (
+                                                    <button onClick={() => act(m, 'approve')} disabled={!!busy} title="Approve"
+                                                        className="px-2.5 py-1 rounded-lg bg-green-600 text-white text-xs font-bold hover:bg-green-700 disabled:opacity-50 flex items-center gap-1">
+                                                        <Check className="w-3.5 h-3.5" /> Approve
+                                                    </button>
+                                                ) : (
+                                                    <button onClick={() => act(m, 'suspend')} disabled={!!busy} title="Suspend"
+                                                        className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50"><PauseCircle className="w-4 h-4" /></button>
+                                                )}
+                                                {m.is_active && (
+                                                    <button onClick={() => act(m, m.is_coordinator ? 'uncoord' : 'coordinator')} disabled={!!busy}
+                                                        title={m.is_coordinator ? 'Remove coordinator' : 'Make coordinator'}
+                                                        className={`p-1.5 rounded-lg ${m.is_coordinator ? 'text-gray-400 hover:bg-gray-100' : 'text-[#f5bb00] hover:bg-yellow-50'}`}>
+                                                        <Crown className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                <button onClick={() => act(m, 'remove')} disabled={!!busy} title="Remove"
+                                                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-50"><UserMinus className="w-4 h-4" /></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    )
+}
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function VolunteersPage() {
@@ -251,12 +402,13 @@ export default function VolunteersPage() {
 
     const load = async () => {
         try {
+            const VOLUNTEER_SERVICES = ['Volunteer', 'Bible study', 'Counselling']
             const [approvedRes, suspendedRes] = await Promise.all([
                 serviceRequestApi.getAllRequests('approved' as never),
                 serviceRequestApi.getAllRequests('suspended' as never).catch(() => ({ requests: [] })),
             ])
             const all = [...approvedRes.requests, ...suspendedRes.requests]
-            setVolunteers(all.filter(r => r.service_name === 'Volunteer'))
+            setVolunteers(all.filter(r => VOLUNTEER_SERVICES.includes(r.service_name)))
         } catch (e: any) {
             setError(e.message || 'Failed to load volunteers')
         } finally {
@@ -397,6 +549,12 @@ export default function VolunteersPage() {
                     })}
                 </div>
             )}
+
+            {/* Department volunteers (membership-based — matches each volunteer dashboard) */}
+            <DeptMembersSection />
+
+            {/* Service-request volunteers (legacy "Volunteer" applications) */}
+            <h2 className="text-sm font-black text-[#140152] uppercase tracking-wider pt-2">Volunteer Applications</h2>
 
             {/* Grid */}
             {loading ? (
