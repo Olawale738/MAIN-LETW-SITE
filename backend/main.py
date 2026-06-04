@@ -141,6 +141,7 @@ UPLOADS_DIR = "uploads"
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 os.makedirs(f"{UPLOADS_DIR}/audio", exist_ok=True)
 os.makedirs(f"{UPLOADS_DIR}/audio/covers", exist_ok=True)
+os.makedirs(f"{UPLOADS_DIR}/bible-resources", exist_ok=True)
 
 # Mount the uploads directory to serve static files
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")

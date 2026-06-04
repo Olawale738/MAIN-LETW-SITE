@@ -2369,6 +2369,32 @@ export const bibleStudyApi = {
         });
     },
 
+    // Admin - Upload a resource file (PDF / audio / video)
+    uploadResource: async (file: File, title: string, meta = ''): Promise<BibleStudyLibraryResource & { filename: string }> => {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+        const form = new FormData();
+        form.append('file', file);
+        form.append('title', title);
+        form.append('meta', meta);
+        const base = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+            ? process.env.NEXT_PUBLIC_API_URL
+            : 'http://localhost:8000/api';
+        const res = await fetch(`${base}/bible-study/admin/upload-resource`, {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: form,
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: res.statusText }));
+            throw new Error(err.detail || 'Upload failed');
+        }
+        return res.json();
+    },
+
+    // Admin - Delete a resource file from disk
+    deleteResourceFile: async (filename: string): Promise<{ message: string }> =>
+        fetchApi<{ message: string }>(`/bible-study/admin/resource-file/${filename}`, { method: 'DELETE' }),
+
     // Public - Settings (read-only, no auth) — includes admin-managed topics/groups/notes
     getPublicSettings: async (): Promise<BibleStudyPageSettings> => {
         return fetchApi<BibleStudyPageSettings>('/bible-study/settings');

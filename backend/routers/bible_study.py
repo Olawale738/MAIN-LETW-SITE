@@ -1,9 +1,11 @@
 """
 Bible Study API endpoints for reading plans and progress tracking
 """
+import os
+import uuid
 from typing import List, Optional
 from datetime import date, datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -505,6 +507,77 @@ async def update_page_settings(
     await db.commit()
     await db.refresh(settings)
     return settings
+
+
+# ============================================================================
+# ADMIN — Library Resource File Upload
+# ============================================================================
+
+RESOURCE_UPLOAD_DIR = "uploads/bible-resources"
+ALLOWED_RESOURCE_TYPES = {
+    "application/pdf": ("pdf", ".pdf"),
+    "audio/mpeg": ("audio", ".mp3"),
+    "audio/mp4": ("audio", ".m4a"),
+    "audio/ogg": ("audio", ".ogg"),
+    "audio/wav": ("audio", ".wav"),
+    "video/mp4": ("video", ".mp4"),
+    "video/webm": ("video", ".webm"),
+}
+
+
+@router.post("/admin/upload-resource")
+async def upload_resource_file(
+    file: UploadFile = File(...),
+    title: str = Form(...),
+    meta: str = Form(""),        # "24 pages" or "38 min"
+    current_user: User = Depends(get_admin_user),
+):
+    """
+    Upload a PDF, audio, or video file as a bible study library resource.
+    Returns the URL to store in library_resources.
+    """
+    content_type = file.content_type or ""
+    if content_type not in ALLOWED_RESOURCE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{content_type}'. Allowed: PDF, MP3, M4A, WAV, OGG, MP4, WebM."
+        )
+    resource_type, ext = ALLOWED_RESOURCE_TYPES[content_type]
+
+    os.makedirs(RESOURCE_UPLOAD_DIR, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(RESOURCE_UPLOAD_DIR, filename)
+
+    data = await file.read()
+    with open(filepath, "wb") as f:
+        f.write(data)
+
+    # Build public URL (served via /uploads static mount)
+    url = f"/uploads/bible-resources/{filename}"
+
+    return {
+        "id": uuid.uuid4().hex,
+        "title": title.strip(),
+        "type": resource_type,
+        "url": url,
+        "meta": meta.strip(),
+        "filename": filename,
+    }
+
+
+@router.delete("/admin/resource-file/{filename}")
+async def delete_resource_file(
+    filename: str,
+    current_user: User = Depends(get_admin_user),
+):
+    """Delete an uploaded resource file from disk."""
+    # Safety: only allow simple filenames (no path traversal)
+    if "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename.")
+    filepath = os.path.join(RESOURCE_UPLOAD_DIR, filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+    return {"message": "File deleted."}
 
 
 # ============================================================================

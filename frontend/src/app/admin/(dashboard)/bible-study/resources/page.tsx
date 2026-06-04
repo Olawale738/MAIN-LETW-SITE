@@ -1,412 +1,285 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { 
-    FileText, Plus, Edit, Trash2, X, ArrowLeft, Star, Eye, EyeOff,
-    Video, File, Headphones, Link as LinkIcon
-} from 'lucide-react'
-import { 
-    bibleStudyApi, BibleStudyResource, BibleStudyResourceCreate
-} from '@/lib/api'
-import { useToast } from '@/components/ui/toast'
+import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import {
+    ArrowLeft, Upload, Trash2, Plus, FileText, Music, Video,
+    Loader2, ExternalLink, Edit2, Save, X, Link as LinkIcon
+} from 'lucide-react'
+import { bibleStudyApi, type BibleStudyLibraryResource } from '@/lib/api'
 
-export default function BibleStudyResourcesAdmin() {
-    const { showToast, ToastComponent } = useToast()
-    const [resources, setResources] = useState<BibleStudyResource[]>([])
-    const [loading, setLoading] = useState(true)
-    const [showModal, setShowModal] = useState(false)
-    const [editingResource, setEditingResource] = useState<BibleStudyResource | null>(null)
-    const [formData, setFormData] = useState<BibleStudyResourceCreate>({
-        title: '',
-        description: '',
-        resource_type: 'article',
-        resource_url: '',
-        category: '',
-        is_featured: false,
-        is_active: true,
-        order_index: 0
-    })
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-    useEffect(() => {
-        fetchResources()
-    }, [])
+const TYPE_CONFIG = {
+    pdf:   { label: 'PDF Document', icon: FileText, color: 'bg-red-100 text-red-600' },
+    audio: { label: 'Audio File',   icon: Music,    color: 'bg-purple-100 text-purple-600' },
+    video: { label: 'Video File',   icon: Video,    color: 'bg-blue-100 text-blue-600' },
+}
 
-    const fetchResources = async () => {
-        try {
-            const data = await bibleStudyApi.getAllResources()
-            setResources(data.sort((a, b) => a.order_index - b.order_index))
-        } catch (error) {
-            console.error('Failed to fetch resources:', error)
-            showToast('Failed to load resources', 'error')
-        } finally {
-            setLoading(false)
-        }
-    }
+type Res = BibleStudyLibraryResource & { filename?: string }
 
-    const handleOpenModal = (resource?: BibleStudyResource) => {
-        if (resource) {
-            setEditingResource(resource)
-            setFormData({
-                title: resource.title,
-                description: resource.description || '',
-                resource_type: resource.resource_type,
-                resource_url: resource.resource_url || '',
-                category: resource.category || '',
-                is_featured: resource.is_featured,
-                is_active: resource.is_active,
-                order_index: resource.order_index
-            })
-        } else {
-            setEditingResource(null)
-            setFormData({
-                title: '',
-                description: '',
-                resource_type: 'article',
-                resource_url: '',
-                category: '',
-                is_featured: false,
-                is_active: true,
-                order_index: resources.length
-            })
-        }
-        setShowModal(true)
-    }
-
-    const handleCloseModal = () => {
-        setShowModal(false)
-        setEditingResource(null)
-    }
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        
-        try {
-            if (editingResource) {
-                await bibleStudyApi.updateResource(editingResource.id, formData)
-                showToast('Resource updated successfully!', 'success')
-            } else {
-                await bibleStudyApi.createResource(formData)
-                showToast('Resource created successfully!', 'success')
-            }
-            handleCloseModal()
-            await fetchResources()
-        } catch (error: any) {
-            console.error('Failed to save resource:', error)
-            showToast(error.message || 'Failed to save resource', 'error')
-        }
-    }
-
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this resource?')) {
-            return
-        }
-
-        try {
-            await bibleStudyApi.deleteResource(id)
-            showToast('Resource deleted successfully!', 'success')
-            await fetchResources()
-        } catch (error: any) {
-            console.error('Failed to delete resource:', error)
-            showToast(error.message || 'Failed to delete resource', 'error')
-        }
-    }
-
-    const getResourceIcon = (type: string) => {
-        switch (type.toLowerCase()) {
-            case 'video':
-                return <Video className="w-6 h-6 text-[#f5bb00]" />
-            case 'audio':
-                return <Headphones className="w-6 h-6 text-[#f5bb00]" />
-            case 'pdf':
-                return <File className="w-6 h-6 text-[#f5bb00]" />
-            default:
-                return <FileText className="w-6 h-6 text-[#f5bb00]" />
-        }
-    }
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-                <FileText className="w-12 h-12 animate-pulse text-[#140152]" />
-            </div>
-        )
-    }
+function ResourceRow({ res, onDelete, onEdit }: { res: Res; onDelete: (r: Res) => void; onEdit: (r: Res) => void }) {
+    const cfg = TYPE_CONFIG[res.type] ?? TYPE_CONFIG.pdf
+    const Icon = cfg.icon
+    const base = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '')
+        : 'http://localhost:8000'
+    const fullUrl = res.url?.startsWith('http') ? res.url : `${base}${res.url}`
 
     return (
-        <div className="min-h-screen bg-neutral-50 p-8">
-            {ToastComponent()}
-            
-            {/* Header */}
-            <div className="mb-8">
-                <Link href="/admin">
-                    <Button variant="ghost" className="mb-4 text-[#140152] hover:text-[#f5bb00]">
-                        <ArrowLeft className="mr-2 w-4 h-4" />
-                        Back to Admin
-                    </Button>
-                </Link>
-                
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-4xl font-black text-[#140152] mb-2">Bible Study Resources</h1>
-                        <p className="text-gray-600">Manage study materials and resources</p>
-                    </div>
-                    <Button 
-                        onClick={() => handleOpenModal()}
-                        className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152]"
-                    >
-                        <Plus className="mr-2 w-5 h-5" />
-                        Add Resource
-                    </Button>
+        <div className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 group transition-colors border-b border-gray-50 last:border-0">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${cfg.color}`}>
+                <Icon className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="font-semibold text-[#140152] text-sm truncate">{res.title}</p>
+                <div className="flex items-center gap-3 mt-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{cfg.label}</span>
+                    {res.meta && <span className="text-[10px] text-gray-400">{res.meta}</span>}
                 </div>
             </div>
-
-            {/* Resources List */}
-            <div className="grid gap-4">
-                {resources.map((resource, index) => (
-                    <motion.div
-                        key={resource.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                    >
-                        <Card className="p-6 hover:shadow-lg transition-all">
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-start gap-4 flex-1">
-                                    <div className="w-12 h-12 bg-gradient-to-br from-[#140152] to-purple-900 rounded-lg flex items-center justify-center flex-shrink-0">
-                                        {getResourceIcon(resource.resource_type)}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <h3 className="text-xl font-bold text-[#140152]">{resource.title}</h3>
-                                            {resource.is_featured && (
-                                                <Star className="w-5 h-5 text-[#f5bb00] fill-[#f5bb00]" />
-                                            )}
-                                            {!resource.is_active && (
-                                                <EyeOff className="w-5 h-5 text-gray-400" />
-                                            )}
-                                        </div>
-                                        {resource.description && (
-                                            <p className="text-gray-600 mb-2">{resource.description}</p>
-                                        )}
-                                        <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                                            <span className="capitalize">{resource.resource_type}</span>
-                                            {resource.category && (
-                                                <>
-                                                    <span>•</span>
-                                                    <span>{resource.category}</span>
-                                                </>
-                                            )}
-                                            {resource.resource_url && (
-                                                <>
-                                                    <span>•</span>
-                                                    <a
-                                                        href={resource.resource_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-[#140152] hover:text-[#f5bb00] flex items-center gap-1"
-                                                    >
-                                                        <LinkIcon className="w-3 h-3" />
-                                                        View Resource
-                                                    </a>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button
-                                        onClick={() => handleOpenModal(resource)}
-                                        variant="outline"
-                                        size="sm"
-                                        className="border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white"
-                                    >
-                                        <Edit className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                        onClick={() => handleDelete(resource.id)}
-                                        variant="outline"
-                                        size="sm"
-                                        className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </Card>
-                    </motion.div>
-                ))}
+            <div className="flex items-center gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <a href={fullUrl} target="_blank" rel="noopener noreferrer"
+                    className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors" title="Preview">
+                    <ExternalLink className="w-4 h-4" />
+                </a>
+                <button onClick={() => onEdit(res)} className="p-1.5 text-gray-400 hover:text-[#140152] transition-colors" title="Edit">
+                    <Edit2 className="w-4 h-4" />
+                </button>
+                <button onClick={() => onDelete(res)} className="p-1.5 text-gray-400 hover:text-red-600 transition-colors" title="Delete">
+                    <Trash2 className="w-4 h-4" />
+                </button>
             </div>
-
-            {resources.length === 0 && (
-                <Card className="p-12 text-center">
-                    <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                    <h3 className="text-xl font-bold text-gray-700 mb-2">No Resources Yet</h3>
-                    <p className="text-gray-600 mb-6">Add study resources for your congregation</p>
-                    <Button
-                        onClick={() => handleOpenModal()}
-                        className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152]"
-                    >
-                        <Plus className="mr-2 w-5 h-5" />
-                        Add Resource
-                    </Button>
-                </Card>
-            )}
-
-            {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-                    >
-                        <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-                            <h2 className="text-2xl font-bold text-[#140152]">
-                                {editingResource ? 'Edit Resource' : 'Add New Resource'}
-                            </h2>
-                            <Button
-                                onClick={handleCloseModal}
-                                variant="ghost"
-                                size="sm"
-                            >
-                                <X className="w-5 h-5" />
-                            </Button>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Title *
-                                </label>
-                                <Input
-                                    value={formData.title}
-                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    required
-                                    placeholder="e.g., Introduction to Bible Study Methods"
-                                    className="text-gray-900"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Description
-                                </label>
-                                <Textarea
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    placeholder="Describe the resource..."
-                                    rows={3}
-                                    className="text-gray-900"
-                                />
-                            </div>
-
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Resource Type *
-                                    </label>
-                                    <select
-                                        value={formData.resource_type}
-                                        onChange={(e) => setFormData({ ...formData, resource_type: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-                                        required
-                                    >
-                                        <option value="article">Article</option>
-                                        <option value="video">Video</option>
-                                        <option value="audio">Audio</option>
-                                        <option value="pdf">PDF</option>
-                                        <option value="link">External Link</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Category
-                                    </label>
-                                    <Input
-                                        value={formData.category}
-                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                        placeholder="e.g., Study Guides, Devotionals"
-                                        className="text-gray-900"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Resource URL
-                                </label>
-                                <Input
-                                    type="url"
-                                    value={formData.resource_url}
-                                    onChange={(e) => setFormData({ ...formData, resource_url: e.target.value })}
-                                    placeholder="https://..."
-                                    className="text-gray-900"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Order Index
-                                </label>
-                                <Input
-                                    type="number"
-                                    value={formData.order_index}
-                                    onChange={(e) => setFormData({ ...formData, order_index: parseInt(e.target.value) })}
-                                    min="0"
-                                    className="text-gray-900"
-                                />
-                            </div>
-
-                            <div className="flex gap-4">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.is_featured}
-                                        onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
-                                        className="w-4 h-4 text-[#140152] rounded"
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">Featured Resource</span>
-                                </label>
-
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.is_active}
-                                        onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                                        className="w-4 h-4 text-[#140152] rounded"
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">Active</span>
-                                </label>
-                            </div>
-
-                            <div className="flex gap-3 pt-4">
-                                <Button
-                                    type="submit"
-                                    className="flex-1 bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152]"
-                                >
-                                    {editingResource ? 'Update Resource' : 'Create Resource'}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    onClick={handleCloseModal}
-                                    variant="outline"
-                                    className="flex-1"
-                                >
-                                    Cancel
-                                </Button>
-                            </div>
-                        </form>
-                    </motion.div>
-                </div>
-            )}
         </div>
     )
 }
 
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
+export default function BibleStudyResourcesAdmin() {
+    const [resources, setResources] = useState<Res[]>([])
+    const [loading, setLoading]     = useState(true)
+    const [saving, setSaving]       = useState(false)
+    const [toast, setToast]         = useState<{ msg: string; ok: boolean } | null>(null)
+
+    // Form state
+    const [mode, setMode]           = useState<'upload' | 'link' | null>(null)
+    const [uploading, setUploading] = useState(false)
+    const [title, setTitle]         = useState('')
+    const [meta, setMeta]           = useState('')
+    const [file, setFile]           = useState<File | null>(null)
+    const [linkUrl, setLinkUrl]     = useState('')
+    const [linkType, setLinkType]   = useState<'pdf' | 'audio' | 'video'>('video')
+    const fileRef                   = useRef<HTMLInputElement>(null)
+
+    // Edit state
+    const [editId, setEditId]       = useState<string | null>(null)
+    const [editTitle, setEditTitle] = useState('')
+    const [editMeta, setEditMeta]   = useState('')
+
+    const showToast = (msg: string, ok = true) => {
+        setToast({ msg, ok })
+        setTimeout(() => setToast(null), 3500)
+    }
+
+    useEffect(() => {
+        bibleStudyApi.getSettings()
+            .then(s => setResources((s.library_resources as Res[]) || []))
+            .catch(() => showToast('Failed to load resources', false))
+            .finally(() => setLoading(false))
+    }, [])
+
+    const persist = async (next: Res[]) => {
+        setSaving(true)
+        try {
+            await bibleStudyApi.updateSettings({ library_resources: next } as any)
+            setResources(next)
+            showToast('Saved!')
+        } catch (e: any) {
+            showToast(e?.message || 'Save failed', false)
+        } finally { setSaving(false) }
+    }
+
+    const handleUpload = async () => {
+        if (!file || !title.trim()) return
+        setUploading(true)
+        try {
+            const res = await bibleStudyApi.uploadResource(file, title.trim(), meta.trim())
+            await persist([...resources, res as Res])
+            setMode(null); setTitle(''); setMeta(''); setFile(null)
+        } catch (e: any) {
+            showToast(e?.message || 'Upload failed', false)
+        } finally { setUploading(false) }
+    }
+
+    const handleAddLink = async () => {
+        if (!linkUrl.trim() || !title.trim()) return
+        const newRes: Res = {
+            id: Date.now().toString(),
+            title: title.trim(),
+            type: linkType,
+            url: linkUrl.trim(),
+            meta: meta.trim(),
+        }
+        await persist([...resources, newRes])
+        setMode(null); setTitle(''); setMeta(''); setLinkUrl('')
+    }
+
+    const handleDelete = async (r: Res) => {
+        if (!confirm(`Delete "${r.title}"? This cannot be undone.`)) return
+        const next = resources.filter(x => x.id !== r.id)
+        if (r.filename) bibleStudyApi.deleteResourceFile(r.filename).catch(() => {})
+        await persist(next)
+    }
+
+    const startEdit = (r: Res) => { setEditId(r.id); setEditTitle(r.title); setEditMeta(r.meta || '') }
+    const saveEdit = async () => {
+        await persist(resources.map(r => r.id === editId ? { ...r, title: editTitle.trim(), meta: editMeta.trim() } : r))
+        setEditId(null)
+    }
+
+    const resetForm = () => { setMode(null); setTitle(''); setMeta(''); setFile(null); setLinkUrl('') }
+
+    return (
+        <div className="max-w-4xl mx-auto space-y-6">
+            {toast && (
+                <div className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl text-white ${toast.ok ? 'bg-green-600' : 'bg-red-600'}`}>
+                    {toast.msg}
+                </div>
+            )}
+
+            {/* Header */}
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <Link href="/admin/bible-study" className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                        <ArrowLeft className="w-5 h-5 text-gray-500" />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-black text-[#140152]">Study Library Resources</h1>
+                        <p className="text-gray-500 text-sm mt-0.5">Upload PDFs, audio, video or add external links — replaces "Coming Soon"</p>
+                    </div>
+                </div>
+                {saving && <Loader2 className="w-5 h-5 animate-spin text-[#140152]" />}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-3 flex-wrap">
+                <button onClick={() => setMode(mode === 'upload' ? null : 'upload')}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${mode === 'upload' ? 'bg-[#140152] text-white' : 'bg-[#140152]/5 text-[#140152] hover:bg-[#140152]/10'}`}>
+                    <Upload className="w-4 h-4" /> Upload File (PDF / Audio / Video)
+                </button>
+                <button onClick={() => setMode(mode === 'link' ? null : 'link')}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${mode === 'link' ? 'bg-[#140152] text-white' : 'bg-[#140152]/5 text-[#140152] hover:bg-[#140152]/10'}`}>
+                    <LinkIcon className="w-4 h-4" /> Add External Link (YouTube / Drive)
+                </button>
+            </div>
+
+            {/* Upload form */}
+            {mode === 'upload' && (
+                <div className="bg-white rounded-2xl border-2 border-[#140152]/20 p-5 space-y-4">
+                    <p className="font-bold text-[#140152] text-sm">Upload File</p>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Resource title *"
+                            className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#140152]" />
+                        <input value={meta} onChange={e => setMeta(e.target.value)} placeholder='e.g. "24 pages" or "38 min"'
+                            className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#140152]" />
+                    </div>
+                    <input ref={fileRef} type="file" accept=".pdf,.mp3,.m4a,.wav,.ogg,.mp4,.webm" onChange={e => setFile(e.target.files?.[0] ?? null)} className="hidden" />
+                    <button onClick={() => fileRef.current?.click()}
+                        className="w-full border-2 border-dashed border-gray-300 hover:border-[#140152] rounded-xl py-8 flex flex-col items-center gap-2 text-sm text-gray-500 hover:text-[#140152] transition-colors">
+                        <Upload className="w-7 h-7" />
+                        {file ? <span className="font-semibold text-[#140152]">{file.name}</span> : 'Click to choose file'}
+                        <span className="text-xs text-gray-400">PDF · MP3 · M4A · WAV · OGG · MP4 · WebM</span>
+                    </button>
+                    <div className="flex gap-3">
+                        <button onClick={handleUpload} disabled={!file || !title.trim() || uploading}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-[#140152] text-white rounded-xl text-sm font-bold hover:bg-[#1d0175] disabled:opacity-40 transition-all">
+                            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                            Upload & Save
+                        </button>
+                        <button onClick={resetForm} className="px-4 py-2.5 text-sm text-gray-500 hover:bg-gray-100 rounded-xl">Cancel</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Link form */}
+            {mode === 'link' && (
+                <div className="bg-white rounded-2xl border-2 border-[#140152]/20 p-5 space-y-4">
+                    <p className="font-bold text-[#140152] text-sm">Add External Link</p>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Resource title *"
+                            className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#140152]" />
+                        <input value={meta} onChange={e => setMeta(e.target.value)} placeholder='e.g. "38 min" or "16 pages"'
+                            className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#140152]" />
+                    </div>
+                    <input value={linkUrl} onChange={e => setLinkUrl(e.target.value)}
+                        placeholder="https://drive.google.com/…  or  https://youtube.com/…"
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#140152]" />
+                    <div className="flex gap-2">
+                        {(['pdf', 'audio', 'video'] as const).map(t => (
+                            <button key={t} onClick={() => setLinkType(t)}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${linkType === t ? 'bg-[#140152] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                                {TYPE_CONFIG[t].label}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex gap-3">
+                        <button onClick={handleAddLink} disabled={!linkUrl.trim() || !title.trim() || saving}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-[#140152] text-white rounded-xl text-sm font-bold hover:bg-[#1d0175] disabled:opacity-40 transition-all">
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                            Add & Save
+                        </button>
+                        <button onClick={resetForm} className="px-4 py-2.5 text-sm text-gray-500 hover:bg-gray-100 rounded-xl">Cancel</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Resource list */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <p className="font-black text-[#140152]">
+                        Library Resources
+                        <span className="ml-2 text-xs font-bold bg-[#140152]/10 text-[#140152] px-2.5 py-0.5 rounded-full">{resources.length}</span>
+                    </p>
+                </div>
+                {loading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-[#140152]/30" /></div>
+                ) : resources.length === 0 ? (
+                    <div className="py-16 text-center">
+                        <FileText className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                        <p className="text-gray-400 text-sm">No resources yet. Upload a file or add a link above.</p>
+                    </div>
+                ) : (
+                    <div>
+                        {resources.map(r => (
+                            editId === r.id ? (
+                                <div key={r.id} className="flex items-center gap-3 px-5 py-3 bg-[#140152]/5 border-b border-gray-50">
+                                    <input value={editTitle} onChange={e => setEditTitle(e.target.value)}
+                                        className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#140152]" />
+                                    <input value={editMeta} onChange={e => setEditMeta(e.target.value)} placeholder="meta"
+                                        className="w-28 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none" />
+                                    <button onClick={saveEdit} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"><Save className="w-4 h-4" /></button>
+                                    <button onClick={() => setEditId(null)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"><X className="w-4 h-4" /></button>
+                                </div>
+                            ) : (
+                                <ResourceRow key={r.id} res={r} onDelete={handleDelete} onEdit={startEdit} />
+                            )
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Info */}
+            <div className="bg-[#f5bb00]/10 border border-[#f5bb00]/30 rounded-2xl p-4 text-sm text-[#92400e]">
+                <p className="font-bold mb-1">📌 How this works</p>
+                <ul className="space-y-1 text-xs list-disc list-inside">
+                    <li>Resources here replace the "Coming Soon" placeholders on <strong>/bible-study → Resources tab</strong></li>
+                    <li>Upload PDFs directly — members click <strong>Download</strong> and get the file</li>
+                    <li>Paste a YouTube link (set type to Video) — members click <strong>Watch</strong></li>
+                    <li>Paste a Google Drive / SoundCloud link (set type to Audio) — members click <strong>Listen</strong></li>
+                    <li>The <strong>Meta</strong> field shows "24 pages", "38 min" etc. on the card</li>
+                </ul>
+            </div>
+        </div>
+    )
+}

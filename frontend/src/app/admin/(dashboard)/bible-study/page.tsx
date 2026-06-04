@@ -13,7 +13,7 @@ import {
     BarChart2, Users, Calendar, MessageSquare, Bell, BookOpen,
     FileText, Music2, ArrowRight, ExternalLink, AlertCircle,
     RefreshCw, Tag, Clock, ChevronRight, Eye, Star, Globe,
-    Palette, Hash, ToggleLeft, ToggleRight, UserCheck, Mail,
+    Palette, Hash, ToggleLeft, ToggleRight, UserCheck, Mail, Upload,
 } from 'lucide-react'
 import {
     bibleStudyApi, dashboardApi, messageApi, WeekReflection, QuarterlyTheme, BibleStudyPageSettings,
@@ -1347,6 +1347,10 @@ export default function BibleStudyAdminPage() {
                                 <p className="text-xs text-gray-500 mt-0.5">PDFs, videos & audio — members download directly, no sign-in required.</p>
                             </div>
                             <div className="flex gap-2">
+                                <a href="/admin/bible-study/resources"
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-[#140152] text-white rounded-xl text-xs font-bold hover:bg-[#1d0175] transition-colors">
+                                    <Upload className="w-3.5 h-3.5" /> Upload / Manage Files
+                                </a>
                                 {library.length === 0 && (
                                     <Button onClick={seedLibraryDefaults} variant="outline" className="text-sm border-[#140152] text-[#140152] hover:bg-[#140152] hover:text-white">
                                         <Sparkles className="w-4 h-4 mr-1" /> Load 6 Defaults
