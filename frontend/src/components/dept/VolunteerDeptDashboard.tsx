@@ -9,7 +9,7 @@
  */
 
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Home, Bell, Calendar, BarChart2, MessageSquare, Users,
@@ -118,7 +118,6 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
           Icon, activityTypes, loginRedirect, memberLabel, coordinatorLabel,
           chatPlaceholder, responsibilities, quickLinks } = cfg
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   /* ── Auth ── */
   const [user, setUser]                   = useState<DeptUser | null>(null)
@@ -127,10 +126,18 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
   const [isCoordinator, setIsCoordinator] = useState(false)
   const [joining, setJoining]             = useState(false)
 
-  /* ── Navigation — honour ?tab= URL param so coordinator shortcuts work ── */
-  const urlTab = (searchParams?.get('tab') ?? 'home') as Tab
+  /* ── Navigation ── */
   const validTabs: Tab[] = ['home', 'notices', 'activities', 'attendance', 'team', 'chat']
-  const [tab, setTab] = useState<Tab>(validTabs.includes(urlTab) ? urlTab : 'home')
+  const [tab, setTab] = useState<Tab>('home')
+
+  /* Read ?tab= from URL on mount — avoids useSearchParams (Suspense requirement) */
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const urlTab = params.get('tab') as Tab
+    if (urlTab && validTabs.includes(urlTab)) setTab(urlTab)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   /* ── Data ── */
   const [announcements, setAnnouncements] = useState<DeptAnnouncement[]>([])
