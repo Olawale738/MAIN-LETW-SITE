@@ -143,7 +143,7 @@ const ROMAN_ROAD = [
     { ref: 'Romans 3:23', text: '"For all have sinned and fall short of the glory of God."' },
     { ref: 'Romans 6:23', text: '"For the wages of sin is death, but the gift of God is eternal life in Christ Jesus our Lord."' },
     { ref: 'Romans 5:8', text: '"But God demonstrates his own love for us in this: While we were still sinners, Christ died for us."' },
-    { ref: 'Romans 10:9', text: '"If you declare with your mouth, 'Jesus is Lord,' and believe in your heart that God raised him from the dead, you will be saved."' },
+    { ref: 'Romans 10:9', text: "“If you declare with your mouth, ‘Jesus is Lord,’ and believe in your heart that God raised him from the dead, you will be saved.”" },
     { ref: 'Romans 10:13', text: '"For everyone who calls on the name of the Lord will be saved."' },
 ]
 
