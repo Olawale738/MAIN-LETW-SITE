@@ -10,7 +10,7 @@ import {
     Target, Globe, Shield, RefreshCw, UserCheck,
 } from 'lucide-react'
 import { dashboardApi, DashboardStats, RecentActivity } from '@/lib/api'
-import { listMembers, updateMember, removeMember, DeptMember } from '@/lib/dept-api'
+import { listMembers, updateMember, removeMember, adminPendingDeptRequests, adminApproveDeptMember, adminRejectDeptMember, DeptMember, PendingDeptRequest, type Department } from '@/lib/dept-api'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -76,21 +76,24 @@ export default function AdminDashboardPage() {
     const [refreshing, setRefreshing]         = useState(false)
     const [pendingYouth, setPendingYouth]     = useState<DeptMember[]>([])
     const [pendingChildren, setPendingChildren] = useState<DeptMember[]>([])
+    const [allPendingDept, setAllPendingDept] = useState<PendingDeptRequest[]>([])
     const [approvingId, setApprovingId]       = useState<string | null>(null)
 
     const load = async (showRefresh = false) => {
         if (showRefresh) setRefreshing(true)
         try {
-            const [statsData, activityData, youthMembers, childrenMembers] = await Promise.all([
+            const [statsData, activityData, youthMembers, childrenMembers, pendingDept] = await Promise.all([
                 dashboardApi.getStats(),
                 dashboardApi.getRecentActivity(6),
                 listMembers('youth').catch(() => [] as DeptMember[]),
                 listMembers('children').catch(() => [] as DeptMember[]),
+                adminPendingDeptRequests().catch(() => [] as PendingDeptRequest[]),
             ])
             setStats(statsData)
             setActivities(activityData.activities)
             setPendingYouth(youthMembers.filter(m => !m.is_active))
             setPendingChildren(childrenMembers.filter(m => !m.is_active))
+            setAllPendingDept(pendingDept)
         } catch (err) {
             console.error('Failed to load dashboard data', err)
         } finally {
@@ -110,6 +113,7 @@ export default function AdminDashboardPage() {
             dept === 'youth'
                 ? setPendingYouth(p => p.filter(m => m.user_id !== member.user_id))
                 : setPendingChildren(p => p.filter(m => m.user_id !== member.user_id))
+            setAllPendingDept(p => p.filter(m => !(m.user_id === member.user_id && m.department === dept)))
         } catch (err) { console.error('Approval failed', err) }
         finally { setApprovingId(null) }
     }
@@ -121,6 +125,25 @@ export default function AdminDashboardPage() {
             dept === 'youth'
                 ? setPendingYouth(p => p.filter(m => m.user_id !== member.user_id))
                 : setPendingChildren(p => p.filter(m => m.user_id !== member.user_id))
+            setAllPendingDept(p => p.filter(m => !(m.user_id === member.user_id && m.department === dept)))
+        } catch (err) { console.error('Decline failed', err) }
+        finally { setApprovingId(null) }
+    }
+
+    const quickApproveD = async (r: PendingDeptRequest) => {
+        setApprovingId(r.id)
+        try {
+            await adminApproveDeptMember(r.department as Department, r.user_id)
+            setAllPendingDept(p => p.filter(x => x.id !== r.id))
+        } catch (err) { console.error('Approval failed', err) }
+        finally { setApprovingId(null) }
+    }
+
+    const quickRejectD = async (r: PendingDeptRequest) => {
+        setApprovingId(r.id + '-reject')
+        try {
+            await adminRejectDeptMember(r.department as Department, r.user_id)
+            setAllPendingDept(p => p.filter(x => x.id !== r.id))
         } catch (err) { console.error('Decline failed', err) }
         finally { setApprovingId(null) }
     }
@@ -135,7 +158,7 @@ export default function AdminDashboardPage() {
     }
 
     const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-    const pendingTotal = pendingYouth.length + pendingChildren.length
+    const pendingTotal = allPendingDept.length   // use the unified list from the new endpoint
 
     if (loading) return (
         <div className="flex flex-col items-center justify-center py-32 gap-4">
@@ -263,61 +286,62 @@ export default function AdminDashboardPage() {
                 </div>
             </div>
 
-            {/* ── Pending Ministry Approvals ── */}
-            {(pendingYouth.length > 0 || pendingChildren.length > 0) && (
+            {/* ── Pending Approvals (ALL departments) ── */}
+            {allPendingDept.length > 0 && (
                 <div>
                     <SectionHeader
-                        title="Pending Ministry Approvals"
-                        subtitle={`${pendingTotal} member${pendingTotal !== 1 ? 's' : ''} awaiting approval`}
+                        title="Pending Volunteer Approvals"
+                        subtitle={`${pendingTotal} member${pendingTotal !== 1 ? 's' : ''} waiting across all departments`}
                         action={
-                            <span className="text-xs font-bold bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full">{pendingTotal} waiting</span>
+                            <Link href="/admin/approvals"
+                                className="flex items-center gap-1.5 text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full hover:bg-amber-200 transition-colors">
+                                {pendingTotal} waiting — Review all <ChevronRight className="w-3.5 h-3.5" />
+                            </Link>
                         }
                     />
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {[
-                            { dept: 'youth' as const,    members: pendingYouth,    label: 'Youth Ministry',    icon: Zap,  accentBg: '#fef3c7', accentText: '#92400e', accentBorder: '#fde68a', hoverBg: 'hover:bg-amber-50', link: '/youth/coordinator' },
-                            { dept: 'children' as const, members: pendingChildren, label: 'Children Ministry', icon: Baby, accentBg: '#f3e8ff', accentText: '#5b21b6', accentBorder: '#e9d5ff', hoverBg: 'hover:bg-violet-50', link: '/children/coordinator' },
-                        ].filter(g => g.members.length > 0).map(({ dept, members, label, icon: Icon, accentBg, accentText, accentBorder, hoverBg, link }) => (
-                            <div key={dept} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: accentBg }}>
-                                            <Icon className="w-4 h-4" style={{ color: accentText }} />
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="divide-y divide-gray-50">
+                            {allPendingDept.slice(0, 8).map(r => {
+                                const DEPT_LABELS: Record<string, string> = {
+                                    choir: 'Worship Team', media: 'Media & Creative', hospitality: 'Hospitality Team',
+                                    ushering: 'Ushering & Welcome', security: 'Security & Safety',
+                                    youth: 'Youth Ministry', children: "Children's Ministry",
+                                }
+                                const daysAgo = r.joined_at ? Math.floor((Date.now() - new Date(r.joined_at).getTime()) / 86_400_000) : null
+                                const isBusy = approvingId === r.id || approvingId === r.id + '-reject'
+                                return (
+                                    <div key={r.id} className="flex items-center gap-3 px-5 py-3 hover:bg-amber-50/30 transition-colors">
+                                        <div className="w-8 h-8 rounded-full bg-[#140152] text-white flex items-center justify-center font-black text-xs shrink-0">
+                                            {r.name.charAt(0).toUpperCase()}
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-black text-[#140152]">{label}</p>
-                                            <p className="text-[10px] text-gray-400">{members.length} pending</p>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-bold text-[#140152] truncate">{r.name}</p>
+                                            <p className="text-[10px] text-gray-400 truncate">
+                                                {DEPT_LABELS[r.department] ?? r.department}
+                                                {daysAgo !== null && ` · ${daysAgo === 0 ? 'today' : daysAgo + 'd ago'}`}
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-1.5 shrink-0">
+                                            <button onClick={() => quickApproveD(r)} disabled={!!approvingId}
+                                                className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold rounded-lg disabled:opacity-50 transition-all">
+                                                {isBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />} Approve
+                                            </button>
+                                            <button onClick={() => quickRejectD(r)} disabled={!!approvingId}
+                                                className="px-2.5 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 text-[10px] font-bold rounded-lg disabled:opacity-50 transition-all">
+                                                <XCircle className="w-3 h-3" />
+                                            </button>
                                         </div>
                                     </div>
-                                    <Link href={link} className="text-[10px] font-bold text-gray-400 hover:text-[#140152] flex items-center gap-0.5">View all <ChevronRight className="w-3 h-3" /></Link>
-                                </div>
-                                <div className="divide-y divide-gray-50">
-                                    {members.map(member => (
-                                        <div key={member.user_id} className={`flex items-center gap-3 px-5 py-3 transition-colors ${hoverBg}`}>
-                                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-xs flex-shrink-0" style={{ background: accentText }}>
-                                                {member.name.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-bold text-[#140152] truncate">{member.name}</p>
-                                                <p className="text-[10px] text-gray-400 truncate">{member.email}</p>
-                                            </div>
-                                            <div className="flex gap-1.5 flex-shrink-0">
-                                                <button onClick={() => approveMember(dept, member)} disabled={!!approvingId}
-                                                    className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold rounded-lg disabled:opacity-50 transition-all">
-                                                    {approvingId === member.user_id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
-                                                    Approve
-                                                </button>
-                                                <button onClick={() => declineMember(dept, member)} disabled={!!approvingId}
-                                                    className="flex items-center gap-1 px-2.5 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 text-[10px] font-bold rounded-lg disabled:opacity-50 transition-all">
-                                                    {approvingId === member.user_id + '-decline' ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
-                                                    Decline
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                )
+                            })}
+                        </div>
+                        {allPendingDept.length > 8 && (
+                            <div className="px-5 py-3 border-t border-gray-50 text-center">
+                                <Link href="/admin/approvals" className="text-xs font-bold text-[#140152] hover:underline">
+                                    +{allPendingDept.length - 8} more — View all pending approvals
+                                </Link>
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             )}

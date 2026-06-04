@@ -10,7 +10,11 @@ import {
     Trash2, AlertTriangle, X, PauseCircle, Play, Check, UserMinus, Crown
 } from 'lucide-react'
 import { serviceRequestApi, ServiceRequest } from '@/lib/api'
-import { adminAllDeptMembers, updateMember, removeMember, type AdminDeptMember, type Department } from '@/lib/dept-api'
+import {
+    adminAllDeptMembers, updateMember, removeMember, adminAssignCoordinator,
+    adminApproveDeptMember, adminRejectDeptMember,
+    type AdminDeptMember, type Department
+} from '@/lib/dept-api'
 
 const DEPT_LABELS: Record<string, string> = {
     choir: 'Worship Team', media: 'Media & Creative', hospitality: 'Hospitality Team',
@@ -277,17 +281,31 @@ function DeptMembersSection() {
 
     const act = async (m: AdminDeptMember, action: 'approve' | 'suspend' | 'remove' | 'coordinator' | 'uncoord') => {
         const key = m.id + action
+        const deptLabel = DEPT_LABELS[m.department] ?? m.department
         setBusy(key)
         try {
             if (action === 'remove') {
-                if (!confirm(`Remove ${m.name} from ${DEPT_LABELS[m.department] ?? m.department}?`)) { setBusy(null); return }
-                await removeMember(m.department as Department, m.user_id)
+                if (!confirm(`Remove ${m.name} from ${deptLabel}?`)) { setBusy(null); return }
+                await adminRejectDeptMember(m.department as Department, m.user_id)
             } else if (action === 'approve') {
-                await updateMember(m.department as Department, m.user_id, { is_active: true })
+                await adminApproveDeptMember(m.department as Department, m.user_id)
             } else if (action === 'suspend') {
                 await updateMember(m.department as Department, m.user_id, { is_active: false })
             } else if (action === 'coordinator') {
-                await updateMember(m.department as Department, m.user_id, { is_coordinator: true } as never)
+                const openDm = confirm(
+                    `Make ${m.name} the ${deptLabel} Coordinator?\n\n` +
+                    `This will:\n• Approve and elevate their access\n• Send them a notification\n• Open a direct-message channel between you and them\n\n` +
+                    `Click OK to confirm.`
+                )
+                if (!openDm && openDm !== false) { setBusy(null); return }  // cancelled
+                const res = await adminAssignCoordinator(m.department as Department, m.user_id, openDm)
+                if (res.conversation_id) {
+                    setTimeout(() => {
+                        if (confirm(`${m.name} is now the ${deptLabel} Coordinator! A direct-message thread was opened. Open it now?`)) {
+                            window.location.href = '/admin/chat'
+                        }
+                    }, 400)
+                }
             } else if (action === 'uncoord') {
                 await updateMember(m.department as Department, m.user_id, { is_coordinator: false } as never)
             }

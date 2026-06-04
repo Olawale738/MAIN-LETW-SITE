@@ -392,13 +392,29 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
   }
 
   const doApproveMember = async (userId: string) => {
-    try { await updateMember(dept, userId, { is_active: true }); setMembers(await listMembers(dept)) }
+    try {
+      // Use the admin endpoint if available (sends approval notification to member)
+      // Fall back to direct update for coordinator-level users
+      if (user?.role === 'admin') {
+        await import('@/lib/dept-api').then(m => m.adminApproveDeptMember(dept, userId))
+      } else {
+        await updateMember(dept, userId, { is_active: true })
+      }
+      setMembers(await listMembers(dept))
+    }
     catch (e: unknown) { alert((e as Error).message) }
   }
 
   const doSetCoordinator = async (userId: string, memberName: string, makeCoordinator: boolean) => {
     if (!confirm(makeCoordinator ? `Make ${memberName} the coordinator of ${name}?` : `Remove ${memberName} as coordinator?`)) return
-    try { await updateMember(dept, userId, { is_coordinator: makeCoordinator }); setMembers(await listMembers(dept)) }
+    try {
+      if (makeCoordinator && user?.role === 'admin') {
+        await import('@/lib/dept-api').then(m => m.adminAssignCoordinator(dept, userId, true))
+      } else {
+        await updateMember(dept, userId, { is_coordinator: makeCoordinator })
+      }
+      setMembers(await listMembers(dept))
+    }
     catch (e: unknown) { alert((e as Error).message) }
   }
 

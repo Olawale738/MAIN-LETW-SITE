@@ -25,6 +25,7 @@ from models.department import (
     DepartmentActivity, AttendanceRecord, DepartmentMessage,
     DepartmentType, ActivityType,
 )
+from models.notification import Notification, NotificationType
 from utils.dependencies import get_current_active_user, get_admin_user
 
 router = APIRouter(prefix="/api/departments", tags=["Departments"])
@@ -737,6 +738,190 @@ async def admin_all_department_members(
     ]
 
 
+@admin_router.get("/pending-dept-requests")
+async def admin_pending_dept_requests(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user),
+):
+    """All pending (is_active=False) department join requests — the ones needing admin approval."""
+    result = await db.execute(
+        select(DepartmentMember, User)
+        .join(User, User.id == DepartmentMember.user_id)
+        .where(DepartmentMember.is_active == False)
+        .order_by(DepartmentMember.joined_at.desc())
+    )
+    rows = result.all()
+    return [
+        {
+            "id": dm.id,
+            "user_id": dm.user_id,
+            "name": u.name,
+            "email": u.email,
+            "department": dm.department.value,
+            "is_coordinator": getattr(dm, "is_coordinator", False),
+            "joined_at": dm.joined_at.isoformat() if dm.joined_at else None,
+        }
+        for dm, u in rows
+    ]
+
+
+class ApproveDeptMemberBody(BaseModel):
+    notify: bool = True
+
+
+@admin_router.post("/dept-members/{dept}/{user_id}/approve")
+async def admin_approve_dept_member(
+    dept: str,
+    user_id: str,
+    body: ApproveDeptMemberBody = ApproveDeptMemberBody(),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user),
+):
+    """Approve a pending dept join request and notify the member."""
+    d = _parse_dept(dept)
+    result = await db.execute(
+        select(DepartmentMember).where(
+            and_(DepartmentMember.user_id == user_id, DepartmentMember.department == d)
+        )
+    )
+    dm = result.scalar_one_or_none()
+    if not dm:
+        raise HTTPException(status_code=404, detail="Membership not found.")
+    dm.is_active = True
+    if body.notify:
+        dept_label = d.value.replace("_", " ").title()
+        db.add(Notification(
+            user_id=user_id,
+            title=f"✅ Welcome to {dept_label}!",
+            message=(
+                f"Your request to join the {dept_label} department has been approved by an admin. "
+                f"Open your volunteer dashboard to access the team area."
+            ),
+            type=NotificationType.SERVICE_APPROVED,
+            reference_id=dm.id,
+        ))
+    await db.commit()
+    return {"message": "Member approved.", "status": "approved"}
+
+
+@admin_router.post("/dept-members/{dept}/{user_id}/reject")
+async def admin_reject_dept_member(
+    dept: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user),
+):
+    """Reject (remove) a pending dept join request and notify the member."""
+    d = _parse_dept(dept)
+    result = await db.execute(
+        select(DepartmentMember).where(
+            and_(DepartmentMember.user_id == user_id, DepartmentMember.department == d)
+        )
+    )
+    dm = result.scalar_one_or_none()
+    if not dm:
+        raise HTTPException(status_code=404, detail="Membership not found.")
+    await db.delete(dm)
+    dept_label = d.value.replace("_", " ").title()
+    db.add(Notification(
+        user_id=user_id,
+        title=f"Update on your {dept_label} request",
+        message=(
+            f"Your request to join the {dept_label} department was not approved at this time. "
+            f"Please contact an admin if you have questions."
+        ),
+        type=NotificationType.GENERAL,
+        reference_id=user_id,
+    ))
+    await db.commit()
+    return {"message": "Request rejected.", "status": "rejected"}
+
+
+class AssignCoordinatorBody(BaseModel):
+    open_dm: bool = True   # whether to auto-open an admin → coordinator DM thread
+
+
+@admin_router.post("/dept-members/{dept}/{user_id}/assign-coordinator")
+async def admin_assign_dept_coordinator(
+    dept: str,
+    user_id: str,
+    body: AssignCoordinatorBody = AssignCoordinatorBody(),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user),
+):
+    """
+    Promote a dept member to coordinator:
+    - Sets is_coordinator=True, is_active=True
+    - Sends the member a notification
+    - Optionally creates a DM conversation between admin and coordinator
+    """
+    d = _parse_dept(dept)
+    result = await db.execute(
+        select(DepartmentMember).where(
+            and_(DepartmentMember.user_id == user_id, DepartmentMember.department == d)
+        )
+    )
+    dm = result.scalar_one_or_none()
+    if not dm:
+        raise HTTPException(status_code=404, detail="Membership not found.")
+
+    dm.is_coordinator = True
+    dm.is_active = True
+    if not dm.role_label:
+        dm.role_label = "Coordinator"
+
+    dept_label = d.value.replace("_", " ").title()
+    db.add(Notification(
+        user_id=user_id,
+        title=f"🎖️ You're now a {dept_label} Coordinator!",
+        message=(
+            f"Admin has appointed you as the {dept_label} department coordinator. "
+            f"You can now approve new members, manage activities, and communicate "
+            f"with your team directly from the {dept_label} dashboard."
+        ),
+        type=NotificationType.SERVICE_APPROVED,
+        reference_id=dm.id,
+    ))
+
+    conv_id = None
+    if body.open_dm:
+        # Open a dedicated admin→coordinator conversation so they can communicate
+        from models.message import Conversation, ConversationStatus
+        from datetime import datetime
+        coord_user = await db.execute(select(User).where(User.id == user_id))
+        coord = coord_user.scalar_one_or_none()
+        if coord:
+            intro = (
+                f"Hi {coord.name}! Congratulations on being appointed as the "
+                f"{dept_label} Coordinator. This is your direct line to me "
+                f"(the admin) — use it to flag anything that needs my attention, "
+                f"ask questions, or share updates about the {dept_label} team. "
+                f"God bless your service! 🙏"
+            )
+            from models.message import Message as DMsg
+            conv = Conversation(
+                user_id=coord.id,
+                admin_id=current_user.id,
+                subject=f"{dept_label} Coordinator — Direct Line",
+                status=ConversationStatus.OPEN,
+                last_message_preview=intro[:200],
+                last_message_at=datetime.utcnow(),
+                unread_for_user=1,
+                unread_for_admin=0,
+            )
+            db.add(conv)
+            await db.flush()
+            db.add(DMsg(conversation_id=conv.id, sender_id=current_user.id, body=intro))
+            conv_id = conv.id
+
+    await db.commit()
+    return {
+        "message": f"{dm.role_label} assigned.",
+        "status": "coordinator",
+        "conversation_id": conv_id,
+    }
+
+
 @admin_router.get("/leaders")
 async def admin_list_leaders(
     db: AsyncSession = Depends(get_db),
@@ -788,6 +973,24 @@ async def join_department(
         return {"message": "Your membership has been reactivated!", "status": "reactivated"}
 
     db.add(DepartmentMember(user_id=current_user.id, department=d, is_active=not pending))
+    await db.flush()   # persist member row before notifications
+
+    if pending:
+        # Notify every admin about the new pending join request
+        admins_result = await db.execute(select(User).where(User.role == UserRole.ADMIN))
+        dept_label = d.value.replace("_", " ").title()
+        for admin in admins_result.scalars().all():
+            db.add(Notification(
+                user_id=admin.id,
+                title=f"New {dept_label} join request",
+                message=(
+                    f"{current_user.name} has requested to join the {dept_label} department "
+                    f"and is awaiting your approval."
+                ),
+                type=NotificationType.GENERAL,
+                reference_id=current_user.id,
+            ))
+
     await db.commit()
     if pending:
         return {"message": "Request submitted — awaiting admin approval.", "status": "pending"}

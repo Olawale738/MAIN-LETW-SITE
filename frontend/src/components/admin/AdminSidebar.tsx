@@ -2,11 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager, chatApi, serviceRequestApi } from '@/lib/api'
 import { useState, useEffect } from 'react'
-import { listMembers } from '@/lib/dept-api'
+import { listMembers, adminPendingDeptRequests } from '@/lib/dept-api'
 
 const sidebarItems = [
     {
@@ -18,6 +18,11 @@ const sidebarItems = [
         title: 'Live Stream',
         href: '/admin/live-stream',
         icon: Radio
+    },
+    {
+        title: 'Pending Approvals',
+        href: '/admin/approvals',
+        icon: Bell
     },
     {
         title: 'Service Requests',
@@ -142,6 +147,7 @@ export default function AdminSidebar() {
     const [chatUnread, setChatUnread] = useState(0)
     const [youthPending, setYouthPending] = useState(0)
     const [childrenPending, setChildrenPending] = useState(0)
+    const [allPendingCount, setAllPendingCount] = useState(0)
     const [volunteerCount, setVolunteerCount] = useState(0)
 
     useEffect(() => {
@@ -159,12 +165,14 @@ export default function AdminSidebar() {
     useEffect(() => {
         const fetchPending = async () => {
             try {
-                const [youthMembers, childrenMembers] = await Promise.all([
+                const [youthMembers, childrenMembers, allPending] = await Promise.all([
                     listMembers('youth'),
                     listMembers('children'),
+                    adminPendingDeptRequests().catch(() => []),
                 ])
                 setYouthPending(youthMembers.filter(m => !m.is_active).length)
                 setChildrenPending(childrenMembers.filter(m => !m.is_active).length)
+                setAllPendingCount(allPending.length)
             } catch { /* ignore — non-admin sessions won't have access */ }
         }
         fetchPending()
@@ -215,6 +223,11 @@ export default function AdminSidebar() {
                             {item.href === '/admin/chat' && chatUnread > 0 && (
                                 <span className="bg-[#f5bb00] text-[#140152] text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
                                     {chatUnread > 9 ? '9+' : chatUnread}
+                                </span>
+                            )}
+                            {item.href === '/admin/approvals' && allPendingCount > 0 && (
+                                <span className="bg-red-500 text-white text-xs font-black min-w-[1.25rem] h-5 px-1 rounded-full flex items-center justify-center animate-pulse">
+                                    {allPendingCount > 9 ? '9+' : allPendingCount}
                                 </span>
                             )}
                             {item.href === '/admin/volunteers' && volunteerCount > 0 && (

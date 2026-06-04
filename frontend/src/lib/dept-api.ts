@@ -276,6 +276,35 @@ export async function adminAllDeptMembers(): Promise<AdminDeptMember[]> {
   return request<AdminDeptMember[]>('/admin/department-members')
 }
 
+export interface PendingDeptRequest {
+  id: string
+  user_id: string
+  name: string
+  email: string
+  department: string
+  is_coordinator: boolean
+  joined_at: string | null
+}
+
+export async function adminPendingDeptRequests(): Promise<PendingDeptRequest[]> {
+  return request<PendingDeptRequest[]>('/admin/pending-dept-requests')
+}
+
+export async function adminApproveDeptMember(dept: Department, userId: string): Promise<{ message: string; status: string }> {
+  return request(`/admin/dept-members/${dept}/${userId}/approve`, { method: 'POST' })
+}
+
+export async function adminRejectDeptMember(dept: Department, userId: string): Promise<{ message: string; status: string }> {
+  return request(`/admin/dept-members/${dept}/${userId}/reject`, { method: 'POST' })
+}
+
+export async function adminAssignCoordinator(dept: Department, userId: string, openDm = true): Promise<{ message: string; status: string; conversation_id?: string }> {
+  return request(`/admin/dept-members/${dept}/${userId}/assign-coordinator`, {
+    method: 'POST',
+    body: JSON.stringify({ open_dm: openDm }),
+  })
+}
+
 export async function checkMembership(dept: Department): Promise<MembershipStatus> {
   return request<MembershipStatus>(`/departments/${dept}/membership/me`)
 }
