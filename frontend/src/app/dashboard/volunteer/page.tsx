@@ -14,6 +14,7 @@ import {
 import Link from 'next/link'
 
 type Status = 'approved' | 'pending' | 'none'
+type CoordMap = Record<string, boolean>   // key → is_coordinator
 
 interface VDept {
     key: string
@@ -45,6 +46,7 @@ export default function VolunteerDashboard() {
     const [loading, setLoading] = useState(true)
     const [userName, setUserName] = useState('')
     const [statuses, setStatuses] = useState<Record<string, Status>>({})
+    const [coordinators, setCoordinators] = useState<CoordMap>({})
 
     useEffect(() => {
         const init = async () => {
@@ -68,14 +70,17 @@ export default function VolunteerDashboard() {
             const memResults = await Promise.allSettled(
                 deptDepts.map(d => checkMembership(d.dept as Department))
             )
+            const coordResult: CoordMap = {}
             deptDepts.forEach((d, i) => {
                 const r = memResults[i]
                 if (r.status === 'fulfilled' && r.value) {
                     if (r.value.is_member && r.value.is_active) result[d.key] = 'approved'
                     else if (r.value.is_member) result[d.key] = 'pending'
                     else result[d.key] = 'none'
+                    coordResult[d.key] = !!(r.value.is_coordinator)
                 } else result[d.key] = 'none'
             })
+            setCoordinators(coordResult)
 
             DEPARTMENTS.filter(d => d.kind === 'service').forEach(d => {
                 if (d.service && approvedServices.includes(d.service)) result[d.key] = 'approved'
@@ -135,26 +140,50 @@ export default function VolunteerDashboard() {
                             <motion.div key={d.key}
                                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                                 {status === 'approved' ? (
-                                    <Link href={d.dashboardUrl}>
-                                        <Card className="bg-white hover:shadow-2xl transition-all cursor-pointer overflow-hidden group h-full">
-                                            <div className="h-1.5" style={{ backgroundColor: d.color }} />
-                                            <div className="p-6">
-                                                <div className="flex items-start justify-between mb-4">
-                                                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: `${d.color}1a` }}>
-                                                        <Icon className="w-6 h-6" style={{ color: d.color }} />
-                                                    </div>
+                                    <Card className="bg-white hover:shadow-2xl transition-all overflow-hidden h-full">
+                                        <div className="h-1.5" style={{ backgroundColor: d.color }} />
+                                        <div className="p-6 flex flex-col h-full">
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: `${d.color}1a` }}>
+                                                    <Icon className="w-6 h-6" style={{ color: d.color }} />
+                                                </div>
+                                                <div className="flex flex-col items-end gap-1">
                                                     <span className="flex items-center gap-1 text-[11px] font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
                                                         <CheckCircle2 className="w-3.5 h-3.5" /> Approved
                                                     </span>
+                                                    {coordinators[d.key] && (
+                                                        <span className="text-[10px] font-bold text-[#f5bb00] bg-[#140152] px-2 py-0.5 rounded-full">
+                                                            👑 Coordinator
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <h3 className="text-lg font-black text-[#140152] mb-1.5">{d.name}</h3>
-                                                <p className="text-gray-500 text-sm mb-5 leading-relaxed">{d.description}</p>
-                                                <Button className="w-full text-white rounded-xl group-hover:opacity-90" style={{ background: d.color }}>
-                                                    Open Dashboard <ArrowRight className="w-4 h-4 ml-1" />
-                                                </Button>
                                             </div>
-                                        </Card>
-                                    </Link>
+                                            <h3 className="text-lg font-black text-[#140152] mb-1.5">{d.name}</h3>
+                                            <p className="text-gray-500 text-sm mb-5 leading-relaxed flex-1">{d.description}</p>
+
+                                            {/* Coordinator: show both Open Dashboard + Message Volunteers */}
+                                            {coordinators[d.key] && d.kind === 'dept' ? (
+                                                <div className="flex flex-col gap-2">
+                                                    <Link href={`${d.dashboardUrl}?tab=team`} className="w-full">
+                                                        <Button className="w-full text-white rounded-xl flex items-center gap-2" style={{ background: d.color }}>
+                                                            <MessageCircle className="w-4 h-4" /> Message Volunteers
+                                                        </Button>
+                                                    </Link>
+                                                    <Link href={d.dashboardUrl} className="w-full">
+                                                        <Button variant="outline" className="w-full rounded-xl border-2 text-sm" style={{ borderColor: d.color, color: d.color }}>
+                                                            Open Dashboard <ArrowRight className="w-4 h-4 ml-1" />
+                                                        </Button>
+                                                    </Link>
+                                                </div>
+                                            ) : (
+                                                <Link href={d.dashboardUrl} className="w-full">
+                                                    <Button className="w-full text-white rounded-xl" style={{ background: d.color }}>
+                                                        Open Dashboard <ArrowRight className="w-4 h-4 ml-1" />
+                                                    </Button>
+                                                </Link>
+                                            )}
+                                        </div>
+                                    </Card>
                                 ) : status === 'pending' ? (
                                     <Card className="bg-amber-50/60 border border-amber-200 overflow-hidden h-full">
                                         <div className="h-1.5 bg-amber-300" />

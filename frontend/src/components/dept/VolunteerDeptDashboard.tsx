@@ -9,7 +9,7 @@
  */
 
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Home, Bell, Calendar, BarChart2, MessageSquare, Users,
@@ -118,6 +118,7 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
           Icon, activityTypes, loginRedirect, memberLabel, coordinatorLabel,
           chatPlaceholder, responsibilities, quickLinks } = cfg
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   /* ── Auth ── */
   const [user, setUser]                   = useState<DeptUser | null>(null)
@@ -126,8 +127,10 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
   const [isCoordinator, setIsCoordinator] = useState(false)
   const [joining, setJoining]             = useState(false)
 
-  /* ── Navigation ── */
-  const [tab, setTab] = useState<Tab>('home')
+  /* ── Navigation — honour ?tab= URL param so coordinator shortcuts work ── */
+  const urlTab = (searchParams?.get('tab') ?? 'home') as Tab
+  const validTabs: Tab[] = ['home', 'notices', 'activities', 'attendance', 'team', 'chat']
+  const [tab, setTab] = useState<Tab>(validTabs.includes(urlTab) ? urlTab : 'home')
 
   /* ── Data ── */
   const [announcements, setAnnouncements] = useState<DeptAnnouncement[]>([])
@@ -1340,6 +1343,15 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
                     <span className="text-[10px] text-gray-400">{members.length || messages.length} members · Live</span>
                   </div>
                 </div>
+                {/* Coordinator: quick link to Team tab for 1-on-1 DMs */}
+                {isCoordinator && (
+                  <button onClick={() => setTab('team')}
+                    className="shrink-0 flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-colors"
+                    style={{ borderColor: primary, color: primary }}
+                    title="Switch to Team tab to message individual volunteers">
+                    <Users className="w-3.5 h-3.5" /> Message Individual
+                  </button>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ scrollbarWidth: 'thin' }}>
@@ -1419,6 +1431,18 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
                 <div ref={chatBottomRef} />
               </div>
 
+              {isCoordinator && (
+                <div className="flex-shrink-0 px-4 pt-2 bg-white">
+                  <div className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-[11px] font-semibold"
+                    style={{ background: `${primary}12`, color: primary }}>
+                    <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+                    <span>Group message — visible to all {name} members</span>
+                    <button onClick={() => setTab('team')} className="ml-auto underline hover:no-underline font-bold">
+                      1-on-1 DMs →
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="flex-shrink-0 px-4 py-3 bg-white border-t border-gray-100">
                 <div className="flex items-center gap-2 bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-2.5 transition-all focus-within:bg-white focus-within:border-opacity-100"
                   style={{ '--focus-color': primary } as React.CSSProperties}
