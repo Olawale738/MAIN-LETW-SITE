@@ -246,6 +246,24 @@ async def admin_reply(
     return msg
 
 
+@router.delete("/admin/messages/{message_id}")
+async def admin_delete_chat_message(
+    message_id: str,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin: delete a specific message from any live-chat conversation."""
+    result = await db.execute(
+        select(ChatMessage).where(ChatMessage.id == message_id)
+    )
+    msg = result.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    await db.delete(msg)
+    await db.commit()
+    return {"message": "Message deleted."}
+
+
 @router.get("/admin/unread-total")
 async def admin_total_unread(
     admin: User = Depends(require_admin),

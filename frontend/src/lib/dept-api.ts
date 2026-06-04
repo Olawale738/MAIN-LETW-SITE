@@ -293,6 +293,10 @@ export async function sendDeptMessage(dept: Department, content: string): Promis
   })
 }
 
+export async function deleteDeptMessage(dept: Department, msgId: string): Promise<{ message: string }> {
+  return request<{ message: string }>(`/departments/${dept}/chat/${msgId}`, { method: 'DELETE' })
+}
+
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
 export async function adminListUsers(search?: string): Promise<AdminUser[]> {

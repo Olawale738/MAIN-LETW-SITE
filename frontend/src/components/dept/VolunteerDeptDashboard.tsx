@@ -22,7 +22,7 @@ import {
 import {
   getCurrentUser, checkMembership, joinDepartment,
   listAnnouncements, listActivities, myAttendance,
-  getDeptMessages, sendDeptMessage,
+  getDeptMessages, sendDeptMessage, deleteDeptMessage,
   listMembers, addMember, removeMember, updateMember,
   createAnnouncement, deleteAnnouncement,
   createActivity, deleteActivity,
@@ -430,6 +430,19 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
     try { await sendDeptMessage(dept, text); const msgs = await getDeptMessages(dept); setMessages(msgs); if (msgs.length) lastMsgId.current = msgs[msgs.length - 1].id }
     catch { /* keep optimistic */ }
     finally { setSending(false) }
+  }
+
+  const deleteChat = async (msgId: string) => {
+    if (!confirm('Delete this message? This cannot be undone.')) return
+    // Optimistic remove
+    setMessages(p => p.filter(m => m.id !== msgId))
+    try { await deleteDeptMessage(dept, msgId) }
+    catch (e: unknown) {
+      // Restore on failure
+      const msgs = await getDeptMessages(dept).catch(() => [] as DeptMessage[])
+      setMessages(msgs)
+      alert('Could not delete message: ' + (e as Error).message)
+    }
   }
 
   const gcalLink = (a: DeptActivity) => {
@@ -1341,6 +1354,13 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
                               </motion.div>
                             )}
                           </div>
+                          {/* Admin/coordinator delete — shows on hover */}
+                          {isCoordinator && !msg.id.startsWith('tmp-') && (
+                            <button onClick={() => deleteChat(msg.id)} title="Delete message"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center hover:bg-red-100 rounded-full">
+                              <Trash2 className="w-3 h-3 text-red-400" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

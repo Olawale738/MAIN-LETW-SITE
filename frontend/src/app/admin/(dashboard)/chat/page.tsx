@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
     Loader2, Send, MessageCircle, RefreshCw, X,
-    User, Circle, Search, CheckCheck, Clock,
+    User, Circle, Search, CheckCheck, Clock, Trash2,
 } from 'lucide-react'
 import { messageApi, ChatConversationDetail, ChatConversation } from '@/lib/api'
 
@@ -85,12 +85,23 @@ export default function AdminChatPage() {
         ws.onmessage = (evt) => {
             try {
                 const msg = JSON.parse(evt.data)
-                // If message belongs to the open conversation, refresh it
-                if (selectedRef.current && msg.conversation_id === selectedRef.current) {
-                    loadMessages(selectedRef.current)
+                if (msg.type === 'message.deleted') {
+                    // Optimistically remove deleted message from view
+                    if (selectedRef.current && msg.conversation_id === selectedRef.current) {
+                        setConvDetail(prev => prev
+                            ? { ...prev, messages: prev.messages!.filter(m => m.id !== msg.message_id) }
+                            : prev
+                        )
+                    }
+                    loadConversations()
+                } else {
+                    // If message belongs to the open conversation, refresh it
+                    if (selectedRef.current && msg.conversation_id === selectedRef.current) {
+                        loadMessages(selectedRef.current)
+                    }
+                    // Always refresh sidebar list
+                    loadConversations()
                 }
-                // Always refresh sidebar list
-                loadConversations()
             } catch { /* ignore bad frames */ }
         }
 
@@ -107,6 +118,22 @@ export default function AdminChatPage() {
         setSelectedConvId(convId)
         setConvDetail(null)
         setInput('')
+    }
+
+    // ── delete message ────────────────────────────────────────────────
+    const handleDeleteMessage = async (conversationId: string, messageId: string) => {
+        if (!confirm('Delete this message? This cannot be undone.')) return
+        try {
+            await messageApi.admin.deleteMessage(conversationId, messageId)
+            // Optimistic update — remove from local state
+            setConvDetail(prev => prev
+                ? { ...prev, messages: prev.messages!.filter(m => m.id !== messageId) }
+                : prev
+            )
+            await loadConversations()
+        } catch (e: any) {
+            alert(e?.message || 'Failed to delete message')
+        }
     }
 
     // ── send message ──────────────────────────────────────────────────
@@ -325,13 +352,23 @@ export default function AdminChatPage() {
                                                         <div className="flex-1 h-px bg-gray-200" />
                                                     </div>
                                                 )}
-                                                <div className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`flex items-end gap-1 group/msg ${isAdmin ? 'justify-end' : 'justify-start'}`}>
                                                     {!isAdmin && (
-                                                        <div className="w-8 h-8 rounded-full bg-[#140152] flex items-center justify-center text-white text-xs font-bold mr-2 shrink-0 self-end">
+                                                        <div className="w-8 h-8 rounded-full bg-[#140152] flex items-center justify-center text-white text-xs font-bold mr-1 shrink-0">
                                                             {selectedConv?.user?.name?.[0]?.toUpperCase() || 'U'}
                                                         </div>
                                                     )}
-                                                    <div className={`max-w-[68%] group`}>
+                                                    {/* Delete button — left of admin bubbles, right of member bubbles */}
+                                                    {isAdmin && (
+                                                        <button
+                                                            onClick={() => handleDeleteMessage(msg.conversation_id, msg.id)}
+                                                            title="Delete message"
+                                                            className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 shrink-0 self-center"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
+                                                    <div className="max-w-[65%]">
                                                         <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm
                                                             ${isAdmin
                                                                 ? 'bg-[#140152] text-white rounded-tr-sm'
@@ -346,8 +383,18 @@ export default function AdminChatPage() {
                                                             {isAdmin && <CheckCheck className="w-3 h-3 text-gray-400" />}
                                                         </div>
                                                     </div>
+                                                    {/* Delete button for member messages */}
+                                                    {!isAdmin && (
+                                                        <button
+                                                            onClick={() => handleDeleteMessage(msg.conversation_id, msg.id)}
+                                                            title="Delete message"
+                                                            className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 shrink-0 self-center"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
                                                     {isAdmin && (
-                                                        <div className="w-8 h-8 rounded-full bg-[#f5bb00] flex items-center justify-center text-[#140152] text-xs font-black ml-2 shrink-0 self-end">
+                                                        <div className="w-8 h-8 rounded-full bg-[#f5bb00] flex items-center justify-center text-[#140152] text-xs font-black ml-1 shrink-0">
                                                             A
                                                         </div>
                                                     )}

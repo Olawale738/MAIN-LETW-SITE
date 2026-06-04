@@ -549,6 +549,63 @@ async def admin_inbox(
     )
 
 
+@router.delete(
+    "/conversations/{conversation_id}/messages/{message_id}",
+    response_model=ApiMessage,
+)
+async def admin_delete_message(
+    conversation_id: str,
+    message_id: str,
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin: hard-delete a single message from any conversation."""
+    res = await db.execute(
+        select(Message).where(
+            Message.id == message_id,
+            Message.conversation_id == conversation_id,
+        )
+    )
+    msg = res.scalar_one_or_none()
+    if msg is None:
+        raise HTTPException(status_code=404, detail="Message not found.")
+
+    await db.delete(msg)
+
+    # Update conversation preview if this was the deleted message
+    conv_res = await db.execute(
+        select(Conversation).where(Conversation.id == conversation_id)
+    )
+    conv = conv_res.scalar_one_or_none()
+    if conv:
+        last_res = await db.execute(
+            select(Message)
+            .where(Message.conversation_id == conversation_id, Message.id != message_id)
+            .order_by(Message.created_at.desc())
+            .limit(1)
+        )
+        last = last_res.scalar_one_or_none()
+        if conv.last_message_preview and last:
+            conv.last_message_preview = last.body[:200]
+            conv.last_message_at = last.created_at
+        elif not last:
+            conv.last_message_preview = None
+            conv.last_message_at = None
+
+    await db.commit()
+
+    # Push a WS event so open conversations refresh instantly
+    if conv:
+        for uid in filter(None, [conv.user_id, conv.admin_id]):
+            await manager.send_personal(uid, {
+                "type": "message.deleted",
+                "conversation_id": conversation_id,
+                "message_id": message_id,
+            })
+
+    return ApiMessage(message="Message deleted.")
+
+
 @router.post("/admin/assign-mentor", response_model=ConversationDetailResponse, status_code=201)
 async def assign_mentor(
     payload: AssignMentorRequest,

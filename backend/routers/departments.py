@@ -861,6 +861,31 @@ async def get_chat_messages(
     ]
 
 
+@router.delete("/{dept}/chat/{msg_id}")
+async def delete_dept_chat_message(
+    dept: str,
+    msg_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Admin or department coordinator: hard-delete a department chat message."""
+    d = _parse_dept(dept)
+    await _require_leader(d, current_user, db)
+
+    result = await db.execute(
+        select(DepartmentMessage).where(
+            and_(DepartmentMessage.id == msg_id, DepartmentMessage.department == d)
+        )
+    )
+    msg = result.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found.")
+
+    await db.delete(msg)
+    await db.commit()
+    return {"message": "Message deleted."}
+
+
 @router.post("/{dept}/chat", status_code=201)
 async def send_chat_message(
     dept: str,

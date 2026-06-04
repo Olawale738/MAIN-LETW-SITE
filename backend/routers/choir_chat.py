@@ -15,6 +15,8 @@ from sqlalchemy import select, delete, func as sqlfunc
 
 from database import get_db
 from models.choir_chat import ChoirGroupMessage, ChoirMember, ChoirSong
+from models.user import User, UserRole
+from utils.dependencies import get_current_active_user
 
 router = APIRouter(prefix="/api/choir-chat", tags=["Choir Chat"])
 
@@ -118,6 +120,26 @@ async def send_message(
         await db.commit()
 
     return msg
+
+
+@router.delete("/messages/{msg_id}")
+async def delete_choir_message(
+    msg_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Admin: delete a single choir chat message."""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required.")
+    result = await db.execute(
+        select(ChoirGroupMessage).where(ChoirGroupMessage.id == msg_id)
+    )
+    msg = result.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    await db.delete(msg)
+    await db.commit()
+    return {"message": "Message deleted."}
 
 
 @router.delete("/messages/clear")

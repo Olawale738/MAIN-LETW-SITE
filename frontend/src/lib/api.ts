@@ -2576,6 +2576,12 @@ export const chatApi = {
         getTotalUnread: async (): Promise<{ unread_count: number }> => {
             return fetchApi<{ unread_count: number }>('/chat/admin/unread-total');
         },
+
+        deleteMessage: async (messageId: string): Promise<{ message: string }> => {
+            return fetchApi<{ message: string }>(`/chat/admin/messages/${messageId}`, {
+                method: 'DELETE',
+            });
+        },
     },
 };
 
@@ -2781,6 +2787,13 @@ export const messageApi = {
             fetchApi<MessageResponse>(`/messages/conversations/${conversationId}/close`, {
                 method: 'POST',
             }),
+
+        /** Admin: hard-delete a single message from any conversation. */
+        deleteMessage: async (conversationId: string, messageId: string): Promise<MessageResponse> =>
+            fetchApi<MessageResponse>(
+                `/messages/conversations/${conversationId}/messages/${messageId}`,
+                { method: 'DELETE' }
+            ),
 
         /** Admin: assign a mentor to a mentee and open a chat thread between them */
         assignMentor: async (
