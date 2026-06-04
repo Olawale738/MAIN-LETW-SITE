@@ -70,6 +70,16 @@ const sidebarItems = [
         icon: Church
     },
     {
+        title: 'Evangelism Page',
+        href: '/admin/pages/evangelism',
+        icon: Globe
+    },
+    {
+        title: 'Evangelism Sign-Ups',
+        href: '/admin/evangelism-signups',
+        icon: HandHeart
+    },
+    {
         title: 'Users',
         href: '/admin/users',
         icon: Users

@@ -10,6 +10,9 @@ import ImageBlock from './blocks/ImageBlock';
 import SermonListBlock from './blocks/SermonListBlock';
 import UpcomingEventsBlock from './blocks/UpcomingEventsBlock';
 import ButtonGroupBlock from './blocks/ButtonGroupBlock';
+import StatsBlock from './blocks/StatsBlock';
+import TestimoniesBlock from './blocks/TestimoniesBlock';
+import ScriptureBlock from './blocks/ScriptureBlock';
 
 interface PageRendererProps {
     blocks: Block[];
@@ -24,7 +27,9 @@ const BLOCK_COMPONENTS: Record<string, React.FC<any>> = {
     'sermon-list': SermonListBlock,
     'upcoming-events': UpcomingEventsBlock,
     'button-group': ButtonGroupBlock,
-    // Add placeholders for others if needed
+    stats: StatsBlock,
+    testimonies: TestimoniesBlock,
+    scripture: ScriptureBlock,
     video: () => null,
 };
 

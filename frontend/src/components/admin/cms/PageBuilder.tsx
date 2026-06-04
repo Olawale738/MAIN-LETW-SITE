@@ -22,7 +22,9 @@ const BLOCK_TYPES: { type: BlockType; label: string }[] = [
     { type: 'features', label: 'Features (Grid)' },
     { type: 'image', label: 'Image' },
     { type: 'cta', label: 'Call to Action' },
-    // { type: 'video', label: 'Video' },
+    { type: 'stats', label: '📊 Stats Counter' },
+    { type: 'testimonies', label: '💬 Testimonies / Quotes' },
+    { type: 'scripture', label: '📖 Scripture Verse' },
 ];
 
 export default function PageBuilder({ blocks, onChange }: PageBuilderProps) {
@@ -62,6 +64,9 @@ export default function PageBuilder({ blocks, onChange }: PageBuilderProps) {
             case 'features': return { features: [{ title: 'Feature 1', description: 'Description' }], columns: 3, style: 'cards' };
             case 'image': return { image: '', width: 'standard', aspect_ratio: '16:9' };
             case 'cta': return { title: 'Ready to get started?', button_text: 'Click Here', button_link: '#', style: 'banner' };
+            case 'stats': return { title: 'Our Impact', subtitle: 'By The Numbers', bg: 'brand', stats: [{ label: 'Souls Reached', value: '1,000+', icon: '🙏' }] };
+            case 'testimonies': return { title: 'Testimonies', subtitle: 'Changed Lives', style: 'grid', bg: 'light', testimonies: [{ quote: 'My life was transformed...', name: 'Name', location: 'Location' }] };
+            case 'scripture': return { verse: 'Go and make disciples of all nations...', reference: 'Matthew 28:19', context: 'Our Commission', bg: 'brand', align: 'center' };
             default: return {};
         }
     };

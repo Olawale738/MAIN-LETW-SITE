@@ -35,6 +35,7 @@ from models.department import (
 )
 
 from models.message import Conversation, Message, ConversationStatus
+from models.evangelism import EvangelismInterest
 
 __all__ = [
     "User",

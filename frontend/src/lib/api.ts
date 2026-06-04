@@ -2479,7 +2479,7 @@ export const liveStreamApi = {
 
 // ============= CMS Types =============
 
-export type BlockType = 'hero' | 'content' | 'features' | 'cta' | 'image' | 'video' | 'upcoming-events' | 'sermon-list' | 'leadership-list' | 'button-group';
+export type BlockType = 'hero' | 'content' | 'features' | 'cta' | 'image' | 'video' | 'upcoming-events' | 'sermon-list' | 'leadership-list' | 'button-group' | 'stats' | 'testimonies' | 'scripture';
 
 export interface Block {
     id: string;
@@ -2920,4 +2920,36 @@ export const prayerWallApi = {
         fetchApi<PrayerWallItem>(`/prayer-wall/${id}/pray`, { method: 'POST' }),
     remove: async (id: string): Promise<MessageResponse> =>
         fetchApi<MessageResponse>(`/prayer-wall/${id}`, { method: 'DELETE' }),
+};
+
+// ============= Evangelism API =============
+export const evangelismApi = {
+    /** Public sign-up — no auth required */
+    registerInterest: async (body: {
+        name: string;
+        email: string;
+        phone?: string;
+        availability?: string;
+        message?: string;
+    }): Promise<{ message: string }> => {
+        const base = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+            || 'http://localhost:8000/api';
+        const res = await fetch(`${base}/evangelism/interest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: 'Submission failed' }));
+            throw new Error(err.detail || 'Submission failed');
+        }
+        return res.json();
+    },
+
+    admin: {
+        listInterests: async (): Promise<any[]> =>
+            fetchApi<any[]>('/evangelism/interests'),
+        deleteInterest: async (id: string): Promise<{ message: string }> =>
+            fetchApi<{ message: string }>(`/evangelism/interests/${id}`, { method: 'DELETE' }),
+    },
 };

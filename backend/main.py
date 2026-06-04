@@ -116,6 +116,10 @@ from routers.departments import router as departments_router, admin_router as de
 app.include_router(departments_router)
 app.include_router(dept_admin_router)
 
+# Evangelism interest sign-up (public + admin)
+from routers import evangelism
+app.include_router(evangelism.router)
+
 # Chat / messaging
 from routers import messages
 app.include_router(messages.router)

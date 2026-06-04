@@ -281,3 +281,248 @@ export const DEFAULT_SUNDAY_SERVICE_BLOCKS: Block[] = [
         }
     }
 ];
+
+// ─── Evangelism Page Defaults ─────────────────────────────────────────────────
+
+export const DEFAULT_EVANGELISM_BLOCKS: Block[] = [
+    {
+        id: 'evang-hero',
+        type: 'hero',
+        data: {
+            title: "Go Into All The World",
+            subtitle: "LETW's Great Commission — reaching every soul with the life-changing power of the Gospel.",
+            bg_image: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1600&auto=format&fit=crop&q=80",
+            cta_text: "Join an Outreach",
+            cta_link: "#get-involved",
+            align: 'center'
+        }
+    },
+    {
+        id: 'evang-scripture',
+        type: 'scripture',
+        data: {
+            verse: "Therefore go and make disciples of all nations, baptizing them in the name of the Father and of the Son and of the Holy Spirit, and teaching them to obey everything I have commanded you. And surely I am with you always, to the very end of the age.",
+            reference: "Matthew 28:19–20",
+            context: "The Great Commission",
+            bg: 'brand',
+            align: 'center'
+        }
+    },
+    {
+        id: 'evang-stats',
+        type: 'stats',
+        data: {
+            title: "Lives Touched by the Gospel",
+            subtitle: "Our Impact",
+            bg: 'brand',
+            stats: [
+                { label: "Souls Reached", value: "5,000+", icon: "🙏" },
+                { label: "Outreaches Held", value: "200+", icon: "📢" },
+                { label: "Communities Served", value: "50+", icon: "🏘️" },
+                { label: "Nations Praying", value: "12+", icon: "🌍" }
+            ]
+        }
+    },
+    {
+        id: 'evang-mission',
+        type: 'content',
+        data: {
+            title: "Our Evangelism Mission",
+            content: `
+                <p class="text-lg text-gray-600 leading-relaxed mb-5">
+                    At Light Encounter Tabernacle Worldwide, evangelism is not a programme — it is a lifestyle. We believe every believer is called to be a witness, and every moment is an opportunity to share the life-changing message of Jesus Christ.
+                </p>
+                <p class="text-lg text-gray-600 leading-relaxed mb-5">
+                    From the streets of our local communities to the digital spaces we occupy, we carry the Gospel with boldness, compassion, and love. Our evangelism teams go where people are — in the markets, on campuses, in homes, and online — so that no one is left without hearing the Good News.
+                </p>
+                <p class="text-xl font-semibold text-[#140152] leading-relaxed italic">
+                    "We preach not ourselves, but Christ Jesus as Lord." — 2 Corinthians 4:5
+                </p>
+            `,
+            width: 'standard',
+            bg_color: 'white',
+            padding: 'large'
+        }
+    },
+    {
+        id: 'evang-approach',
+        type: 'features',
+        data: {
+            title: "How We Share the Gospel",
+            subtitle: "Our Evangelism Approaches",
+            columns: 3,
+            style: 'cards',
+            features: [
+                {
+                    title: "Street & Community Outreach",
+                    description: "Our teams take to the streets — parks, markets, and public spaces — proclaiming the Gospel boldly and lovingly to those who have never heard.",
+                    icon: "MapPin",
+                    image: "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=800&auto=format&fit=crop&q=60"
+                },
+                {
+                    title: "One-on-One Conversations",
+                    description: "Personal, heart-to-heart sharing of the Good News. We equip every member to share their faith naturally in everyday encounters.",
+                    icon: "MessageCircle",
+                    image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&auto=format&fit=crop&q=60"
+                },
+                {
+                    title: "Compassion-Driven Outreach",
+                    description: "Meeting physical needs — food, clothing, hygiene — as a bridge to spiritual truth. We show the love of Christ before we speak it.",
+                    icon: "Heart",
+                    image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&auto=format&fit=crop&q=60"
+                },
+                {
+                    title: "Campus & Youth Evangelism",
+                    description: "Reaching the next generation where they study, socialise, and dream. We partner with schools and universities to plant the seed of faith.",
+                    icon: "BookOpen",
+                    image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&auto=format&fit=crop&q=60"
+                },
+                {
+                    title: "Digital & Online Evangelism",
+                    description: "Using social media, live streams, and digital content to reach people in their homes and across the world with the Gospel 24/7.",
+                    icon: "Globe",
+                    image: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=60"
+                },
+                {
+                    title: "Follow-Up & Discipleship",
+                    description: "We don't just lead people to Christ — we walk with them. Our follow-up teams ensure new believers are nurtured and connected to the church.",
+                    icon: "Users",
+                    image: "https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&auto=format&fit=crop&q=60"
+                }
+            ]
+        }
+    },
+    {
+        id: 'evang-schedule',
+        type: 'content',
+        data: {
+            title: "Outreach Schedule",
+            content: `
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="bg-[#140152]/5 rounded-2xl p-6">
+                        <h3 class="text-xl font-black text-[#140152] mb-4 flex items-center gap-2">📅 Weekly Outreaches</h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-start gap-3"><span class="w-24 shrink-0 font-bold text-[#140152] text-sm">Saturday</span><span class="text-gray-600 text-sm">Community street outreach — 9:00 AM</span></li>
+                            <li class="flex items-start gap-3"><span class="w-24 shrink-0 font-bold text-[#140152] text-sm">Sunday</span><span class="text-gray-600 text-sm">Post-service outreach — after main service</span></li>
+                            <li class="flex items-start gap-3"><span class="w-24 shrink-0 font-bold text-[#140152] text-sm">Wednesday</span><span class="text-gray-600 text-sm">Online/social media evangelism team</span></li>
+                        </ul>
+                        <p class="text-xs text-gray-400 mt-4">📍 Meeting point announced weekly — contact us for details</p>
+                    </div>
+                    <div class="bg-[#f5bb00]/10 rounded-2xl p-6">
+                        <h3 class="text-xl font-black text-[#140152] mb-4 flex items-center gap-2">🗓️ Special Events</h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-start gap-3"><span class="w-24 shrink-0 font-bold text-[#140152] text-sm">Monthly</span><span class="text-gray-600 text-sm">Community compassion day — food & prayer</span></li>
+                            <li class="flex items-start gap-3"><span class="w-24 shrink-0 font-bold text-[#140152] text-sm">Quarterly</span><span class="text-gray-600 text-sm">Campus evangelism blitz</span></li>
+                            <li class="flex items-start gap-3"><span class="w-24 shrink-0 font-bold text-[#140152] text-sm">Annual</span><span class="text-gray-600 text-sm">Open-air crusade & missions trip</span></li>
+                        </ul>
+                        <p class="text-xs text-gray-400 mt-4">✉️ Sign up below to be notified of upcoming events</p>
+                    </div>
+                </div>
+            `,
+            width: 'wide',
+            bg_color: 'light',
+            padding: 'large'
+        }
+    },
+    {
+        id: 'evang-testimonies',
+        type: 'testimonies',
+        data: {
+            title: "Stories of Transformation",
+            subtitle: "Changed Lives",
+            style: 'grid',
+            bg: 'brand',
+            testimonies: [
+                {
+                    quote: "I was walking past a LETW outreach team when one of them stopped to speak with me. That conversation changed the course of my entire life. I gave my heart to Jesus that day and have never looked back.",
+                    name: "Emmanuel O.",
+                    location: "Community Outreach, Lagos",
+                    avatar: "🙌"
+                },
+                {
+                    quote: "I had lost all hope. A team member knocked on my door during a compassion outreach, and for the first time in years someone sat with me and prayed. God answered. My family is restored.",
+                    name: "Grace A.",
+                    location: "Home Outreach",
+                    avatar: "🌟"
+                },
+                {
+                    quote: "I found LETW through a social media post. I watched a live stream at midnight, desperate and alone. I prayed the prayer at the end of that video and everything changed. I'm now part of this amazing church family.",
+                    name: "David M.",
+                    location: "Online Outreach",
+                    avatar: "💻"
+                }
+            ]
+        }
+    },
+    {
+        id: 'evang-resources',
+        type: 'features',
+        data: {
+            title: "Gospel Resources",
+            subtitle: "Share the Good News",
+            columns: 3,
+            style: 'icons',
+            features: [
+                {
+                    title: "How to Share Your Faith",
+                    description: "A simple, practical guide for sharing the Gospel in everyday conversations — even if you're new to evangelism.",
+                    icon: "MessageCircle",
+                    link: "/evangelism#how-to-share"
+                },
+                {
+                    title: "The Roman Road",
+                    description: "Key scriptures from Romans that walk someone through the Gospel message in a clear, simple way. Download or memorise.",
+                    icon: "BookOpen",
+                    link: "/evangelism#roman-road"
+                },
+                {
+                    title: "Prayer for Salvation",
+                    description: "Lead someone in a simple prayer to receive Jesus Christ as Lord and Saviour. Words matter — use this as a guide.",
+                    icon: "Heart",
+                    link: "/prayer-request"
+                },
+                {
+                    title: "Digital Gospel Tract",
+                    description: "Share our digital gospel tract on WhatsApp, Instagram, and social media. One share could change a life forever.",
+                    icon: "Share2",
+                    link: "/evangelism#digital-tract"
+                },
+                {
+                    title: "Invite a Friend",
+                    description: "The simplest form of evangelism — invite someone to church. Download our invitation card to share online or in person.",
+                    icon: "UserPlus",
+                    link: "/join"
+                },
+                {
+                    title: "Contact Our Team",
+                    description: "Have questions about evangelism? Want to join a specific outreach? Our evangelism coordinator is ready to help you get started.",
+                    icon: "Phone",
+                    link: "/contact"
+                }
+            ]
+        }
+    },
+    {
+        id: 'evang-cta-join',
+        type: 'cta',
+        data: {
+            title: "Ready to Go? Join Our Outreach Team",
+            text: "You don't need to be a theologian. You just need a willing heart. Fill in the form below and we'll connect you with the right outreach team for your schedule and gifting.",
+            button_text: "Sign Up to Serve",
+            button_link: "#get-involved",
+            style: 'banner',
+            bg_image: "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=1600&auto=format&fit=crop&q=60"
+        }
+    },
+    {
+        id: 'evang-prayer-cta',
+        type: 'cta',
+        data: {
+            title: "Do You Have Someone to Pray For?",
+            text: "Submit a prayer request for a loved one who needs to encounter Jesus. Our evangelism intercessors will pray specifically for them.",
+            button_text: "Submit a Prayer Request",
+            button_link: "/prayer-request",
+            style: 'simple'
+        }
+    }
+];
