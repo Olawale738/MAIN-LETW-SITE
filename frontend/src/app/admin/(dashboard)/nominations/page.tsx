@@ -22,25 +22,31 @@ function Toast({ msg, ok, onClose }: { msg: string; ok: boolean; onClose: () => 
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  choirmaster:          'Choirmaster',
-  youth_leader:         'Youth Leader',
-  children_coordinator: 'Children Coordinator',
-  admin:                'Admin',
-  user:                 'Member',
+  choirmaster:           'Choirmaster',
+  youth_leader:          'Youth Leader',
+  children_coordinator:  'Children Coordinator',
+  mentor:                'Mentor Coordinator',
+  volunteer_coordinator: 'Volunteer Coordinator',
+  admin:                 'Admin',
+  user:                  'Member',
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  choirmaster:          'bg-indigo-100 text-indigo-700',
-  youth_leader:         'bg-amber-100 text-amber-700',
-  children_coordinator: 'bg-violet-100 text-violet-700',
-  admin:                'bg-red-100 text-red-700',
-  user:                 'bg-gray-100 text-gray-600',
+  choirmaster:           'bg-indigo-100 text-indigo-700',
+  youth_leader:          'bg-amber-100 text-amber-700',
+  children_coordinator:  'bg-violet-100 text-violet-700',
+  mentor:                'bg-green-100 text-green-700',
+  volunteer_coordinator: 'bg-[#140152]/10 text-[#140152]',
+  admin:                 'bg-red-100 text-red-700',
+  user:                  'bg-gray-100 text-gray-600',
 }
 
 const ASSIGNABLE_ROLES = [
-  { value: 'choirmaster',          label: 'Choirmaster',          color: 'text-indigo-600' },
-  { value: 'youth_leader',         label: 'Youth Leader',         color: 'text-amber-600' },
-  { value: 'children_coordinator', label: 'Children Coordinator', color: 'text-violet-600' },
+  { value: 'choirmaster',           label: 'Choirmaster',           desc: 'Leads worship team and choir',                        color: 'text-indigo-600' },
+  { value: 'youth_leader',          label: 'Youth Leader',          desc: 'Oversees youth ministry activities',                  color: 'text-amber-600' },
+  { value: 'children_coordinator',  label: 'Children Coordinator',  desc: 'Manages children\'s ministry and staff',              color: 'text-violet-600' },
+  { value: 'mentor',                label: 'Mentor Coordinator',    desc: 'Mentors assigned Bible study mentees via dashboard',  color: 'text-green-600' },
+  { value: 'volunteer_coordinator', label: 'Volunteer Coordinator', desc: 'Oversees volunteer departments and team members',     color: 'text-[#140152]' },
 ]
 
 export default function NominationsPage() {
@@ -122,8 +128,8 @@ export default function NominationsPage() {
           Leadership Nominations
         </h1>
         <p className="text-gray-500 text-sm mt-1">
-          Assign or revoke Choirmaster, Youth Leader, and Children Coordinator roles.
-          Only admins can perform these actions.
+          Assign or revoke leadership roles — Choirmaster, Youth Leader, Children Coordinator,
+          Mentor Coordinator, and Volunteer Coordinator. Only admins can perform these actions.
         </p>
         <div className="mt-2 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 w-fit">
           <AlertTriangle size={13} /> Role changes take effect immediately and are enforced at the API level.
@@ -236,7 +242,7 @@ export default function NominationsPage() {
                           <span className="text-xs text-gray-300 italic">—</span>
                         ) : (
                           <button
-                            onClick={() => { setSelectedUser(u); setSelectedRole('choirmaster') }}
+                            onClick={() => { setSelectedUser(u); setSelectedRole(ASSIGNABLE_ROLES[0].value) }}
                             className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors"
                           >
                             Assign Role
@@ -262,19 +268,22 @@ export default function NominationsPage() {
               This will override their current role.
             </p>
 
-            <div className="space-y-2 mb-5">
+            <div className="space-y-2 mb-5 max-h-72 overflow-y-auto pr-1">
               {ASSIGNABLE_ROLES.map(r => (
-                <label key={r.value} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${selectedRole === r.value ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 hover:border-gray-200'}`}>
+                <label key={r.value} className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${selectedRole === r.value ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 hover:border-gray-200'}`}>
                   <input
                     type="radio"
                     name="role"
                     value={r.value}
                     checked={selectedRole === r.value}
                     onChange={() => setSelectedRole(r.value)}
-                    className="accent-indigo-600"
+                    className="accent-indigo-600 mt-0.5"
                   />
-                  <Crown size={16} className={r.color} />
-                  <span className={`font-medium text-sm ${r.color}`}>{r.label}</span>
+                  <Crown size={16} className={`${r.color} mt-0.5 shrink-0`} />
+                  <div>
+                    <span className={`font-semibold text-sm ${r.color}`}>{r.label}</span>
+                    <p className="text-xs text-gray-400 mt-0.5">{r.desc}</p>
+                  </div>
                 </label>
               ))}
             </div>

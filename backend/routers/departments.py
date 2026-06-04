@@ -39,7 +39,7 @@ ROLE_DEPT: dict[UserRole, DepartmentType] = {
     UserRole.CHILDREN_COORDINATOR: DepartmentType.CHILDREN,
 }
 
-LEADER_ROLES = {UserRole.CHOIRMASTER, UserRole.YOUTH_LEADER, UserRole.CHILDREN_COORDINATOR}
+LEADER_ROLES = {UserRole.CHOIRMASTER, UserRole.YOUTH_LEADER, UserRole.CHILDREN_COORDINATOR, UserRole.VOLUNTEER_COORDINATOR, UserRole.MENTOR}
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
