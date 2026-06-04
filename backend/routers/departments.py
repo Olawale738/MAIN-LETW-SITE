@@ -1112,6 +1112,92 @@ async def send_chat_message(
     }
 
 
+@router.post("/{dept}/members/{user_id}/open-dm")
+async def open_coordinator_dm(
+    dept: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Coordinator or admin opens a direct-message thread with a department member.
+    - Requires coordinator or admin access for this department.
+    - If a conversation already exists between these two users, returns it.
+    - If not, creates a new one with a welcome intro message from the coordinator.
+    """
+    from sqlalchemy import or_
+    from datetime import datetime
+
+    d = _parse_dept(dept)
+    await _require_leader(d, current_user, db)  # coordinator or admin only
+
+    if current_user.id == user_id:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="You cannot message yourself.")
+
+    # Make sure the target user exists
+    target_result = await db.execute(select(User).where(User.id == user_id))
+    target = target_result.scalar_one_or_none()
+    if not target:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    # Check for existing conversation between these two users (either orientation)
+    from models.message import Conversation, ConversationStatus, Message as DMsg
+    existing_result = await db.execute(
+        select(Conversation).where(
+            or_(
+                and_(Conversation.user_id == user_id, Conversation.admin_id == current_user.id),
+                and_(Conversation.user_id == current_user.id, Conversation.admin_id == user_id),
+            )
+        )
+    )
+    conv = existing_result.scalars().first()
+    already_existed = conv is not None
+
+    if not conv:
+        dept_label = d.value.replace("_", " ").title()
+        role_word = "coordinator" if current_user.role != UserRole.ADMIN else "admin"
+        intro = (
+            f"Hi {target.name}! I'm {current_user.name}, the {dept_label} {role_word}. "
+            f"This is your direct line — feel free to message me here with any questions, "
+            f"updates, or anything related to our {dept_label} activities. "
+            f"Looking forward to serving together! 🙏"
+        )
+        now = datetime.utcnow()
+        conv = Conversation(
+            user_id=user_id,           # volunteer is the "user" side
+            admin_id=current_user.id,  # coordinator is the "admin" slot
+            subject=f"{dept_label} — Coordinator Chat",
+            status=ConversationStatus.OPEN,
+            last_message_preview=intro[:200],
+            last_message_at=now,
+            unread_for_user=1,
+            unread_for_admin=0,
+        )
+        db.add(conv)
+        await db.flush()
+        db.add(DMsg(conversation_id=conv.id, sender_id=current_user.id, body=intro))
+
+        # Notify the volunteer
+        db.add(Notification(
+            user_id=user_id,
+            title=f"💬 Message from {current_user.name}",
+            message=(
+                f"Your {dept_label} coordinator has sent you a message. "
+                f"Open your messages to read and reply."
+            ),
+            type=NotificationType.GENERAL,
+            reference_id=conv.id,
+        ))
+        await db.commit()
+
+    return {
+        "conversation_id": conv.id,
+        "already_existed": already_existed,
+    }
+
+
 @admin_router.post("/role/assign")
 async def assign_role(
     body: AssignRoleRequest,

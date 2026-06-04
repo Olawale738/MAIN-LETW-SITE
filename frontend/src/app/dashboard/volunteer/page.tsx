@@ -202,10 +202,15 @@ export default function VolunteerDashboard() {
                 {/* Footer note */}
                 <div className="mt-10 bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
                     <HandHeart className="w-8 h-8 text-[#f5bb00] mx-auto mb-3" />
-                    <p className="text-white/70 text-sm max-w-xl mx-auto">
+                    <p className="text-white/70 text-sm max-w-xl mx-auto mb-5">
                         Only departments approved by an admin are accessible. Once approved, open a dashboard to see
                         notices, events, attendance, and chat with your coordinator.
                     </p>
+                    <Link href="/dashboard/messages"
+                        className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all">
+                        <MessageCircle className="w-4 h-4 text-[#f5bb00]" />
+                        Open My Messages
+                    </Link>
                 </div>
             </main>
         </div>

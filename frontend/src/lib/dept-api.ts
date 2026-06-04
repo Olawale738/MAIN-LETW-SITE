@@ -326,6 +326,17 @@ export async function deleteDeptMessage(dept: Department, msgId: string): Promis
   return request<{ message: string }>(`/departments/${dept}/chat/${msgId}`, { method: 'DELETE' })
 }
 
+/**
+ * Coordinator or admin opens a direct-message thread with a dept member.
+ * Returns the conversation ID so the caller can navigate to it.
+ */
+export async function openCoordinatorDm(
+  dept: Department,
+  userId: string
+): Promise<{ conversation_id: string; already_existed: boolean }> {
+  return request(`/departments/${dept}/members/${userId}/open-dm`, { method: 'POST' })
+}
+
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
 export async function adminListUsers(search?: string): Promise<AdminUser[]> {

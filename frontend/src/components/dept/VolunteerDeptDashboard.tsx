@@ -17,12 +17,13 @@ import {
   Clock, CheckCircle2, X, Crown, Plus, Trash2, Search,
   ChevronRight, Star, Check, Minus, Smile, Filter,
   TrendingUp, Zap, MapPin, CalendarPlus, RefreshCw,
-  ChevronDown, ChevronUp, Award, Flame,
+  ChevronDown, ChevronUp, Award, Flame, MessageCircle,
 } from 'lucide-react'
 import {
   getCurrentUser, checkMembership, joinDepartment,
   listAnnouncements, listActivities, myAttendance,
   getDeptMessages, sendDeptMessage, deleteDeptMessage,
+  openCoordinatorDm,
   listMembers, addMember, removeMember, updateMember,
   createAnnouncement, deleteAnnouncement,
   createActivity, deleteActivity,
@@ -458,6 +459,24 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
       const msgs = await getDeptMessages(dept).catch(() => [] as DeptMessage[])
       setMessages(msgs)
       alert('Could not delete message: ' + (e as Error).message)
+    }
+  }
+
+  const [messagingId, setMessagingId] = useState<string | null>(null)
+
+  const openDm = async (userId: string, memberName: string) => {
+    setMessagingId(userId)
+    try {
+      const { conversation_id, already_existed } = await openCoordinatorDm(dept, userId)
+      const msg = already_existed
+        ? `Opening your existing chat with ${memberName}…`
+        : `Started a new chat with ${memberName}! Redirecting to messages…`
+      alert(msg)
+      router.push(`/dashboard/messages?c=${conversation_id}`)
+    } catch (e: unknown) {
+      alert('Could not open chat: ' + (e as Error).message)
+    } finally {
+      setMessagingId(null)
     }
   }
 
@@ -1268,6 +1287,21 @@ export default function VolunteerDeptDashboard({ cfg }: { cfg: DeptConfig }) {
                                   className="h-8 px-2.5 bg-green-50 rounded-xl flex items-center gap-1 hover:bg-green-100 transition-colors">
                                   <Check className="w-3.5 h-3.5 text-green-600" />
                                   <span className="text-[11px] font-bold text-green-700">Approve</span>
+                                </button>
+                              )}
+                              {/* Message button — only for active members who aren't the current user */}
+                              {m.is_active && m.user_id !== user?.id && (
+                                <button
+                                  onClick={() => openDm(m.user_id, m.name)}
+                                  disabled={messagingId === m.user_id}
+                                  title={`Send a message to ${m.name}`}
+                                  className="h-8 px-2.5 rounded-xl flex items-center gap-1 transition-colors bg-[#140152]/5 hover:bg-[#140152]/15 disabled:opacity-50"
+                                >
+                                  {messagingId === m.user_id
+                                    ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#140152]" />
+                                    : <MessageCircle className="w-3.5 h-3.5 text-[#140152]" />
+                                  }
+                                  <span className="text-[11px] font-bold text-[#140152]">Message</span>
                                 </button>
                               )}
                               {user?.role === 'admin' && m.is_active && (
