@@ -201,6 +201,34 @@ async def list_admins(
     ]
 
 
+@router.get("/mentor/mentees")
+async def list_mentor_mentees(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all mentees assigned to this mentor (conversations where mentor is admin_id)."""
+    res = await db.execute(
+        select(Conversation, User)
+        .join(User, User.id == Conversation.user_id)
+        .where(Conversation.admin_id == current_user.id)
+        .order_by(Conversation.last_message_at.desc())
+    )
+    rows = res.all()
+    return [
+        {
+            "id": conv.id,
+            "mentee_id": u.id,
+            "mentee_name": u.name,
+            "mentee_email": u.email,
+            "subject": conv.subject,
+            "last_message_preview": conv.last_message_preview,
+            "last_message_at": conv.last_message_at.isoformat() if conv.last_message_at else None,
+            "unread_count": conv.unread_for_admin,
+        }
+        for conv, u in rows
+    ]
+
+
 @router.get("/conversations", response_model=ConversationListResponse)
 async def list_conversations(
     current_user: User = Depends(get_current_active_user),

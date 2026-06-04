@@ -2724,6 +2724,9 @@ export const messageApi = {
     listAdmins: async (): Promise<ChatParticipant[]> =>
         fetchApi<ChatParticipant[]>('/messages/admins'),
 
+    listMentees: async (): Promise<Array<{ id: string; mentee_id: string; mentee_name: string; mentee_email: string; subject: string; last_message_preview: string | null; last_message_at: string | null; unread_count: number }>> =>
+        fetchApi('/messages/mentor/mentees'),
+
     listConversations: async (): Promise<ChatListResponse> =>
         fetchApi<ChatListResponse>('/messages/conversations'),
 
