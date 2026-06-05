@@ -897,6 +897,111 @@ async def delete_group_message(
     return {"message": "Deleted."}
 
 
+@router.put("/groups/{group_id}/messages/{msg_id}")
+async def edit_group_message(
+    group_id: str,
+    msg_id: str,
+    body: GroupMessageIn,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Edit a sent message. Sender only."""
+    await _assert_group_member(group_id, current_user.id, db)
+    res = await db.execute(
+        select(BibleStudyGroupMessage).where(
+            BibleStudyGroupMessage.id == msg_id,
+            BibleStudyGroupMessage.group_id == group_id,
+        )
+    )
+    msg = res.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    if msg.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only edit your own messages.")
+    if not body.content.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty.")
+    msg.content = body.content.strip()
+    msg.edited_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(msg)
+    return {
+        "id": msg.id,
+        "content": msg.content,
+        "edited_at": msg.edited_at.isoformat(),
+        "message": "Edited",
+    }
+
+
+@router.get("/groups/{group_id}/info")
+async def get_group_info(
+    group_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get group info: member count, member list. Members only."""
+    await _assert_group_member(group_id, current_user.id, db)
+    res = await db.execute(
+        select(BibleStudyGroupMember)
+        .where(BibleStudyGroupMember.group_id == group_id)
+        .options(_sli(BibleStudyGroupMember.user_id))
+    )
+    members = res.scalars().all()
+    # Fetch user details for each member
+    user_ids = [m.user_id for m in members]
+    if user_ids:
+        res = await db.execute(select(User).where(User.id.in_(user_ids)))
+        users = {u.id: u for u in res.scalars().all()}
+    else:
+        users = {}
+    return {
+        "group_id": group_id,
+        "member_count": len(members),
+        "members": [
+            {
+                "id": m.user_id,
+                "name": users.get(m.user_id, type('obj', (object,), {'name': 'Unknown'})()).name,
+                "joined_at": m.joined_at.isoformat(),
+            }
+            for m in sorted(members, key=lambda m: m.joined_at)
+        ],
+    }
+
+
+@router.post("/groups/{group_id}/messages/search")
+async def search_group_messages(
+    group_id: str,
+    body: GroupMessageIn,  # reuse for {query: str}
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Search messages in group by content. Members only."""
+    await _assert_group_member(group_id, current_user.id, db)
+    query = body.content.strip()
+    if not query or len(query) < 2:
+        raise HTTPException(status_code=400, detail="Search query must be at least 2 characters.")
+    res = await db.execute(
+        select(BibleStudyGroupMessage)
+        .where(
+            BibleStudyGroupMessage.group_id == group_id,
+            BibleStudyGroupMessage.content.ilike(f"%{query}%"),
+        )
+        .options(_sli(BibleStudyGroupMessage.sender))
+        .order_by(BibleStudyGroupMessage.created_at.desc())
+        .limit(50)
+    )
+    msgs = res.scalars().all()
+    return [
+        {
+            "id": m.id,
+            "sender_name": m.sender.name if m.sender else "Unknown",
+            "content": m.content,
+            "created_at": m.created_at.isoformat(),
+            "edited_at": m.edited_at.isoformat() if m.edited_at else None,
+        }
+        for m in msgs
+    ]
+
+
 # ─── Admin: Week Reflections CRUD ────────────────────────────────────────────
 
 class WeekReflectionInput(BaseModel):

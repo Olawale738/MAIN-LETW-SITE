@@ -2482,6 +2482,24 @@ export const bibleStudyApi = {
             method: 'DELETE',
         });
     },
+
+    editGroupMessage: async (groupId: string, msgId: string, content: string): Promise<any> => {
+        return fetchApi<any>(`/bible-study/groups/${groupId}/messages/${msgId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ content }),
+        });
+    },
+
+    getGroupInfo: async (groupId: string): Promise<any> => {
+        return fetchApi<any>(`/bible-study/groups/${groupId}/info`);
+    },
+
+    searchGroupMessages: async (groupId: string, query: string): Promise<any[]> => {
+        return fetchApi<any[]>(`/bible-study/groups/${groupId}/messages/search`, {
+            method: 'POST',
+            body: JSON.stringify({ content: query }),
+        });
+    },
 };
 
 // ============= Live Stream API =============

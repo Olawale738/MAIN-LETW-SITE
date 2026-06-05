@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Send, Loader2, Trash2, Users, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Send, Loader2, Trash2, Users, MessageSquare, Search, Info, X } from 'lucide-react'
 import { bibleStudyApi } from '@/lib/api'
 
 interface GroupMsg {
@@ -12,6 +12,7 @@ interface GroupMsg {
     sender_name: string
     content: string
     created_at: string
+    edited_at?: string | null
     is_mine: boolean
 }
 
@@ -41,12 +42,18 @@ export default function GroupChatPage() {
     const groupId     = params?.groupId as string
     const groupName   = searchParams?.get('name') ?? 'Study Group'
 
-    const [messages,  setMessages]  = useState<GroupMsg[]>([])
-    const [draft,     setDraft]     = useState('')
-    const [loading,   setLoading]   = useState(true)
-    const [sending,   setSending]   = useState(false)
-    const [error,     setError]     = useState('')
-    const [myId,      setMyId]      = useState('')
+    const [messages,   setMessages]    = useState<GroupMsg[]>([])
+    const [draft,      setDraft]       = useState('')
+    const [loading,    setLoading]     = useState(true)
+    const [sending,    setSending]     = useState(false)
+    const [error,      setError]       = useState('')
+    const [myId,       setMyId]        = useState('')
+    const [editingId,  setEditingId]   = useState<string | null>(null)
+    const [editText,   setEditText]    = useState('')
+    const [showInfo,   setShowInfo]    = useState(false)
+    const [members,    setMembers]     = useState<any[]>([])
+    const [searching,  setSearching]   = useState(false)
+    const [searchQuery, setSearchQuery] = useState('')
 
     const bottomRef   = useRef<HTMLDivElement>(null)
     const pollRef     = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -113,6 +120,44 @@ export default function GroupChatPage() {
         catch { await loadMessages() }
     }
 
+    const editMsg = async (id: string) => {
+        if (!editText.trim()) return
+        const oldMsg = messages.find(m => m.id === id)
+        if (!oldMsg) return
+        setMessages(p => p.map(m => m.id === id ? { ...m, content: editText.trim(), edited_at: new Date().toISOString() } : m))
+        setEditingId(null)
+        try {
+            await bibleStudyApi.editGroupMessage(groupId, id, editText.trim())
+            await loadMessages()
+        } catch (e: any) {
+            alert('Edit failed: ' + (e?.message || 'error'))
+            await loadMessages()
+        }
+    }
+
+    const loadGroupInfo = async () => {
+        try {
+            const info = await bibleStudyApi.getGroupInfo(groupId)
+            setMembers(info.members || [])
+            setShowInfo(true)
+        } catch (e: any) {
+            alert('Failed to load group info: ' + (e?.message || 'error'))
+        }
+    }
+
+    const searchMessages = async () => {
+        if (!searchQuery.trim() || searchQuery.length < 2) return
+        setSearching(true)
+        try {
+            const results = await bibleStudyApi.searchGroupMessages(groupId, searchQuery)
+            setMessages(results)
+        } catch (e: any) {
+            alert('Search failed: ' + (e?.message || 'error'))
+        } finally {
+            setSearching(false)
+        }
+    }
+
     if (loading) return (
         <div className="flex items-center justify-center min-h-screen bg-[#ece5dd]">
             <Loader2 className="w-10 h-10 animate-spin text-[#128c7e]" />
@@ -131,7 +176,7 @@ export default function GroupChatPage() {
         <div className="flex flex-col h-screen bg-[#ece5dd]" style={{ fontFamily: "'Helvetica Neue', sans-serif" }}>
 
             {/* ── Header (WhatsApp green) ── */}
-            <div className="bg-[#128c7e] text-white px-4 py-3 flex items-center gap-3 shadow-md shrink-0">
+            <div className="bg-[#128c7e] text-white px-4 py-3 flex items-center gap-2 shadow-md shrink-0">
                 <button onClick={() => router.back()} className="p-1 hover:bg-white/10 rounded-full transition-colors">
                     <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -140,9 +185,54 @@ export default function GroupChatPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className="font-bold text-base leading-tight truncate">{groupName}</p>
-                    <p className="text-[11px] text-white/70">Bible Study Group · tap to see members</p>
+                    <p className="text-[11px] text-white/70">Bible Study Group</p>
                 </div>
+                <button onClick={() => setSearching(!searching)} className="p-1 hover:bg-white/10 rounded-full transition-colors" title="Search">
+                    <Search className="w-5 h-5" />
+                </button>
+                <button onClick={loadGroupInfo} className="p-1 hover:bg-white/10 rounded-full transition-colors" title="Group info">
+                    <Info className="w-5 h-5" />
+                </button>
             </div>
+
+            {/* Search Bar */}
+            {searching && (
+                <div className="bg-white/10 px-4 py-2 flex gap-2 shrink-0">
+                    <input
+                        autoFocus
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') searchMessages(); }}
+                        placeholder="Search messages…"
+                        className="flex-1 bg-white/20 text-white placeholder-white/40 rounded-full px-3 py-1.5 text-sm outline-none"
+                    />
+                    <button onClick={() => setSearching(false)} className="p-1 text-white/60 hover:text-white">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+            )}
+
+            {/* Group Info Panel */}
+            {showInfo && (
+                <div className="bg-[#f0f0f0] border-t border-gray-200 px-4 py-3 max-h-48 overflow-y-auto shrink-0">
+                    <div className="flex items-center justify-between mb-3">
+                        <p className="font-bold text-sm text-gray-800">{members.length} Members</p>
+                        <button onClick={() => setShowInfo(false)} className="text-gray-400 hover:text-gray-600">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                    <div className="space-y-2 text-xs">
+                        {members.map(m => (
+                            <div key={m.id} className="flex items-center gap-2 text-gray-700">
+                                <div className="w-6 h-6 bg-[#128c7e] rounded-full text-white flex items-center justify-center font-bold text-[10px]">
+                                    {(m.name || 'U').split(' ')[0][0]}
+                                </div>
+                                <span>{m.name || 'Unknown'}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* ── Wallpaper + messages ── */}
             <div
@@ -196,11 +286,29 @@ export default function GroupChatPage() {
                                         ${m.is_mine
                                             ? 'bg-[#dcf8c6] text-gray-900 rounded-br-sm'
                                             : 'bg-white text-gray-900 rounded-bl-sm'
-                                        } ${m.id.startsWith('tmp-') ? 'opacity-70' : ''}`}>
-                                        <p className="whitespace-pre-wrap break-words pr-10">{m.content}</p>
-                                        <span className="text-[10px] text-gray-400 absolute bottom-1.5 right-2.5">
-                                            {formatTime(m.created_at)}
-                                        </span>
+                                        } ${m.id.startsWith('tmp-') ? 'opacity-70' : ''}`}
+                                        onDoubleClick={() => { if (m.is_mine && !m.id.startsWith('tmp-')) { setEditingId(m.id); setEditText(m.content); } }}>
+                                        {editingId === m.id ? (
+                                            <div className="flex gap-2">
+                                                <input
+                                                    autoFocus
+                                                    value={editText}
+                                                    onChange={e => setEditText(e.target.value)}
+                                                    onKeyDown={e => { if (e.key === 'Enter') editMsg(m.id); if (e.key === 'Escape') setEditingId(null); }}
+                                                    className="flex-1 bg-transparent text-gray-900 outline-none text-sm"
+                                                />
+                                                <button onClick={() => editMsg(m.id)} className="text-green-600 font-bold text-xs">✓</button>
+                                                <button onClick={() => setEditingId(null)} className="text-red-600 font-bold text-xs">✕</button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <p className="whitespace-pre-wrap break-words pr-10">{m.content}</p>
+                                                {m.edited_at && <span className="text-[9px] text-gray-400 italic"> (edited)</span>}
+                                                <span className="text-[10px] text-gray-400 absolute bottom-1.5 right-2.5">
+                                                    {formatTime(m.created_at)}
+                                                </span>
+                                            </>
+                                        )}
                                     </div>
 
                                     {/* Delete button on hover (own messages) */}

@@ -230,6 +230,7 @@ class BibleStudyGroupMessage(Base):
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    edited_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)  # null = never edited
 
     # Relationship back to user for sender info
     sender: Mapped["User"] = relationship("User", foreign_keys=[user_id], lazy="select")
