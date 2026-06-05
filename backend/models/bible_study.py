@@ -221,6 +221,32 @@ class BibleStudyGroupMember(Base):
     joined_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class BibleStudyGroupModerator(Base):
+    """Chat moderator/leader with permissions for a Bible Study group."""
+    __tablename__ = "bible_study_group_moderators"
+    __table_args__ = (
+        UniqueConstraint("user_id", "group_id", name="uq_bs_group_moderator"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    group_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Permissions (JSON: {can_pin, can_delete_others, can_mute, can_edit_settings})
+    permissions: Mapped[dict] = mapped_column(JSON, nullable=False, default={
+        'can_pin': False,
+        'can_delete_others': True,
+        'can_mute': False,
+        'can_edit_settings': False,
+    })
+
+    assigned_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    assigned_by: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id], lazy="select")
+    assigner: Mapped[Optional["User"]] = relationship("User", foreign_keys=[assigned_by], lazy="select")
+
+
 class BibleStudyGroupMessage(Base):
     """WhatsApp-style group chat message for a Bible Study group."""
     __tablename__ = "bible_study_group_messages"

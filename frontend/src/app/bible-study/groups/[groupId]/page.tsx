@@ -16,6 +16,19 @@ interface GroupMsg {
     is_mine: boolean
 }
 
+interface Moderator {
+    id: string
+    user_id: string
+    user_name: string
+    permissions: {
+        can_pin?: boolean
+        can_delete_others?: boolean
+        can_mute?: boolean
+        can_edit_settings?: boolean
+    }
+    assigned_at: string
+}
+
 function formatTime(iso: string) {
     const d = new Date(iso)
     const now = new Date()
@@ -54,6 +67,8 @@ export default function GroupChatPage() {
     const [members,    setMembers]     = useState<any[]>([])
     const [searching,  setSearching]   = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
+    const [moderators, setModerators]  = useState<Moderator[]>([])
+    const [myModPerms, setMyModPerms]  = useState<any>(null)
 
     const bottomRef   = useRef<HTMLDivElement>(null)
     const pollRef     = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -71,15 +86,28 @@ export default function GroupChatPage() {
         }
     }, [groupId, router])
 
+    const loadModerators = useCallback(async () => {
+        try {
+            const data = await bibleStudyApi.getGroupModerators(groupId)
+            setModerators(data)
+            // Check if current user is a moderator
+            const myMod = data.find((m: Moderator) => m.user_id === myId)
+            setMyModPerms(myMod?.permissions || null)
+        } catch (e: any) {
+            console.log('Could not load moderators:', e.message)
+        }
+    }, [groupId, myId])
+
     useEffect(() => {
         const id = localStorage.getItem('userId') || ''
         setMyId(id)
         loadMessages().finally(() => setLoading(false))
+        loadModerators()
         scrollBottom()
         // Poll every 4 seconds for new messages
         pollRef.current = setInterval(loadMessages, 4000)
         return () => { if (pollRef.current) clearInterval(pollRef.current) }
-    }, [loadMessages])
+    }, [loadMessages, loadModerators])
 
     useEffect(() => { if (!loading) scrollBottom() }, [messages.length, loading])
 
@@ -276,9 +304,14 @@ export default function GroupChatPage() {
                                 <div className={`group relative max-w-[72%] ${m.is_mine ? 'items-end' : 'items-start'} flex flex-col`}>
                                     {/* Sender name (for group chats, show for others) */}
                                     {!m.is_mine && (
-                                        <span className="text-[11px] font-bold mb-0.5 ml-1" style={{ color: senderColor(m.sender_name) }}>
-                                            {m.sender_name}
-                                        </span>
+                                        <div className="flex items-center gap-1 mb-0.5 ml-1">
+                                            <span className="text-[11px] font-bold" style={{ color: senderColor(m.sender_name) }}>
+                                                {m.sender_name}
+                                            </span>
+                                            {moderators.some(mod => mod.user_id === m.user_id) && (
+                                                <span className="text-[9px] bg-[#128c7e] text-white px-1.5 py-0.5 rounded-full font-semibold">Moderator</span>
+                                            )}
+                                        </div>
                                     )}
 
                                     {/* Bubble */}
@@ -311,12 +344,12 @@ export default function GroupChatPage() {
                                         )}
                                     </div>
 
-                                    {/* Delete button on hover (own messages) */}
-                                    {m.is_mine && !m.id.startsWith('tmp-') && (
+                                    {/* Delete button on hover (own messages or moderator/admin permissions) */}
+                                    {!m.id.startsWith('tmp-') && (m.is_mine || myModPerms?.can_delete_others) && (
                                         <button
                                             onClick={() => deleteMsg(m.id)}
-                                            className="absolute -top-2 -left-7 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 bg-white rounded-full shadow flex items-center justify-center"
-                                            title="Delete message"
+                                            className={`absolute -top-2 -left-7 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 bg-white rounded-full shadow flex items-center justify-center ${!m.is_mine && myModPerms?.can_delete_others ? 'border border-red-300' : ''}`}
+                                            title={m.is_mine ? 'Delete message' : 'Delete message (moderator)'}
                                         >
                                             <Trash2 className="w-3 h-3 text-red-500" />
                                         </button>

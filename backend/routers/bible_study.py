@@ -880,7 +880,7 @@ async def delete_group_message(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Delete a group message. Sender or admin only."""
+    """Delete a group message. Sender, admin, or moderator with can_delete_others."""
     res = await db.execute(
         select(BibleStudyGroupMessage).where(
             BibleStudyGroupMessage.id == msg_id,
@@ -890,8 +890,27 @@ async def delete_group_message(
     msg = res.scalar_one_or_none()
     if not msg:
         raise HTTPException(status_code=404, detail="Message not found.")
-    if msg.user_id != current_user.id and current_user.role.value != "admin":
+
+    # Check permissions: sender, admin, or moderator with can_delete_others
+    is_sender = msg.user_id == current_user.id
+    is_admin = current_user.role.value == "admin"
+
+    # Check if moderator with delete permission
+    is_moderator_with_delete = False
+    if not is_admin:
+        res = await db.execute(
+            select(BibleStudyGroupModerator).where(
+                BibleStudyGroupModerator.group_id == group_id,
+                BibleStudyGroupModerator.user_id == current_user.id,
+            )
+        )
+        mod = res.scalar_one_or_none()
+        if mod and mod.permissions.get("can_delete_others"):
+            is_moderator_with_delete = True
+
+    if not (is_sender or is_admin or is_moderator_with_delete):
         raise HTTPException(status_code=403, detail="Not allowed.")
+
     await db.delete(msg)
     await db.commit()
     return {"message": "Deleted."}
@@ -1000,6 +1019,136 @@ async def search_group_messages(
         }
         for m in msgs
     ]
+
+
+# ─── Group Chat Moderators (Admin Control) ───────────────────────────────────
+
+from models.bible_study import BibleStudyGroupModerator  # noqa: E402
+
+
+@router.get("/groups/{group_id}/moderators")
+async def get_group_moderators(
+    group_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List moderators for a group. Members only."""
+    await _assert_group_member(group_id, current_user.id, db)
+    res = await db.execute(
+        select(BibleStudyGroupModerator)
+        .where(BibleStudyGroupModerator.group_id == group_id)
+        .options(_sli(BibleStudyGroupModerator.user))
+        .order_by(BibleStudyGroupModerator.assigned_at.desc())
+    )
+    mods = res.scalars().all()
+    return [
+        {
+            "id": m.id,
+            "user_id": m.user_id,
+            "user_name": m.user.name if m.user else "Unknown",
+            "permissions": m.permissions,
+            "assigned_at": m.assigned_at.isoformat(),
+        }
+        for m in mods
+    ]
+
+
+class AssignModeratorInput(BaseModel):
+    user_id: str
+    permissions: dict = {
+        'can_pin': False,
+        'can_delete_others': True,
+        'can_mute': False,
+        'can_edit_settings': False,
+    }
+
+
+@router.post("/groups/{group_id}/moderators")
+async def assign_group_moderator(
+    group_id: str,
+    body: AssignModeratorInput,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user),
+):
+    """Assign a user as moderator. Admin only."""
+    # Verify user is a group member
+    res = await db.execute(
+        select(BibleStudyGroupMember).where(
+            BibleStudyGroupMember.user_id == body.user_id,
+            BibleStudyGroupMember.group_id == group_id,
+        )
+    )
+    if not res.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="User must be a group member first.")
+
+    # Check if already a moderator
+    res = await db.execute(
+        select(BibleStudyGroupModerator).where(
+            BibleStudyGroupModerator.user_id == body.user_id,
+            BibleStudyGroupModerator.group_id == group_id,
+        )
+    )
+    if res.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="User is already a moderator.")
+
+    mod = BibleStudyGroupModerator(
+        group_id=group_id,
+        user_id=body.user_id,
+        permissions=body.permissions,
+        assigned_by=current_user.id,
+    )
+    db.add(mod)
+    await db.commit()
+    return {"message": f"User assigned as moderator with permissions: {body.permissions}"}
+
+
+@router.delete("/groups/{group_id}/moderators/{user_id}")
+async def remove_group_moderator(
+    group_id: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user),
+):
+    """Remove a moderator. Admin only."""
+    res = await db.execute(
+        select(BibleStudyGroupModerator).where(
+            BibleStudyGroupModerator.user_id == user_id,
+            BibleStudyGroupModerator.group_id == group_id,
+        )
+    )
+    mod = res.scalar_one_or_none()
+    if not mod:
+        raise HTTPException(status_code=404, detail="Moderator not found.")
+    await db.delete(mod)
+    await db.commit()
+    return {"message": "Moderator removed."}
+
+
+class PermissionsInput(BaseModel):
+    permissions: dict
+
+
+@router.put("/groups/{group_id}/moderators/{user_id}/permissions")
+async def update_moderator_permissions(
+    group_id: str,
+    user_id: str,
+    body: PermissionsInput,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_user),
+):
+    """Update moderator permissions. Admin only."""
+    res = await db.execute(
+        select(BibleStudyGroupModerator).where(
+            BibleStudyGroupModerator.user_id == user_id,
+            BibleStudyGroupModerator.group_id == group_id,
+        )
+    )
+    mod = res.scalar_one_or_none()
+    if not mod:
+        raise HTTPException(status_code=404, detail="Moderator not found.")
+    mod.permissions = body.permissions
+    await db.commit()
+    return {"message": "Permissions updated.", "permissions": mod.permissions}
 
 
 # ─── Admin: Week Reflections CRUD ────────────────────────────────────────────

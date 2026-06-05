@@ -2500,6 +2500,31 @@ export const bibleStudyApi = {
             body: JSON.stringify({ content: query }),
         });
     },
+
+    // Group Moderators (Admin control)
+    getGroupModerators: async (groupId: string): Promise<any[]> => {
+        return fetchApi<any[]>(`/bible-study/groups/${groupId}/moderators`);
+    },
+
+    assignGroupModerator: async (groupId: string, userId: string, permissions: any = {}): Promise<{ message: string }> => {
+        return fetchApi<{ message: string }>(`/bible-study/groups/${groupId}/moderators`, {
+            method: 'POST',
+            body: JSON.stringify({ user_id: userId, permissions }),
+        });
+    },
+
+    removeGroupModerator: async (groupId: string, userId: string): Promise<{ message: string }> => {
+        return fetchApi<{ message: string }>(`/bible-study/groups/${groupId}/moderators/${userId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    updateModeratorPermissions: async (groupId: string, userId: string, permissions: any): Promise<any> => {
+        return fetchApi<any>(`/bible-study/groups/${groupId}/moderators/${userId}/permissions`, {
+            method: 'PUT',
+            body: JSON.stringify({ permissions }),
+        });
+    },
 };
 
 // ============= Live Stream API =============
