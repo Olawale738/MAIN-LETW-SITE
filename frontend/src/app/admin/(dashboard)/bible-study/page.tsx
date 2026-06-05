@@ -671,8 +671,9 @@ export default function BibleStudyAdminPage() {
                     {/* Quick Links to sub-pages */}
                     <div>
                         <h2 className="text-sm font-black text-[#140152] mb-3">Management Sub-Pages</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                             {[
+                                { href: '/admin/bible-study/groups',   icon: Users,      label: 'Groups & Moderators', sub: 'Manage members & perms', color: '#128c7e', bg: '#ecfdf5' },
                                 { href: '/admin/bible-study/plans',    icon: BookOpen,   label: 'Reading Plans',  sub: 'Create & manage plans',  color: '#059669', bg: '#ecfdf5' },
                                 { href: '/admin/bible-study/readings', icon: FileText,   label: 'Daily Readings', sub: 'Add readings to plans',  color: '#7c3aed', bg: '#f3e8ff' },
                                 { href: '/admin/bible-study/resources',icon: Music2,     label: 'Resources',      sub: 'PDFs, videos, audio',    color: '#0284c7', bg: '#e0f2fe' },
