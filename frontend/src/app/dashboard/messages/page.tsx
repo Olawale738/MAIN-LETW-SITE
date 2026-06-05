@@ -112,9 +112,13 @@ function MessagesContent() {
                     if (data.type === 'message.new') {
                         const msg: ChatMessage = data.message
                         const convId: string = data.conversation_id
-                        setActive(prev => prev && prev.id === convId
-                            ? { ...prev, messages: [...prev.messages, msg], last_message_preview: msg.body, last_message_at: msg.created_at }
-                            : prev)
+                        setActive(prev => {
+                            if (!prev || prev.id !== convId) return prev
+                            // Deduplicate: only add if message ID doesn't already exist
+                            const alreadyExists = prev.messages.some(m => m.id === msg.id)
+                            if (alreadyExists) return prev
+                            return { ...prev, messages: [...prev.messages, msg], last_message_preview: msg.body, last_message_at: msg.created_at }
+                        })
                         setConversations(prev => {
                             const idx = prev.findIndex(c => c.id === convId)
                             if (idx === -1) {
