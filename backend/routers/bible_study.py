@@ -12,9 +12,10 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from database import get_db
 from models.bible_study import (
-    BibleReadingPlan, DailyReading, UserReadingProgress, 
+    BibleReadingPlan, DailyReading, UserReadingProgress,
     UserDailyReading, BibleStudyResource, BibleStudyPageSettings,
-    ReadingStatus
+    ReadingStatus, BibleStudyGroupMember, BibleStudyGroupMessage,
+    BibleStudyGroupModerator
 )
 from schemas.bible_study import (
     BibleReadingPlanCreate, BibleReadingPlanUpdate, BibleReadingPlanResponse,
@@ -725,7 +726,6 @@ async def get_public_page_settings(db: AsyncSession = Depends(get_db)):
 
 # ─── Study Group membership (any logged-in user can join/leave, no approval) ──
 
-from models.bible_study import BibleStudyGroupMember  # noqa: E402
 
 
 @router.get("/groups/my-groups")
@@ -792,7 +792,6 @@ async def group_member_counts(db: AsyncSession = Depends(get_db)):
 
 # ─── Group Chat ──────────────────────────────────────────────────────────────
 
-from models.bible_study import BibleStudyGroupMessage  # noqa: E402
 from sqlalchemy.orm import selectinload as _sli  # noqa: E402
 
 
@@ -1022,9 +1021,6 @@ async def search_group_messages(
 
 
 # ─── Group Chat Moderators (Admin Control) ───────────────────────────────────
-
-from models.bible_study import BibleStudyGroupModerator  # noqa: E402
-
 
 @router.get("/groups/{group_id}/moderators")
 async def get_group_moderators(
