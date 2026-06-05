@@ -19,6 +19,8 @@ export default function AdminChatPage() {
     const [loadingMsgs,     setLoadingMsgs]      = useState(false)
     const [sending,         setSending]          = useState(false)
     const [search,          setSearch]           = useState('')
+    const [clearingAll,     setClearingAll]      = useState(false)
+    const [clearResult,     setClearResult]      = useState<string | null>(null)
 
     const bottomRef  = useRef<HTMLDivElement>(null)
     const wsRef      = useRef<WebSocket | null>(null)
@@ -170,6 +172,32 @@ export default function AdminChatPage() {
     const selectedConv = conversations.find(c => c.id === selectedConvId)
     const totalUnread  = conversations.reduce((acc, c) => acc + (c.unread_for_admin ?? c.my_unread ?? 0), 0)
 
+    const handleClearAllChats = async () => {
+        if (!confirm('Delete ALL chat messages across the entire site?\n\nThis includes:\n• All DM conversations\n• Live chat widget\n• All 7 department group chats\n• Choir chat\n\nThis CANNOT be undone.')) return
+        setClearingAll(true)
+        setClearResult(null)
+        try {
+            const token = localStorage.getItem('access_token')
+            const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+            const res = await fetch(`${base}/messages/admin/reset-all-chats`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            if (!res.ok) throw new Error(await res.text())
+            const data = await res.json()
+            setConversations([])
+            setConvDetail(null)
+            setSelectedConvId(null)
+            setClearResult(`✅ Done — ${data.total} messages deleted`)
+            setTimeout(() => setClearResult(null), 5000)
+        } catch (e: any) {
+            setClearResult(`❌ Failed: ${e?.message || 'error'}`)
+            setTimeout(() => setClearResult(null), 5000)
+        } finally {
+            setClearingAll(false)
+        }
+    }
+
     const filtered = conversations.filter(c => {
         const name = c.user?.name || ''
         return name.toLowerCase().includes(search.toLowerCase())
@@ -180,26 +208,43 @@ export default function AdminChatPage() {
         <div className="h-screen flex flex-col bg-gray-50">
 
             {/* Top bar */}
-            <div className="shrink-0 px-6 py-4 border-b bg-white flex items-center justify-between shadow-sm">
-                <div className="flex items-center gap-3">
-                    <MessageCircle className="w-6 h-6 text-[#140152]" />
+            <div className="shrink-0 px-6 py-4 border-b bg-white flex items-center justify-between shadow-sm gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <MessageCircle className="w-6 h-6 text-[#140152] shrink-0" />
                     <h1 className="text-2xl font-black text-[#140152]">Member Chat</h1>
                     {totalUnread > 0 && (
-                        <span className="bg-[#f5bb00] text-[#140152] text-xs font-bold px-2 py-0.5 rounded-full">
+                        <span className="bg-[#f5bb00] text-[#140152] text-xs font-bold px-2 py-0.5 rounded-full shrink-0">
                             {totalUnread} unread
                         </span>
                     )}
-                    <span className="text-xs text-gray-400 font-medium hidden sm:block">
-                        — only registered members appear here
-                    </span>
+                    {clearResult && (
+                        <span className={`text-xs font-semibold px-3 py-1 rounded-full shrink-0 ${clearResult.startsWith('✅') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {clearResult}
+                        </span>
+                    )}
                 </div>
-                <button
-                    onClick={() => loadConversations()}
-                    className="text-gray-400 hover:text-[#140152] transition-colors p-1 rounded-lg hover:bg-gray-100"
-                    title="Refresh"
-                >
-                    <RefreshCw className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                    {/* Delete all chats button */}
+                    <button
+                        onClick={handleClearAllChats}
+                        disabled={clearingAll}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                        title="Delete all chat messages across the entire site"
+                    >
+                        {clearingAll
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <Trash2 className="w-3.5 h-3.5" />
+                        }
+                        {clearingAll ? 'Clearing…' : 'Clear All Chats'}
+                    </button>
+                    <button
+                        onClick={() => loadConversations()}
+                        className="text-gray-400 hover:text-[#140152] transition-colors p-1 rounded-lg hover:bg-gray-100"
+                        title="Refresh"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                    </button>
+                </div>
             </div>
 
             <div className="flex flex-1 overflow-hidden">
