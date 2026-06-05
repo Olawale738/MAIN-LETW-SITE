@@ -112,13 +112,9 @@ function MessagesContent() {
                     if (data.type === 'message.new') {
                         const msg: ChatMessage = data.message
                         const convId: string = data.conversation_id
-                        setActive(prev => {
-                            if (!prev || prev.id !== convId) return prev
-                            // Deduplicate: only add if message ID doesn't already exist
-                            const alreadyExists = prev.messages.some(m => m.id === msg.id)
-                            if (alreadyExists) return prev
-                            return { ...prev, messages: [...prev.messages, msg], last_message_preview: msg.body, last_message_at: msg.created_at }
-                        })
+                        setActive(prev => prev && prev.id === convId
+                            ? { ...prev, messages: [...prev.messages, msg], last_message_preview: msg.body, last_message_at: msg.created_at }
+                            : prev)
                         setConversations(prev => {
                             const idx = prev.findIndex(c => c.id === convId)
                             if (idx === -1) {
@@ -192,18 +188,15 @@ function MessagesContent() {
     async function send() {
         if (!draft.trim() || !activeId || sending) return
         setSending(true)
+        const body = draft.trim()
+        setDraft('')  // Clear immediately for better UX
         try {
-            const msg = await messageApi.sendMessage(activeId, { body: draft.trim() })
-            setActive(prev => prev && prev.id === activeId ? { ...prev, messages: [...prev.messages, msg] } : prev)
-            setConversations(prev => {
-                const idx = prev.findIndex(c => c.id === activeId)
-                if (idx === -1) return prev
-                const updated = { ...prev[idx], last_message_preview: msg.body, last_message_at: msg.created_at }
-                return [updated, ...prev.filter((_, i) => i !== idx)]
-            })
-            setDraft('')
+            // Send to API (but don't add to state - WebSocket will handle it)
+            await messageApi.sendMessage(activeId, { body })
+            // Message will be added by WebSocket handler
         } catch (err) {
             console.error(err)
+            setDraft(body)  // Restore draft on error
             alert('Failed to send message')
         } finally {
             setSending(false)
