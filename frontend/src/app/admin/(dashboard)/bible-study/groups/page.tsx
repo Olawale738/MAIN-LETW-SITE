@@ -76,7 +76,25 @@ export default function BibleStudyGroupsAdminPage() {
                     member_count: g.size || 0,
                     members: [] as GroupMember[]
                 }))
-            setGroups(groups_list)
+
+            // Fetch actual members for each group
+            const groupsWithMembers = await Promise.all(
+                groups_list.map(async (group) => {
+                    try {
+                        const info = await bibleStudyApi.getGroupInfo(group.id)
+                        return {
+                            ...group,
+                            member_count: info.members?.length || 0,
+                            members: info.members || []
+                        }
+                    } catch (err) {
+                        console.log(`Could not load members for group ${group.id}:`, err)
+                        return group
+                    }
+                })
+            )
+
+            setGroups(groupsWithMembers)
         } catch (err) {
             console.error(err)
             showToast('Failed to load groups', 'error')
@@ -391,16 +409,36 @@ export default function BibleStudyGroupsAdminPage() {
                                                     <div className="bg-white rounded-lg border border-[#128c7e] p-4 space-y-3">
                                                         <div>
                                                             <label className="block text-xs font-bold text-gray-700 mb-2">Select Member</label>
-                                                            <select
-                                                                value={selectedMemberId}
-                                                                onChange={e => setSelectedMemberId(e.target.value)}
-                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#128c7e] bg-white text-gray-900"
-                                                            >
-                                                                <option value="">Choose a member...</option>
-                                                                {/* In a real app, fetch members from the group */}
-                                                                <option value="user_placeholder">John Doe (ID: user_placeholder)</option>
-                                                            </select>
-                                                            <p className="text-[10px] text-gray-500 mt-1">Note: Members must join the group first</p>
+                                                            {(() => {
+                                                                const members = group.members || []
+                                                                const moderatorIds = new Set(groupModerators[group.id]?.map(m => m.user_id) || [])
+                                                                const availableMembers = members.filter(m => !moderatorIds.has(m.id))
+
+                                                                return (
+                                                                    <>
+                                                                        <select
+                                                                            value={selectedMemberId}
+                                                                            onChange={e => setSelectedMemberId(e.target.value)}
+                                                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#128c7e] bg-white text-gray-900"
+                                                                        >
+                                                                            <option value="">Choose a member...</option>
+                                                                            {availableMembers.length === 0 ? (
+                                                                                <option disabled>No members available</option>
+                                                                            ) : (
+                                                                                availableMembers.map(m => (
+                                                                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                                                                ))
+                                                                            )}
+                                                                        </select>
+                                                                        {availableMembers.length === 0 && members.length > 0 && (
+                                                                            <p className="text-[10px] text-amber-600 mt-1">✓ All members are already moderators</p>
+                                                                        )}
+                                                                        {members.length === 0 && (
+                                                                            <p className="text-[10px] text-gray-500 mt-1">No members in this group yet</p>
+                                                                        )}
+                                                                    </>
+                                                                )
+                                                            })()}
                                                         </div>
 
                                                         <div>
