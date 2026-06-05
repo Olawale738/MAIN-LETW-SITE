@@ -58,24 +58,22 @@ export default function MenteeDashboard() {
 
                 const conversations = await messageApi.listConversations()
 
-                // Filter conversations where current user is mentee (user_id) and has a mentor (admin_id exists)
-                // We need to identify mentor conversations - these are conversations where the other party is a mentor
+                // Filter conversations where current user is mentee (user_id) and has a mentor (admin exists)
                 const mentorConvs = conversations.conversations
                     .filter(conv => {
-                        // Assuming the conversation has metadata indicating if it's a mentorship
-                        // For now, show all conversations where there's an admin (mentor role)
-                        return conv.admin_id && !conv.is_closed
+                        // Show conversations where there's a mentor (admin participant)
+                        return conv.admin && conv.status !== 'closed'
                     })
                     .map(conv => ({
                         id: conv.id,
-                        mentor_id: conv.admin_id || '',
-                        mentor_name: conv.admin_name || 'Your Mentor',
-                        mentor_email: conv.admin_email || '',
+                        mentor_id: conv.admin?.id || '',
+                        mentor_name: conv.admin?.name || 'Your Mentor',
+                        mentor_email: conv.admin?.email || '',
                         subject: conv.subject || 'Mentoring',
                         last_message_preview: conv.last_message_preview || null,
                         last_message_at: conv.last_message_at || null,
                         unread_count: conv.unread_for_user || 0,
-                        is_closed: conv.is_closed || false,
+                        is_closed: conv.status === 'closed',
                     }))
 
                 setMentorConversations(mentorConvs)
@@ -132,7 +130,8 @@ export default function MenteeDashboard() {
                     <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
                         <MessageCircle className="w-16 h-16 text-white/30 mx-auto mb-4" />
                         <p className="text-xl font-bold text-white mb-2">No mentors assigned yet</p>
-                        <p className="text-white/60 mb-6">Once an admin assigns you a mentor, you'll see them here</p>
+                        <p className="text-white/60 mb-2">Once an admin assigns you a mentor, you'll see them here</p>
+                        <p className="text-sm text-white/40 mb-6">Contact your church coordinator to request a Bible study mentor</p>
                         <Link href="/dashboard" className="inline-flex items-center gap-2 px-6 py-3 bg-[#f5bb00] text-[#140152] rounded-xl font-bold hover:bg-white transition-colors">
                             Back to Dashboard
                             <ArrowRight className="w-4 h-4" />
