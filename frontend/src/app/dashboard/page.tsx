@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, Megaphone, Send, HandHeart, CheckCircle2, Phone, CalendarDays, Bell, X, ChevronRight, ArrowRight } from 'lucide-react'
+import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, MessageSquare, Megaphone, Send, HandHeart, CheckCircle2, Phone, CalendarDays, Bell, X, ChevronRight, ArrowRight } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
 import { serviceRequestApi, notificationApi, Notification, ServiceRequest } from '@/lib/api'
 import { checkMembership, type Department } from '@/lib/dept-api'
@@ -354,7 +354,7 @@ export default function UserDashboard() {
                     </div>
 
                     {/* ── Quick Actions ── */}
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                         {[
                             {
                                 label: 'Chat Admin', sub: 'Get support', icon: MessageCircle, bg: '#140152', iconColor: '#f5bb00',
@@ -362,6 +362,9 @@ export default function UserDashboard() {
                             },
                             { label: 'Prayer Request', sub: 'Submit request', icon: Heart,          bg: '#dbeafe', iconColor: '#2563eb', href: '/prayer-request' },
                             { label: 'Events',         sub: 'See schedule',  icon: CalendarDays,    bg: '#fef3c7', iconColor: '#d97706', href: '/events' },
+                            { label: 'My Mentors',     sub: 'Your mentors',  icon: Users,           bg: '#ecfdf5', iconColor: '#059669', href: '/dashboard/mentee' },
+                            { label: 'My Mentees',     sub: 'Your mentees',  icon: Users,           bg: '#f0fdf4', iconColor: '#7c3aed', href: '/dashboard/mentor' },
+                            { label: 'Messages',       sub: 'All chats',     icon: MessageSquare,   bg: '#fdf2f8', iconColor: '#db2777', href: '/dashboard/messages' },
                         ].map((a, i) => {
                             const inner = (
                                 <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all flex flex-col items-center gap-2.5 text-center group">
