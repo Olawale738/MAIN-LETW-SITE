@@ -70,7 +70,7 @@ export default function NominationsPage() {
       const [u, l] = await Promise.all([adminListUsers(), adminListLeaders()])
       setUsers(u); setLeaders(l)
     } catch (e: unknown) {
-      toast$((e as Error).message || 'Failed to load users', false)
+      const msg = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Failed to load users'; toast$(msg, false)
     } finally { setLoading(false) }
   }, [])
 
