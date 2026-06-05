@@ -68,7 +68,7 @@ export default function MenteeDashboard() {
                         id: conv.id,
                         mentor_id: conv.admin?.id || '',
                         mentor_name: conv.admin?.name || 'Your Mentor',
-                        mentor_email: conv.admin?.email || '',
+                        mentor_email: conv.admin?.role || '',
                         subject: conv.subject || 'Mentoring',
                         last_message_preview: conv.last_message_preview || null,
                         last_message_at: conv.last_message_at || null,
