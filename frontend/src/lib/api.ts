@@ -2464,6 +2464,24 @@ export const bibleStudyApi = {
             method: 'POST',
         });
     },
+
+    // Group Chat
+    getGroupMessages: async (groupId: string): Promise<any[]> => {
+        return fetchApi<any[]>(`/bible-study/groups/${groupId}/messages`);
+    },
+
+    sendGroupMessage: async (groupId: string, content: string): Promise<any> => {
+        return fetchApi<any>(`/bible-study/groups/${groupId}/messages`, {
+            method: 'POST',
+            body: JSON.stringify({ content }),
+        });
+    },
+
+    deleteGroupMessage: async (groupId: string, msgId: string): Promise<{ message: string }> => {
+        return fetchApi<{ message: string }>(`/bible-study/groups/${groupId}/messages/${msgId}`, {
+            method: 'DELETE',
+        });
+    },
 };
 
 // ============= Live Stream API =============

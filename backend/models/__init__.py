@@ -23,7 +23,7 @@ from models.bible_study import (
     BibleReadingPlan, DailyReading, UserReadingProgress,
     UserDailyReading, BibleStudyResource, BibleStudyPageSettings,
     ReadingPlanType, ReadingStatus, UserBibleWeekProgress,
-    WeekReflection, QuarterlyTheme
+    WeekReflection, QuarterlyTheme, BibleStudyGroupMember, BibleStudyGroupMessage
 )
 from models.cms import CMSPage, CMSImage
 from models.chat import ChatConversation, ChatMessage

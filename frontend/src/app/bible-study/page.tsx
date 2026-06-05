@@ -1067,10 +1067,19 @@ export default function BibleStudyPage() {
                                     )}
 
                                     {isLoggedIn ? (
-                                        <Button onClick={() => toggleGroupJoin(g.id)} disabled={!isOpen && !joined}
-                                            className={`w-full rounded-xl disabled:opacity-50 ${joined ? 'bg-white border-2 border-[#140152] text-[#140152] hover:bg-gray-50' : 'bg-[#140152] text-white hover:bg-[#1a0270]'}`}>
-                                            {joined ? 'Leave Group' : isOpen ? 'Join This Group' : 'Group Full'}
-                                        </Button>
+                                        <div className="flex gap-2">
+                                            {joined && (
+                                                <Link href={`/bible-study/groups/${g.id}?name=${encodeURIComponent(g.name)}`} className="flex-1">
+                                                    <Button className="w-full bg-[#128c7e] text-white hover:bg-[#0f7a6e] rounded-xl flex items-center justify-center gap-2">
+                                                        <MessageCircle className="w-4 h-4" /> Chat
+                                                    </Button>
+                                                </Link>
+                                            )}
+                                            <Button onClick={() => toggleGroupJoin(g.id)} disabled={!isOpen && !joined}
+                                                className={`flex-1 rounded-xl disabled:opacity-50 ${joined ? 'bg-white border-2 border-[#140152] text-[#140152] hover:bg-gray-50' : 'bg-[#140152] text-white hover:bg-[#1a0270]'}`}>
+                                                {joined ? 'Leave' : isOpen ? 'Join' : 'Full'}
+                                            </Button>
+                                        </div>
                                     ) : (
                                         <Link href="/auth/login?next=/bible-study">
                                             <Button disabled={!isOpen} className="w-full bg-[#140152] text-white hover:bg-[#1a0270] rounded-xl disabled:opacity-50">

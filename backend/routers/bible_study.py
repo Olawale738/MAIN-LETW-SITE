@@ -790,6 +790,113 @@ async def group_member_counts(db: AsyncSession = Depends(get_db)):
     return {"counts": {row[0]: row[1] for row in result.all()}}
 
 
+# ─── Group Chat ──────────────────────────────────────────────────────────────
+
+from models.bible_study import BibleStudyGroupMessage  # noqa: E402
+from sqlalchemy.orm import selectinload as _sli  # noqa: E402
+
+
+async def _assert_group_member(group_id: str, user_id: str, db: AsyncSession) -> None:
+    """Raise 403 if the user is not a member of the given group."""
+    res = await db.execute(
+        select(BibleStudyGroupMember).where(
+            BibleStudyGroupMember.user_id == user_id,
+            BibleStudyGroupMember.group_id == group_id,
+        )
+    )
+    if not res.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="You must join this group before you can chat.")
+
+
+@router.get("/groups/{group_id}/messages")
+async def get_group_messages(
+    group_id: str,
+    limit: int = 80,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List the latest messages for a Bible Study group. Members only."""
+    await _assert_group_member(group_id, current_user.id, db)
+    res = await db.execute(
+        select(BibleStudyGroupMessage)
+        .where(BibleStudyGroupMessage.group_id == group_id)
+        .options(_sli(BibleStudyGroupMessage.sender))
+        .order_by(BibleStudyGroupMessage.created_at.asc())
+        .limit(limit)
+    )
+    msgs = res.scalars().all()
+    return [
+        {
+            "id": m.id,
+            "group_id": m.group_id,
+            "user_id": m.user_id,
+            "sender_name": m.sender.name if m.sender else "Unknown",
+            "content": m.content,
+            "created_at": m.created_at.isoformat(),
+            "is_mine": m.user_id == current_user.id,
+        }
+        for m in msgs
+    ]
+
+
+class GroupMessageIn(BaseModel):
+    content: str
+
+
+@router.post("/groups/{group_id}/messages", status_code=201)
+async def send_group_message(
+    group_id: str,
+    body: GroupMessageIn,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Send a message to a Bible Study group. Members only."""
+    await _assert_group_member(group_id, current_user.id, db)
+    if not body.content.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty.")
+    msg = BibleStudyGroupMessage(
+        group_id=group_id,
+        user_id=current_user.id,
+        content=body.content.strip(),
+    )
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+    return {
+        "id": msg.id,
+        "group_id": msg.group_id,
+        "user_id": msg.user_id,
+        "sender_name": current_user.name,
+        "content": msg.content,
+        "created_at": msg.created_at.isoformat(),
+        "is_mine": True,
+    }
+
+
+@router.delete("/groups/{group_id}/messages/{msg_id}")
+async def delete_group_message(
+    group_id: str,
+    msg_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a group message. Sender or admin only."""
+    res = await db.execute(
+        select(BibleStudyGroupMessage).where(
+            BibleStudyGroupMessage.id == msg_id,
+            BibleStudyGroupMessage.group_id == group_id,
+        )
+    )
+    msg = res.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    if msg.user_id != current_user.id and current_user.role.value != "admin":
+        raise HTTPException(status_code=403, detail="Not allowed.")
+    await db.delete(msg)
+    await db.commit()
+    return {"message": "Deleted."}
+
+
 # ─── Admin: Week Reflections CRUD ────────────────────────────────────────────
 
 class WeekReflectionInput(BaseModel):

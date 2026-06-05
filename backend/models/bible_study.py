@@ -220,3 +220,17 @@ class BibleStudyGroupMember(Base):
     group_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     joined_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+
+class BibleStudyGroupMessage(Base):
+    """WhatsApp-style group chat message for a Bible Study group."""
+    __tablename__ = "bible_study_group_messages"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    group_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    # Relationship back to user for sender info
+    sender: Mapped["User"] = relationship("User", foreign_keys=[user_id], lazy="select")
+
