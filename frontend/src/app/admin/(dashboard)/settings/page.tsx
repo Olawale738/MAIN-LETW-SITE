@@ -27,15 +27,19 @@ import {
     Trash2,
     AlertTriangle,
     MessageCircle,
-    RefreshCw
+    RefreshCw,
+    BookOpen,
+    HandHeart
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 /* ─── Ministry role helpers ────────────────────────────────────── */
 const ROLE_KEYS = {
-    choirmaster:   'letw_choirmaster_creds',
-    youthCoord:    'letw_youth_coord_creds',
-    childrenCoord: 'letw_children_coord_creds',
+    choirmaster:    'letw_choirmaster_creds',
+    youthCoord:     'letw_youth_coord_creds',
+    childrenCoord:  'letw_children_coord_creds',
+    mentor:         'letw_mentor_creds',
+    volunteerCoord: 'letw_volunteer_coord_creds',
 } as const
 
 type RoleKey = keyof typeof ROLE_KEYS
@@ -43,9 +47,11 @@ type RoleKey = keyof typeof ROLE_KEYS
 interface RoleCreds { name: string; username: string; password: string }
 
 const ROLE_DEFAULTS: Record<RoleKey, RoleCreds> = {
-    choirmaster:   { name: '', username: 'choirmaster', password: 'LETW@Choir2026'    },
-    youthCoord:    { name: '', username: 'youthcoord',  password: 'LETW@Youth2026'    },
-    childrenCoord: { name: '', username: 'childcoord',  password: 'LETW@Children2026' },
+    choirmaster:    { name: '', username: 'choirmaster',   password: 'LETW@Choir2026'     },
+    youthCoord:     { name: '', username: 'youthcoord',    password: 'LETW@Youth2026'     },
+    childrenCoord:  { name: '', username: 'childcoord',    password: 'LETW@Children2026'  },
+    mentor:         { name: '', username: 'mentor',        password: 'LETW@Mentor2026'    },
+    volunteerCoord: { name: '', username: 'volunteercoord',password: 'LETW@Volunteer2026' },
 }
 
 function loadRoleCreds(key: RoleKey): RoleCreds {
@@ -103,12 +109,14 @@ export default function AdminSettingsPage() {
 
     // Ministry roles state
     const [roles, setRoles] = useState<Record<RoleKey, RoleCreds>>({
-        choirmaster:   { ...ROLE_DEFAULTS.choirmaster },
-        youthCoord:    { ...ROLE_DEFAULTS.youthCoord },
-        childrenCoord: { ...ROLE_DEFAULTS.childrenCoord },
+        choirmaster:    { ...ROLE_DEFAULTS.choirmaster    },
+        youthCoord:     { ...ROLE_DEFAULTS.youthCoord     },
+        childrenCoord:  { ...ROLE_DEFAULTS.childrenCoord  },
+        mentor:         { ...ROLE_DEFAULTS.mentor         },
+        volunteerCoord: { ...ROLE_DEFAULTS.volunteerCoord },
     })
-    const [roleShowPw, setRoleShowPw] = useState<Record<RoleKey, boolean>>({ choirmaster: false, youthCoord: false, childrenCoord: false })
-    const [roleSaved, setRoleSaved]   = useState<Record<RoleKey, boolean>>({ choirmaster: false, youthCoord: false, childrenCoord: false })
+    const [roleShowPw, setRoleShowPw] = useState<Record<RoleKey, boolean>>({ choirmaster: false, youthCoord: false, childrenCoord: false, mentor: false, volunteerCoord: false })
+    const [roleSaved, setRoleSaved]   = useState<Record<RoleKey, boolean>>({ choirmaster: false, youthCoord: false, childrenCoord: false, mentor: false, volunteerCoord: false })
 
     // Profile form state
     const [name, setName] = useState('')
@@ -128,9 +136,11 @@ export default function AdminSettingsPage() {
     useEffect(() => {
         // Load ministry role credentials from localStorage
         setRoles({
-            choirmaster:   loadRoleCreds('choirmaster'),
-            youthCoord:    loadRoleCreds('youthCoord'),
-            childrenCoord: loadRoleCreds('childrenCoord'),
+            choirmaster:    loadRoleCreds('choirmaster'),
+            youthCoord:     loadRoleCreds('youthCoord'),
+            childrenCoord:  loadRoleCreds('childrenCoord'),
+            mentor:         loadRoleCreds('mentor'),
+            volunteerCoord: loadRoleCreds('volunteerCoord'),
         })
 
         const fetchUser = async () => {
@@ -248,9 +258,11 @@ export default function AdminSettingsPage() {
     ]
 
     const ROLE_CARDS: { key: RoleKey; label: string; icon: React.ElementType; color: string; href: string; desc: string }[] = [
-        { key: 'choirmaster',   label: 'Choir Master',          icon: Music,  color: '#7c3aed', href: '/services/alter-sound/choirmaster', desc: 'Controls the Alter Sound choir portal' },
-        { key: 'youthCoord',    label: 'Youth Coordinator',     icon: Zap,    color: '#4f46e5', href: '/youth/coordinator',                desc: 'Manages the Youth Ministry portal'     },
-        { key: 'childrenCoord', label: "Children's Coordinator", icon: Heart,  color: '#10b981', href: '/children/coordinator',             desc: "Manages the Children's Ministry portal" },
+        { key: 'choirmaster',    label: 'Choir Master',           icon: Music,      color: '#7c3aed', href: '/services/alter-sound/choirmaster', desc: 'Controls the Alter Sound choir portal'            },
+        { key: 'youthCoord',    label: 'Youth Coordinator',      icon: Zap,        color: '#4f46e5', href: '/youth/coordinator',                desc: 'Manages the Youth Ministry portal'               },
+        { key: 'childrenCoord', label: "Children's Coordinator", icon: Heart,      color: '#10b981', href: '/children/coordinator',             desc: "Manages the Children's Ministry portal"           },
+        { key: 'mentor',        label: 'Mentor Coordinator',     icon: BookOpen,   color: '#059669', href: '/dashboard/mentor',                 desc: 'Oversees Bible study mentees via mentor dashboard' },
+        { key: 'volunteerCoord',label: 'Volunteer Coordinator',  icon: HandHeart,  color: '#b45309', href: '/dashboard/volunteer',              desc: 'Manages volunteer departments and team members'    },
     ]
 
     return (
