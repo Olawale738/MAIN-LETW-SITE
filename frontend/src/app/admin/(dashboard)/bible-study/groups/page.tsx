@@ -374,13 +374,14 @@ export default function BibleStudyGroupsAdminPage() {
                                                                         <div className="flex gap-1.5">
                                                                             <button
                                                                                 onClick={() => {
-                                                                                    setEditingModId(mod.id)
-                                                                                    setEditPermissions({
+                                                                                    const perms: typeof editPermissions = {
                                                                                         can_pin: mod.permissions.can_pin ?? false,
                                                                                         can_delete_others: mod.permissions.can_delete_others ?? true,
                                                                                         can_mute: mod.permissions.can_mute ?? false,
                                                                                         can_edit_settings: mod.permissions.can_edit_settings ?? false,
-                                                                                    })
+                                                                                    }
+                                                                                    setEditingModId(mod.id)
+                                                                                    setEditPermissions(perms)
                                                                                 }}
                                                                                 className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
                                                                                 title="Edit permissions"
