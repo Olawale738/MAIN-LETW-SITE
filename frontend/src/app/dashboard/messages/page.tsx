@@ -115,7 +115,13 @@ function MessagesContent() {
                         setActive(prev => {
                             if (!prev || prev.id !== convId) return prev
                             // Check if message already exists by ID to prevent duplicates
-                            if (prev.messages.some(m => m.id === msg.id)) {
+                            const alreadyExists = prev.messages.some(m =>
+                                m.id === msg.id ||
+                                (m.sender_id === msg.sender_id &&
+                                 m.body === msg.body &&
+                                 m.created_at === msg.created_at)
+                            )
+                            if (alreadyExists) {
                                 return prev
                             }
                             return {
