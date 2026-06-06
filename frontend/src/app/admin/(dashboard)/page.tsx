@@ -7,7 +7,7 @@ import {
     FileText, Clock, User, ArrowRight, BookOpen, Music, Briefcase,
     HandHeart, Settings, Crown, Baby, Zap, CheckCircle, XCircle,
     AlertTriangle, BarChart2, Bell, ChevronRight, Radio, MessageCircle,
-    Target, Globe, Shield, RefreshCw, UserCheck,
+    Target, Globe, Shield, RefreshCw, UserCheck, Home,
 } from 'lucide-react'
 import { dashboardApi, DashboardStats, RecentActivity } from '@/lib/api'
 import { listMembers, updateMember, removeMember, adminPendingDeptRequests, adminApproveDeptMember, adminRejectDeptMember, DeptMember, PendingDeptRequest, type Department } from '@/lib/dept-api'
