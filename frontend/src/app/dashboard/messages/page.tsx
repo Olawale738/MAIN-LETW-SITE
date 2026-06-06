@@ -53,12 +53,14 @@ function MessagesContent() {
     const [search, setSearch] = useState('')
     const [showNew, setShowNew] = useState(false)
     const [admins, setAdmins] = useState<ChatParticipant[]>([])
+    const [teamMembers, setTeamMembers] = useState<Array<{ id: string; name: string; dept: string }>>([])
     const [newRecipient, setNewRecipient] = useState<string>('')
     const [newSubject, setNewSubject] = useState('')
     const [newMessage, setNewMessage] = useState('')
     const [me, setMe] = useState<{ id: string; name: string } | null>(null)
     const [peerTyping, setPeerTyping] = useState<{ [convId: string]: boolean }>({})
     const [connStatus, setConnStatus] = useState<'connecting' | 'live' | 'offline'>('connecting')
+    const [userRole, setUserRole] = useState<string>('user')
 
     const wsRef = useRef<WebSocket | null>(null)
     const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -74,6 +76,8 @@ function MessagesContent() {
             id: localStorage.getItem('userId') || '',
             name: localStorage.getItem('userName') || 'You',
         })
+        const role = localStorage.getItem('userRole') || 'user'
+        setUserRole(role)
 
         ;(async () => {
             try {
@@ -90,6 +94,30 @@ function MessagesContent() {
                 const a = await messageApi.listAdmins()
                 setAdmins(a)
             } catch { /* ignore */ }
+
+            // If user is a coordinator, also load team members from their departments
+            const coordinatorRoles = ['admin', 'volunteer_coordinator', 'choirmaster', 'youth_leader', 'children_coordinator', 'mentor', 'evangelism_coordinator']
+            if (coordinatorRoles.includes(role)) {
+                try {
+                    const { listMembers } = await import('@/lib/dept-api')
+                    const depts: Array<'choir' | 'youth' | 'children' | 'media' | 'hospitality' | 'ushering' | 'security' | 'evangelism'> =
+                        ['choir', 'youth', 'children', 'media', 'hospitality', 'ushering', 'security', 'evangelism']
+                    const allMembers: Array<{ id: string; name: string; dept: string }> = []
+                    for (const dept of depts) {
+                        try {
+                            const members = await listMembers(dept)
+                            members.filter(m => m.is_active).forEach(m => {
+                                if (!allMembers.find(x => x.id === m.user_id)) {
+                                    allMembers.push({ id: m.user_id, name: m.name, dept })
+                                }
+                            })
+                        } catch { /* coordinator doesn't have access to this dept, skip */ }
+                    }
+                    setTeamMembers(allMembers)
+                } catch (e) {
+                    console.error('Failed to load team members:', e)
+                }
+            }
         })()
     }, [router, wantConv])
 
@@ -238,10 +266,14 @@ function MessagesContent() {
     async function startNewConversation() {
         if (!newMessage.trim()) return
         try {
+            // Determine if recipient is an admin (from admins list) or a regular user/team member
+            const isAdmin = newRecipient && admins.some(a => a.id === newRecipient)
             const detail = await messageApi.createConversation({
                 subject: newSubject.trim() || undefined,
                 initial_message: newMessage.trim(),
-                admin_id: newRecipient || undefined,
+                // If recipient is an admin → use admin_id, otherwise use recipient_id (for team members)
+                admin_id: isAdmin ? newRecipient : undefined,
+                recipient_id: !isAdmin && newRecipient ? newRecipient : undefined,
             })
             setShowNew(false)
             setNewMessage(''); setNewSubject(''); setNewRecipient('')
@@ -250,7 +282,7 @@ function MessagesContent() {
             setActive(detail)
         } catch (err) {
             console.error(err)
-            alert('Failed to start conversation')
+            alert('Failed to start conversation: ' + (err instanceof Error ? err.message : 'Unknown error'))
         }
     }
 
@@ -501,7 +533,11 @@ function MessagesContent() {
                         <div className="flex items-center justify-between mb-6">
                             <div>
                                 <h2 className="text-2xl font-bold text-[#140152]">New Chat</h2>
-                                <p className="text-xs text-gray-500 mt-0.5">Start a conversation with a mentor or pastor</p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    {teamMembers.length > 0
+                                        ? 'Message a team member, mentor, or admin'
+                                        : 'Start a conversation with a mentor or pastor'}
+                                </p>
                             </div>
                             <button onClick={() => setShowNew(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                                 <X className="w-5 h-5" />
@@ -517,10 +553,28 @@ function MessagesContent() {
                                     className="w-full mt-2 px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#140152]/50 focus:border-transparent bg-gray-50 hover:bg-white transition-all"
                                 >
                                     <option value="">Any available mentor / admin</option>
-                                    {admins.map(a => (
-                                        <option key={a.id} value={a.id}>{a.name}</option>
-                                    ))}
+                                    {admins.length > 0 && (
+                                        <optgroup label="👨‍💼 Mentors / Admins">
+                                            {admins.map(a => (
+                                                <option key={a.id} value={a.id}>{a.name}</option>
+                                            ))}
+                                        </optgroup>
+                                    )}
+                                    {teamMembers.length > 0 && (
+                                        <optgroup label="👥 Team Members">
+                                            {teamMembers.map(m => (
+                                                <option key={m.id} value={m.id}>
+                                                    {m.name} ({m.dept.charAt(0).toUpperCase() + m.dept.slice(1)})
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                    )}
                                 </select>
+                                {teamMembers.length > 0 && (
+                                    <p className="text-[10px] text-gray-500 mt-1">
+                                        💡 As a coordinator, you can message any team member directly
+                                    </p>
+                                )}
                             </div>
 
                             <div>
