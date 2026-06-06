@@ -1307,3 +1307,142 @@ async def seed_default_quarterly_themes(
         db.add(theme)
     await db.commit()
     return {"message": "Default quarterly themes seeded successfully", "count": 4}
+
+
+# ─── Group Member Management (moderators only) ──
+
+@router.post("/groups/{group_id}/members/{user_id}")
+async def add_member_to_group(
+    group_id: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Add a user to a group. Only moderators can do this.
+    """
+    # Check if current user is a moderator
+    res = await db.execute(
+        select(BibleStudyGroupModerator).where(
+            and_(
+                BibleStudyGroupModerator.group_id == group_id,
+                BibleStudyGroupModerator.user_id == current_user.id,
+            )
+        )
+    )
+    if not res.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Only moderators can add members")
+
+    # Check if user already in group
+    res = await db.execute(
+        select(BibleStudyGroupMember).where(
+            and_(
+                BibleStudyGroupMember.group_id == group_id,
+                BibleStudyGroupMember.user_id == user_id,
+            )
+        )
+    )
+    if res.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="User already in group")
+
+    # Add member
+    member = BibleStudyGroupMember(
+        group_id=group_id,
+        user_id=user_id,
+        joined_at=datetime.utcnow(),
+    )
+    db.add(member)
+    await db.commit()
+
+    return {"message": f"Member added successfully"}
+
+
+@router.delete("/groups/{group_id}/members/{user_id}")
+async def remove_member_from_group(
+    group_id: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Remove a user from a group. Only moderators can do this (or users can remove themselves).
+    """
+    # Check if current user is a moderator or is removing themselves
+    if current_user.id != user_id:
+        res = await db.execute(
+            select(BibleStudyGroupModerator).where(
+                and_(
+                    BibleStudyGroupModerator.group_id == group_id,
+                    BibleStudyGroupModerator.user_id == current_user.id,
+                )
+            )
+        )
+        if not res.scalar_one_or_none():
+            raise HTTPException(status_code=403, detail="Only moderators can remove members")
+
+    # Find and delete member
+    res = await db.execute(
+        select(BibleStudyGroupMember).where(
+            and_(
+                BibleStudyGroupMember.group_id == group_id,
+                BibleStudyGroupMember.user_id == user_id,
+            )
+        )
+    )
+    member = res.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found in group")
+
+    await db.delete(member)
+    await db.commit()
+
+    return {"message": "Member removed successfully"}
+
+
+@router.get("/groups/{group_id}/available-members")
+async def get_available_members(
+    group_id: str,
+    q: str = Query("", min_length=0, max_length=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get list of users not yet in the group (for moderators to add).
+    """
+    # Check if current user is a moderator
+    res = await db.execute(
+        select(BibleStudyGroupModerator).where(
+            and_(
+                BibleStudyGroupModerator.group_id == group_id,
+                BibleStudyGroupModerator.user_id == current_user.id,
+            )
+        )
+    )
+    if not res.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Only moderators can view available members")
+
+    # Get current members
+    res = await db.execute(
+        select(BibleStudyGroupMember.user_id).where(
+            BibleStudyGroupMember.group_id == group_id
+        )
+    )
+    current_member_ids = set(r[0] for r in res.all())
+
+    # Search users
+    query = select(User).where(User.id.notin_(current_member_ids))
+    if q:
+        query = query.where(User.name.ilike(f"%{q}%"))
+    query = query.limit(50)
+
+    res = await db.execute(query)
+    users = res.scalars().all()
+
+    return [
+        {
+            "id": u.id,
+            "name": u.name,
+            "email": u.email,
+        }
+        for u in users
+    ]

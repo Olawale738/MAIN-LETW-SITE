@@ -2520,6 +2520,32 @@ export const bibleStudyApi = {
     },
 
     updateModeratorPermissions: async (groupId: string, userId: string, permissions: any): Promise<any> => {
+
+    // Member Management (for moderators)
+    addGroupMember: async (groupId: string, userId: string): Promise<{ message: string }> => {
+        return fetchApi<{ message: string }>(`/bible-study/groups/${groupId}/members/${userId}`, {
+            method: 'POST',
+        });
+    },
+
+    removeGroupMember: async (groupId: string, userId: string): Promise<{ message: string }> => {
+        return fetchApi<{ message: string }>(`/bible-study/groups/${groupId}/members/${userId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    getAvailableMembers: async (groupId: string, query: string = ''): Promise<any[]> => {
+        const url = new URL(`/api/bible-study/groups/${groupId}/available-members`, window.location.origin);
+        if (query) url.searchParams.set('q', query);
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${tokenManager.getAccessToken()}`,
+            },
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        return response.json();
+    },
         return fetchApi<any>(`/bible-study/groups/${groupId}/moderators/${userId}/permissions`, {
             method: 'PUT',
             body: JSON.stringify({ permissions }),
