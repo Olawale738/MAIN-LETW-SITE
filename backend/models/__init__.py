@@ -40,7 +40,11 @@ from models.evangelism import EvangelismInterest
 from models.custom_ministry import (
     CustomMinistry, CustomMinistryMember,
     CustomMinistryAnnouncement, CustomMinistryMessage,
-    MinistryMembershipStatus,
+    CustomMinistryLeader, CustomMinistryEvent, CustomMinistryEventRsvp,
+    CustomMinistryResource, CustomMinistryTestimonial,
+    CustomMinistryPrayerRequest, CustomMinistryActivity,
+    MinistryMembershipStatus, MinistryEventType, MinistryResourceType,
+    MinistryRoleType,
 )
 
 __all__ = [

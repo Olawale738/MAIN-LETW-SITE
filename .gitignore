@@ -28,3 +28,4 @@ env/
 *.md
 *.db
 *.txt
+.vercel-deploy-hook.txt
