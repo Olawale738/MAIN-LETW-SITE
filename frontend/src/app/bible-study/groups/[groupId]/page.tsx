@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Send, Loader2, Trash2, Users, MessageSquare, Search, Info, X } from 'lucide-react'
+import { ArrowLeft, Send, Loader2, Trash2, Users, MessageSquare, Search, Info, X, Plus, UserPlus } from 'lucide-react'
 import { bibleStudyApi } from '@/lib/api'
 
 interface GroupMsg {
@@ -27,6 +27,18 @@ interface Moderator {
         can_edit_settings?: boolean
     }
     assigned_at: string
+}
+
+interface Member {
+    id: string
+    name: string
+    joined_at: string
+}
+
+interface AvailableUser {
+    id: string
+    name: string
+    email: string
 }
 
 function formatTime(iso: string) {
@@ -69,6 +81,14 @@ export default function GroupChatPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [moderators, setModerators]  = useState<Moderator[]>([])
     const [myModPerms, setMyModPerms]  = useState<any>(null)
+
+    // Member management state
+    const [showAddMember, setShowAddMember] = useState(false)
+    const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([])
+    const [searchUsers, setSearchUsers] = useState('')
+    const [loadingUsers, setLoadingUsers] = useState(false)
+    const [removingMemberId, setRemovingMemberId] = useState<string | null>(null)
+    const [addingMemberId, setAddingMemberId] = useState<string | null>(null)
 
     const bottomRef   = useRef<HTMLDivElement>(null)
     const pollRef     = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -186,6 +206,62 @@ export default function GroupChatPage() {
         }
     }
 
+    const loadAvailableUsers = async (query: string) => {
+        setLoadingUsers(true)
+        try {
+            const users = await bibleStudyApi.getAvailableMembers(groupId, query)
+            setAvailableUsers(users)
+        } catch (e: any) {
+            console.error('Error loading available users:', e)
+            setAvailableUsers([])
+        } finally {
+            setLoadingUsers(false)
+        }
+    }
+
+    const handleAddMember = async (userId: string) => {
+        setAddingMemberId(userId)
+        try {
+            await bibleStudyApi.addGroupMember(groupId, userId)
+            // Reload members
+            const info = await bibleStudyApi.getGroupInfo(groupId)
+            setMembers(info.members || [])
+            setShowAddMember(false)
+            setSearchUsers('')
+            setAvailableUsers([])
+            alert('Member added successfully!')
+        } catch (e: any) {
+            alert(e.message || 'Failed to add member')
+        } finally {
+            setAddingMemberId(null)
+        }
+    }
+
+    const handleRemoveMember = async (memberId: string) => {
+        if (!confirm('Remove this member from the group?')) return
+        setRemovingMemberId(memberId)
+        try {
+            await bibleStudyApi.removeGroupMember(groupId, memberId)
+            // Reload members
+            const info = await bibleStudyApi.getGroupInfo(groupId)
+            setMembers(info.members || [])
+            alert('Member removed successfully!')
+        } catch (e: any) {
+            alert(e.message || 'Failed to remove member')
+        } finally {
+            setRemovingMemberId(null)
+        }
+    }
+
+    const handleSearchUsers = (query: string) => {
+        setSearchUsers(query)
+        if (query.length > 0) {
+            loadAvailableUsers(query)
+        } else {
+            setAvailableUsers([])
+        }
+    }
+
     if (loading) return (
         <div className="flex items-center justify-center min-h-screen bg-[#ece5dd]">
             <Loader2 className="w-10 h-10 animate-spin text-[#128c7e]" />
@@ -245,17 +321,44 @@ export default function GroupChatPage() {
                 <div className="bg-[#f0f0f0] border-t border-gray-200 px-4 py-3 max-h-48 overflow-y-auto shrink-0">
                     <div className="flex items-center justify-between mb-3">
                         <p className="font-bold text-sm text-gray-800">{members.length} Members</p>
-                        <button onClick={() => setShowInfo(false)} className="text-gray-400 hover:text-gray-600">
-                            <X className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {myModPerms && (
+                                <button
+                                    onClick={() => setShowAddMember(true)}
+                                    className="flex items-center gap-1 px-2 py-1 bg-[#128c7e] text-white rounded-lg text-xs font-semibold hover:bg-[#0f6f69] transition"
+                                    title="Add member"
+                                >
+                                    <UserPlus className="w-3 h-3" />
+                                    Add
+                                </button>
+                            )}
+                            <button onClick={() => setShowInfo(false)} className="text-gray-400 hover:text-gray-600">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                     <div className="space-y-2 text-xs">
                         {members.map(m => (
-                            <div key={m.id} className="flex items-center gap-2 text-gray-700">
-                                <div className="w-6 h-6 bg-[#128c7e] rounded-full text-white flex items-center justify-center font-bold text-[10px]">
-                                    {(m.name || 'U').split(' ')[0][0]}
+                            <div key={m.id} className="flex items-center gap-2 text-gray-700 justify-between group">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <div className="w-6 h-6 bg-[#128c7e] rounded-full text-white flex items-center justify-center font-bold text-[10px] flex-shrink-0">
+                                        {(m.name || 'U').split(' ')[0][0]}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="truncate font-medium">{m.name || 'Unknown'}</p>
+                                        <p className="text-[10px] text-gray-500">{formatTime(m.joined_at)}</p>
+                                    </div>
                                 </div>
-                                <span>{m.name || 'Unknown'}</span>
+                                {myModPerms && m.id !== myId && (
+                                    <button
+                                        onClick={() => handleRemoveMember(m.id)}
+                                        disabled={removingMemberId === m.id}
+                                        className="p-1 text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition disabled:opacity-50"
+                                        title="Remove member"
+                                    >
+                                        {removingMemberId === m.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -385,6 +488,58 @@ export default function GroupChatPage() {
                     }
                 </button>
             </div>
+
+            {/* Add Member Dialog */}
+            {showAddMember && (
+                <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-t-3xl md:rounded-2xl w-full md:max-w-md p-6 shadow-2xl">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Add Member to Group</h3>
+                        <p className="text-sm text-gray-600 mb-4">Search for members to add to this group</p>
+
+                        <div className="relative mb-4">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                                type="text"
+                                value={searchUsers}
+                                onChange={e => handleSearchUsers(e.target.value)}
+                                placeholder="Search by name..."
+                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#128c7e] bg-gray-50"
+                                autoFocus
+                            />
+                        </div>
+
+                        <div className="max-h-64 overflow-y-auto space-y-2">
+                            {loadingUsers ? (
+                                <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-[#128c7e]" /></div>
+                            ) : availableUsers.length === 0 ? (
+                                <p className="text-center text-gray-500 text-sm py-6">{searchUsers ? 'No users found' : 'Search to add members'}</p>
+                            ) : (
+                                availableUsers.map(user => (
+                                    <button
+                                        key={user.id}
+                                        onClick={() => handleAddMember(user.id)}
+                                        disabled={addingMemberId === user.id}
+                                        className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition disabled:opacity-50"
+                                    >
+                                        <div className="text-left">
+                                            <p className="font-medium text-sm text-gray-900">{user.name}</p>
+                                            <p className="text-xs text-gray-500">{user.email}</p>
+                                        </div>
+                                        {addingMemberId === user.id ? <Loader2 className="w-4 h-4 animate-spin text-[#128c7e]" /> : <Plus className="w-4 h-4 text-[#128c7e]" />}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+
+                        <button
+                            onClick={() => { setShowAddMember(false); setSearchUsers(''); setAvailableUsers([]) }}
+                            className="w-full mt-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
