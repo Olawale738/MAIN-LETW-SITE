@@ -2,148 +2,115 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell, Heart, Sparkles } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell, Heart, Sparkles, FileText, Tag, Plus, BarChart, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager, chatApi, serviceRequestApi } from '@/lib/api'
 import { useState, useEffect } from 'react'
 import { listMembers, adminPendingDeptRequests } from '@/lib/dept-api'
 
-const sidebarItems = [
+// Section types: simple item or expandable group with sub-items
+type SimpleItem = { title: string; href: string; icon: any }
+type GroupItem = { title: string; icon: any; items: SimpleItem[] }
+type SidebarItem = SimpleItem | GroupItem
+
+const sidebarItems: SidebarItem[] = [
+    { title: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { title: 'Live Stream', href: '/admin/live-stream', icon: Radio },
+    { title: 'Pending Approvals', href: '/admin/approvals', icon: Bell },
+    { title: 'Service Requests', href: '/admin/service-requests', icon: ClipboardList },
+    { title: 'Volunteers', href: '/admin/volunteers', icon: UserCheck },
+    { title: 'Announcements', href: '/admin/announcements', icon: Megaphone },
+    { title: 'Sermons', href: '/admin/sermons', icon: Video },
+    { title: 'Events', href: '/admin/events', icon: Calendar },
+    { title: 'Users', href: '/admin/users', icon: Users },
+    { title: 'Nominations', href: '/admin/nominations', icon: Crown },
+    // Bible Study expandable group
     {
-        title: 'Dashboard',
-        href: '/admin',
-        icon: LayoutDashboard
+        title: 'Bible Study',
+        icon: BookOpen,
+        items: [
+            { title: 'Overview',         href: '/admin/bible-study',                  icon: LayoutDashboard },
+            { title: 'Reading Plans',    href: '/admin/bible-study/plans',            icon: BookOpen },
+            { title: 'Daily Readings',   href: '/admin/bible-study/readings',         icon: Book },
+            { title: 'Resources',        href: '/admin/bible-study/resources',        icon: FileText },
+            { title: 'Settings',         href: '/admin/bible-study/settings',         icon: Settings },
+            { title: 'Groups',           href: '/admin/bible-study/groups',           icon: Users },
+            { title: 'Chat Moderation',  href: '/admin/bible-study/chat-moderation',  icon: MessageCircle },
+        ]
     },
+    // Alter Sound expandable group
     {
-        title: 'Live Stream',
-        href: '/admin/live-stream',
-        icon: Radio
+        title: 'Alter Sound',
+        icon: Music,
+        items: [
+            { title: 'Overview',         href: '/admin/alter-sound',            icon: LayoutDashboard },
+            { title: 'Categories',       href: '/admin/alter-sound/categories', icon: Tag },
+            { title: 'Tracks',           href: '/admin/alter-sound/tracks',     icon: Music },
+            { title: 'Settings',         href: '/admin/alter-sound/settings',   icon: Settings },
+        ]
     },
+    // Prayer expandable group
     {
-        title: 'Pending Approvals',
-        href: '/admin/approvals',
-        icon: Bell
+        title: 'Prayer',
+        icon: HandHeart,
+        items: [
+            { title: 'Overview',         href: '/admin/prayer',            icon: LayoutDashboard },
+            { title: 'Categories',       href: '/admin/prayer/categories', icon: Tag },
+            { title: 'Schedules',        href: '/admin/prayer/schedules',  icon: Calendar },
+            { title: 'Requests',         href: '/admin/prayer/requests',   icon: HandHeart },
+            { title: 'Stats',            href: '/admin/prayer/stats',      icon: BarChart },
+            { title: 'Settings',         href: '/admin/prayer/settings',   icon: Settings },
+        ]
     },
+    // Career expandable group
     {
-        title: 'Service Requests',
-        href: '/admin/service-requests',
-        icon: ClipboardList
+        title: 'Career',
+        icon: Target,
+        items: [
+            { title: 'Modules',          href: '/admin/career',          icon: Target },
+            { title: 'Create Module',    href: '/admin/career/create',   icon: Plus },
+            { title: 'Sessions',         href: '/admin/career/sessions', icon: Calendar },
+        ]
     },
+    // Skills expandable group
     {
-        title: 'Volunteers',
-        href: '/admin/volunteers',
-        icon: UserCheck
+        title: 'Skills Development',
+        icon: Sparkles,
+        items: [
+            { title: 'All Courses',      href: '/admin/skills',        icon: Sparkles },
+            { title: 'Create Course',    href: '/admin/skills/create', icon: Plus },
+        ]
     },
+    // Leadership
+    { title: 'Leadership Training', href: '/admin/leadership', icon: Crown },
+    // CMS Pages expandable group
     {
-        title: 'Announcements',
-        href: '/admin/announcements',
-        icon: Megaphone
+        title: 'CMS Pages',
+        icon: FileText,
+        items: [
+            { title: 'Home Page',          href: '/admin/pages/home',           icon: Home },
+            { title: 'About Page',         href: '/admin/pages/about',          icon: Users },
+            { title: 'Impact Page',        href: '/admin/pages/impact',         icon: Globe },
+            { title: 'Sunday Service',     href: '/admin/pages/sunday-service', icon: Church },
+            { title: 'Evangelism Page',    href: '/admin/pages/evangelism',     icon: Globe },
+        ]
     },
+    { title: 'Evangelism Sign-Ups', href: '/admin/evangelism-signups', icon: HandHeart },
+    // Ministries group
     {
-        title: 'Leadership Training',
-        href: '/admin/leadership',
-        icon: Crown
+        title: 'Ministries',
+        icon: Heart,
+        items: [
+            { title: 'Custom Ministries',  href: '/admin/ministries',        icon: Heart },
+            { title: 'Youth Ministry',     href: '/youth/coordinator',       icon: Zap },
+            { title: 'Children Ministry',  href: '/children/coordinator',    icon: Baby },
+            { title: 'Department Coords',  href: '/admin/coordinators',      icon: Users },
+            { title: 'Volunteer Dashboard',href: '/dashboard/volunteer',     icon: HandHeart },
+            { title: 'Mentor Dashboard',   href: '/dashboard/mentor',        icon: BookOpen },
+        ]
     },
-    {
-        title: 'Sermons',
-        href: '/admin/sermons',
-        icon: Video
-    },
-    {
-        title: 'Events',
-        href: '/admin/events',
-        icon: Calendar
-    },
-    {
-        title: 'Home Page',
-        href: '/admin/pages/home',
-        icon: Home
-    },
-    {
-        title: 'About Page',
-        href: '/admin/pages/about',
-        icon: Users
-    },
-    {
-        title: 'Impact Page',
-        href: '/admin/pages/impact',
-        icon: Globe
-    },
-    {
-        title: 'Sunday Service',
-        href: '/admin/pages/sunday-service',
-        icon: Church
-    },
-    {
-        title: 'Evangelism Page',
-        href: '/admin/pages/evangelism',
-        icon: Globe
-    },
-    {
-        title: 'Evangelism Sign-Ups',
-        href: '/admin/evangelism-signups',
-        icon: HandHeart
-    },
-    {
-        title: 'Users',
-        href: '/admin/users',
-        icon: Users
-    },
-    {
-        title: 'Nominations',
-        href: '/admin/nominations',
-        icon: Crown
-    },
-    {
-        title: 'Youth Ministry',
-        href: '/youth/coordinator',
-        icon: Zap
-    },
-    {
-        title: 'Children Ministry',
-        href: '/children/coordinator',
-        icon: Baby
-    },
-    {
-        title: 'Bible Study Groups',
-        href: '/admin/bible-study/groups',
-        icon: BookOpen
-    },
-    {
-        title: 'Group Chat Moderation',
-        href: '/admin/bible-study/chat-moderation',
-        icon: MessageCircle
-    },
-    {
-        title: 'Department Coordinators',
-        href: '/admin/coordinators',
-        icon: Users
-    },
-    {
-        title: 'Custom Ministries',
-        href: '/admin/ministries',
-        icon: Heart
-    },
-    {
-        title: 'Volunteer Dashboard',
-        href: '/dashboard/volunteer',
-        icon: HandHeart
-    },
-    {
-        title: 'Mentor Dashboard',
-        href: '/dashboard/mentor',
-        icon: BookOpen
-    },
-    {
-        title: 'Messages',
-        href: '/admin/chat',
-        icon: MessageCircle
-    },
-    {
-        title: 'Admin Settings',
-        href: '/admin/settings',
-        icon: Settings
-    },
+    { title: 'Messages', href: '/admin/chat', icon: MessageCircle },
+    { title: 'Admin Settings', href: '/admin/settings', icon: Settings },
 ]
 
 export default function AdminSidebar() {
@@ -153,6 +120,7 @@ export default function AdminSidebar() {
     const [allPendingCount, setAllPendingCount] = useState(0)
     const [volunteerCount, setVolunteerCount] = useState(0)
     const [youthPending, setYouthPending] = useState(0)
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
     const [childrenPending, setChildrenPending] = useState(0)
 
     useEffect(() => {
@@ -200,13 +168,51 @@ export default function AdminSidebar() {
             </Link>
 
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-                {sidebarItems.map((item) => {
-                    const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
+                {sidebarItems.map((item, idx) => {
+                    const isGroup = 'items' in item
+                    if (isGroup) {
+                        const group = item as GroupItem
+                        const isExpanded = expandedGroups[group.title] ?? group.items.some(s => pathname === s.href || (s.href !== '/admin' && pathname.startsWith(s.href)))
+                        return (
+                            <div key={`group-${idx}`}>
+                                <button
+                                    onClick={() => setExpandedGroups(prev => ({ ...prev, [group.title]: !isExpanded }))}
+                                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 group text-sm text-white/70 hover:bg-white/10 hover:text-white"
+                                >
+                                    <group.icon className="w-4 h-4" />
+                                    <span className="flex-1 text-left font-semibold">{group.title}</span>
+                                    {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                                </button>
+                                {isExpanded && (
+                                    <div className="ml-3 mt-1 space-y-0.5 border-l border-white/10 pl-3">
+                                        {group.items.map((sub) => {
+                                            const subActive = pathname === sub.href || (sub.href !== '/admin' && pathname.startsWith(sub.href) && sub.href.length > 6)
+                                            return (
+                                                <Link key={sub.href} href={sub.href} onClick={() => setMobileOpen(false)}
+                                                    className={cn(
+                                                        "flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 group text-[13px]",
+                                                        subActive
+                                                            ? "bg-[#f5bb00]/90 text-[#140152] font-bold"
+                                                            : "text-white/60 hover:bg-white/10 hover:text-white"
+                                                    )}>
+                                                    <sub.icon className={cn("w-3.5 h-3.5", subActive ? "text-[#140152]" : "text-white/60")} />
+                                                    <span className="flex-1">{sub.title}</span>
+                                                </Link>
+                                            )
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    }
+
+                    const simple = item as SimpleItem
+                    const isActive = pathname === simple.href || (simple.href !== '/admin' && pathname.startsWith(simple.href))
 
                     return (
                         <Link
-                            key={item.href}
-                            href={item.href}
+                            key={simple.href}
+                            href={simple.href}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
                                 "flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 group text-sm",
@@ -215,19 +221,19 @@ export default function AdminSidebar() {
                                     : "text-white/70 hover:bg-white/10 hover:text-white"
                             )}
                         >
-                            <item.icon className={cn("w-4 h-4", isActive ? "text-[#140152]" : "text-white/70 group-hover:text-white")} />
-                            <span className="flex-1">{item.title}</span>
-                            {item.href === '/admin/chat' && chatUnread > 0 && (
+                            <simple.icon className={cn("w-4 h-4", isActive ? "text-[#140152]" : "text-white/70 group-hover:text-white")} />
+                            <span className="flex-1">{simple.title}</span>
+                            {simple.href === '/admin/chat' && chatUnread > 0 && (
                                 <span className="bg-[#f5bb00] text-[#140152] text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
                                     {chatUnread > 9 ? '9+' : chatUnread}
                                 </span>
                             )}
-                            {item.href === '/admin/approvals' && allPendingCount > 0 && (
+                            {simple.href === '/admin/approvals' && allPendingCount > 0 && (
                                 <span className="bg-red-500 text-white text-xs font-black min-w-[1.25rem] h-5 px-1 rounded-full flex items-center justify-center animate-pulse">
                                     {allPendingCount > 9 ? '9+' : allPendingCount}
                                 </span>
                             )}
-                            {item.href === '/admin/volunteers' && volunteerCount > 0 && (
+                            {simple.href === '/admin/volunteers' && volunteerCount > 0 && (
                                 <span className="bg-purple-500 text-white text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
                                     {volunteerCount > 9 ? '9+' : volunteerCount}
                                 </span>
