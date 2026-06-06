@@ -120,6 +120,10 @@ app.include_router(dept_admin_router)
 from routers import evangelism
 app.include_router(evangelism.router)
 
+# Custom Ministries (Women's, Men's, Marriage, etc.) - admin-created
+from routers import ministries
+app.include_router(ministries.router)
+
 # Chat / messaging
 from routers import messages
 app.include_router(messages.router)

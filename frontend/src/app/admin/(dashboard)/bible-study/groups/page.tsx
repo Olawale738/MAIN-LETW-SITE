@@ -220,12 +220,27 @@ export default function BibleStudyGroupsAdminPage() {
             <ToastComponent />
 
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-black text-[#140152] flex items-center gap-3 mb-2">
-                    <Users className="w-8 h-8 text-[#128c7e]" />
-                    Bible Study Groups Management
-                </h1>
-                <p className="text-gray-600">Manage group members and assign moderators with granular permissions</p>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                    <h1 className="text-3xl font-black text-[#140152] flex items-center gap-3 mb-2">
+                        <Users className="w-8 h-8 text-[#128c7e]" />
+                        Bible Study Groups Management
+                    </h1>
+                    <p className="text-gray-600">Manage group members and assign moderators with granular permissions</p>
+                </div>
+                <a href="/admin/bible-study#groups"
+                   className="flex items-center gap-2 bg-[#128c7e] hover:bg-[#0d6b5e] text-white px-5 py-3 rounded-xl font-bold transition-colors shadow-lg">
+                    <Plus className="w-5 h-5" /> Create New Group
+                </a>
+            </div>
+
+            {/* Info banner */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-blue-900">
+                    <p className="font-bold mb-1">Create new groups in Bible Study settings</p>
+                    <p className="text-blue-800">Click "Create New Group" above to add new groups, then return here to manage members and moderators.</p>
+                </div>
             </div>
 
             {/* Groups List */}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell, Heart, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager, chatApi, serviceRequestApi } from '@/lib/api'
 import { useState, useEffect } from 'react'
@@ -118,6 +118,11 @@ const sidebarItems = [
         title: 'Department Coordinators',
         href: '/admin/coordinators',
         icon: Users
+    },
+    {
+        title: 'Custom Ministries',
+        href: '/admin/ministries',
+        icon: Heart
     },
     {
         title: 'Volunteer Dashboard',

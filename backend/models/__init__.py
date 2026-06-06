@@ -37,6 +37,11 @@ from models.department import (
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
+from models.custom_ministry import (
+    CustomMinistry, CustomMinistryMember,
+    CustomMinistryAnnouncement, CustomMinistryMessage,
+    MinistryMembershipStatus,
+)
 
 __all__ = [
     "User",
