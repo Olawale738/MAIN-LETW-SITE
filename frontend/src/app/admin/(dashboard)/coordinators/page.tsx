@@ -8,8 +8,9 @@ import {
     Users, Plus, Trash2, Loader2, AlertCircle, Check, X,
     Music, Baby, Users as UsersIcon, Heart, Camera, Coffee, Zap, Shield, MessageCircle, Globe
 } from 'lucide-react'
-import { dashboardApi, type AdminUser, type Department } from '@/lib/api'
+import { dashboardApi, type AdminUser } from '@/lib/api'
 import * as deptApi from '@/lib/dept-api'
+import type { Department } from '@/lib/dept-api'
 
 interface DeptInfo {
     key: string
