@@ -18,6 +18,7 @@ For admins:
 
 import asyncio
 import json
+import logging
 from datetime import datetime
 from typing import Dict, List, Set, Optional
 
@@ -44,7 +45,12 @@ from schemas.message import (
 from schemas.auth import MessageResponse as ApiMessage
 from utils.dependencies import get_current_active_user, get_admin_user
 from utils.security import decode_token
+from utils.message_routing import MessageRouter
 from pydantic import BaseModel
+
+# Configure logging for message routing
+logger = logging.getLogger(__name__)
+message_router_logger = logging.getLogger("message_router")
 
 
 class AssignMentorRequest(BaseModel):
@@ -442,19 +448,41 @@ async def send_message(
     db.add(msg)
 
     # Update denormalised conversation fields
+    message_router_logger.info(
+        f"[SEND] Processing message - User: {current_user.id} ({current_user.name}), "
+        f"Conversation: {conversation_id}"
+    )
     conv.last_message_preview = payload.body[:200]
     conv.last_message_at = datetime.utcnow()
     if current_user.id == conv.user_id:
         conv.unread_for_admin += 1
+        message_router_logger.info(f"[SEND] Sender in user_id slot -> incrementing admin unread")
     else:
         conv.unread_for_user += 1
+        message_router_logger.info(f"[SEND] Sender in admin_id slot -> incrementing user unread")
 
     # Notification for the other side (skip noisy ones if admin already chatting)
+    # Explicitly determine the recipient based on sender's role in the conversation
     other_user_id: Optional[str] = None
-    if current_user.id == conv.user_id and conv.admin_id:
+    if current_user.id == conv.user_id:
+        # Sender is in user_id slot → notify the admin_id party
         other_user_id = conv.admin_id
-    elif current_user.id != conv.user_id:
+        message_router_logger.info(
+            f"[ROUTING] user→admin: Message from {current_user.name} ({current_user.id}) "
+            f"in user_id slot to {other_user_id}"
+        )
+    elif current_user.id == conv.admin_id:
+        # Sender is in admin_id slot → notify the user_id party
         other_user_id = conv.user_id
+        message_router_logger.info(
+            f"[ROUTING] admin→user: Message from {current_user.name} ({current_user.id}) "
+            f"in admin_id slot to {other_user_id}"
+        )
+    else:
+        message_router_logger.error(
+            f"[ROUTING] ERROR: Sender {current_user.id} not in conversation. "
+            f"user_id={conv.user_id}, admin_id={conv.admin_id}"
+        )
 
     if other_user_id:
         db.add(Notification(
@@ -477,18 +505,27 @@ async def send_message(
 
     # Realtime push
     if other_user_id:
+        message_router_logger.info(
+            f"[SEND] WebSocket notification to recipient: {other_user_id}"
+        )
         await manager.send_personal(other_user_id, {
             "type": "message.new",
             "conversation_id": conv.id,
             "message": out.model_dump(mode="json"),
         })
     # Echo to all sender devices too
+    message_router_logger.info(
+        f"[SEND] WebSocket echo to sender: {current_user.id}"
+    )
     await manager.send_personal(current_user.id, {
         "type": "message.new",
         "conversation_id": conv.id,
         "message": out.model_dump(mode="json"),
     })
 
+    message_router_logger.info(
+        f"[SEND] COMPLETE - Message {msg.id} sent successfully to {other_user_id or 'self'}"
+    )
     return out
 
 
