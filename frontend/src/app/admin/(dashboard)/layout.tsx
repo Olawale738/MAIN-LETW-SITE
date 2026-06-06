@@ -2,7 +2,7 @@
 
 import AdminSidebar from '@/components/admin/AdminSidebar'
 import AdminAuthGuard from '@/components/admin/AdminAuthGuard'
-import { Home } from 'lucide-react'
+import { Home, ExternalLink, Globe } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminLayout({
@@ -32,7 +32,30 @@ export default function AdminLayout({
                             </div>
                         </Link>
                         <div className="flex items-center space-x-3">
-                            <Link href="/dashboard" className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600">
+                            {/* Visit Site Button - opens public site in new tab */}
+                            <Link
+                                href="/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#140152] to-[#7c3aed] text-white text-sm font-bold hover:shadow-lg hover:scale-105 transition-all"
+                                title="Visit public site"
+                            >
+                                <Globe className="w-4 h-4" />
+                                <span>Visit Site</span>
+                                <ExternalLink className="w-3 h-3" />
+                            </Link>
+                            {/* Mobile: just icon */}
+                            <Link
+                                href="/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="sm:hidden p-2 rounded-lg bg-gradient-to-r from-[#140152] to-[#7c3aed] text-white"
+                                title="Visit public site"
+                            >
+                                <Globe className="w-5 h-5" />
+                            </Link>
+                            {/* Member Dashboard */}
+                            <Link href="/dashboard" className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600" title="My Dashboard">
                                 <Home className="w-5 h-5" />
                             </Link>
                             <div className="w-8 h-8 rounded-full bg-[#140152] text-white flex items-center justify-center font-bold text-sm">

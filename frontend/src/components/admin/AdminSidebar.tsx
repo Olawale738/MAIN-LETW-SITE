@@ -168,6 +168,16 @@ export default function AdminSidebar() {
                 </div>
             </Link>
 
+            {/* Visit Site Button at top of sidebar */}
+            <div className="px-3 pt-3">
+                <a href="/" target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gradient-to-r from-[#f5bb00] to-[#ffd633] text-[#140152] text-sm font-black hover:shadow-lg transition-all">
+                    <Globe className="w-4 h-4" />
+                    <span className="flex-1">Visit Public Site</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                </a>
+            </div>
+
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
                 {sidebarItems.map((item, idx) => {
                     const isGroup = 'items' in item

@@ -263,7 +263,14 @@ export default function AdminDashboardPage() {
 
                 {/* Quick Actions */}
                 <div className="lg:col-span-2 bg-gradient-to-br from-[#140152] to-[#1e0275] rounded-2xl p-5 shadow-sm">
-                    <h2 className="font-black text-white text-sm mb-4">Quick Actions</h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-black text-white text-sm">Quick Actions</h2>
+                        <a href="/" target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-[10px] font-bold bg-[#f5bb00] text-[#140152] px-2.5 py-1 rounded-full hover:bg-[#ffd633] transition-colors"
+                            title="View public site">
+                            <Globe className="w-3 h-3" /> Visit Site
+                        </a>
+                    </div>
                     <div className="grid grid-cols-2 gap-2.5">
                         {[
                             { href: '/admin/sermons',       icon: Video,     label: 'Add Sermon',    sub: 'Upload content' },
