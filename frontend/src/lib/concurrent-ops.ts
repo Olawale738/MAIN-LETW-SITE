@@ -26,7 +26,7 @@ const DEFAULT_CONFIG: ConcurrencyConfig = {
  * Queue for managing concurrent operations
  */
 export class ConcurrencyQueue<T> {
-  private queue: Array<() => Promise<T>> = []
+  private queue: Array<() => Promise<void>> = []
   private active = 0
   private config: ConcurrencyConfig
 

@@ -35,7 +35,7 @@ export function MessageSearch({
   const [error, setError] = React.useState<string | null>(null)
   const [isOpen, setIsOpen] = React.useState(false)
   const [hasSearched, setHasSearched] = React.useState(false)
-  const searchTimeoutRef = React.useRef<NodeJS.Timeout>()
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
   // Debounced search
   const handleSearch = React.useCallback((searchQuery: string) => {

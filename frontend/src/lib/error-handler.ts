@@ -1,20 +1,27 @@
 /**
  * Centralized error handling utility
- * Provides consistent error handling, logging, and user-friendly messages
  */
 
 export type ErrorSeverity = 'info' | 'warning' | 'error' | 'critical'
 
-export interface AppError {
+export class AppError extends Error {
   code: string
-  message: string
   userMessage: string
   severity: ErrorSeverity
   timestamp: string
   context?: Record<string, any>
+
+  constructor(code: string, message: string, userMessage: string, severity: ErrorSeverity = 'error', context?: Record<string, any>) {
+    super(message)
+    this.code = code
+    this.userMessage = userMessage
+    this.severity = severity
+    this.timestamp = new Date().toISOString()
+    this.context = context
+    Object.setPrototypeOf(this, AppError.prototype)
+  }
 }
 
-// Error codes for different scenarios
 export const ERROR_CODES = {
   NETWORK_ERROR: 'NETWORK_ERROR',
   UNAUTHORIZED: 'UNAUTHORIZED',
@@ -29,183 +36,101 @@ export const ERROR_CODES = {
 } as const
 
 export class ErrorHandler {
-  /**
-   * Parse various error types into AppError
-   */
   static parse(error: unknown, context?: Record<string, any>): AppError {
-    const timestamp = new Date().toISOString()
-
-    // Handle AppError
     if (error instanceof AppError) {
-      return { ...error, context: { ...error.context, ...context }, timestamp }
+      return new AppError(error.code, error.message, error.userMessage, error.severity, { ...error.context, ...context })
     }
 
-    // Handle HTTP errors
     if (error instanceof Response) {
       return this.parseHttpError(error, context)
     }
 
-    // Handle fetch errors (network)
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      return {
-        code: ERROR_CODES.NETWORK_ERROR,
-        message: error.message,
-        userMessage: 'Network connection failed. Please check your internet connection.',
-        severity: 'error',
-        timestamp,
-        context: { ...context, originalError: error.message },
-      }
+      return new AppError(ERROR_CODES.NETWORK_ERROR, error.message, 'Network connection failed. Please check your internet connection.', 'error', { ...context, originalError: error.message })
     }
 
-    // Handle timeout errors
     if (error instanceof Error && error.name === 'AbortError') {
-      return {
-        code: ERROR_CODES.TIMEOUT,
-        message: error.message,
-        userMessage: 'Request timed out. Please try again.',
-        severity: 'warning',
-        timestamp,
-        context,
-      }
+      return new AppError(ERROR_CODES.TIMEOUT, error.message, 'Request timed out. Please try again.', 'warning', context)
     }
 
-    // Handle standard errors
     if (error instanceof Error) {
-      return {
-        code: ERROR_CODES.UNKNOWN,
-        message: error.message,
-        userMessage: 'An unexpected error occurred. Please try again.',
-        severity: 'error',
-        timestamp,
-        context: { ...context, stack: error.stack },
-      }
+      return new AppError(ERROR_CODES.UNKNOWN, error.message, 'An unexpected error occurred. Please try again.', 'error', { ...context, stack: error.stack })
     }
 
-    // Handle unknown types
-    return {
-      code: ERROR_CODES.UNKNOWN,
-      message: String(error),
-      userMessage: 'An unexpected error occurred. Please try again.',
-      severity: 'error',
-      timestamp,
-      context,
-    }
+    return new AppError(ERROR_CODES.UNKNOWN, String(error), 'An unexpected error occurred. Please try again.', 'error', context)
   }
 
-  /**
-   * Parse HTTP response errors
-   */
   private static parseHttpError(response: Response, context?: Record<string, any>): AppError {
-    const timestamp = new Date().toISOString()
     const status = response.status
+    let code: string = ERROR_CODES.SERVER_ERROR
+    let userMessage = 'A server error occurred. Please try again.'
 
-    // Determine error code from HTTP status
-    let code = ERROR_CODES.SERVER_ERROR
-    let severity: ErrorSeverity = 'error'
-    let userMessage = 'An error occurred. Please try again.'
-
-    switch (status) {
-      case 400:
-        code = ERROR_CODES.VALIDATION_ERROR
-        userMessage = 'Invalid input. Please check your submission.'
-        break
-      case 401:
-        code = ERROR_CODES.UNAUTHORIZED
-        userMessage = 'Your session has expired. Please log in again.'
-        severity = 'critical'
-        break
-      case 403:
-        code = ERROR_CODES.FORBIDDEN
-        userMessage = 'You do not have permission to perform this action.'
-        break
-      case 404:
-        code = ERROR_CODES.NOT_FOUND
-        userMessage = 'The requested resource was not found.'
-        break
-      case 409:
-        code = ERROR_CODES.CONFLICT
-        userMessage = 'This action conflicts with existing data. Please refresh and try again.'
-        break
-      case 500:
-      case 502:
-      case 503:
-      case 504:
-        code = ERROR_CODES.SERVER_ERROR
-        userMessage = 'Server error. Please try again later.'
-        severity = 'critical'
-        break
+    if (status === 400) {
+      code = ERROR_CODES.VALIDATION_ERROR
+      userMessage = 'Please check your input and try again.'
+    } else if (status === 401) {
+      code = ERROR_CODES.UNAUTHORIZED
+      userMessage = 'Please log in to continue.'
+    } else if (status === 403) {
+      code = ERROR_CODES.FORBIDDEN
+      userMessage = 'You do not have permission to perform this action.'
+    } else if (status === 404) {
+      code = ERROR_CODES.NOT_FOUND
+      userMessage = 'The requested resource was not found.'
+    } else if (status === 409) {
+      code = ERROR_CODES.CONFLICT
+      userMessage = 'This action conflicts with existing data.'
+    } else if (status === 429) {
+      userMessage = 'Too many requests. Please wait a moment and try again.'
     }
 
-    return {
-      code,
-      message: `HTTP ${status}: ${response.statusText}`,
-      userMessage,
-      severity,
-      timestamp,
-      context: { ...context, status, statusText: response.statusText },
-    }
+    return new AppError(code, `HTTP ${status}`, userMessage, status >= 500 ? 'error' : 'warning', { ...context, status })
   }
 
-  /**
-   * Log error for debugging
-   */
   static log(error: AppError): void {
-    const logLevel = {
-      info: console.info,
-      warning: console.warn,
-      error: console.error,
-      critical: console.error,
-    }[error.severity]
-
-    logLevel(`[${error.code}] ${error.message}`, {
-      code: error.code,
-      message: error.message,
-      severity: error.severity,
-      timestamp: error.timestamp,
-      context: error.context,
-    })
-
-    // In production, send to error tracking service
-    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    if (error.severity === 'critical' || error.severity === 'error') {
+      console.error('[Error]', error)
       this.reportToService(error)
+    } else if (error.severity === 'warning') {
+      console.warn('[Warning]', error)
+    } else {
+      console.log('[Info]', error)
     }
   }
 
-  /**
-   * Report error to external service (e.g., Sentry)
-   */
+  static handle(error: unknown, context?: Record<string, any>): string {
+    const appError = this.parse(error, context)
+    this.log(appError)
+    return appError.userMessage
+  }
+
+  static handleValidation(errors: Record<string, string>): string {
+    const messages = Object.values(errors).join(', ')
+    const appError = new AppError(ERROR_CODES.VALIDATION_ERROR, messages, messages, 'warning')
+    this.log(appError)
+    return appError.userMessage
+  }
+
   private static reportToService(error: AppError): void {
-    // TODO: Implement error reporting to service like Sentry
-    // fetch('/api/errors', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(error),
-    // }).catch(() => {}) // Silently fail to avoid cascading errors
+    if (typeof window === 'undefined') return
+    fetch('/api/errors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: error.code,
+        message: error.message,
+        severity: error.severity,
+        context: error.context,
+        timestamp: error.timestamp,
+        url: window.location.href,
+      }),
+    }).catch(() => {})
   }
 
-  /**
-   * Create a custom error
-   */
-  static create(
-    code: string,
-    message: string,
-    userMessage: string,
-    severity: ErrorSeverity = 'error',
-    context?: Record<string, any>
-  ): AppError {
-    return {
-      code,
-      message,
-      userMessage,
-      severity,
-      timestamp: new Date().toISOString(),
-      context,
-    }
+  static create(code: string, message: string, userMessage: string, severity: ErrorSeverity = 'error', context?: Record<string, any>): AppError {
+    return new AppError(code, message, userMessage, severity, context)
   }
 
-  /**
-   * Handle API response with error checking
-   */
   static async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       const error = this.parseHttpError(response)
@@ -216,20 +141,13 @@ export class ErrorHandler {
     try {
       return await response.json()
     } catch (e) {
-      const error = this.create(
-        ERROR_CODES.SERVER_ERROR,
-        'Failed to parse response',
-        'Server returned invalid data',
-        'error',
-        { originalError: String(e) }
-      )
+      const error = new AppError(ERROR_CODES.SERVER_ERROR, 'Failed to parse response', 'Server returned invalid data', 'error', { originalError: String(e) })
       this.log(error)
       throw error
     }
   }
 }
 
-// Export as function for convenience
 export function handleError(error: unknown, context?: Record<string, any>): AppError {
   const appError = ErrorHandler.parse(error, context)
   ErrorHandler.log(appError)
