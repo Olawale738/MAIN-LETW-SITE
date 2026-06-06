@@ -119,6 +119,26 @@ const sidebarItems = [
         href: '/admin/coordinators',
         icon: Users
     },
+    {
+        title: 'Volunteer Dashboard',
+        href: '/dashboard/volunteer',
+        icon: HandHeart
+    },
+    {
+        title: 'Mentor Dashboard',
+        href: '/dashboard/mentor',
+        icon: BookOpen
+    },
+    {
+        title: 'Messages',
+        href: '/admin/chat',
+        icon: MessageCircle
+    },
+    {
+        title: 'Admin Settings',
+        href: '/admin/settings',
+        icon: Settings
+    },
 ]
 
 export default function AdminSidebar() {

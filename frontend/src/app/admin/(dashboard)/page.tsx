@@ -272,6 +272,8 @@ export default function AdminDashboardPage() {
                             { href: '/admin/users',         icon: Users,     label: 'Users',         sub: `${stats?.total_users ?? 0} total` },
                             { href: '/admin/nominations',   icon: Crown,     label: 'Nominations',   sub: 'Assign leaders' },
                             { href: '/admin/volunteers',    icon: UserCheck, label: 'Volunteers',    sub: 'View directory' },
+                            { href: '/admin/settings?tab=ministry', icon: Settings, label: 'Ministry Roles', sub: 'Manage coordinators' },
+                            { href: '/admin/live-stream',   icon: Radio,     label: 'Live Stream',   sub: 'Manage broadcast' },
                         ].map((a, i) => (
                             <Link key={i} href={a.href}
                                 className="bg-white/8 hover:bg-white/15 border border-white/10 rounded-xl p-3 transition-all group">
@@ -350,14 +352,14 @@ export default function AdminDashboardPage() {
             <div>
                 <SectionHeader
                     title="Ministry Departments"
-                    subtitle="Manage choir, youth, and children ministries"
+                    subtitle="Manage all ministry coordinator portals and team members"
                     action={
                         <Link href="/admin/nominations" className="flex items-center gap-1.5 text-xs font-bold text-[#140152] hover:text-[#f5bb00] transition-colors">
                             <Crown className="w-3.5 h-3.5 text-amber-500" /> Nominations
                         </Link>
                     }
                 />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {[
                         {
                             label: 'Choir', sub: 'Alter Sound', icon: Music, color: '#4f46e5', bg: '#eef2ff',
@@ -381,6 +383,30 @@ export default function AdminDashboardPage() {
                                 { href: '/children/coordinator', label: 'Coordinator Dashboard', sub: 'Members, activities, attendance' },
                                 { href: '/children/dashboard',   label: 'Member Dashboard',      sub: 'View as a children member' },
                                 { href: '/admin/nominations',    label: 'Assign Coordinator',    sub: 'Admin-only nomination', crown: true },
+                            ],
+                        },
+                        {
+                            label: 'Evangelism', sub: 'Outreach & sign-ups', icon: Megaphone, color: '#dc2626', bg: '#fee2e2',
+                            links: [
+                                { href: '/services/evangelism',          label: 'Evangelism Portal',     sub: 'Manage outreach activities' },
+                                { href: '/admin/evangelism-signups',     label: 'View Sign-Ups',         sub: 'Visitor interest registrations' },
+                                { href: '/admin/pages/evangelism',       label: 'Edit Evangelism Page',  sub: 'CMS content management' },
+                            ],
+                        },
+                        {
+                            label: 'Volunteer Teams', sub: 'All volunteer departments', icon: HandHeart, color: '#b45309', bg: '#fef3c7',
+                            links: [
+                                { href: '/dashboard/volunteer',  label: 'Volunteer Dashboard',  sub: 'Manage all teams' },
+                                { href: '/admin/volunteers',     label: 'Volunteer Directory',  sub: 'View all volunteers' },
+                                { href: '/admin/approvals',      label: 'Pending Approvals',    sub: 'Review applications' },
+                            ],
+                        },
+                        {
+                            label: 'Bible Study & Mentoring', sub: 'Mentor coordinator', icon: BookOpen, color: '#059669', bg: '#ecfdf5',
+                            links: [
+                                { href: '/dashboard/mentor',                  label: 'Mentor Dashboard',     sub: 'Oversee mentees' },
+                                { href: '/admin/bible-study/groups',           label: 'Bible Study Groups',   sub: 'Manage study groups' },
+                                { href: '/admin/bible-study/chat-moderation',  label: 'Chat Moderation',      sub: 'Monitor discussions' },
                             ],
                         },
                     ].map((dept, i) => (
@@ -410,6 +436,63 @@ export default function AdminDashboardPage() {
                                 ))}
                             </div>
                         </motion.div>
+                    ))}
+                </div>
+            </div>
+
+            {/* ── Volunteer Departments ── */}
+            <div>
+                <SectionHeader
+                    title="Volunteer Departments"
+                    subtitle="Direct access to all volunteer team dashboards"
+                    action={
+                        <Link href="/dashboard/volunteer" className="flex items-center gap-1.5 text-xs font-bold text-[#140152] hover:text-[#f5bb00] transition-colors">
+                            <HandHeart className="w-3.5 h-3.5 text-amber-500" /> Volunteer Coordinator
+                        </Link>
+                    }
+                />
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {[
+                        { label: 'Security',    sub: 'Safety & order', href: '/services/security',    icon: Shield,     color: '#dc2626', bg: '#fee2e2' },
+                        { label: 'Ushering',    sub: 'Welcome team',   href: '/services/ushering',    icon: UserCheck,  color: '#0284c7', bg: '#e0f2fe' },
+                        { label: 'Hospitality', sub: 'Guest care',     href: '/services/hospitality', icon: HandHeart,  color: '#db2777', bg: '#fdf2f8' },
+                        { label: 'Media',       sub: 'Creative team',  href: '/services/media',       icon: Video,      color: '#7c3aed', bg: '#f3e8ff' },
+                        { label: 'Evangelism',  sub: 'Outreach',       href: '/services/evangelism',  icon: Megaphone,  color: '#ea580c', bg: '#fff7ed' },
+                    ].map((d, i) => (
+                        <Link key={i} href={d.href}
+                            className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-4 group">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: d.bg }}>
+                                <d.icon className="w-5 h-5" style={{ color: d.color }} />
+                            </div>
+                            <p className="text-sm font-black text-[#140152] group-hover:text-[#f5bb00] transition-colors">{d.label}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">{d.sub}</p>
+                        </Link>
+                    ))}
+                </div>
+            </div>
+
+            {/* ── CMS Pages & Content ── */}
+            <div>
+                <SectionHeader
+                    title="CMS Pages & Content"
+                    subtitle="Manage church website pages and content"
+                />
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {[
+                        { label: 'Home Page',       href: '/admin/pages/home',           icon: Home,       color: '#059669', bg: '#ecfdf5' },
+                        { label: 'About Page',      href: '/admin/pages/about',          icon: Users,      color: '#0284c7', bg: '#e0f2fe' },
+                        { label: 'Impact Page',     href: '/admin/pages/impact',         icon: Globe,      color: '#7c3aed', bg: '#f3e8ff' },
+                        { label: 'Sunday Service',  href: '/admin/pages/sunday-service', icon: BookOpen,   color: '#d97706', bg: '#fef3c7' },
+                        { label: 'Evangelism Page', href: '/admin/pages/evangelism',     icon: Megaphone,  color: '#dc2626', bg: '#fee2e2' },
+                    ].map((p, i) => (
+                        <Link key={i} href={p.href}
+                            className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-4 group">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: p.bg }}>
+                                <p.icon className="w-5 h-5" style={{ color: p.color }} />
+                            </div>
+                            <p className="text-sm font-black text-[#140152] group-hover:text-[#f5bb00] transition-colors">{p.label}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">Edit content</p>
+                        </Link>
                     ))}
                 </div>
             </div>
@@ -470,6 +553,31 @@ export default function AdminDashboardPage() {
                                 ))}
                             </div>
                         </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* ── Communication & Admin Settings ── */}
+            <div>
+                <SectionHeader
+                    title="Communication & Settings"
+                    subtitle="Messages, notifications, and system configuration"
+                />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                        { label: 'Messages',         sub: 'User conversations',    href: '/admin/chat',         icon: MessageCircle, color: '#2563eb', bg: '#dbeafe' },
+                        { label: 'Group Chat',       sub: 'Bible study moderation', href: '/admin/bible-study/chat-moderation', icon: MessageCircle, color: '#059669', bg: '#ecfdf5' },
+                        { label: 'Admin Settings',   sub: 'Profile & security',    href: '/admin/settings',     icon: Settings,      color: '#6b7280', bg: '#f3f4f6' },
+                        { label: 'Ministry Roles',   sub: 'Coordinator creds',     href: '/admin/settings?tab=ministry', icon: Crown, color: '#f59e0b', bg: '#fef3c7' },
+                    ].map((c, i) => (
+                        <Link key={i} href={c.href}
+                            className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-4 group">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: c.bg }}>
+                                <c.icon className="w-5 h-5" style={{ color: c.color }} />
+                            </div>
+                            <p className="text-sm font-black text-[#140152] group-hover:text-[#f5bb00] transition-colors">{c.label}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">{c.sub}</p>
+                        </Link>
                     ))}
                 </div>
             </div>
