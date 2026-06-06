@@ -9,7 +9,7 @@ import { serviceRequestApi } from '@/lib/api'
 import { checkMembership, type Department } from '@/lib/dept-api'
 import {
     Music, Baby, Users, BookOpen, Camera, Coffee, Zap, Shield, MessageCircle,
-    Lock, CheckCircle2, ArrowRight, Loader2, Clock, Plus, HandHeart,
+    Lock, CheckCircle2, ArrowRight, Loader2, Clock, Plus, HandHeart, Globe,
 } from 'lucide-react'
 import Link from 'next/link'
 
