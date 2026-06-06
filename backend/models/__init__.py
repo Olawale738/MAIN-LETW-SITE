@@ -43,6 +43,9 @@ from models.custom_ministry import (
     CustomMinistryLeader, CustomMinistryEvent, CustomMinistryEventRsvp,
     CustomMinistryResource, CustomMinistryTestimonial,
     CustomMinistryPrayerRequest, CustomMinistryActivity,
+    CustomMinistryShift, CustomMinistryShiftSignup,
+    CustomMinistryVolunteerHours, CustomMinistrySubTeam,
+    CustomMinistryOnboardingProgress, CustomMinistryRecognition,
     MinistryMembershipStatus, MinistryEventType, MinistryResourceType,
     MinistryRoleType,
 )

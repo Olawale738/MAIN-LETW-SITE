@@ -46,7 +46,9 @@ from models.custom_ministry import (
     CustomMinistryMessage, CustomMinistryLeader, CustomMinistryEvent,
     CustomMinistryEventRsvp, CustomMinistryResource,
     CustomMinistryTestimonial, CustomMinistryPrayerRequest,
-    CustomMinistryActivity,
+    CustomMinistryActivity, CustomMinistryShift, CustomMinistryShiftSignup,
+    CustomMinistryVolunteerHours, CustomMinistrySubTeam,
+    CustomMinistryOnboardingProgress, CustomMinistryRecognition,
     MinistryMembershipStatus, MinistryEventType, MinistryResourceType,
 )
 from models.message import Conversation, ConversationStatus, Message
@@ -117,6 +119,25 @@ class MinistryCreate(BaseModel):
     # Featured
     is_featured: bool = False
     show_on_homepage: bool = False
+    # Volunteer-specific
+    department_motto: Optional[str] = None
+    department_pledge: Optional[str] = None
+    time_commitment_hours: Optional[int] = None
+    time_commitment_period: Optional[str] = None
+    background_check_required: bool = False
+    background_check_type: Optional[str] = None
+    dress_code: Optional[str] = None
+    dress_code_image_url: Optional[str] = None
+    skills_required: Optional[dict] = None
+    training_requirements: Optional[dict] = None
+    onboarding_steps: Optional[dict] = None
+    equipment_provided: Optional[dict] = None
+    sop_document_url: Optional[str] = None
+    manual_url: Optional[str] = None
+    emergency_contact_required: bool = False
+    photo_id_required: bool = False
+    references_required: bool = False
+    recognition_levels: Optional[dict] = None
 
 
 class MinistryUpdate(BaseModel):
@@ -1416,5 +1437,343 @@ async def get_stats(slug: str, db: AsyncSession = Depends(get_db)):
         "prayer_requests": await count(CustomMinistryPrayerRequest),
         "answered_prayers": await count(CustomMinistryPrayerRequest, CustomMinistryPrayerRequest.is_answered == True),
         "activities": await count(CustomMinistryActivity),
+        "shifts": await count(CustomMinistryShift, CustomMinistryShift.is_active == True),
+        "sub_teams": await count(CustomMinistrySubTeam),
+        "recognition": await count(CustomMinistryRecognition),
         "leaders": await count(CustomMinistryLeader),
     }
+
+
+
+# === VOLUNTEER: SHIFTS (recurring weekly schedule) ===
+
+class ShiftCreate(BaseModel):
+    title: str = Field(..., min_length=2, max_length=255)
+    description: Optional[str] = None
+    day_of_week: str
+    start_time: str
+    end_time: str
+    location: Optional[str] = None
+    capacity: Optional[int] = None
+    sub_team: Optional[str] = None
+    role_required: Optional[str] = None
+
+
+class ShiftResponse(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    day_of_week: str
+    start_time: str
+    end_time: str
+    location: Optional[str] = None
+    capacity: Optional[int] = None
+    sub_team: Optional[str] = None
+    role_required: Optional[str] = None
+    is_active: bool
+    signup_count: int = 0
+    created_at: datetime
+
+
+@router.get("/{slug}/shifts", response_model=List[ShiftResponse])
+async def list_shifts(slug: str, db: AsyncSession = Depends(get_db)):
+    """List recurring shifts."""
+    ministry = await _get_ministry_or_404(db, slug)
+    from sqlalchemy import func as sql_func
+    res = await db.execute(
+        select(CustomMinistryShift).where(
+            CustomMinistryShift.ministry_id == ministry.id,
+            CustomMinistryShift.is_active == True,
+        ).order_by(CustomMinistryShift.day_of_week, CustomMinistryShift.start_time)
+    )
+    shifts = res.scalars().all()
+    results = []
+    for s in shifts:
+        c = await db.execute(
+            select(sql_func.count(CustomMinistryShiftSignup.id))
+            .where(CustomMinistryShiftSignup.shift_id == s.id)
+        )
+        results.append(ShiftResponse(
+            **{k: v for k, v in vars(s).items() if not k.startswith("_")},
+            signup_count=c.scalar() or 0,
+        ))
+    return results
+
+
+@router.post("/{slug}/shifts", response_model=ShiftResponse, status_code=201)
+async def create_shift(
+    slug: str, body: ShiftCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Create recurring shift."""
+    ministry = await _get_ministry_or_404(db, slug)
+    await _require_coordinator(db, ministry, current_user)
+    shift = CustomMinistryShift(ministry_id=ministry.id, **body.model_dump())
+    db.add(shift)
+    await db.commit()
+    await db.refresh(shift)
+    return ShiftResponse(
+        **{k: v for k, v in vars(shift).items() if not k.startswith("_")},
+        signup_count=0,
+    )
+
+
+@router.delete("/{slug}/shifts/{shift_id}")
+async def delete_shift(
+    slug: str, shift_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Delete shift."""
+    ministry = await _get_ministry_or_404(db, slug)
+    await _require_coordinator(db, ministry, current_user)
+    res = await db.execute(
+        select(CustomMinistryShift).where(and_(
+            CustomMinistryShift.id == shift_id,
+            CustomMinistryShift.ministry_id == ministry.id,
+        ))
+    )
+    s = res.scalar_one_or_none()
+    if not s:
+        raise HTTPException(status_code=404, detail="Shift not found")
+    await db.delete(s)
+    await db.commit()
+    return {"message": "Shift deleted"}
+
+
+# === VOLUNTEER: HOURS TRACKING ===
+
+class HoursCreate(BaseModel):
+    hours: float = Field(..., gt=0)
+    description: Optional[str] = None
+    service_date: date_type
+    shift_id: Optional[str] = None
+    user_id: Optional[str] = None
+
+
+class HoursResponse(BaseModel):
+    id: str
+    user_id: str
+    user_name: str
+    hours: float
+    description: Optional[str] = None
+    service_date: date_type
+    shift_id: Optional[str] = None
+    approved: bool
+    created_at: datetime
+
+
+@router.get("/{slug}/hours", response_model=List[HoursResponse])
+async def list_hours(
+    slug: str, user_id: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """List volunteer hours."""
+    ministry = await _get_ministry_or_404(db, slug)
+    is_coord = await _is_coordinator_or_admin(db, ministry, current_user)
+    q = select(CustomMinistryVolunteerHours, User).join(
+        User, User.id == CustomMinistryVolunteerHours.user_id
+    ).where(CustomMinistryVolunteerHours.ministry_id == ministry.id)
+    if not is_coord:
+        q = q.where(CustomMinistryVolunteerHours.user_id == current_user.id)
+    elif user_id:
+        q = q.where(CustomMinistryVolunteerHours.user_id == user_id)
+    q = q.order_by(CustomMinistryVolunteerHours.service_date.desc())
+    res = await db.execute(q)
+    rows = res.all()
+    return [
+        HoursResponse(
+            id=h.id, user_id=h.user_id, user_name=u.name,
+            hours=h.hours, description=h.description,
+            service_date=h.service_date, shift_id=h.shift_id,
+            approved=h.approved, created_at=h.created_at,
+        ) for h, u in rows
+    ]
+
+
+@router.post("/{slug}/hours", response_model=HoursResponse, status_code=201)
+async def log_hours(
+    slug: str, body: HoursCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Log volunteer hours."""
+    ministry = await _get_ministry_or_404(db, slug)
+    is_coord = await _is_coordinator_or_admin(db, ministry, current_user)
+    target_user_id = body.user_id if (body.user_id and is_coord) else current_user.id
+    h = CustomMinistryVolunteerHours(
+        ministry_id=ministry.id,
+        user_id=target_user_id,
+        hours=body.hours,
+        description=body.description,
+        service_date=body.service_date,
+        shift_id=body.shift_id,
+        approved=is_coord,
+        approved_by=current_user.id if is_coord else None,
+    )
+    db.add(h)
+    await db.commit()
+    await db.refresh(h)
+    target_res = await db.execute(select(User).where(User.id == target_user_id))
+    target = target_res.scalar_one()
+    return HoursResponse(
+        id=h.id, user_id=h.user_id, user_name=target.name,
+        hours=h.hours, description=h.description,
+        service_date=h.service_date, shift_id=h.shift_id,
+        approved=h.approved, created_at=h.created_at,
+    )
+
+
+@router.get("/{slug}/hours/leaderboard")
+async def hours_leaderboard(slug: str, limit: int = 10, db: AsyncSession = Depends(get_db)):
+    """Top volunteers by hours."""
+    ministry = await _get_ministry_or_404(db, slug)
+    from sqlalchemy import func as sql_func
+    res = await db.execute(
+        select(
+            CustomMinistryVolunteerHours.user_id,
+            User.name,
+            sql_func.sum(CustomMinistryVolunteerHours.hours).label("total_hours"),
+            sql_func.count(CustomMinistryVolunteerHours.id).label("entries"),
+        ).join(User, User.id == CustomMinistryVolunteerHours.user_id)
+        .where(and_(
+            CustomMinistryVolunteerHours.ministry_id == ministry.id,
+            CustomMinistryVolunteerHours.approved == True,
+        ))
+        .group_by(CustomMinistryVolunteerHours.user_id, User.name)
+        .order_by(sql_func.sum(CustomMinistryVolunteerHours.hours).desc())
+        .limit(limit)
+    )
+    rows = res.all()
+    return [
+        {"user_id": r[0], "name": r[1], "total_hours": float(r[2] or 0), "entries": r[3]}
+        for r in rows
+    ]
+
+
+# === VOLUNTEER: SUB-TEAMS ===
+
+class SubTeamCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=200)
+    description: Optional[str] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
+    leader_user_id: Optional[str] = None
+    sort_order: int = 0
+
+
+class SubTeamResponse(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
+    leader_user_id: Optional[str] = None
+    sort_order: int
+    created_at: datetime
+
+
+@router.get("/{slug}/sub-teams", response_model=List[SubTeamResponse])
+async def list_sub_teams(slug: str, db: AsyncSession = Depends(get_db)):
+    """List sub-teams."""
+    ministry = await _get_ministry_or_404(db, slug)
+    res = await db.execute(
+        select(CustomMinistrySubTeam)
+        .where(CustomMinistrySubTeam.ministry_id == ministry.id)
+        .order_by(CustomMinistrySubTeam.sort_order, CustomMinistrySubTeam.name)
+    )
+    return res.scalars().all()
+
+
+@router.post("/{slug}/sub-teams", response_model=SubTeamResponse, status_code=201)
+async def create_sub_team(
+    slug: str, body: SubTeamCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Create sub-team."""
+    ministry = await _get_ministry_or_404(db, slug)
+    await _require_coordinator(db, ministry, current_user)
+    t = CustomMinistrySubTeam(ministry_id=ministry.id, **body.model_dump())
+    db.add(t)
+    await db.commit()
+    await db.refresh(t)
+    return t
+
+
+# === VOLUNTEER: RECOGNITION ===
+
+class RecognitionCreate(BaseModel):
+    user_id: str
+    award_name: str = Field(..., min_length=2, max_length=255)
+    award_description: Optional[str] = None
+    award_type: str = "achievement"
+    badge_icon: Optional[str] = None
+    badge_color: Optional[str] = None
+
+
+class RecognitionResponse(BaseModel):
+    id: str
+    user_id: str
+    user_name: str
+    award_name: str
+    award_description: Optional[str] = None
+    award_type: str
+    badge_icon: Optional[str] = None
+    badge_color: Optional[str] = None
+    awarded_at: datetime
+
+
+@router.get("/{slug}/recognition", response_model=List[RecognitionResponse])
+async def list_recognition(slug: str, db: AsyncSession = Depends(get_db)):
+    """List awards given."""
+    ministry = await _get_ministry_or_404(db, slug)
+    res = await db.execute(
+        select(CustomMinistryRecognition, User).join(
+            User, User.id == CustomMinistryRecognition.user_id
+        ).where(CustomMinistryRecognition.ministry_id == ministry.id)
+        .order_by(CustomMinistryRecognition.awarded_at.desc())
+    )
+    rows = res.all()
+    return [
+        RecognitionResponse(
+            id=r.id, user_id=r.user_id, user_name=u.name,
+            award_name=r.award_name, award_description=r.award_description,
+            award_type=r.award_type, badge_icon=r.badge_icon,
+            badge_color=r.badge_color, awarded_at=r.awarded_at,
+        ) for r, u in rows
+    ]
+
+
+@router.post("/{slug}/recognition", response_model=RecognitionResponse, status_code=201)
+async def award_recognition(
+    slug: str, body: RecognitionCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Give an award."""
+    ministry = await _get_ministry_or_404(db, slug)
+    await _require_coordinator(db, ministry, current_user)
+    r = CustomMinistryRecognition(
+        ministry_id=ministry.id, awarded_by=current_user.id, **body.model_dump()
+    )
+    db.add(r)
+    db.add(Notification(
+        user_id=body.user_id,
+        title=f"You received: {body.award_name}",
+        message=f"You have been recognized in {ministry.name}!",
+        type=NotificationType.GENERAL,
+        reference_id=ministry.id,
+    ))
+    await db.commit()
+    await db.refresh(r)
+    target = await db.execute(select(User).where(User.id == body.user_id))
+    target_user = target.scalar_one()
+    return RecognitionResponse(
+        id=r.id, user_id=r.user_id, user_name=target_user.name,
+        award_name=r.award_name, award_description=r.award_description,
+        award_type=r.award_type, badge_icon=r.badge_icon,
+        badge_color=r.badge_color, awarded_at=r.awarded_at,
+    )

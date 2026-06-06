@@ -163,6 +163,33 @@ class CustomMinistry(Base):
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
     show_on_homepage: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # ── Volunteer Department specific fields ───────────────────────────────
+    department_motto: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    department_pledge: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Time commitment expected (hours per week/month)
+    time_commitment_hours: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    time_commitment_period: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # week, month
+    # Background check
+    background_check_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    background_check_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    # Dress code
+    dress_code: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    dress_code_image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    # Skills, training, onboarding (stored as JSON arrays)
+    skills_required: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # {"skills": ["..."]}
+    training_requirements: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # {"trainings": [{name, url, required}]}
+    onboarding_steps: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # {"steps": [{step, description}]}
+    equipment_provided: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # {"items": ["..."]}
+    # Documents
+    sop_document_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    manual_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    # Requirements toggles
+    emergency_contact_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    photo_id_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    references_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Recognition system
+    recognition_levels: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # {"levels": [{name, hours_required, color}]}
+
     # Custom features as JSON
     features: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
@@ -431,6 +458,181 @@ class CustomMinistryMessage(Base):
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class CustomMinistryShift(Base):
+    """
+    Recurring weekly shifts for volunteer departments.
+    Example: 'Sunday Service 8am-12pm', 'Wednesday Bible Study 6pm-9pm'
+    """
+    __tablename__ = "custom_ministry_shifts"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    ministry_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("custom_ministries.id", ondelete="CASCADE"),
+        nullable=False, index=True
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    day_of_week: Mapped[str] = mapped_column(String(20), nullable=False)  # Sunday, Monday, etc.
+    start_time: Mapped[str] = mapped_column(String(10), nullable=False)  # "08:00"
+    end_time: Mapped[str] = mapped_column(String(10), nullable=False)  # "12:00"
+    location: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    capacity: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Max volunteers
+    sub_team: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    role_required: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class CustomMinistryShiftSignup(Base):
+    """Volunteer signup for a specific shift on a specific date."""
+    __tablename__ = "custom_ministry_shift_signups"
+    __table_args__ = (
+        UniqueConstraint("shift_id", "user_id", "shift_date", name="uq_shift_signup"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    shift_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("custom_ministry_shifts.id", ondelete="CASCADE"),
+        nullable=False, index=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False, index=True
+    )
+    shift_date: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="signed_up")  # signed_up, checked_in, no_show, completed
+    checked_in_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    checked_out_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class CustomMinistryVolunteerHours(Base):
+    """Track total service hours per volunteer."""
+    __tablename__ = "custom_ministry_volunteer_hours"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    ministry_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("custom_ministries.id", ondelete="CASCADE"),
+        nullable=False, index=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False, index=True
+    )
+    hours: Mapped[float] = mapped_column(Float, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    service_date: Mapped[date] = mapped_column(Date, nullable=False)
+    shift_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("custom_ministry_shifts.id", ondelete="SET NULL"), nullable=True
+    )
+    approved: Mapped[bool] = mapped_column(Boolean, default=True)
+    approved_by: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class CustomMinistrySubTeam(Base):
+    """
+    Sub-teams within a volunteer department.
+    Example: Security dept may have 'Entrance Team', 'Patrol Team', 'Parking Team'
+    """
+    __tablename__ = "custom_ministry_sub_teams"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    ministry_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("custom_ministries.id", ondelete="CASCADE"),
+        nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    color: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    icon: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    leader_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class CustomMinistryOnboardingProgress(Base):
+    """Track onboarding progress for new volunteers."""
+    __tablename__ = "custom_ministry_onboarding_progress"
+    __table_args__ = (
+        UniqueConstraint("ministry_id", "user_id", "step_name", name="uq_onboarding_step"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    ministry_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("custom_ministries.id", ondelete="CASCADE"),
+        nullable=False, index=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False, index=True
+    )
+    step_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_by: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+
+class CustomMinistryRecognition(Base):
+    """Awards/recognition given to volunteers."""
+    __tablename__ = "custom_ministry_recognition"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    ministry_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("custom_ministries.id", ondelete="CASCADE"),
+        nullable=False, index=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False, index=True
+    )
+    award_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    award_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    award_type: Mapped[str] = mapped_column(String(50), default="achievement")  # milestone, achievement, monthly_winner, lifetime
+    badge_icon: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    badge_color: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    awarded_by: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    awarded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
