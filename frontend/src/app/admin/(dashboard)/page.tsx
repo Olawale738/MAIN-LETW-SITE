@@ -557,18 +557,47 @@ export default function AdminDashboardPage() {
                 </div>
             </div>
 
+            {/* ── Coordinators & Moderation ── */}
+            <div>
+                <SectionHeader
+                    title="Coordinators & Moderation"
+                    subtitle="Manage department coordinators and content moderation"
+                />
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {[
+                        { label: 'Department Coordinators', sub: 'Manage all coordinators',  href: '/admin/coordinators',                icon: Users,         color: '#7c3aed', bg: '#f3e8ff' },
+                        { label: 'Chat Moderation',         sub: 'Bible study groups',       href: '/admin/bible-study/chat-moderation', icon: MessageCircle, color: '#059669', bg: '#ecfdf5' },
+                        { label: 'Group Chat Logs',         sub: 'All conversations',        href: '/admin/chat',                        icon: MessageCircle, color: '#2563eb', bg: '#dbeafe' },
+                        { label: 'Ministry Roles',          sub: 'Coordinator credentials',  href: '/admin/settings?tab=ministry',       icon: Crown,         color: '#f59e0b', bg: '#fef3c7' },
+                        { label: 'Nominations',             sub: 'Assign leaders',           href: '/admin/nominations',                 icon: Crown,         color: '#d97706', bg: '#fef3c7' },
+                        { label: 'Volunteer Approvals',     sub: 'Review applications',      href: '/admin/approvals',                   icon: Bell,          color: '#dc2626', bg: '#fee2e2' },
+                    ].map((c, i) => (
+                        <Link key={i} href={c.href}
+                            className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-4 group">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: c.bg }}>
+                                <c.icon className="w-5 h-5" style={{ color: c.color }} />
+                            </div>
+                            <p className="text-sm font-black text-[#140152] group-hover:text-[#f5bb00] transition-colors">{c.label}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">{c.sub}</p>
+                        </Link>
+                    ))}
+                </div>
+            </div>
+
             {/* ── Communication & Admin Settings ── */}
             <div>
                 <SectionHeader
                     title="Communication & Settings"
                     subtitle="Messages, notifications, and system configuration"
                 />
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     {[
-                        { label: 'Messages',         sub: 'User conversations',    href: '/admin/chat',         icon: MessageCircle, color: '#2563eb', bg: '#dbeafe' },
-                        { label: 'Group Chat',       sub: 'Bible study moderation', href: '/admin/bible-study/chat-moderation', icon: MessageCircle, color: '#059669', bg: '#ecfdf5' },
-                        { label: 'Admin Settings',   sub: 'Profile & security',    href: '/admin/settings',     icon: Settings,      color: '#6b7280', bg: '#f3f4f6' },
-                        { label: 'Ministry Roles',   sub: 'Coordinator creds',     href: '/admin/settings?tab=ministry', icon: Crown, color: '#f59e0b', bg: '#fef3c7' },
+                        { label: 'Messages',           sub: 'User conversations',     href: '/admin/chat',                        icon: MessageCircle, color: '#2563eb', bg: '#dbeafe' },
+                        { label: 'Group Chat Mod',     sub: 'Bible study moderation', href: '/admin/bible-study/chat-moderation', icon: MessageCircle, color: '#059669', bg: '#ecfdf5' },
+                        { label: 'Announcements',      sub: 'Notify members',         href: '/admin/announcements',               icon: Megaphone,     color: '#d97706', bg: '#fef3c7' },
+                        { label: 'Notifications',      sub: 'Bell alerts',            href: '/admin/approvals',                   icon: Bell,          color: '#dc2626', bg: '#fee2e2' },
+                        { label: 'Admin Settings',     sub: 'Profile & security',     href: '/admin/settings',                    icon: Settings,      color: '#6b7280', bg: '#f3f4f6' },
+                        { label: 'Live Stream',        sub: 'Manage broadcast',       href: '/admin/live-stream',                 icon: Radio,         color: '#7c3aed', bg: '#f3e8ff' },
                     ].map((c, i) => (
                         <Link key={i} href={c.href}
                             className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-4 group">
