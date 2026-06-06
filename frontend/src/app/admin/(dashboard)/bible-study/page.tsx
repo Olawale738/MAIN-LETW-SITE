@@ -184,6 +184,7 @@ export default function BibleStudyAdminPage() {
     const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
     const [groupForm, setGroupForm]           = useState<Omit<BibleStudyGroup, 'id'>>(DEFAULT_GROUP)
     const [showAddGroup, setShowAddGroup]     = useState(false)
+    const [selectedGroupModeratorUserId, setSelectedGroupModeratorUserId] = useState<string>('')
 
     // Note editing
     const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
@@ -383,15 +384,34 @@ export default function BibleStudyAdminPage() {
         setSaving(true)
         try {
             let updated: BibleStudyGroup[]
+            let groupId: string
             if (showAddGroup) {
-                updated = [...groups, { ...groupForm, id: uid() }]
+                groupId = uid()
+                updated = [...groups, { ...groupForm, id: groupId }]
             } else {
-                updated = groups.map(g => g.id === editingGroupId ? { ...groupForm, id: g.id } : g)
+                groupId = editingGroupId!
+                updated = groups.map(g => g.id === groupId ? { ...groupForm, id: g.id } : g)
             }
             setGroups(updated)
             await persistContent({ study_groups: updated })
+
+            // Assign moderator if selected
+            if (selectedGroupModeratorUserId) {
+                try {
+                    await bibleStudyApi.assignGroupModerator(groupId, selectedGroupModeratorUserId, {
+                        can_pin: true,
+                        can_delete_others: true,
+                        can_mute: true,
+                        can_edit_settings: true
+                    })
+                } catch (e) {
+                    console.error('Failed to assign moderator:', e)
+                    showToast('Group saved, but failed to assign moderator', 'warning')
+                }
+            }
+
             showToast(showAddGroup ? 'Group added!' : 'Group updated!', 'success')
-            setShowAddGroup(false); setEditingGroupId(null); setGroupForm(DEFAULT_GROUP)
+            setShowAddGroup(false); setEditingGroupId(null); setGroupForm(DEFAULT_GROUP); setSelectedGroupModeratorUserId('')
         } catch { /* already toasted */ }
         finally { setSaving(false) }
     }
@@ -934,7 +954,7 @@ export default function BibleStudyAdminPage() {
                                     {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Sparkles className="w-4 h-4 mr-1" />} Load Default 4 Groups
                                 </Button>
                             )}
-                            <Button onClick={() => { setShowAddGroup(true); setEditingGroupId(null); setGroupForm(DEFAULT_GROUP) }}
+                            <Button onClick={() => { setShowAddGroup(true); setEditingGroupId(null); setGroupForm(DEFAULT_GROUP); setSelectedGroupModeratorUserId('') }}
                                 className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
                                 <Plus className="w-4 h-4 mr-1" /> New Group
                             </Button>
@@ -956,6 +976,15 @@ export default function BibleStudyAdminPage() {
                                         <SectionLabel>Leader *</SectionLabel>
                                         <Input value={groupForm.leader} onChange={e => setGroupForm(p => ({ ...p, leader: e.target.value }))} placeholder="e.g. Bro. Emmanuel" className="text-gray-900 text-sm" />
                                     </div>
+                                </div>
+                                <div>
+                                    <SectionLabel>Assign Moderator (Optional)</SectionLabel>
+                                    <select value={selectedGroupModeratorUserId} onChange={e => setSelectedGroupModeratorUserId(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none bg-white text-gray-900">
+                                        <option value="">-- Select a user to assign as moderator --</option>
+                                        {regUsers.map(u => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+                                    </select>
+                                    <p className="text-[10px] text-gray-500 mt-1">The selected user will have permissions to moderate chat, add/remove members, pin messages, and manage settings.</p>
                                 </div>
                                 <div className="grid md:grid-cols-3 gap-3">
                                     <div>
@@ -1022,7 +1051,7 @@ export default function BibleStudyAdminPage() {
                                     <Button onClick={saveGroup} disabled={saving} className="bg-[#140152] text-white hover:bg-[#f5bb00] hover:text-[#140152] text-sm">
                                         {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Check className="w-4 h-4 mr-1" />} Save Group
                                     </Button>
-                                    <Button variant="outline" onClick={() => { setShowAddGroup(false); setEditingGroupId(null) }} className="text-sm"><X className="w-4 h-4 mr-1" /> Cancel</Button>
+                                    <Button variant="outline" onClick={() => { setShowAddGroup(false); setEditingGroupId(null); setSelectedGroupModeratorUserId('') }} className="text-sm"><X className="w-4 h-4 mr-1" /> Cancel</Button>
                                 </div>
                             </motion.div>
                         )}
@@ -1052,7 +1081,7 @@ export default function BibleStudyAdminPage() {
                                                 className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${group.is_open ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                                                 {group.is_open ? 'Open' : 'Closed'}
                                             </button>
-                                            <button onClick={() => { setEditingGroupId(group.id); setShowAddGroup(false); setGroupForm({ name: group.name, leader: group.leader, time: group.time, size: group.size, level: group.level, is_open: group.is_open, contact: group.contact, description: group.description, resources: group.resources }) }}
+                                            <button onClick={() => { setEditingGroupId(group.id); setShowAddGroup(false); setGroupForm({ name: group.name, leader: group.leader, time: group.time, size: group.size, level: group.level, is_open: group.is_open, contact: group.contact, description: group.description, resources: group.resources }); setSelectedGroupModeratorUserId('') }}
                                                 className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500"><Pencil className="w-3.5 h-3.5" /></button>
                                             <button onClick={() => deleteGroup(group.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
                                         </div>

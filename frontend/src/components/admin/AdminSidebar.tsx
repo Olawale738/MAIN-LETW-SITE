@@ -128,7 +128,7 @@ export default function AdminSidebar() {
     useEffect(() => {
         const interval = setInterval(async () => {
             try {
-                const counts = await chatApi.getUnreadGroupCount()
+                const counts = await chatApi.getUnreadCount()
                 setChatUnread(counts.unread_count)
             } catch { }
         }, 30000)
@@ -139,18 +139,13 @@ export default function AdminSidebar() {
     useEffect(() => {
         const interval = setInterval(async () => {
             try {
-                const [approvals, vol, youth, children] = await Promise.all([
-                    serviceRequestApi.getAdminPending(),
-                    listMembers('ushering'),
-                    adminPendingDeptRequests('youth'),
-                    adminPendingDeptRequests('children')
+                const [approvals, vol] = await Promise.all([
+                    serviceRequestApi.getAllRequests('pending'),
+                    listMembers('ushering')
                 ])
 
-                const pending = approvals.filter((r: any) => r.status === 'pending').length
-                setAllPendingCount(pending)
+                setAllPendingCount(approvals.requests.length)
                 setVolunteerCount(vol.length)
-                setYouthPending(youth.length)
-                setChildrenPending(children.length)
             } catch { }
         }, 30000)
 
@@ -204,4 +199,42 @@ export default function AdminSidebar() {
                             )}
                             {item.href === '/admin/volunteers' && volunteerCount > 0 && (
                                 <span className="bg-purple-500 text-white text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
-                                    {volunteerCount > 9 ? '9+
+                                    {volunteerCount > 9 ? '9+' : volunteerCount}
+                                </span>
+                            )}
+                        </Link>
+                    )
+                })}
+            </nav>
+        </>
+    )
+
+    return (
+        <>
+            {/* Desktop Sidebar */}
+            <aside className="hidden lg:flex w-64 bg-gradient-to-b from-[#140152] to-[#220263] border-r border-white/10 flex-col h-screen">
+                {SidebarContent}
+            </aside>
+
+            {/* Mobile Header */}
+            <div className="lg:hidden flex items-center justify-between bg-gradient-to-b from-[#140152] to-[#220263] border-b border-white/10 px-4 py-3 sticky top-0 z-50">
+                <Link href="/admin" className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                        <img src="/NewLETWlogo1.jpg" alt="LETW" className="w-full h-full object-cover rounded-lg" />
+                    </div>
+                    <span className="font-bold text-[#f5bb00] text-sm">LETW</span>
+                </Link>
+                <button onClick={() => setMobileOpen(!mobileOpen)} className="text-white p-2">
+                    {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
+            </div>
+
+            {/* Mobile Sidebar */}
+            {mobileOpen && (
+                <aside className="lg:hidden fixed inset-0 top-[60px] bg-gradient-to-b from-[#140152] to-[#220263] border-r border-white/10 overflow-y-auto z-40">
+                    {SidebarContent}
+                </aside>
+            )}
+        </>
+    )
+}

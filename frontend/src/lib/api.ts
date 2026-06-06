@@ -2520,6 +2520,11 @@ export const bibleStudyApi = {
     },
 
     updateModeratorPermissions: async (groupId: string, userId: string, permissions: any): Promise<any> => {
+        return fetchApi<any>(`/bible-study/groups/${groupId}/moderators/${userId}/permissions`, {
+            method: 'PUT',
+            body: JSON.stringify({ permissions }),
+        });
+    },
 
     // Member Management (for moderators)
     addGroupMember: async (groupId: string, userId: string): Promise<{ message: string }> => {
@@ -2545,11 +2550,6 @@ export const bibleStudyApi = {
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         return response.json();
-    },
-        return fetchApi<any>(`/bible-study/groups/${groupId}/moderators/${userId}/permissions`, {
-            method: 'PUT',
-            body: JSON.stringify({ permissions }),
-        });
     },
 };
 
