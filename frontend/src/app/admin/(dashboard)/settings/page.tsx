@@ -29,7 +29,8 @@ import {
     MessageCircle,
     RefreshCw,
     BookOpen,
-    HandHeart
+    HandHeart,
+    Megaphone
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -40,6 +41,7 @@ const ROLE_KEYS = {
     childrenCoord:  'letw_children_coord_creds',
     mentor:         'letw_mentor_creds',
     volunteerCoord: 'letw_volunteer_coord_creds',
+    evangelism:     'letw_evangelism_coord_creds',
 } as const
 
 type RoleKey = keyof typeof ROLE_KEYS
@@ -52,6 +54,7 @@ const ROLE_DEFAULTS: Record<RoleKey, RoleCreds> = {
     childrenCoord:  { name: '', username: 'childcoord',    password: 'LETW@Children2026'  },
     mentor:         { name: '', username: 'mentor',        password: 'LETW@Mentor2026'    },
     volunteerCoord: { name: '', username: 'volunteercoord',password: 'LETW@Volunteer2026' },
+    evangelism:     { name: '', username: 'evangelism',    password: 'LETW@Evangelism2026' },
 }
 
 function loadRoleCreds(key: RoleKey): RoleCreds {
@@ -114,9 +117,10 @@ export default function AdminSettingsPage() {
         childrenCoord:  { ...ROLE_DEFAULTS.childrenCoord  },
         mentor:         { ...ROLE_DEFAULTS.mentor         },
         volunteerCoord: { ...ROLE_DEFAULTS.volunteerCoord },
+        evangelism:     { ...ROLE_DEFAULTS.evangelism     },
     })
-    const [roleShowPw, setRoleShowPw] = useState<Record<RoleKey, boolean>>({ choirmaster: false, youthCoord: false, childrenCoord: false, mentor: false, volunteerCoord: false })
-    const [roleSaved, setRoleSaved]   = useState<Record<RoleKey, boolean>>({ choirmaster: false, youthCoord: false, childrenCoord: false, mentor: false, volunteerCoord: false })
+    const [roleShowPw, setRoleShowPw] = useState<Record<RoleKey, boolean>>({ choirmaster: false, youthCoord: false, childrenCoord: false, mentor: false, volunteerCoord: false, evangelism: false })
+    const [roleSaved, setRoleSaved]   = useState<Record<RoleKey, boolean>>({ choirmaster: false, youthCoord: false, childrenCoord: false, mentor: false, volunteerCoord: false, evangelism: false })
 
     // Profile form state
     const [name, setName] = useState('')
@@ -141,6 +145,7 @@ export default function AdminSettingsPage() {
             childrenCoord:  loadRoleCreds('childrenCoord'),
             mentor:         loadRoleCreds('mentor'),
             volunteerCoord: loadRoleCreds('volunteerCoord'),
+            evangelism:     loadRoleCreds('evangelism'),
         })
 
         const fetchUser = async () => {
@@ -263,6 +268,7 @@ export default function AdminSettingsPage() {
         { key: 'childrenCoord', label: "Children's Coordinator", icon: Heart,      color: '#10b981', href: '/children/coordinator',             desc: "Manages the Children's Ministry portal"           },
         { key: 'mentor',        label: 'Mentor Coordinator',     icon: BookOpen,   color: '#059669', href: '/dashboard/mentor',                 desc: 'Oversees Bible study mentees via mentor dashboard' },
         { key: 'volunteerCoord',label: 'Volunteer Coordinator',  icon: HandHeart,  color: '#b45309', href: '/dashboard/volunteer',              desc: 'Manages volunteer departments and team members'    },
+        { key: 'evangelism',    label: 'Evangelism Coordinator', icon: Megaphone,  color: '#dc2626', href: '/services/evangelism',             desc: 'Manages evangelism outreach and tracking'          },
     ]
 
     return (
