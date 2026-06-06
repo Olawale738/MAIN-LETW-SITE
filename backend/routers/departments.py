@@ -1142,13 +1142,14 @@ async def open_coordinator_dm(
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="User not found.")
 
-    # Check for existing conversation between these two users (either orientation)
+    # Check for existing conversation where COORDINATOR is in the admin slot
+    # (For department coordinators, we always want coordinator as admin, volunteer as user)
     from models.message import Conversation, ConversationStatus, Message as DMsg
     existing_result = await db.execute(
         select(Conversation).where(
-            or_(
-                and_(Conversation.user_id == user_id, Conversation.admin_id == current_user.id),
-                and_(Conversation.user_id == current_user.id, Conversation.admin_id == user_id),
+            and_(
+                Conversation.user_id == user_id,
+                Conversation.admin_id == current_user.id,
             )
         )
     )

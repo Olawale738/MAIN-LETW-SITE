@@ -379,11 +379,13 @@ async def get_conversation(
     # Auto-mark read for the viewer side
     if conv.user_id == current_user.id and conv.unread_for_user:
         conv.unread_for_user = 0
-    elif current_user.role == UserRole.ADMIN and conv.unread_for_admin:
+    elif conv.admin_id == current_user.id and conv.unread_for_admin:
+        # If I'm the admin-side party (coordinator or actual admin), clear admin unread
         conv.unread_for_admin = 0
-        # If unassigned, claim the conversation
-        if conv.admin_id is None:
-            conv.admin_id = current_user.id
+    elif current_user.role == UserRole.ADMIN and conv.admin_id is None and conv.unread_for_admin:
+        # If unassigned conversation and I'm an admin, claim it and clear unread
+        conv.admin_id = current_user.id
+        conv.unread_for_admin = 0
     await db.commit()
 
     # Reload with sender info (in case admin was just assigned)
