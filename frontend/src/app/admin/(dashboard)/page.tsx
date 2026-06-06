@@ -354,14 +354,15 @@ export default function AdminDashboardPage() {
                     title="Quick Create"
                     subtitle="Add new content and resources to the platform"
                 />
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
                     {[
-                        { label: 'New Ministry',         sub: 'Women\'s, Men\'s, etc.', href: '/admin/ministries',          icon: Heart,     color: '#db2777', bg: '#fdf2f8' },
-                        { label: 'New Bible Group',      sub: 'Study group',           href: '/admin/bible-study#groups',   icon: BookOpen,  color: '#059669', bg: '#ecfdf5' },
-                        { label: 'New Sermon',           sub: 'Upload sermon',         href: '/admin/sermons',              icon: Video,     color: '#dc2626', bg: '#fee2e2' },
-                        { label: 'New Event',            sub: 'Schedule event',        href: '/admin/events',               icon: Calendar,  color: '#7c3aed', bg: '#f3e8ff' },
-                        { label: 'New Announcement',     sub: 'Notify members',        href: '/admin/announcements',        icon: Megaphone, color: '#d97706', bg: '#fef3c7' },
-                        { label: 'Assign Leader',        sub: 'Nominate',              href: '/admin/nominations',          icon: Crown,     color: '#f59e0b', bg: '#fef3c7' },
+                        { label: 'New Ministry',          sub: 'Women\'s, Men\'s, etc.', href: '/admin/ministries',             icon: Heart,     color: '#db2777', bg: '#fdf2f8' },
+                        { label: 'New Volunteer Dept',    sub: 'Team, dashboard',       href: '/admin/volunteer-departments',  icon: HandHeart, color: '#dc2626', bg: '#fee2e2' },
+                        { label: 'New Bible Group',       sub: 'Study group',           href: '/admin/bible-study#groups',     icon: BookOpen,  color: '#059669', bg: '#ecfdf5' },
+                        { label: 'New Sermon',            sub: 'Upload sermon',         href: '/admin/sermons',                icon: Video,     color: '#7c2d12', bg: '#fef2f2' },
+                        { label: 'New Event',             sub: 'Schedule event',        href: '/admin/events',                 icon: Calendar,  color: '#7c3aed', bg: '#f3e8ff' },
+                        { label: 'New Announcement',      sub: 'Notify members',        href: '/admin/announcements',          icon: Megaphone, color: '#d97706', bg: '#fef3c7' },
+                        { label: 'Assign Leader',         sub: 'Nominate',              href: '/admin/nominations',            icon: Crown,     color: '#f59e0b', bg: '#fef3c7' },
                     ].map((c, i) => (
                         <Link key={i} href={c.href}
                             className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-4 group relative overflow-hidden">
@@ -378,33 +379,44 @@ export default function AdminDashboardPage() {
                 </div>
             </div>
 
-            {/* ── Custom Ministries Manager ── */}
-            <div>
-                <SectionHeader
-                    title="Custom Ministries"
-                    subtitle="Create and manage Women's Ministry, Men's Fellowship, Marriage, Singles, etc."
-                    action={
-                        <Link href="/admin/ministries" className="flex items-center gap-1.5 text-xs font-bold bg-pink-100 text-pink-700 px-3 py-1.5 rounded-full hover:bg-pink-200 transition-colors">
-                            <Plus className="w-3.5 h-3.5" /> Create Ministry
-                        </Link>
-                    }
-                />
+            {/* ── Create Ministries & Volunteer Departments ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <Link href="/admin/ministries"
-                    className="block bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 rounded-2xl p-8 text-white shadow-lg hover:shadow-xl transition-all relative overflow-hidden group">
+                    className="block bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all relative overflow-hidden group">
                     <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/10 blur-2xl" />
-                    <div className="relative z-10 flex items-center gap-6 flex-wrap">
-                        <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-3xl backdrop-blur-md">
-                            ✨
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl backdrop-blur-md">
+                                ✨
+                            </div>
+                            <p className="text-xl font-black">Create Ministry</p>
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-2xl font-black mb-1">Create New Ministry</p>
-                            <p className="text-white/80 text-sm">
-                                Auto-generates front page with hero image, dashboard for members, and coordinator assignment.
-                                Perfect for Women's, Men's, Marriage, Singles, Seniors ministries.
-                            </p>
+                        <p className="text-white/80 text-sm mb-4">
+                            Women's Ministry, Men's Fellowship, Marriage, Singles, Seniors, etc.
+                            Auto-generates landing page, dashboard, member requests, and coordinator system.
+                        </p>
+                        <div className="bg-white text-pink-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 group-hover:bg-pink-50 transition-colors w-fit">
+                            <Plus className="w-4 h-4" /> Create Ministry
                         </div>
-                        <div className="bg-white text-pink-700 px-5 py-3 rounded-xl font-bold flex items-center gap-2 group-hover:bg-pink-50 transition-colors">
-                            <Plus className="w-5 h-5" /> Get Started
+                    </div>
+                </Link>
+
+                <Link href="/admin/volunteer-departments"
+                    className="block bg-gradient-to-br from-red-500 via-orange-600 to-amber-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all relative overflow-hidden group">
+                    <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/10 blur-2xl" />
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl backdrop-blur-md">
+                                🛡️
+                            </div>
+                            <p className="text-xl font-black">Create Volunteer Department</p>
+                        </div>
+                        <p className="text-white/80 text-sm mb-4">
+                            Security, Ushering, Hospitality, Media, Worship, Parking, Visitation, etc.
+                            Includes member request system, coordinator assignment, dashboard, and team chat.
+                        </p>
+                        <div className="bg-white text-red-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 group-hover:bg-red-50 transition-colors w-fit">
+                            <Plus className="w-4 h-4" /> Create Department
                         </div>
                     </div>
                 </Link>
