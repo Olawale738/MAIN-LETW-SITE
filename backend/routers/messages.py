@@ -286,10 +286,43 @@ async def create_conversation(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Start a new conversation with an admin/pastor."""
-    # Resolve admin recipient
+    """Start a new conversation with an admin/pastor or team member (for coordinators)."""
+    # Resolve recipient
     admin: Optional[User] = None
-    if payload.admin_id:
+    
+    # CASE 1: Coordinator messaging a team member directly
+    if payload.recipient_id:
+        message_router_logger.info(
+            f"[CREATE_CONV] Coordinator {current_user.name} initiating conversation with {payload.recipient_id}"
+        )
+        res = await db.execute(
+            select(User).where(User.id == payload.recipient_id)
+        )
+        recipient = res.scalar_one_or_none()
+        if recipient is None:
+            raise HTTPException(status_code=404, detail="Recipient not found")
+        
+        # Verify coordinator is authorized (must be a leader/coordinator role or admin)
+        is_admin = current_user.role == UserRole.ADMIN
+        is_coordinator = current_user.role in {
+            UserRole.VOLUNTEER_COORDINATOR,
+            UserRole.CHOIRMASTER,
+            UserRole.YOUTH_LEADER,
+            UserRole.CHILDREN_COORDINATOR,
+            UserRole.MENTOR,
+            UserRole.EVANGELISM_COORDINATOR,
+        }
+        if not (is_admin or is_coordinator):
+            raise HTTPException(status_code=403, detail="Only coordinators can create direct conversations")
+        
+        # Create conversation with recipient as admin_id (they're the one being contacted)
+        admin = recipient
+        message_router_logger.info(
+            f"[CREATE_CONV] Authorized: Coordinator {current_user.role} can message {recipient.name}"
+        )
+    
+    # CASE 2: Regular user messaging an admin
+    elif payload.admin_id:
         res = await db.execute(
             select(User).where(
                 User.id == payload.admin_id,
@@ -299,6 +332,8 @@ async def create_conversation(
         admin = res.scalar_one_or_none()
         if admin is None:
             raise HTTPException(status_code=404, detail="Admin not found")
+    
+    # CASE 3: No specific recipient - pick any available admin
     else:
         admin = await _pick_admin(db, exclude_user_id=current_user.id)
 
@@ -323,7 +358,7 @@ async def create_conversation(
     )
     db.add(msg)
 
-    # Notification for the admin recipient (if any)
+    # Notification for the admin/recipient (if any)
     if admin is not None:
         db.add(Notification(
             user_id=admin.id,
@@ -354,6 +389,9 @@ async def create_conversation(
 
     # Notify recipient via WS
     if admin is not None:
+        message_router_logger.info(
+            f"[CREATE_CONV] WebSocket notification to {admin.id}"
+        )
         await manager.send_personal(admin.id, {
             "type": "conversation.created",
             "conversation": detail.model_dump(mode="json"),

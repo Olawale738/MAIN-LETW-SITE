@@ -19,6 +19,8 @@ class ConversationCreate(BaseModel):
     initial_message: str = Field(..., min_length=1, max_length=4000)
     # Optional explicit admin recipient; if omitted any admin can pick it up
     admin_id: Optional[str] = None
+    # For coordinators to message team members directly (non-admin recipients)
+    recipient_id: Optional[str] = None
 
 
 class SenderSummary(BaseModel):

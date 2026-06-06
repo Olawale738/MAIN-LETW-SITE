@@ -2847,7 +2847,7 @@ export const messageApi = {
         fetchApi<ChatConversationDetail>(`/messages/conversations/${id}`),
 
     createConversation: async (
-        body: { subject?: string; initial_message: string; admin_id?: string }
+        body: { subject?: string; initial_message: string; admin_id?: string; recipient_id?: string }
     ): Promise<ChatConversationDetail> =>
         fetchApi<ChatConversationDetail>('/messages/conversations', {
             method: 'POST',
