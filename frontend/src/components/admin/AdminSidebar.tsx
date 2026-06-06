@@ -231,6 +231,17 @@ export default function AdminSidebar() {
                     )
                 })}
             </nav>
+
+            {/* Logout Button */}
+            <div className="p-3 border-t border-white/10">
+                <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 group text-sm text-red-300 hover:bg-red-500/20 hover:text-red-100 font-medium"
+                >
+                    <LogOut className="w-4 h-4" />
+                    <span className="flex-1 text-left">Log Out</span>
+                </button>
+            </div>
         </>
     )
 
