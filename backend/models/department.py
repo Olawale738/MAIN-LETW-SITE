@@ -31,6 +31,7 @@ class DepartmentType(str, enum.Enum):
     HOSPITALITY  = "hospitality"
     USHERING     = "ushering"
     SECURITY     = "security"
+    EVANGELISM   = "evangelism"
 
 
 class ActivityType(str, enum.Enum):

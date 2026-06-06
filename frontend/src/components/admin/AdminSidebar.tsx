@@ -114,6 +114,11 @@ const sidebarItems = [
         href: '/admin/bible-study/chat-moderation',
         icon: MessageCircle
     },
+    {
+        title: 'Department Coordinators',
+        href: '/admin/coordinators',
+        icon: Users
+    },
 ]
 
 export default function AdminSidebar() {
