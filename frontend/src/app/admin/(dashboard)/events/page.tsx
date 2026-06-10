@@ -1,10 +1,12 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
+import NextLink from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
     Plus, Trash2, Loader2, Edit2, Calendar, Search, Eye, EyeOff,
-    Star, StarOff, MapPin, Clock, Users, X, Upload, Link as LinkIcon
+    Star, StarOff, MapPin, Clock, Users, X, Upload, Link as LinkIcon,
+    Settings2
 } from 'lucide-react'
 import { eventApi, Event, EventCreateData } from '@/lib/api'
 
@@ -466,6 +468,11 @@ export default function AdminEventsPage() {
                                                 <Button variant="ghost" size="sm" onClick={() => togglePublished(event)} title="Toggle Published">
                                                     {event.is_published ? <Eye className="w-4 h-4 text-green-500" /> : <EyeOff className="w-4 h-4 text-gray-400" />}
                                                 </Button>
+                                                <NextLink href={`/admin/events/${event.id}/manage`} title="Manage (speakers, RSVPs, agenda, gallery...)">
+                                                    <Button variant="ghost" size="sm">
+                                                        <Settings2 className="w-4 h-4 text-[#140152]" />
+                                                    </Button>
+                                                </NextLink>
                                                 <Button variant="ghost" size="sm" onClick={() => handleEdit(event)}>
                                                     <Edit2 className="w-4 h-4 text-blue-500" />
                                                 </Button>
