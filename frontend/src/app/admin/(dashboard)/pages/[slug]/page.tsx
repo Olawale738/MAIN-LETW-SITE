@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { cmsApi, Block } from '@/lib/api'
-import { Loader2, Save } from 'lucide-react'
+import { Loader2, Save, LayoutTemplate, Eye } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import PageBuilder from '@/components/admin/cms/PageBuilder'
 import { DEFAULT_HOME_BLOCKS, DEFAULT_ABOUT_BLOCKS, DEFAULT_IMPACT_BLOCKS, DEFAULT_SUNDAY_SERVICE_BLOCKS, DEFAULT_EVANGELISM_BLOCKS } from '@/lib/cmsDefaults'
@@ -73,6 +73,33 @@ export default function GenericPageEditor() {
         }
     }
 
+    // Public preview path for known CMS-driven pages
+    const PREVIEW_PATHS: Record<string, string> = {
+        home: '/',
+        about: '/about',
+        impact: '/impact',
+        'sunday-service': '/services/sunday-service',
+        evangelism: '/services/evangelism',
+    }
+    const previewPath = PREVIEW_PATHS[slug] || `/${slug}`
+
+    const loadDefaultTemplate = () => {
+        const defaults = getDefaultsForSlug(slug)
+        if (!defaults || defaults.length === 0) {
+            showToast("No default template is available for this page.", "error")
+            return
+        }
+        const hasContent = blocks.length > 0
+        if (hasContent && !window.confirm(
+            "Replace the current sections with the full default template? Your unsaved changes will be lost (this won't be saved until you click Save Changes)."
+        )) {
+            return
+        }
+        // Clone so each block gets a fresh id and is fully editable/removable
+        setBlocks(defaults.map(b => ({ ...b, id: `${b.id}-${Math.floor(Math.random() * 100000)}` })))
+        showToast("Default template loaded. Edit any section, then click Save Changes.", "success")
+    }
+
     if (loading) return <div className="text-center py-20"><Loader2 className="w-10 h-10 animate-spin mx-auto text-blue-900" /></div>
 
     return (
@@ -83,8 +110,15 @@ export default function GenericPageEditor() {
                     <h1 className="text-3xl font-bold text-[#140152]">Edit Page: {title || slug}</h1>
                     <p className="text-gray-500">Add and rearrange content sections.</p>
                 </div>
-                <div className="flex items-center gap-4">
-                    {/* <Button variant="outline" onClick={loadContent}>Reset</Button> */}
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+                    <a href={previewPath} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" className="border-gray-300">
+                            <Eye className="w-4 h-4 mr-2" /> Preview
+                        </Button>
+                    </a>
+                    <Button variant="outline" onClick={loadDefaultTemplate} className="border-gray-300" title="Insert the full polished default layout for this page">
+                        <LayoutTemplate className="w-4 h-4 mr-2" /> Load Template
+                    </Button>
                     <Button onClick={handleSave} disabled={saving} className="bg-[#140152] text-white">
                         {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                         Save Changes

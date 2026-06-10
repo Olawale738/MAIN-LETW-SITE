@@ -87,9 +87,11 @@ export const DEFAULT_ABOUT_BLOCKS: Block[] = [
         id: 'about-hero',
         type: 'hero',
         data: {
-            title: "About LETW",
-            subtitle: "Spreading God's Love, Transforming Lives",
+            title: "About <br /><span style='color:#f5bb00;'>Light Encounter Tabernacle</span>",
+            subtitle: "A worldwide family awakening destinies, restoring the broken, and releasing people into the fullness of God's purpose.",
             bg_image: "/9.png",
+            cta_text: "Plan Your Visit",
+            cta_link: "/join",
             align: 'center'
         }
     },
@@ -98,24 +100,55 @@ export const DEFAULT_ABOUT_BLOCKS: Block[] = [
         type: 'content',
         data: {
             title: "Who We Are",
-            content: `<p class="text-xl text-[#140152]/70 leading-relaxed font-medium text-center">Light Encounter Tabernacle Worldwide is dedicated to spreading the Word of GOD, empowering individuals, and engaging in charitable activities to uplift our community and beyond.</p>`,
+            content: `
+                <p class="text-xl text-[#140152]/80 leading-relaxed font-medium text-center mb-6">Light Encounter Tabernacle Worldwide (LETW) is a Christ-centered, Spirit-led community devoted to spreading the Word of God, empowering individuals, and serving humanity through compassion and charity.</p>
+                <p class="text-lg text-gray-600 leading-relaxed text-center">We are more than a church — we are a movement. From our local sanctuary to nations across the world, every gathering, every prayer, and every outreach is a declaration that God's light is real and His Kingdom is advancing, one transformed life at a time.</p>
+            `,
             width: 'narrow',
             bg_color: 'white',
             padding: 'medium'
         }
     },
     {
+        id: 'about-scripture',
+        type: 'scripture',
+        data: {
+            verse: "You are the light of the world. A town built on a hill cannot be hidden... let your light shine before others, that they may see your good deeds and glorify your Father in heaven.",
+            reference: "Matthew 5:14-16",
+            context: "Our Foundation",
+            bg: 'brand',
+            align: 'center'
+        }
+    },
+    {
+        id: 'about-stats',
+        type: 'stats',
+        data: {
+            title: "The Light Is Spreading",
+            subtitle: "By God's grace, lives are being touched every single day",
+            bg: 'light',
+            style: 'cards',
+            stats: [
+                { label: "Lives Transformed", value: "5,000+", icon: "❤️" },
+                { label: "Active Ministries", value: "12+", icon: "⛪" },
+                { label: "Nations Reached", value: "8+", icon: "🌍" },
+                { label: "Weekly Gatherings", value: "20+", icon: "🙌" }
+            ]
+        }
+    },
+    {
         id: 'about-features',
         type: 'features',
         data: {
-            title: "Our Core Values",
+            title: "Our Mission, Vision & Values",
+            subtitle: "What Drives Us",
             columns: 2,
             style: 'cards',
             features: [
-                { title: "Our Mission", description: "To spread the love of Christ through worship, discipleship, and community service, transforming lives and building a stronger faith community.", icon: "Target" },
-                { title: "Our Vision", description: "To be a beacon of hope and light in our community, empowering individuals to live purposeful lives rooted in faith and service.", icon: "Compass" },
-                { title: "Our Values", description: "Faith, Love, Service, Integrity, and Community. We believe in living out these values daily through our actions and ministry.", icon: "Sparkles" },
-                { title: "Our Reach", description: "From local community outreach to global missions, we're committed to making a difference wherever God calls us to serve.", icon: "Globe" }
+                { title: "Our Mission", description: "To spread the love of Christ through worship, discipleship, and community service — transforming lives and building a stronger faith community.", icon: "Target" },
+                { title: "Our Vision", description: "To be a beacon of hope and light, empowering individuals across the world to live purposeful lives rooted in faith and service.", icon: "Compass" },
+                { title: "Our Values", description: "Faith, Love, Service, Integrity, and Community. We live out these values daily through worship, ministry, and genuine care for one another.", icon: "Sparkles" },
+                { title: "Our Reach", description: "From local community outreach to global missions, we are committed to making a difference wherever God calls us to serve.", icon: "Globe" }
             ]
         }
     },
@@ -124,7 +157,7 @@ export const DEFAULT_ABOUT_BLOCKS: Block[] = [
         type: 'image',
         data: {
             image: "/Founder.png",
-            caption: "Apostle. Olawale N. Sanni - Founder/President",
+            caption: "Apostle Olawale N. Sanni — Founder & President",
             width: 'standard',
             aspect_ratio: '4:3'
         }
@@ -135,12 +168,76 @@ export const DEFAULT_ABOUT_BLOCKS: Block[] = [
         data: {
             title: "Our Story of Faith",
             content: `
-                <p>Founded with a vision to bring light to those in darkness, LETW has grown into a vibrant community of believers committed to making a difference. Through worship, teaching, and service, we continue to fulfill our calling to be salt and light in the world.</p>
-                <p>Our journey has been marked by God's faithfulness, and we look forward to continued growth and impact as we serve our community and beyond.</p>
+                <p class="mb-4">Light Encounter Tabernacle was born out of a single, burning conviction: that the light of God is meant to be carried into the darkest places. What began as a small gathering of hungry hearts has grown into a vibrant, worldwide family of believers united by faith, love, and an unrelenting passion for souls.</p>
+                <p class="mb-4">Under the leadership of Apostle Olawale N. Sanni, the ministry has remained anchored to the uncompromised Word of God — preaching the gospel boldly, raising disciples intentionally, and extending the hand of compassion to the hurting, the forgotten, and the broken.</p>
+                <p>Our journey has been marked by God's unfailing faithfulness. As we look ahead, our heart remains the same: to be salt and light in the earth, and to see every life we touch awakened to its God-given destiny.</p>
             `,
             width: 'narrow',
             bg_color: 'gray',
             padding: 'medium'
+        }
+    },
+    {
+        id: 'beliefs-features',
+        type: 'features',
+        data: {
+            title: "What We Believe",
+            subtitle: "Our Statement of Faith",
+            columns: 3,
+            style: 'icons',
+            features: [
+                { title: "The Word of God", description: "We believe the Bible is the inspired, infallible, and authoritative Word of God — our guide for faith and living.", icon: "BookOpen" },
+                { title: "Salvation in Christ", description: "We believe salvation is a gift of grace through faith in Jesus Christ alone, who died and rose again for our redemption.", icon: "Heart" },
+                { title: "The Holy Spirit", description: "We believe in the present-day power and gifts of the Holy Spirit, empowering every believer for holy living and service.", icon: "Flame" },
+                { title: "Prayer & Worship", description: "We believe in fervent prayer and Spirit-filled worship as the heartbeat of a thriving relationship with God.", icon: "HandHeart" },
+                { title: "Water Baptism", description: "We believe in baptism by immersion as a public declaration of a believer's new life in Christ.", icon: "Droplets" },
+                { title: "The Great Commission", description: "We believe every believer is called to share the gospel and make disciples of all nations.", icon: "Globe" }
+            ]
+        }
+    },
+    {
+        id: 'expect-features',
+        type: 'features',
+        data: {
+            title: "What to Expect",
+            subtitle: "Your First Visit",
+            columns: 3,
+            style: 'cards',
+            features: [
+                { title: "A Warm Welcome", description: "From the moment you arrive, our team is ready to welcome you like family. Come as you are.", icon: "HandHeart" },
+                { title: "Spirit-Filled Worship", description: "Experience heartfelt, life-giving worship that ushers you into the tangible presence of God.", icon: "Music" },
+                { title: "Practical Teaching", description: "Receive clear, Bible-based teaching that speaks to real life and stirs genuine transformation.", icon: "BookOpen" },
+                { title: "Care for Kids & Youth", description: "Your children are safe, loved, and engaged with age-appropriate ministry while you worship.", icon: "Baby" },
+                { title: "Prayer Ministry", description: "Our prayer team is available to stand with you in faith for every need and breakthrough.", icon: "Sparkles" },
+                { title: "Genuine Community", description: "Connect with people who will walk with you, encourage you, and grow with you in faith.", icon: "Users" }
+            ]
+        }
+    },
+    {
+        id: 'about-testimonies',
+        type: 'testimonies',
+        data: {
+            title: "Lives Touched by the Light",
+            subtitle: "Stories From Our Family",
+            style: 'grid',
+            bg: 'light',
+            testimonies: [
+                { quote: "I walked in broken and walked out renewed. LETW didn't just welcome me — they restored my hope and reminded me who I am in Christ.", name: "Grace A.", location: "Member since 2023", avatar: "🙏" },
+                { quote: "The teaching here changed how I live. Every message meets me exactly where I am and points me straight to Jesus.", name: "Daniel O.", location: "Youth Ministry", avatar: "🔥" },
+                { quote: "This is more than a church — it's a family. The love and prayer support I've received carried me through my hardest season.", name: "Esther M.", location: "Women's Fellowship", avatar: "❤️" }
+            ]
+        }
+    },
+    {
+        id: 'about-cta',
+        type: 'cta',
+        data: {
+            title: "Become Part of the Family",
+            text: "There's a place for you here. Join us this week and encounter the light of God in a community that will love you, lift you, and walk with you.",
+            button_text: "Join Us This Sunday",
+            button_link: "/join",
+            bg_image: "/9.png",
+            style: 'banner'
         }
     }
 ];
