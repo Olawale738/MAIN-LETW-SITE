@@ -44,7 +44,7 @@ class EventRsvp(Base):
     """RSVP/registration for an event (internal, no external link needed)."""
     __tablename__ = "event_rsvps"
     __table_args__ = (
-        UniqueConstraint("event_id", "user_id", name="uq_event_rsvp"),
+        UniqueConstraint("event_id", "user_id", name="uq_global_event_rsvp"),
     )
 
     id: Mapped[str] = mapped_column(
@@ -286,7 +286,7 @@ class EventVolunteerSignup(Base):
     """Volunteer signups for event positions."""
     __tablename__ = "event_volunteer_signups"
     __table_args__ = (
-        UniqueConstraint("position_id", "user_id", name="uq_volunteer_signup"),
+        UniqueConstraint("position_id", "user_id", name="uq_event_volunteer_signup"),
     )
 
     id: Mapped[str] = mapped_column(
