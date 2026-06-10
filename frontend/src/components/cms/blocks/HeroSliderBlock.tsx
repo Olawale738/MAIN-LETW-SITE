@@ -34,19 +34,20 @@ export default function HeroSliderBlock({ data }: HeroSliderBlockProps) {
     const { slides = [], autoplay = true, interval = 6, height = 'tall' } = data
     const count = slides.length
     const [current, setCurrent] = useState(0)
-    const [paused, setPaused] = useState(false)
 
     const go = useCallback((i: number) => {
         if (count === 0) return
         setCurrent(((i % count) + count) % count)
     }, [count])
 
+    // Always auto-advance (no pause-on-hover — the hero fills the viewport,
+    // so hover-pause would make it appear static on desktop).
     useEffect(() => {
-        if (!autoplay || paused || count <= 1) return
+        if (!autoplay || count <= 1) return
         const ms = Math.max(2, interval) * 1000
         const t = setInterval(() => setCurrent(c => (c + 1) % count), ms)
         return () => clearInterval(t)
-    }, [autoplay, paused, count, interval])
+    }, [autoplay, count, interval])
 
     if (count === 0) return null
 
@@ -59,11 +60,7 @@ export default function HeroSliderBlock({ data }: HeroSliderBlockProps) {
     const isLeft = active?.align === 'left'
 
     return (
-        <section
-            className={`relative ${heightClass} overflow-hidden bg-[#0d0138]`}
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-        >
+        <section className={`relative ${heightClass} overflow-hidden bg-[#0d0138]`}>
             {/* Background layers (cross-fade) */}
             {slides.map((slide, idx) => {
                 const bg = resolveImg(slide.bg_image)
