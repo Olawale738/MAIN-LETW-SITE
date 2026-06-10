@@ -60,33 +60,6 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         }
     },
     {
-        id: 'why-pillars',
-        type: 'features',
-        data: {
-            title: "Why Light Encounter",
-            subtitle: "What You'll Find Here",
-            columns: 4,
-            style: 'pillars',
-            features: [
-                { title: "Encounter God", description: "Step into the tangible presence of God through Spirit-filled worship and prayer.", icon: "Flame" },
-                { title: "Grow in the Word", description: "Be rooted and built up through clear, practical, life-changing Bible teaching.", icon: "BookOpen" },
-                { title: "Belong to Family", description: "Find genuine community where you are known, loved, and never walk alone.", icon: "Users" },
-                { title: "Make an Impact", description: "Discover your purpose and serve a world in need through outreach and missions.", icon: "Globe" }
-            ]
-        }
-    },
-    {
-        id: 'home-scripture',
-        type: 'scripture',
-        data: {
-            verse: "For with You is the fountain of life; in Your light we see light.  ✦  You are the light of the world. A town built on a hill cannot be hidden... let your light shine before others, that they may see your good deeds and glorify your Father in heaven.",
-            reference: "Psalm 36:9  •  Matthew 5:14-16",
-            context: "Our Foundation",
-            bg: 'brand',
-            align: 'center'
-        }
-    },
-    {
         id: 'discover-features',
         type: 'features',
         data: {
@@ -124,8 +97,8 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         id: 'home-cta',
         type: 'cta',
         data: {
-            title: "Your Family Is Waiting",
-            text: "Take the next step and make Light Encounter Tabernacle your home. We would love to walk with you, pray with you, and grow with you.",
+            title: "Ready to Take Your Next Step?",
+            text: "Whether it's your very first visit or your forever church home, there's a place for you. Join us this week and encounter the light of God.",
             button_text: "Plan to Become Our Member",
             button_link: "/join",
             bg_image: "/9.png",

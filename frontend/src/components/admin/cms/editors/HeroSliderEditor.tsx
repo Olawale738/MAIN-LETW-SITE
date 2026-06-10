@@ -1,6 +1,7 @@
 import React from 'react'
 import { Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import ImagePicker from '../ImagePicker'
 
 interface Slide {
     eyebrow?: string
@@ -116,9 +117,8 @@ export default function HeroSliderEditor({ data, onChange }: Props) {
                             className={inputCls + " resize-none"} />
                     </div>
                     <div>
-                        <label className={labelCls}>Background Image (URL or upload ID)</label>
-                        <input value={s.bg_image || ''} onChange={e => updateSlide(i, 'bg_image', e.target.value)}
-                            placeholder="https://... or /9.png" className={inputCls} />
+                        <label className={labelCls}>Background Image — upload from your device</label>
+                        <ImagePicker value={s.bg_image} onChange={(url) => updateSlide(i, 'bg_image', url)} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
