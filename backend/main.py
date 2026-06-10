@@ -128,6 +128,10 @@ app.include_router(ministries.router)
 from routers import chat_extensions
 app.include_router(chat_extensions.router)
 
+# Comprehensive Event Features (RSVPs, speakers, sessions, gallery, etc.)
+from routers import event_extensions
+app.include_router(event_extensions.router)
+
 # Chat / messaging
 from routers import messages
 app.include_router(messages.router)

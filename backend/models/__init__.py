@@ -44,6 +44,12 @@ from models.chat_extensions import (
     MessageForward, ScheduledMessage, QuickReply, ChatTheme,
     AttachmentType,
 )
+from models.event_extensions import (
+    EventRsvp, EventSpeaker, EventSession, EventPhoto, EventComment,
+    EventReview, EventTicketTier, EventSponsor, EventVolunteerPosition,
+    EventVolunteerSignup, EventFaq, EventTag, EventReminder,
+    EventUpdate, EventDonation, EventPoll, EventPollVote, RsvpStatus,
+)
 from models.custom_ministry import (
     CustomMinistry, CustomMinistryMember,
     CustomMinistryAnnouncement, CustomMinistryMessage,
