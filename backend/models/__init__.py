@@ -46,7 +46,7 @@ from models.chat_extensions import (
 )
 from models.event_extensions import (
     EventRsvp, EventSpeaker, EventSession, EventPhoto, EventComment,
-    EventReview, EventTicketTier, EventSponsor, EventVolunteerPosition,
+    EventTicketTier, EventSponsor, EventVolunteerPosition,
     EventVolunteerSignup, EventFaq, EventTag, EventReminder,
     EventUpdate, EventDonation, EventPoll, EventPollVote, RsvpStatus,
 )

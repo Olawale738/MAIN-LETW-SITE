@@ -20,7 +20,7 @@ from models.user import User
 from models.event import Event
 from models.event_extensions import (
     EventRsvp, EventSpeaker, EventSession, EventPhoto, EventComment,
-    EventReview, EventTicketTier, EventSponsor, EventVolunteerPosition,
+    EventTicketTier, EventSponsor, EventVolunteerPosition,
     EventVolunteerSignup, EventFaq, EventTag, EventReminder,
     EventUpdate, EventDonation, EventPoll, EventPollVote, RsvpStatus,
 )
@@ -534,94 +534,6 @@ async def delete_comment(
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# REVIEWS & RATINGS
-# ═══════════════════════════════════════════════════════════════════════════
-
-class ReviewCreate(BaseModel):
-    rating: int = Field(..., ge=1, le=5)
-    title: Optional[str] = None
-    content: Optional[str] = None
-
-
-@router.get("/{event_id}/reviews")
-async def list_reviews(event_id: str, db: AsyncSession = Depends(get_db)):
-    """List approved reviews."""
-    res = await db.execute(
-        select(EventReview, User).join(User, User.id == EventReview.user_id)
-        .where(and_(
-            EventReview.event_id == event_id,
-            EventReview.is_approved == True,
-        ))
-        .order_by(EventReview.helpful_count.desc(), EventReview.created_at.desc())
-    )
-    return [
-        {
-            "id": r.id, "user_id": r.user_id, "user_name": u.name,
-            "rating": r.rating, "title": r.title, "content": r.content,
-            "helpful_count": r.helpful_count, "created_at": r.created_at,
-        }
-        for r, u in res.all()
-    ]
-
-
-@router.get("/{event_id}/reviews/stats")
-async def review_stats(event_id: str, db: AsyncSession = Depends(get_db)):
-    """Get rating statistics."""
-    res = await db.execute(
-        select(
-            sql_func.count(EventReview.id),
-            sql_func.avg(EventReview.rating),
-        ).where(and_(
-            EventReview.event_id == event_id,
-            EventReview.is_approved == True,
-        ))
-    )
-    count, avg = res.one()
-    # Distribution
-    dist_res = await db.execute(
-        select(EventReview.rating, sql_func.count(EventReview.id))
-        .where(EventReview.event_id == event_id)
-        .group_by(EventReview.rating)
-    )
-    distribution = {i: 0 for i in range(1, 6)}
-    for r, c in dist_res.all():
-        distribution[r] = c
-    return {
-        "count": count or 0,
-        "average": round(float(avg), 2) if avg else 0,
-        "distribution": distribution,
-    }
-
-
-@router.post("/{event_id}/reviews", status_code=201)
-async def add_review(
-    event_id: str, body: ReviewCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-):
-    """Write a review."""
-    existing = await db.execute(
-        select(EventReview).where(and_(
-            EventReview.event_id == event_id,
-            EventReview.user_id == current_user.id,
-        ))
-    )
-    r = existing.scalar_one_or_none()
-    if r:
-        r.rating = body.rating
-        r.title = body.title
-        r.content = body.content
-    else:
-        r = EventReview(
-            event_id=event_id, user_id=current_user.id, **body.model_dump()
-        )
-        db.add(r)
-    await db.commit()
-    await db.refresh(r)
-    return r
-
-
-# ═══════════════════════════════════════════════════════════════════════════
 # TICKET TIERS
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -1061,7 +973,6 @@ async def get_full_event_details(event_id: str, db: AsyncSession = Depends(get_d
         "photos": await count(EventPhoto),
         "comments": await count(EventComment, EventComment.is_hidden == False),
         "questions": await count(EventComment, EventComment.is_question == True),
-        "reviews": await count(EventReview, EventReview.is_approved == True),
         "tickets": await count(EventTicketTier, EventTicketTier.is_active == True),
         "sponsors": await count(EventSponsor),
         "volunteer_positions": await count(EventVolunteerPosition, EventVolunteerPosition.is_active == True),
