@@ -74,6 +74,7 @@ export default function FeaturesEditor({ data, onChange }: FeaturesEditorProps) 
                                 <SelectItem value="cards">Cards (White Box)</SelectItem>
                                 <SelectItem value="icons">Centered Icons</SelectItem>
                                 <SelectItem value="minimal">Minimal (Left Border)</SelectItem>
+                                <SelectItem value="pillars">✨ Pillars (Premium Animated)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

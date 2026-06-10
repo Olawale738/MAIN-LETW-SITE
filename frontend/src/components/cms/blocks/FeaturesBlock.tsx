@@ -21,7 +21,7 @@ interface FeaturesBlockProps {
         subtitle?: string;
         features: FeatureItem[];
         columns?: 2 | 3 | 4;
-        style?: 'cards' | 'icons' | 'minimal';
+        style?: 'cards' | 'icons' | 'minimal' | 'pillars';
     };
 }
 
@@ -46,6 +46,65 @@ export default function FeaturesBlock({ data }: FeaturesBlockProps) {
         3: 'md:grid-cols-3',
         4: 'md:grid-cols-2 lg:grid-cols-4',
     };
+
+    // ── Premium "pillars" style: animated, dynamic value cards ──────────────
+    if (style === 'pillars') {
+        return (
+            <section className="relative py-24 overflow-hidden bg-gradient-to-b from-white via-[#f8f7ff] to-white">
+                {/* Decorative gradient orbs */}
+                <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-[#7c3aed]/10 blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-[#f5bb00]/10 blur-3xl pointer-events-none" />
+
+                <div className="relative container mx-auto px-4">
+                    {(title || subtitle) && (
+                        <div className="text-center mb-16 max-w-2xl mx-auto">
+                            {subtitle && (
+                                <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.3em] text-[#f5bb00] mb-3">
+                                    {subtitle}
+                                </p>
+                            )}
+                            {title && (
+                                <h2 className="text-4xl md:text-5xl font-black text-[#140152] leading-tight">
+                                    {title}
+                                </h2>
+                            )}
+                            <div className="mt-6 mx-auto h-1.5 w-24 rounded-full bg-gradient-to-r from-[#140152] to-[#f5bb00]" />
+                        </div>
+                    )}
+
+                    <div className={cn("grid gap-6", gridCols[columns])}>
+                        {features.map((feature, idx) => (
+                            <div
+                                key={idx}
+                                className="group relative bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 overflow-hidden animate-in fade-in slide-in-from-bottom-4"
+                                style={{ animationDelay: `${idx * 110}ms`, animationDuration: '600ms', animationFillMode: 'both' }}
+                            >
+                                {/* Ghost number */}
+                                <span className="absolute -top-3 right-4 text-7xl font-black text-[#140152]/[0.05] group-hover:text-[#f5bb00]/20 transition-colors duration-300 select-none pointer-events-none">
+                                    {String(idx + 1).padStart(2, '0')}
+                                </span>
+
+                                {/* Gradient icon badge */}
+                                <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-[#140152] to-[#7c3aed] flex items-center justify-center shadow-lg shadow-[#140152]/25 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                                    <DynamicIcon name={feature.icon || 'Star'} className="w-8 h-8 text-white" />
+                                </div>
+
+                                <h3 className="relative text-xl font-black text-[#140152] mb-3">
+                                    {feature.title}
+                                </h3>
+                                <p className="relative text-gray-600 leading-relaxed">
+                                    {feature.description}
+                                </p>
+
+                                {/* Accent bar grows on hover */}
+                                <div className="absolute bottom-0 left-0 h-1.5 w-0 bg-gradient-to-r from-[#140152] to-[#f5bb00] group-hover:w-full transition-all duration-500 rounded-full" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        );
+    }
 
     return (
         <section className="py-20 bg-gray-50">

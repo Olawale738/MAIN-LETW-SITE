@@ -127,7 +127,7 @@ export const DEFAULT_ABOUT_BLOCKS: Block[] = [
             title: "What Defines Us",
             subtitle: "Our DNA",
             columns: 4,
-            style: 'icons',
+            style: 'pillars',
             features: [
                 { title: "Christ-Centered", description: "Jesus is the center of everything we are and everything we do.", icon: "Crown" },
                 { title: "Bible-Based", description: "We stand firmly on the uncompromised, life-giving Word of God.", icon: "BookOpen" },
