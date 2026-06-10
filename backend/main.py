@@ -124,6 +124,10 @@ app.include_router(evangelism.router)
 from routers import ministries
 app.include_router(ministries.router)
 
+# 360-Degree Chat Extensions (reactions, replies, polls, attachments, etc.)
+from routers import chat_extensions
+app.include_router(chat_extensions.router)
+
 # Chat / messaging
 from routers import messages
 app.include_router(messages.router)

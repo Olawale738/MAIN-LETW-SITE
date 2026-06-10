@@ -37,6 +37,13 @@ from models.department import (
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
+from models.chat_extensions import (
+    MessageReaction, MessageAttachment, MessageReply, MessageMention,
+    MessageEdit, PinnedMessage, StarredMessage, ConversationSettings,
+    UserBlock, UserPresence, MessagePoll, PollVote, MessageStatus,
+    MessageForward, ScheduledMessage, QuickReply, ChatTheme,
+    AttachmentType,
+)
 from models.custom_ministry import (
     CustomMinistry, CustomMinistryMember,
     CustomMinistryAnnouncement, CustomMinistryMessage,
