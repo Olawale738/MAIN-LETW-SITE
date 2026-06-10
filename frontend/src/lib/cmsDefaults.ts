@@ -90,7 +90,7 @@ export const DEFAULT_ABOUT_BLOCKS: Block[] = [
             title: "About <br /><span style='color:#f5bb00;'>Light Encounter Tabernacle</span>",
             subtitle: "A worldwide family awakening destinies, restoring the broken, and releasing people into the fullness of God's purpose.",
             bg_image: "/9.png",
-            cta_text: "Plan Your Visit",
+            cta_text: "Plan to Become Our Member",
             cta_link: "/join",
             align: 'center'
         }
@@ -113,26 +113,26 @@ export const DEFAULT_ABOUT_BLOCKS: Block[] = [
         id: 'about-scripture',
         type: 'scripture',
         data: {
-            verse: "You are the light of the world. A town built on a hill cannot be hidden... let your light shine before others, that they may see your good deeds and glorify your Father in heaven.",
-            reference: "Matthew 5:14-16",
+            verse: "For with You is the fountain of life; in Your light we see light.  ✦  You are the light of the world. A town built on a hill cannot be hidden... let your light shine before others, that they may see your good deeds and glorify your Father in heaven.",
+            reference: "Psalm 36:9  •  Matthew 5:14-16",
             context: "Our Foundation",
             bg: 'brand',
             align: 'center'
         }
     },
     {
-        id: 'about-stats',
-        type: 'stats',
+        id: 'about-dna',
+        type: 'features',
         data: {
-            title: "The Light Is Spreading",
-            subtitle: "By God's grace, lives are being touched every single day",
-            bg: 'light',
-            style: 'cards',
-            stats: [
-                { label: "Lives Transformed", value: "5,000+", icon: "❤️" },
-                { label: "Active Ministries", value: "12+", icon: "⛪" },
-                { label: "Nations Reached", value: "8+", icon: "🌍" },
-                { label: "Weekly Gatherings", value: "20+", icon: "🙌" }
+            title: "What Defines Us",
+            subtitle: "Our DNA",
+            columns: 4,
+            style: 'icons',
+            features: [
+                { title: "Christ-Centered", description: "Jesus is the center of everything we are and everything we do.", icon: "Crown" },
+                { title: "Bible-Based", description: "We stand firmly on the uncompromised, life-giving Word of God.", icon: "BookOpen" },
+                { title: "Spirit-Led", description: "We depend on the Holy Spirit to lead, teach, and empower us daily.", icon: "Flame" },
+                { title: "People-First", description: "Every person matters to God, so every person matters to us.", icon: "HandHeart" }
             ]
         }
     },
@@ -204,28 +204,27 @@ export const DEFAULT_ABOUT_BLOCKS: Block[] = [
             columns: 3,
             style: 'cards',
             features: [
-                { title: "A Warm Welcome", description: "From the moment you arrive, our team is ready to welcome you like family. Come as you are.", icon: "HandHeart" },
-                { title: "Spirit-Filled Worship", description: "Experience heartfelt, life-giving worship that ushers you into the tangible presence of God.", icon: "Music" },
-                { title: "Practical Teaching", description: "Receive clear, Bible-based teaching that speaks to real life and stirs genuine transformation.", icon: "BookOpen" },
-                { title: "Care for Kids & Youth", description: "Your children are safe, loved, and engaged with age-appropriate ministry while you worship.", icon: "Baby" },
-                { title: "Prayer Ministry", description: "Our prayer team is available to stand with you in faith for every need and breakthrough.", icon: "Sparkles" },
-                { title: "Genuine Community", description: "Connect with people who will walk with you, encourage you, and grow with you in faith.", icon: "Users" }
+                { title: "A Warm Welcome", description: "From the moment you arrive, our team is ready to welcome you like family. Come as you are.", image: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800&q=80" },
+                { title: "Spirit-Filled Worship", description: "Experience heartfelt, life-giving worship that ushers you into the tangible presence of God.", image: "https://images.unsplash.com/photo-1493836512294-502baa1986e2?w=800&q=80" },
+                { title: "Practical Teaching", description: "Receive clear, Bible-based teaching that speaks to real life and stirs genuine transformation.", image: "https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=800&q=80" },
+                { title: "Care for Kids & Youth", description: "Your children are safe, loved, and engaged with age-appropriate ministry while you worship.", image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&q=80" },
+                { title: "Prayer Ministry", description: "Our prayer team is available to stand with you in faith for every need and breakthrough.", image: "https://images.unsplash.com/photo-1545987796-200677ee1011?w=800&q=80" },
+                { title: "Genuine Community", description: "Connect with people who will walk with you, encourage you, and grow with you in faith.", image: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=800&q=80" }
             ]
         }
     },
     {
-        id: 'about-testimonies',
-        type: 'testimonies',
+        id: 'belong-content',
+        type: 'content',
         data: {
-            title: "Lives Touched by the Light",
-            subtitle: "Stories From Our Family",
-            style: 'grid',
-            bg: 'light',
-            testimonies: [
-                { quote: "I walked in broken and walked out renewed. LETW didn't just welcome me — they restored my hope and reminded me who I am in Christ.", name: "Grace A.", location: "Member since 2023", avatar: "🙏" },
-                { quote: "The teaching here changed how I live. Every message meets me exactly where I am and points me straight to Jesus.", name: "Daniel O.", location: "Youth Ministry", avatar: "🔥" },
-                { quote: "This is more than a church — it's a family. The love and prayer support I've received carried me through my hardest season.", name: "Esther M.", location: "Women's Fellowship", avatar: "❤️" }
-            ]
+            title: "There's a Place for You Here",
+            content: `
+                <p class="text-lg text-gray-600 leading-relaxed text-center mb-4">Wherever you are on your journey — whether you have walked with God for decades or you are simply searching — you are welcome here. You do not need to have it all together. You just need to come.</p>
+                <p class="text-lg text-gray-600 leading-relaxed text-center">At Light Encounter Tabernacle, you are not a stranger and you are not a number — you are family. Come and encounter the light of God in a community ready to walk with you, pray with you, and grow with you.</p>
+            `,
+            width: 'standard',
+            bg_color: 'white',
+            padding: 'medium'
         }
     },
     {
@@ -233,8 +232,8 @@ export const DEFAULT_ABOUT_BLOCKS: Block[] = [
         type: 'cta',
         data: {
             title: "Become Part of the Family",
-            text: "There's a place for you here. Join us this week and encounter the light of God in a community that will love you, lift you, and walk with you.",
-            button_text: "Join Us This Sunday",
+            text: "Take the next step and make Light Encounter Tabernacle your home. We would love to walk with you, pray with you, and grow with you.",
+            button_text: "Plan to Become Our Member",
             button_link: "/join",
             bg_image: "/9.png",
             style: 'banner'
