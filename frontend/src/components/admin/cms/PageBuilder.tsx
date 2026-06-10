@@ -18,6 +18,7 @@ interface PageBuilderProps {
 
 const BLOCK_TYPES: { type: BlockType; label: string }[] = [
     { type: 'hero', label: 'Hero Section' },
+    { type: 'hero-slider', label: '🎬 Hero Slider (Carousel)' },
     { type: 'content', label: 'Content (Text/HTML)' },
     { type: 'features', label: 'Features (Grid)' },
     { type: 'image', label: 'Image' },
@@ -60,6 +61,12 @@ export default function PageBuilder({ blocks, onChange }: PageBuilderProps) {
     const getDefaultData = (type: BlockType) => {
         switch (type) {
             case 'hero': return { title: 'New Hero Section', align: 'center', bg_image: '', cta_text: '', cta_link: '' };
+            case 'hero-slider': return {
+                autoplay: true, interval: 6, height: 'tall',
+                slides: [
+                    { eyebrow: 'Welcome Home', title: 'Welcome to <span style="color:#f5bb00;">Our Church</span>', subtitle: 'Add a compelling subtitle here.', bg_image: '/9.png', cta_text: 'Plan to Become Our Member', cta_link: '/join', cta2_text: 'Watch Live', cta2_link: '/sermons', align: 'center' },
+                ],
+            };
             case 'content': return { content: '<p>Enter content here...</p>', width: 'standard', padding: 'medium' };
             case 'features': return { features: [{ title: 'Feature 1', description: 'Description' }], columns: 3, style: 'cards' };
             case 'image': return { image: '', width: 'standard', aspect_ratio: '16:9' };

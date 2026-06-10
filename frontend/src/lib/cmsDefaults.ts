@@ -2,26 +2,57 @@ import { Block } from './api';
 
 export const DEFAULT_HOME_BLOCKS: Block[] = [
     {
-        id: 'hero-1',
-        type: 'hero',
+        id: 'home-slider',
+        type: 'hero-slider',
         data: {
-            title: "Light Encounter <br /> Tabernacle",
-            subtitle: "Engage. Empower. Uplift. Experience the divine presence in a sanctuary of faith and love.",
-            bg_image: "/9.png",
-            cta_text: "Join Our Family",
-            cta_link: "/join",
-            align: 'center'
+            autoplay: true,
+            interval: 6,
+            height: 'tall',
+            slides: [
+                {
+                    eyebrow: "Welcome to LETW",
+                    title: "Encounter the <span style='color:#f5bb00;'>Light</span> of God",
+                    subtitle: "A worldwide family where the Word of God is taught with simplicity, clarity, and power. Come as you are - leave forever changed.",
+                    bg_image: "/9.png",
+                    cta_text: "Plan to Become Our Member",
+                    cta_link: "/join",
+                    cta2_text: "Watch Live",
+                    cta2_link: "/sermons",
+                    align: 'center'
+                },
+                {
+                    eyebrow: "Sunday Gatherings",
+                    title: "Come and <span style='color:#f5bb00;'>Worship</span> With Us",
+                    subtitle: "Experience Spirit-filled worship and life-changing teaching that meets you exactly where you are.",
+                    bg_image: "https://images.unsplash.com/photo-1493836512294-502baa1986e2?w=1600&q=80",
+                    cta_text: "Plan Your Sunday",
+                    cta_link: "/services/sunday-service",
+                    cta2_text: "Our Services",
+                    cta2_link: "/services",
+                    align: 'center'
+                },
+                {
+                    eyebrow: "Your Purpose",
+                    title: "Discover Your <span style='color:#f5bb00;'>Destiny</span>",
+                    subtitle: "From discipleship to outreach, find your place in a community committed to raising you into the fullness of God's purpose.",
+                    bg_image: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=1600&q=80",
+                    cta_text: "Explore Ministries",
+                    cta_link: "/services",
+                    cta2_text: "Give",
+                    cta2_link: "/giving",
+                    align: 'center'
+                }
+            ]
         }
     },
     {
-        id: 'about-section',
+        id: 'welcome-content',
         type: 'content',
         data: {
             title: "We Are More Than <br /><span style='color:#f5bb00;'>A Church</span>",
             content: `
-                <p class="text-lg text-gray-600 leading-relaxed font-medium mb-4">We are a movement — built on unshakeable faith, genuine love, and sacrificial service. Light Encounter Tabernacle exists to awaken destinies, restore the broken, and release people into the fullness of God's purpose through the living, life-changing power of His Word.</p>
-                <p class="text-lg text-gray-600 leading-relaxed font-medium mb-6">Every message preached, every hand extended, every life touched is a declaration that God's light is real and His kingdom is advancing — one transformed life at a time.</p>
-                <p class="text-lg text-[#140152] leading-relaxed font-semibold italic">"You are the light of the world. A town built on a hill cannot be hidden… let your light shine before others, that they may see your good deeds and glorify your Father in heaven." — Matthew 5:14–16</p>
+                <p class="text-lg text-gray-600 leading-relaxed font-medium mb-4">We are a movement - built on unshakeable faith, genuine love, and sacrificial service. Light Encounter Tabernacle exists to awaken destinies, restore the broken, and release people into the fullness of God's purpose through the living, life-changing power of His Word.</p>
+                <p class="text-lg text-gray-600 leading-relaxed font-medium mb-6">Every message preached, every hand extended, every life touched is a declaration that God's light is real and His kingdom is advancing - one transformed life at a time.</p>
             `,
             width: 'standard',
             bg_color: 'white',
@@ -29,38 +60,47 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         }
     },
     {
-        id: 'essence-features',
+        id: 'why-pillars',
         type: 'features',
         data: {
-            title: "More Than A Church",
-            subtitle: "Our Essence",
+            title: "Why Light Encounter",
+            subtitle: "What You'll Find Here",
+            columns: 4,
+            style: 'pillars',
+            features: [
+                { title: "Encounter God", description: "Step into the tangible presence of God through Spirit-filled worship and prayer.", icon: "Flame" },
+                { title: "Grow in the Word", description: "Be rooted and built up through clear, practical, life-changing Bible teaching.", icon: "BookOpen" },
+                { title: "Belong to Family", description: "Find genuine community where you are known, loved, and never walk alone.", icon: "Users" },
+                { title: "Make an Impact", description: "Discover your purpose and serve a world in need through outreach and missions.", icon: "Globe" }
+            ]
+        }
+    },
+    {
+        id: 'home-scripture',
+        type: 'scripture',
+        data: {
+            verse: "For with You is the fountain of life; in Your light we see light.  ✦  You are the light of the world. A town built on a hill cannot be hidden... let your light shine before others, that they may see your good deeds and glorify your Father in heaven.",
+            reference: "Psalm 36:9  •  Matthew 5:14-16",
+            context: "Our Foundation",
+            bg: 'brand',
+            align: 'center'
+        }
+    },
+    {
+        id: 'discover-features',
+        type: 'features',
+        data: {
+            title: "Discover Your Place",
+            subtitle: "Ministries & Pathways",
             columns: 3,
             style: 'cards',
             features: [
-                {
-                    title: "Divine Worship",
-                    description: "Experience powerful, spirit-filled worship that connects you directly to the heart of God.",
-                    image: "https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=800",
-                    icon: "Sparkles"
-                },
-                {
-                    title: "Community",
-                    description: "A place where everyone belongs. We foster strong relationships and genuine care.",
-                    image: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800",
-                    icon: "Users"
-                },
-                {
-                    title: "Pastoral Care",
-                    description: "Guidance and support for every season of your life.",
-                    image: "https://images.unsplash.com/photo-1544427928-c49cdfebf494?w=800",
-                    icon: "Shield"
-                },
-                {
-                    title: "Outreach",
-                    description: "Extending God's love beyond our walls to those in need.",
-                    image: "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=800",
-                    icon: "Heart"
-                }
+                { title: "Worship & Music", description: "Lift your voice with our worship and Alter Sound ministry.", image: "https://images.unsplash.com/photo-1493836512294-502baa1986e2?w=800&q=80" },
+                { title: "Bible Study", description: "Go deeper in the Word through our reading plans and study groups.", image: "https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=800&q=80" },
+                { title: "Prayer", description: "Stand in faith with a community devoted to fervent, believing prayer.", image: "https://images.unsplash.com/photo-1545987796-200677ee1011?w=800&q=80" },
+                { title: "Youth Ministry", description: "A vibrant space for the next generation to know and follow Jesus.", image: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=800&q=80" },
+                { title: "Children's Ministry", description: "Safe, fun, and faith-filled ministry for our youngest hearts.", image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&q=80" },
+                { title: "Evangelism", description: "Carry the light beyond our walls to a world that needs hope.", image: "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=800&q=80" }
             ]
         }
     },
@@ -78,6 +118,18 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         data: {
             title: "Upcoming Events",
             count: 3
+        }
+    },
+    {
+        id: 'home-cta',
+        type: 'cta',
+        data: {
+            title: "Your Family Is Waiting",
+            text: "Take the next step and make Light Encounter Tabernacle your home. We would love to walk with you, pray with you, and grow with you.",
+            button_text: "Plan to Become Our Member",
+            button_link: "/join",
+            bg_image: "/9.png",
+            style: 'banner'
         }
     }
 ];

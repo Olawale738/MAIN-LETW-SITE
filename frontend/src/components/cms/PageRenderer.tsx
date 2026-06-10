@@ -3,6 +3,7 @@ import { Block } from '@/lib/api';
 
 // Block Components
 import HeroBlock from './blocks/HeroBlock';
+import HeroSliderBlock from './blocks/HeroSliderBlock';
 import ContentBlock from './blocks/ContentBlock';
 import FeaturesBlock from './blocks/FeaturesBlock';
 import CTABlock from './blocks/CTABlock';
@@ -20,6 +21,7 @@ interface PageRendererProps {
 
 const BLOCK_COMPONENTS: Record<string, React.FC<any>> = {
     hero: HeroBlock,
+    'hero-slider': HeroSliderBlock,
     content: ContentBlock,
     features: FeaturesBlock,
     cta: CTABlock,

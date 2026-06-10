@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 
 // Editors
 import HeroEditor from './editors/HeroEditor';
+import HeroSliderEditor from './editors/HeroSliderEditor';
 import ContentEditor from './editors/ContentEditor';
 import ImageEditor from './editors/ImageEditor';
 import FeaturesEditor from './editors/FeaturesEditor';
@@ -28,6 +29,7 @@ interface BlockEditorProps {
 
 const EDITOR_COMPONENTS: Record<string, React.FC<any>> = {
     hero: HeroEditor,
+    'hero-slider': HeroSliderEditor,
     content: ContentEditor,
     image: ImageEditor,
     features: FeaturesEditor,
