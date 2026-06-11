@@ -116,25 +116,18 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
     },
     {
         id: 'home-founder',
-        type: 'content',
+        type: 'founder-card',
         data: {
-            title: "Meet Apostle Olawale N. Sanni",
-            content: `
-                <div class="grid md:grid-cols-2 gap-10 items-center max-w-5xl mx-auto">
-                    <div class="rounded-3xl overflow-hidden shadow-2xl ring-1 ring-black/5">
-                        <img src="/Founder.png" alt="Apostle Olawale N. Sanni" class="w-full h-auto object-cover" />
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold uppercase tracking-[0.3em] text-[#f5bb00] mb-3">Founder &amp; President</p>
-                        <h3 class="text-3xl font-black text-[#140152] mb-4">Apostle Olawale N. Sanni</h3>
-                        <p class="text-lg text-gray-600 leading-relaxed mb-4">Carrying a deep mandate to awaken destinies and release people into God's purpose, Apostle Olawale leads Light Encounter Tabernacle with a heart aflame for the gospel and a passion for genuine, transformative discipleship.</p>
-                        <a href="/about" class="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-6 py-3 rounded-full transition-all hover:scale-105">Read Our Story →</a>
-                    </div>
-                </div>
-            `,
-            width: 'wide',
-            bg_color: 'white',
-            padding: 'medium'
+            eyebrow: 'Founder & President',
+            name: 'Apostle Olawale N. Sanni',
+            quote: '',
+            bio: "Carrying a deep mandate to awaken destinies and release people into God's purpose, Apostle Olawale leads Light Encounter Tabernacle with a heart aflame for the gospel and a passion for genuine, transformative discipleship.",
+            image: '/Founder.png',
+            badge: '',
+            button_text: 'Read Our Story',
+            button_link: '/about',
+            reverse: false,
+            bg: 'white',
         }
     },
     {
@@ -252,32 +245,18 @@ export const DEFAULT_ABOUT_BLOCKS: Block[] = [
     // ── 3. The Founder's Heart — cinematic asymmetric layout ────────────
     {
         id: 'about-founder',
-        type: 'content',
+        type: 'founder-card',
         data: {
-            title: "",
-            content: `
-                <div class="grid md:grid-cols-12 gap-10 items-center max-w-6xl mx-auto">
-                    <div class="md:col-span-5 relative">
-                        <div class="rounded-[2rem] overflow-hidden shadow-2xl ring-1 ring-black/5">
-                            <img src="/Founder.png" alt="Apostle Olawale N. Sanni" style="width:100%;height:auto;display:block;" />
-                        </div>
-                        <div class="absolute -bottom-5 -right-5 hidden md:flex items-center justify-center w-24 h-24 rounded-2xl bg-[#f5bb00] text-[#140152] font-black text-sm tracking-wider rotate-6 shadow-xl">
-                            FOUNDER<br/>& PRESIDENT
-                        </div>
-                    </div>
-                    <div class="md:col-span-7">
-                        <p style="font-size:0.75rem;letter-spacing:0.35em;font-weight:800;text-transform:uppercase;color:#f5bb00;margin-bottom:0.75rem;">The Heart Behind the House</p>
-                        <h2 style="font-size:clamp(2rem,4vw,3rem);font-weight:900;color:#140152;line-height:1.1;margin-bottom:1.5rem;">Apostle Olawale N. Sanni</h2>
-                        <div class="relative pl-6 border-l-4 border-[#f5bb00]">
-                            <p style="font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:1.4rem;line-height:1.5;color:#140152;">"My burden has never been to gather a crowd. My burden is to raise sons and daughters of light — people whose lives carry heaven into every place they walk."</p>
-                        </div>
-                        <p class="mt-6 text-base text-gray-600 leading-relaxed">Carrying a deep mandate to awaken destinies and release people into God's purpose, Apostle Olawale leads Light Encounter Tabernacle with a heart aflame for the gospel and a tireless passion for genuine, transformative discipleship.</p>
-                    </div>
-                </div>
-            `,
-            width: 'wide',
-            bg_color: 'white',
-            padding: 'medium'
+            eyebrow: 'The Heart Behind the House',
+            name: 'Apostle Olawale N. Sanni',
+            quote: "My burden has never been to gather a crowd. My burden is to raise sons and daughters of light — people whose lives carry heaven into every place they walk.",
+            bio: "Carrying a deep mandate to awaken destinies and release people into God's purpose, Apostle Olawale leads Light Encounter Tabernacle with a heart aflame for the gospel and a tireless passion for genuine, transformative discipleship.",
+            image: '/Founder.png',
+            badge: 'FOUNDER & PRESIDENT',
+            button_text: '',
+            button_link: '',
+            reverse: true,
+            bg: 'white',
         }
     },
 
