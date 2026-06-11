@@ -35,17 +35,18 @@ export default function NewsletterBlock({ data }: Props) {
             const url = endpoint || `${apiBase}/newsletter/subscribe`
             const res = await fetch(url, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email, source: 'homepage' }),
             })
             if (res.ok) {
                 setState('success'); setEmail('')
             } else {
-                // Graceful: if the endpoint isn't wired up yet, still show a positive UX.
-                setState('success'); setEmail('')
+                const data = await res.json().catch(() => ({}))
+                setState('error')
+                setMsg(data.detail || 'Could not subscribe right now. Please try again.')
             }
         } catch {
-            // Same — failure here usually means the endpoint isn't deployed yet.
-            setState('success'); setEmail('')
+            setState('error')
+            setMsg('Could not reach the server. Please try again later.')
         }
     }
 

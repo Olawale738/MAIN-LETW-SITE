@@ -31,6 +31,7 @@ const BLOCK_TYPES: { type: BlockType; label: string }[] = [
     { type: 'stats', label: '📊 Stats Counter' },
     { type: 'testimonies', label: '💬 Testimonies / Quotes' },
     { type: 'scripture', label: '📖 Scripture Verse' },
+    { type: 'timeline', label: '🕰️ Story Timeline (Milestones)' },
 ];
 
 export default function PageBuilder({ blocks, onChange }: PageBuilderProps) {
@@ -94,6 +95,13 @@ export default function PageBuilder({ blocks, onChange }: PageBuilderProps) {
                 { text: 'For with You is the fountain of life; in Your light we see light.', reference: 'Psalm 36:9' },
                 { text: 'You are the light of the world.', reference: 'Matthew 5:14' },
             ]};
+            case 'timeline': return {
+                eyebrow: 'A Journey of Faith', title: 'Our Story', subtitle: 'Every chapter has been written by grace.', bg: 'brand',
+                milestones: [
+                    { year: 'The Beginning', title: 'A vision was birthed', description: 'Born of a single, burning conviction: that the light of God is meant to be carried into the darkest places.', image: '' },
+                    { year: 'Today', title: 'A worldwide family', description: 'Anchored to the uncompromised Word, raising disciples and extending the hand of compassion.', image: '' },
+                ],
+            };
             default: return {};
         }
     };

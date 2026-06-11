@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell, Heart, Sparkles, FileText, Tag, Plus, BarChart, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell, Heart, Sparkles, FileText, Tag, Plus, BarChart, ChevronRight, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager, chatApi, serviceRequestApi } from '@/lib/api'
 import { useState, useEffect } from 'react'
@@ -20,6 +20,7 @@ const sidebarItems: SidebarItem[] = [
     { title: 'Service Requests', href: '/admin/service-requests', icon: ClipboardList },
     { title: 'Volunteers', href: '/admin/volunteers', icon: UserCheck },
     { title: 'Announcements', href: '/admin/announcements', icon: Megaphone },
+    { title: 'Newsletter', href: '/admin/newsletter', icon: Mail },
     { title: 'Sermons', href: '/admin/sermons', icon: Video },
     { title: 'Events', href: '/admin/events', icon: Calendar },
     { title: 'Users', href: '/admin/users', icon: Users },

@@ -21,6 +21,7 @@ import VideoEditor from './editors/VideoEditor';
 import GalleryEditor from './editors/GalleryEditor';
 import NewsletterEditor from './editors/NewsletterEditor';
 import ScriptureMarqueeEditor from './editors/ScriptureMarqueeEditor';
+import TimelineEditor from './editors/TimelineEditor';
 
 interface BlockEditorProps {
     block: Block;
@@ -47,6 +48,7 @@ const EDITOR_COMPONENTS: Record<string, React.FC<any>> = {
     gallery: GalleryEditor,
     newsletter: NewsletterEditor,
     'scripture-marquee': ScriptureMarqueeEditor,
+    timeline: TimelineEditor,
 };
 
 export default function BlockEditor({

@@ -37,6 +37,7 @@ from models.department import (
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
+from models.newsletter import NewsletterSubscriber, NewsletterBroadcast
 from models.chat_extensions import (
     MessageReaction, MessageAttachment, MessageReply, MessageMention,
     MessageEdit, PinnedMessage, StarredMessage, ConversationSettings,

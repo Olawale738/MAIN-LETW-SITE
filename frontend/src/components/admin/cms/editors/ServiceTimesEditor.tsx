@@ -1,8 +1,9 @@
 import React from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import ImagePicker from '../ImagePicker'
 
-interface Item { day: string; time: string; title: string; description?: string }
+interface Item { day: string; time: string; title: string; description?: string; image?: string; blend?: number }
 interface Props { data: any; onChange: (d: any) => void }
 
 export default function ServiceTimesEditor({ data, onChange }: Props) {
@@ -52,6 +53,22 @@ export default function ServiceTimesEditor({ data, onChange }: Props) {
                         <div><label className={l}>Title</label><input value={s.title} onChange={e => updateItem(idx, 'title', e.target.value)} className={i} /></div>
                     </div>
                     <div><label className={l}>Description (optional)</label><input value={s.description || ''} onChange={e => updateItem(idx, 'description', e.target.value)} className={i} /></div>
+
+                    {/* NEW — blended background image */}
+                    <div className="rounded-lg border border-dashed border-[#140152]/25 bg-white p-2.5 mt-1">
+                        <label className={l + " text-[#140152]"}>🖼️ Card Background Image (optional — blends with the brand color)</label>
+                        <ImagePicker value={s.image} onChange={(url) => updateItem(idx, 'image', url)} />
+                        {s.image && (
+                            <div className="mt-2">
+                                <label className={l}>Photo show-through: <span className="text-[#140152] font-bold">{Math.round(((s.blend ?? 0.45) as number) * 100)}%</span></label>
+                                <input type="range" min={15} max={85} step={5}
+                                    value={Math.round(((s.blend ?? 0.45) as number) * 100)}
+                                    onChange={e => updateItem(idx, 'blend', String(parseInt(e.target.value) / 100))}
+                                    className="w-full accent-[#140152]" />
+                                <p className="text-[10px] text-gray-500 mt-1">15% = mostly the brand color, photo barely visible · 85% = photo dominates with a thin tint.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             ))}
         </div>

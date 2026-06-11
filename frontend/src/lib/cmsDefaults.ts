@@ -208,102 +208,121 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
 ];
 
 export const DEFAULT_ABOUT_BLOCKS: Block[] = [
+    // ── 1. Cinematic single hero ─────────────────────────────────────────
     {
         id: 'about-hero',
         type: 'hero',
         data: {
-            title: "About <br /><span style='color:#f5bb00;'>Light Encounter Tabernacle</span>",
-            subtitle: "A worldwide family awakening destinies, restoring the broken, and releasing people into the fullness of God's purpose.",
-            bg_image: "/9.png",
-            cta_text: "Plan to Become Our Member",
-            cta_link: "/join",
+            title: "More Than a Building.<br /><span style='color:#f5bb00;'>A Family.</span>",
+            subtitle: "We are a worldwide community awakening destinies, restoring the broken, and releasing every soul into the fullness of God's purpose.",
+            bg_image: "https://images.unsplash.com/photo-1517842645767-c639042777db?w=1800&q=80",
+            cta_text: "Come Visit Us",
+            cta_link: "/contact",
             align: 'center'
         }
     },
+
+    // ── 2. Mission Manifesto Band — bold full-width statement ───────────
     {
-        id: 'identity-content',
+        id: 'about-manifesto',
         type: 'content',
         data: {
-            title: "Who We Are",
+            title: "",
             content: `
-                <p class="text-xl text-[#140152]/80 leading-relaxed font-medium text-center mb-6">Light Encounter Tabernacle Worldwide (LETW) is a Christ-centered, Spirit-led community devoted to spreading the Word of God, empowering individuals, and serving humanity through compassion and charity.</p>
-                <p class="text-lg text-gray-600 leading-relaxed text-center">We are more than a church — we are a movement. From our local sanctuary to nations across the world, every gathering, every prayer, and every outreach is a declaration that God's light is real and His Kingdom is advancing, one transformed life at a time.</p>
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#140152] via-[#1a0270] to-[#0d0138] p-10 md:p-16 text-center">
+                    <div class="absolute -top-16 -right-16 w-72 h-72 rounded-full bg-[#f5bb00]/15 blur-3xl pointer-events-none"></div>
+                    <div class="absolute -bottom-16 -left-16 w-72 h-72 rounded-full bg-[#7c3aed]/20 blur-3xl pointer-events-none"></div>
+                    <div class="relative max-w-3xl mx-auto">
+                        <p style="font-size:0.75rem;letter-spacing:0.35em;font-weight:800;text-transform:uppercase;color:#f5bb00;margin-bottom:1.5rem;">Our Manifesto</p>
+                        <p style="font-family:'Cormorant Garamond','Playfair Display',Georgia,serif;font-style:italic;font-size:clamp(1.75rem, 3.5vw, 2.75rem);line-height:1.25;color:#ffffff;font-weight:600;">We exist to <span style="color:#f5bb00;">awaken destinies</span>, restore what was broken, and release every soul into the <span style="color:#f5bb00;">fullness of God's purpose</span> — through the living, life-changing power of His Word.</p>
+                        <div class="mt-10 flex flex-wrap justify-center gap-8 text-white">
+                            <div><p style="font-size:2rem;font-weight:900;color:#f5bb00;">Awaken.</p></div>
+                            <div><p style="font-size:2rem;font-weight:900;color:#f5bb00;">Restore.</p></div>
+                            <div><p style="font-size:2rem;font-weight:900;color:#f5bb00;">Release.</p></div>
+                        </div>
+                    </div>
+                </div>
             `,
-            width: 'narrow',
+            width: 'wide',
             bg_color: 'white',
             padding: 'medium'
         }
     },
+
+    // ── 3. The Founder's Heart — cinematic asymmetric layout ────────────
     {
-        id: 'about-scripture',
-        type: 'scripture',
+        id: 'about-founder',
+        type: 'content',
         data: {
-            verse: "For with You is the fountain of life; in Your light we see light.  ✦  You are the light of the world. A town built on a hill cannot be hidden... let your light shine before others, that they may see your good deeds and glorify your Father in heaven.",
-            reference: "Psalm 36:9  •  Matthew 5:14-16",
-            context: "Our Foundation",
-            bg: 'brand',
-            align: 'center'
+            title: "",
+            content: `
+                <div class="grid md:grid-cols-12 gap-10 items-center max-w-6xl mx-auto">
+                    <div class="md:col-span-5 relative">
+                        <div class="rounded-[2rem] overflow-hidden shadow-2xl ring-1 ring-black/5">
+                            <img src="/Founder.png" alt="Apostle Olawale N. Sanni" style="width:100%;height:auto;display:block;" />
+                        </div>
+                        <div class="absolute -bottom-5 -right-5 hidden md:flex items-center justify-center w-24 h-24 rounded-2xl bg-[#f5bb00] text-[#140152] font-black text-sm tracking-wider rotate-6 shadow-xl">
+                            FOUNDER<br/>& PRESIDENT
+                        </div>
+                    </div>
+                    <div class="md:col-span-7">
+                        <p style="font-size:0.75rem;letter-spacing:0.35em;font-weight:800;text-transform:uppercase;color:#f5bb00;margin-bottom:0.75rem;">The Heart Behind the House</p>
+                        <h2 style="font-size:clamp(2rem,4vw,3rem);font-weight:900;color:#140152;line-height:1.1;margin-bottom:1.5rem;">Apostle Olawale N. Sanni</h2>
+                        <div class="relative pl-6 border-l-4 border-[#f5bb00]">
+                            <p style="font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:1.4rem;line-height:1.5;color:#140152;">"My burden has never been to gather a crowd. My burden is to raise sons and daughters of light — people whose lives carry heaven into every place they walk."</p>
+                        </div>
+                        <p class="mt-6 text-base text-gray-600 leading-relaxed">Carrying a deep mandate to awaken destinies and release people into God's purpose, Apostle Olawale leads Light Encounter Tabernacle with a heart aflame for the gospel and a tireless passion for genuine, transformative discipleship.</p>
+                    </div>
+                </div>
+            `,
+            width: 'wide',
+            bg_color: 'white',
+            padding: 'medium'
         }
     },
+
+    // ── 4. Vertical Story Timeline ──────────────────────────────────────
     {
-        id: 'about-dna',
+        id: 'about-timeline',
+        type: 'timeline',
+        data: {
+            eyebrow: 'A Journey of Faith',
+            title: 'Our Story',
+            subtitle: 'Every chapter has been written by grace.',
+            bg: 'brand',
+            milestones: [
+                { year: 'The Spark',  title: 'A Vision Was Birthed', description: 'Born of a single, burning conviction: that the light of God is meant to be carried into the darkest places. Out of prayer, a movement began.', image: 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1100&q=80' },
+                { year: 'First Gathering', title: 'The Family Begins',       description: 'A small group of hungry hearts answered the call — hungry for God, hungry for purpose, hungry for impact.',                                  image: '' },
+                { year: 'Built On The Word', title: 'Anchored, Unmovable',  description: 'We chose then, and choose every day since, to stand firmly on the uncompromised Word of God — preaching the gospel boldly, raising disciples intentionally.', image: 'https://images.unsplash.com/photo-1545987796-200677ee1011?w=1100&q=80' },
+                { year: 'A Worldwide Family', title: 'Light Goes Beyond Walls', description: 'What began in one city now reaches lives across cities and nations — through teaching, outreach, and a community of carriers of the Light.', image: 'https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=1100&q=80' },
+                { year: 'Today', title: 'And the Story Continues',           description: 'Every day a new heart is touched, a new destiny awakens, a new chapter is written. We are still being written into His story.', image: '' }
+            ]
+        }
+    },
+
+    // ── 5. What Defines Us — 6 Pillars (premium animated) ──────────────
+    {
+        id: 'about-pillars',
         type: 'features',
         data: {
             title: "What Defines Us",
             subtitle: "Our DNA",
-            columns: 4,
+            columns: 3,
             style: 'pillars',
             features: [
-                { title: "Christ-Centered", description: "Jesus is the center of everything we are and everything we do.", icon: "Crown" },
-                { title: "Bible-Based", description: "We stand firmly on the uncompromised, life-giving Word of God.", icon: "BookOpen" },
-                { title: "Spirit-Led", description: "We depend on the Holy Spirit to lead, teach, and empower us daily.", icon: "Flame" },
-                { title: "People-First", description: "Every person matters to God, so every person matters to us.", icon: "HandHeart" }
+                { title: "Christ-Centered",      description: "Jesus is the center of everything we are and everything we do.",                       icon: "Crown" },
+                { title: "Word-Anchored",        description: "We stand firmly on the uncompromised, life-giving Word of God.",                       icon: "BookOpen" },
+                { title: "Spirit-Empowered",     description: "We depend on the Holy Spirit to lead, teach, and empower us daily.",                    icon: "Flame" },
+                { title: "Family-Hearted",       description: "Every person is known, valued, and loved — never just a number in a crowd.",           icon: "HandHeart" },
+                { title: "Kingdom-Minded",       description: "We carry the gospel beyond our walls into homes, streets, schools, and nations.",      icon: "Globe" },
+                { title: "Excellence-Driven",    description: "We give God our very best — in worship, in serving, in stewardship.",                  icon: "Sparkles" }
             ]
         }
     },
+
+    // ── 6. Statement of Faith ──────────────────────────────────────────
     {
-        id: 'about-features',
-        type: 'features',
-        data: {
-            title: "Our Mission, Vision & Values",
-            subtitle: "What Drives Us",
-            columns: 2,
-            style: 'cards',
-            features: [
-                { title: "Our Mission", description: "To spread the love of Christ through worship, discipleship, and community service — transforming lives and building a stronger faith community.", icon: "Target" },
-                { title: "Our Vision", description: "To be a beacon of hope and light, empowering individuals across the world to live purposeful lives rooted in faith and service.", icon: "Compass" },
-                { title: "Our Values", description: "Faith, Love, Service, Integrity, and Community. We live out these values daily through worship, ministry, and genuine care for one another.", icon: "Sparkles" },
-                { title: "Our Reach", description: "From local community outreach to global missions, we are committed to making a difference wherever God calls us to serve.", icon: "Globe" }
-            ]
-        }
-    },
-    {
-        id: 'founder-section',
-        type: 'image',
-        data: {
-            image: "/Founder.png",
-            caption: "Apostle Olawale N. Sanni — Founder & President",
-            width: 'standard',
-            aspect_ratio: '4:3'
-        }
-    },
-    {
-        id: 'founder-content',
-        type: 'content',
-        data: {
-            title: "Our Story of Faith",
-            content: `
-                <p class="mb-4">Light Encounter Tabernacle was born out of a single, burning conviction: that the light of God is meant to be carried into the darkest places. What began as a small gathering of hungry hearts has grown into a vibrant, worldwide family of believers united by faith, love, and an unrelenting passion for souls.</p>
-                <p class="mb-4">Under the leadership of Apostle Olawale N. Sanni, the ministry has remained anchored to the uncompromised Word of God — preaching the gospel boldly, raising disciples intentionally, and extending the hand of compassion to the hurting, the forgotten, and the broken.</p>
-                <p>Our journey has been marked by God's unfailing faithfulness. As we look ahead, our heart remains the same: to be salt and light in the earth, and to see every life we touch awakened to its God-given destiny.</p>
-            `,
-            width: 'narrow',
-            bg_color: 'gray',
-            padding: 'medium'
-        }
-    },
-    {
-        id: 'beliefs-features',
+        id: 'about-beliefs',
         type: 'features',
         data: {
             title: "What We Believe",
@@ -311,55 +330,60 @@ export const DEFAULT_ABOUT_BLOCKS: Block[] = [
             columns: 3,
             style: 'icons',
             features: [
-                { title: "The Word of God", description: "We believe the Bible is the inspired, infallible, and authoritative Word of God — our guide for faith and living.", icon: "BookOpen" },
-                { title: "Salvation in Christ", description: "We believe salvation is a gift of grace through faith in Jesus Christ alone, who died and rose again for our redemption.", icon: "Heart" },
-                { title: "The Holy Spirit", description: "We believe in the present-day power and gifts of the Holy Spirit, empowering every believer for holy living and service.", icon: "Flame" },
-                { title: "Prayer & Worship", description: "We believe in fervent prayer and Spirit-filled worship as the heartbeat of a thriving relationship with God.", icon: "HandHeart" },
-                { title: "Water Baptism", description: "We believe in baptism by immersion as a public declaration of a believer's new life in Christ.", icon: "Droplets" },
-                { title: "The Great Commission", description: "We believe every believer is called to share the gospel and make disciples of all nations.", icon: "Globe" }
+                { title: "The Word of God",      description: "The Bible is the inspired, infallible, and authoritative Word of God — our guide for faith and living.",          icon: "BookOpen" },
+                { title: "Jesus Christ",         description: "Salvation is a gift of grace through faith in Jesus Christ alone — fully God, fully man, crucified and risen.",    icon: "Cross" },
+                { title: "The Holy Spirit",      description: "The Holy Spirit empowers every believer for holy living, gifts, and bold witness.",                                 icon: "Flame" },
+                { title: "The Trinity",          description: "One God eternally existing in three persons — Father, Son, and Holy Spirit.",                                       icon: "Sparkles" },
+                { title: "The Church",           description: "The body of Christ on earth — a family commissioned to make disciples of all nations.",                             icon: "Users" },
+                { title: "The Return of Christ", description: "Jesus will return personally and visibly to gather His own and reign forever.",                                      icon: "Sunrise" }
             ]
         }
     },
+
+    // ── 7. A single bold scripture — DIFFERENT from homepage marquee ───
     {
-        id: 'expect-features',
-        type: 'features',
+        id: 'about-scripture',
+        type: 'scripture',
         data: {
-            title: "What to Expect",
-            subtitle: "Your First Visit",
-            columns: 3,
-            style: 'cards',
-            features: [
-                { title: "A Warm Welcome", description: "From the moment you arrive, our team is ready to welcome you like family. Come as you are.", image: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800&q=80" },
-                { title: "Spirit-Filled Worship", description: "Experience heartfelt, life-giving worship that ushers you into the tangible presence of God.", image: "https://images.unsplash.com/photo-1493836512294-502baa1986e2?w=800&q=80" },
-                { title: "Practical Teaching", description: "Receive clear, Bible-based teaching that speaks to real life and stirs genuine transformation.", image: "https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=800&q=80" },
-                { title: "Care for Kids & Youth", description: "Your children are safe, loved, and engaged with age-appropriate ministry while you worship.", image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&q=80" },
-                { title: "Prayer Ministry", description: "Our prayer team is available to stand with you in faith for every need and breakthrough.", image: "https://images.unsplash.com/photo-1545987796-200677ee1011?w=800&q=80" },
-                { title: "Genuine Community", description: "Connect with people who will walk with you, encourage you, and grow with you in faith.", image: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=800&q=80" }
-            ]
+            verse: "By this everyone will know that you are my disciples, if you love one another.",
+            reference: "John 13:35",
+            context: "Our Calling",
+            bg: 'gold',
+            align: 'center'
         }
     },
+
+    // ── 8. Vision Going Forward — bold full-bleed dark band ────────────
     {
-        id: 'belong-content',
+        id: 'about-vision',
         type: 'content',
         data: {
-            title: "There's a Place for You Here",
+            title: "",
             content: `
-                <p class="text-lg text-gray-600 leading-relaxed text-center mb-4">Wherever you are on your journey — whether you have walked with God for decades or you are simply searching — you are welcome here. You do not need to have it all together. You just need to come.</p>
-                <p class="text-lg text-gray-600 leading-relaxed text-center">At Light Encounter Tabernacle, you are not a stranger and you are not a number — you are family. Come and encounter the light of God in a community ready to walk with you, pray with you, and grow with you.</p>
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-black via-[#0d0138] to-[#140152] px-6 md:px-16 py-16 md:py-24 text-center">
+                    <div class="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 w-[140%] h-[140%] rounded-full bg-[radial-gradient(closest-side,rgba(245,187,0,0.18),transparent_70%)] pointer-events-none"></div>
+                    <div class="relative max-w-3xl mx-auto">
+                        <p style="font-size:0.75rem;letter-spacing:0.35em;font-weight:800;text-transform:uppercase;color:#f5bb00;margin-bottom:1rem;">Where We Are Headed</p>
+                        <h2 style="font-size:clamp(2.25rem,5vw,4rem);font-weight:900;color:#ffffff;line-height:1.05;margin-bottom:2rem;">A people of <span style="color:#f5bb00;">light</span>, sent into every <span style="color:#f5bb00;">darkness</span>.</h2>
+                        <p style="font-size:1.125rem;line-height:1.7;color:rgba(255,255,255,0.8);">Our prayer for the road ahead is simple and unshakeable: that every life we touch would carry the light of God further than we ever could — into homes, communities, marketplaces, and nations. Every soul matters. Every story counts. The story continues.</p>
+                    </div>
+                </div>
             `,
-            width: 'standard',
+            width: 'wide',
             bg_color: 'white',
             padding: 'medium'
         }
     },
+
+    // ── 9. Closing Invitation — DIFFERENT CTA from homepage ────────────
     {
-        id: 'about-cta',
+        id: 'about-invite',
         type: 'cta',
         data: {
-            title: "Become Part of the Family",
-            text: "Take the next step and make Light Encounter Tabernacle your home. We would love to walk with you, pray with you, and grow with you.",
-            button_text: "Plan to Become Our Member",
-            button_link: "/join",
+            title: "Come See For Yourself",
+            text: "The best way to know who we are is to meet us. Come visit, ask anything, and let's get to know each other — face to face.",
+            button_text: "Plan a Visit",
+            button_link: "/contact",
             bg_image: "/9.png",
             style: 'banner'
         }
