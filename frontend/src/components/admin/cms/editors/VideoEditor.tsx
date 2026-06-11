@@ -20,11 +20,15 @@ export default function VideoEditor({ data, onChange }: Props) {
                 </div>
             </div>
             <div><label className={l}>Subtitle</label><input value={data.subtitle || ''} onChange={e => update('subtitle', e.target.value)} className={i} /></div>
-            <div>
-                <label className={l}>Video URL (YouTube or Vimeo)</label>
-                <input value={data.url || ''} onChange={e => update('url', e.target.value)} className={i}
+            <div className="rounded-xl border-2 border-[#f5bb00]/40 bg-[#fffbe5] p-3">
+                <label className="block text-xs font-bold text-[#140152] uppercase tracking-wide mb-1">▶ Paste your YouTube or Vimeo URL here</label>
+                <input value={data.url || ''} onChange={e => update('url', e.target.value)}
+                    className="w-full border-2 border-[#140152]/20 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#140152]"
                     placeholder="https://www.youtube.com/watch?v=..." />
-                <p className="text-[10px] text-gray-400 mt-1">YouTube watch links, youtu.be short links, and Vimeo all work.</p>
+                <p className="text-[11px] text-gray-600 mt-2 leading-relaxed">
+                    Examples that work: <code>youtube.com/watch?v=XXXX</code>, <code>youtu.be/XXXX</code>, <code>vimeo.com/XXXX</code>.<br/>
+                    Once a URL is set, the welcome video appears on the homepage. While empty, the video section is hidden on the public site.
+                </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
                 <div><label className={l}>Caption (optional)</label><input value={data.caption || ''} onChange={e => update('caption', e.target.value)} className={i} /></div>

@@ -23,10 +23,10 @@ const BLOCK_TYPES: { type: BlockType; label: string }[] = [
     { type: 'features', label: 'Features (Grid)' },
     { type: 'image', label: 'Image' },
     { type: 'gallery', label: '🖼️ Photo Gallery' },
-    { type: 'video', label: '▶️ Video (YouTube / Vimeo)' },
+    { type: 'video', label: '▶️ Welcome Video (YouTube / Vimeo)' },
     { type: 'service-times', label: '⛪ Service Times' },
     { type: 'newsletter', label: '✉️ Newsletter Signup' },
-    { type: 'scripture-marquee', label: '✨ Scripture Marquee (Scrolling)' },
+    { type: 'scripture-marquee', label: '✨ Word of the Day (Rotating Verses)' },
     { type: 'cta', label: 'Call to Action' },
     { type: 'stats', label: '📊 Stats Counter' },
     { type: 'testimonies', label: '💬 Testimonies / Quotes' },
@@ -90,7 +90,7 @@ export default function PageBuilder({ blocks, onChange }: PageBuilderProps) {
             case 'video': return { title: 'Watch', subtitle: '', url: '', aspect: '16:9', bg: 'gray' };
             case 'gallery': return { title: 'Our Family in Pictures', subtitle: 'Real moments from our church family.', layout: 'masonry', bg: 'white', images: [] };
             case 'newsletter': return { title: 'Stay Connected', subtitle: 'Get weekly devotionals straight to your inbox.', button_text: 'Subscribe', bg: 'brand' };
-            case 'scripture-marquee': return { bg: 'gold', speed: 40, verses: [
+            case 'scripture-marquee': return { bg: 'brand', speed: 8, verses: [
                 { text: 'For with You is the fountain of life; in Your light we see light.', reference: 'Psalm 36:9' },
                 { text: 'You are the light of the world.', reference: 'Matthew 5:14' },
             ]};

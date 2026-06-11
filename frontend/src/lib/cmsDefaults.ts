@@ -64,8 +64,8 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         id: 'home-marquee',
         type: 'scripture-marquee',
         data: {
-            bg: 'gold',
-            speed: 45,
+            bg: 'brand',
+            speed: 8,
             verses: [
                 { text: "For with You is the fountain of life; in Your light we see light.", reference: "Psalm 36:9" },
                 { text: "You are the light of the world. A town built on a hill cannot be hidden.", reference: "Matthew 5:14" },
@@ -156,26 +156,11 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         }
     },
     {
-        id: 'home-thisweek',
-        type: 'features',
-        data: {
-            title: "This Week at LETW",
-            subtitle: "Don't miss what's happening",
-            columns: 3,
-            style: 'minimal',
-            features: [
-                { title: "Wednesday Bible Study", description: "6:00 PM - Join us as we open the Word together.", icon: "BookOpen" },
-                { title: "Friday Prayer Meeting", description: "6:00 PM - A night of corporate prayer and intercession.", icon: "HandHeart" },
-                { title: "Sunday Worship Service", description: "9:00 AM - Our main worship gathering. Come expectant.", icon: "Music" }
-            ]
-        }
-    },
-    {
         id: 'home-gallery',
         type: 'gallery',
         data: {
-            title: "Our Family in Pictures",
-            subtitle: "Real moments from worship, fellowship, and outreach.",
+            title: "Glimpses of Glory",
+            subtitle: "A walk through our journey of worship, fellowship, and Kingdom impact.",
             layout: 'marquee',
             bg: 'white',
             images: [
@@ -197,19 +182,6 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         id: 'upcoming-events',
         type: 'upcoming-events',
         data: { title: "Upcoming Events", count: 3 }
-    },
-    {
-        id: 'home-radio',
-        type: 'button-group',
-        data: {
-            bg_color: 'light',
-            title: "Tune In to LETW Radio",
-            subtitle: "Anointed worship and the Word - anytime, anywhere.",
-            buttons: [
-                { text: "Listen Live", link: "https://radio.letw.org/listen", type: 'solid' },
-                { text: "Stream", link: "https://radio.letw.org/stream", type: 'solid' }
-            ]
-        }
     },
     {
         id: 'home-newsletter',

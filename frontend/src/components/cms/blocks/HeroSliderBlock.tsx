@@ -90,7 +90,7 @@ export default function HeroSliderBlock({ data }: HeroSliderBlockProps) {
             {/* Active slide content — keyed to re-animate on every change */}
             <div
                 key={current}
-                className={`relative z-10 h-full container mx-auto px-6 flex flex-col justify-center ${isLeft ? 'items-start text-left' : 'items-center text-center'}`}
+                className={`relative z-10 h-full container mx-auto px-6 pt-32 md:pt-36 pb-24 flex flex-col justify-center ${isLeft ? 'items-start text-left' : 'items-center text-center'}`}
             >
                 <div className={`max-w-4xl ${isLeft ? '' : 'mx-auto'}`}>
                     {active?.eyebrow && (

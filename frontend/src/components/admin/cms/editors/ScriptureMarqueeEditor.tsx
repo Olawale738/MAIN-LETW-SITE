@@ -22,14 +22,15 @@ export default function ScriptureMarqueeEditor({ data, onChange }: Props) {
         <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
                 <div><label className={l}>Background</label>
-                    <select value={data.bg || 'gold'} onChange={e => update('bg', e.target.value)} className={i}>
-                        <option value="gold">Gold</option>
+                    <select value={data.bg || 'brand'} onChange={e => update('bg', e.target.value)} className={i}>
                         <option value="brand">Brand Purple</option>
+                        <option value="gold">Gold</option>
                         <option value="dark">Dark</option>
+                        <option value="light">Light</option>
                     </select>
                 </div>
-                <div><label className={l}>Scroll Speed (seconds for full cycle)</label>
-                    <input type="number" min={15} value={data.speed || 40} onChange={e => update('speed', parseInt(e.target.value) || 40)} className={i} />
+                <div><label className={l}>Seconds per Verse</label>
+                    <input type="number" min={3} value={data.speed || 8} onChange={e => update('speed', parseInt(e.target.value) || 8)} className={i} />
                 </div>
             </div>
 
