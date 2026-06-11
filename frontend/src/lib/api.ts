@@ -2602,7 +2602,7 @@ export const liveStreamApi = {
 
 // ============= CMS Types =============
 
-export type BlockType = 'hero' | 'hero-slider' | 'content' | 'features' | 'cta' | 'image' | 'video' | 'upcoming-events' | 'sermon-list' | 'leadership-list' | 'button-group' | 'stats' | 'testimonies' | 'scripture';
+export type BlockType = 'hero' | 'hero-slider' | 'content' | 'features' | 'cta' | 'image' | 'video' | 'upcoming-events' | 'sermon-list' | 'leadership-list' | 'button-group' | 'stats' | 'testimonies' | 'scripture' | 'service-times' | 'gallery' | 'newsletter' | 'scripture-marquee';
 
 export interface Block {
     id: string;

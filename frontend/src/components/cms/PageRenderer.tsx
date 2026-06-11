@@ -14,6 +14,11 @@ import ButtonGroupBlock from './blocks/ButtonGroupBlock';
 import StatsBlock from './blocks/StatsBlock';
 import TestimoniesBlock from './blocks/TestimoniesBlock';
 import ScriptureBlock from './blocks/ScriptureBlock';
+import ServiceTimesBlock from './blocks/ServiceTimesBlock';
+import VideoBlock from './blocks/VideoBlock';
+import GalleryBlock from './blocks/GalleryBlock';
+import NewsletterBlock from './blocks/NewsletterBlock';
+import ScriptureMarqueeBlock from './blocks/ScriptureMarqueeBlock';
 
 interface PageRendererProps {
     blocks: Block[];
@@ -32,7 +37,11 @@ const BLOCK_COMPONENTS: Record<string, React.FC<any>> = {
     stats: StatsBlock,
     testimonies: TestimoniesBlock,
     scripture: ScriptureBlock,
-    video: () => null,
+    'service-times': ServiceTimesBlock,
+    video: VideoBlock,
+    gallery: GalleryBlock,
+    newsletter: NewsletterBlock,
+    'scripture-marquee': ScriptureMarqueeBlock,
 };
 
 export default function PageRenderer({ blocks }: PageRendererProps) {

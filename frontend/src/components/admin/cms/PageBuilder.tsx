@@ -22,6 +22,11 @@ const BLOCK_TYPES: { type: BlockType; label: string }[] = [
     { type: 'content', label: 'Content (Text/HTML)' },
     { type: 'features', label: 'Features (Grid)' },
     { type: 'image', label: 'Image' },
+    { type: 'gallery', label: '🖼️ Photo Gallery' },
+    { type: 'video', label: '▶️ Video (YouTube / Vimeo)' },
+    { type: 'service-times', label: '⛪ Service Times' },
+    { type: 'newsletter', label: '✉️ Newsletter Signup' },
+    { type: 'scripture-marquee', label: '✨ Scripture Marquee (Scrolling)' },
     { type: 'cta', label: 'Call to Action' },
     { type: 'stats', label: '📊 Stats Counter' },
     { type: 'testimonies', label: '💬 Testimonies / Quotes' },
@@ -74,6 +79,21 @@ export default function PageBuilder({ blocks, onChange }: PageBuilderProps) {
             case 'stats': return { title: 'Our Impact', subtitle: 'By The Numbers', bg: 'brand', stats: [{ label: 'Souls Reached', value: '1,000+', icon: '🙏' }] };
             case 'testimonies': return { title: 'Testimonies', subtitle: 'Changed Lives', style: 'grid', bg: 'light', testimonies: [{ quote: 'My life was transformed...', name: 'Name', location: 'Location' }] };
             case 'scripture': return { verse: 'Go and make disciples of all nations...', reference: 'Matthew 28:19', context: 'Our Commission', bg: 'brand', align: 'center' };
+            case 'service-times': return {
+                title: 'When We Gather', subtitle: 'Join us this week.', bg: 'brand',
+                location: '', map_link: '',
+                services: [
+                    { day: 'Sunday', time: '9:00 AM', title: 'Sunday Service', description: 'Main worship gathering.' },
+                    { day: 'Wednesday', time: '6:00 PM', title: 'Bible Study', description: 'Go deeper in the Word.' },
+                ],
+            };
+            case 'video': return { title: 'Watch', subtitle: '', url: '', aspect: '16:9', bg: 'gray' };
+            case 'gallery': return { title: 'Our Family in Pictures', subtitle: 'Real moments from our church family.', layout: 'masonry', bg: 'white', images: [] };
+            case 'newsletter': return { title: 'Stay Connected', subtitle: 'Get weekly devotionals straight to your inbox.', button_text: 'Subscribe', bg: 'brand' };
+            case 'scripture-marquee': return { bg: 'gold', speed: 40, verses: [
+                { text: 'For with You is the fountain of life; in Your light we see light.', reference: 'Psalm 36:9' },
+                { text: 'You are the light of the world.', reference: 'Matthew 5:14' },
+            ]};
             default: return {};
         }
     };

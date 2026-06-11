@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -105,10 +106,13 @@ export default function ButtonGroupBlock({ data }: ButtonGroupBlockProps) {
                             return <HoverDropdownButton key={idx} btn={btn} />;
                         }
 
+                        const isInternal = !!btn.link && btn.link.startsWith('/');
                         return (
                             <div key={idx} className="relative z-10 w-full sm:w-auto">
                                 <Button asChild size="lg" className="w-full bg-[#f5bb00] hover:bg-[#e0a800] text-[#140152] font-bold rounded-full h-14 px-8 text-base shadow-lg shadow-[#f5bb00]/30 transition-transform hover:-translate-y-1">
-                                    <a href={btn.link} target="_blank" rel="noopener noreferrer">{btn.text}</a>
+                                    {isInternal
+                                        ? <Link href={btn.link || '#'}>{btn.text}</Link>
+                                        : <a href={btn.link} target="_blank" rel="noopener noreferrer">{btn.text}</a>}
                                 </Button>
                             </div>
                         );

@@ -177,8 +177,16 @@ export default function HeroSliderBlock({ data }: HeroSliderBlockProps) {
                 </div>
             )}
 
+            {/* Scroll cue */}
+            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 hidden md:flex flex-col items-center gap-2 pointer-events-none">
+                <span className="text-xs font-bold uppercase tracking-[0.3em] text-white/70">Scroll</span>
+                <div className="w-6 h-10 rounded-full border-2 border-white/40 flex items-start justify-center p-1.5">
+                    <div className="w-1 h-2 rounded-full bg-[#f5bb00]" style={{ animation: 'letwScrollCue 1.6s ease-in-out infinite' }} />
+                </div>
+            </div>
+
             {/* Ken-burns keyframes */}
-            <style dangerouslySetInnerHTML={{ __html: '@keyframes letwKenburns{from{transform:scale(1.08)}to{transform:scale(1)}}' }} />
+            <style dangerouslySetInnerHTML={{ __html: '@keyframes letwKenburns{from{transform:scale(1.08)}to{transform:scale(1)}}@keyframes letwScrollCue{0%{transform:translateY(0);opacity:1}80%{transform:translateY(14px);opacity:0}100%{transform:translateY(0);opacity:0}}' }} />
         </section>
     )
 }

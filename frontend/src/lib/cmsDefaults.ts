@@ -46,15 +46,93 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         }
     },
     {
-        id: 'welcome-content',
+        id: 'home-actions',
+        type: 'button-group',
+        data: {
+            bg_color: 'dark',
+            title: "How Can We Help You Today?",
+            subtitle: "Take your next step with us.",
+            buttons: [
+                { text: "Become a Member", link: "/join", type: 'solid' },
+                { text: "Prayer Request", link: "/prayer-request", type: 'solid' },
+                { text: "Watch Sermons", link: "/sermons", type: 'solid' },
+                { text: "Give", link: "/giving", type: 'solid' }
+            ]
+        }
+    },
+    {
+        id: 'home-marquee',
+        type: 'scripture-marquee',
+        data: {
+            bg: 'gold',
+            speed: 45,
+            verses: [
+                { text: "For with You is the fountain of life; in Your light we see light.", reference: "Psalm 36:9" },
+                { text: "You are the light of the world. A town built on a hill cannot be hidden.", reference: "Matthew 5:14" },
+                { text: "Let your light shine before others, that they may see your good deeds and glorify your Father in heaven.", reference: "Matthew 5:16" }
+            ]
+        }
+    },
+    {
+        id: 'home-services',
+        type: 'service-times',
+        data: {
+            title: "When We Gather",
+            subtitle: "There's a seat saved for you. Join us in person or online.",
+            bg: 'brand',
+            location: "Light Encounter Tabernacle, Visit /contact for full address",
+            map_link: "",
+            services: [
+                { day: "Sunday", time: "9:00 AM", title: "Sunday Service", description: "Our main worship gathering - Spirit-filled praise and life-giving teaching for the whole family." },
+                { day: "Wednesday", time: "6:00 PM", title: "Bible Study", description: "Mid-week deep-dive into the Word, with prayer and practical application." },
+                { day: "Friday", time: "6:00 PM", title: "Prayer Meeting", description: "Stand in faith together - corporate prayer that moves heaven and shifts atmospheres." }
+            ]
+        }
+    },
+    {
+        id: 'home-welcome',
         type: 'content',
         data: {
             title: "We Are More Than <br /><span style='color:#f5bb00;'>A Church</span>",
             content: `
                 <p class="text-lg text-gray-600 leading-relaxed font-medium mb-4">We are a movement - built on unshakeable faith, genuine love, and sacrificial service. Light Encounter Tabernacle exists to awaken destinies, restore the broken, and release people into the fullness of God's purpose through the living, life-changing power of His Word.</p>
-                <p class="text-lg text-gray-600 leading-relaxed font-medium mb-6">Every message preached, every hand extended, every life touched is a declaration that God's light is real and His kingdom is advancing - one transformed life at a time.</p>
+                <p class="text-lg text-gray-600 leading-relaxed font-medium">Every message preached, every hand extended, every life touched is a declaration that God's light is real and His Kingdom is advancing - one transformed life at a time.</p>
             `,
             width: 'standard',
+            bg_color: 'white',
+            padding: 'medium'
+        }
+    },
+    {
+        id: 'home-video',
+        type: 'video',
+        data: {
+            title: "A Word From Our Founder",
+            subtitle: "Apostle Olawale N. Sanni shares the heart of Light Encounter Tabernacle.",
+            url: "",
+            aspect: '16:9',
+            bg: 'gray'
+        }
+    },
+    {
+        id: 'home-founder',
+        type: 'content',
+        data: {
+            title: "Meet Apostle Olawale N. Sanni",
+            content: `
+                <div class="grid md:grid-cols-2 gap-10 items-center max-w-5xl mx-auto">
+                    <div class="rounded-3xl overflow-hidden shadow-2xl ring-1 ring-black/5">
+                        <img src="/Founder.png" alt="Apostle Olawale N. Sanni" class="w-full h-auto object-cover" />
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-[0.3em] text-[#f5bb00] mb-3">Founder &amp; President</p>
+                        <h3 class="text-3xl font-black text-[#140152] mb-4">Apostle Olawale N. Sanni</h3>
+                        <p class="text-lg text-gray-600 leading-relaxed mb-4">Carrying a deep mandate to awaken destinies and release people into God's purpose, Apostle Olawale leads Light Encounter Tabernacle with a heart aflame for the gospel and a passion for genuine, transformative discipleship.</p>
+                        <a href="/about" class="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-6 py-3 rounded-full transition-all hover:scale-105">Read Our Story →</a>
+                    </div>
+                </div>
+            `,
+            width: 'wide',
             bg_color: 'white',
             padding: 'medium'
         }
@@ -64,7 +142,7 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         type: 'features',
         data: {
             title: "Discover Your Place",
-            subtitle: "Ministries & Pathways",
+            subtitle: "Ministries &amp; Pathways",
             columns: 3,
             style: 'cards',
             features: [
@@ -78,19 +156,69 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         }
     },
     {
+        id: 'home-thisweek',
+        type: 'features',
+        data: {
+            title: "This Week at LETW",
+            subtitle: "Don't miss what's happening",
+            columns: 3,
+            style: 'minimal',
+            features: [
+                { title: "Wednesday Bible Study", description: "6:00 PM - Join us as we open the Word together.", icon: "BookOpen" },
+                { title: "Friday Prayer Meeting", description: "6:00 PM - A night of corporate prayer and intercession.", icon: "HandHeart" },
+                { title: "Sunday Worship Service", description: "9:00 AM - Our main worship gathering. Come expectant.", icon: "Music" }
+            ]
+        }
+    },
+    {
+        id: 'home-gallery',
+        type: 'gallery',
+        data: {
+            title: "Our Family in Pictures",
+            subtitle: "Real moments from worship, fellowship, and outreach.",
+            layout: 'marquee',
+            bg: 'white',
+            images: [
+                { src: "https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=900&q=80", caption: "Worship" },
+                { src: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=900&q=80", caption: "Fellowship" },
+                { src: "https://images.unsplash.com/photo-1493836512294-502baa1986e2?w=900&q=80", caption: "Praise" },
+                { src: "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=900&q=80", caption: "Together" },
+                { src: "https://images.unsplash.com/photo-1545987796-200677ee1011?w=900&q=80", caption: "Prayer" },
+                { src: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=900&q=80", caption: "Outreach" }
+            ]
+        }
+    },
+    {
         id: 'latest-sermons',
         type: 'sermon-list',
-        data: {
-            title: "Latest Sermons",
-            count: 3
-        }
+        data: { title: "Latest Sermons", count: 3 }
     },
     {
         id: 'upcoming-events',
         type: 'upcoming-events',
+        data: { title: "Upcoming Events", count: 3 }
+    },
+    {
+        id: 'home-radio',
+        type: 'button-group',
         data: {
-            title: "Upcoming Events",
-            count: 3
+            bg_color: 'light',
+            title: "Tune In to LETW Radio",
+            subtitle: "Anointed worship and the Word - anytime, anywhere.",
+            buttons: [
+                { text: "Listen Live", link: "https://radio.letw.org/listen", type: 'solid' },
+                { text: "Stream", link: "https://radio.letw.org/stream", type: 'solid' }
+            ]
+        }
+    },
+    {
+        id: 'home-newsletter',
+        type: 'newsletter',
+        data: {
+            title: "Stay Connected",
+            subtitle: "Get weekly devotionals, sermon highlights, and church updates straight to your inbox.",
+            button_text: "Subscribe",
+            bg: 'brand'
         }
     },
     {

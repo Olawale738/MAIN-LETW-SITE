@@ -16,6 +16,11 @@ import CTAEditor from './editors/CTAEditor';
 import StatsEditor from './editors/StatsEditor';
 import TestimoniesEditor from './editors/TestimoniesEditor';
 import ScriptureEditor from './editors/ScriptureEditor';
+import ServiceTimesEditor from './editors/ServiceTimesEditor';
+import VideoEditor from './editors/VideoEditor';
+import GalleryEditor from './editors/GalleryEditor';
+import NewsletterEditor from './editors/NewsletterEditor';
+import ScriptureMarqueeEditor from './editors/ScriptureMarqueeEditor';
 
 interface BlockEditorProps {
     block: Block;
@@ -37,6 +42,11 @@ const EDITOR_COMPONENTS: Record<string, React.FC<any>> = {
     stats: StatsEditor,
     testimonies: TestimoniesEditor,
     scripture: ScriptureEditor,
+    'service-times': ServiceTimesEditor,
+    video: VideoEditor,
+    gallery: GalleryEditor,
+    newsletter: NewsletterEditor,
+    'scripture-marquee': ScriptureMarqueeEditor,
 };
 
 export default function BlockEditor({

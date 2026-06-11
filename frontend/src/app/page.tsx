@@ -39,18 +39,10 @@ export default function HomePage() {
     )
   }
 
-  // During render, ensure the button-group block is forcefully mapped from defaults to support seamless HMR UI updates.
-  const displayBlocks = blocks.filter(b => b.type !== 'button-group')
-  const defaultActionsIndex = DEFAULT_HOME_BLOCKS.findIndex(b => b.type === 'button-group')
-  
-  if (defaultActionsIndex !== -1) {
-      displayBlocks.splice(defaultActionsIndex, 0, DEFAULT_HOME_BLOCKS[defaultActionsIndex])
-  }
-
   return (
     <div className="bg-white dark:bg-black overflow-x-hidden min-h-screen">
       <LiveStreamPlayer />
-      <PageRenderer blocks={displayBlocks} />
+      <PageRenderer blocks={blocks} />
     </div>
   )
 }
