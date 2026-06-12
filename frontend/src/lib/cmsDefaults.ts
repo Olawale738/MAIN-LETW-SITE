@@ -126,7 +126,7 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
             badge: '',
             button_text: 'Read Our Story',
             button_link: '/about',
-            reverse: true,
+            reverse: false,
             bg: 'white',
         }
     },
@@ -242,7 +242,7 @@ export const DEFAULT_ABOUT_BLOCKS: Block[] = [
         }
     },
 
-    // ── 3. The Founder's Heart — with Mission + Vision folded INSIDE ────
+    // ── 3. The Founder's Heart — cinematic asymmetric layout ────────────
     {
         id: 'about-founder',
         type: 'founder-card',
@@ -257,10 +257,59 @@ export const DEFAULT_ABOUT_BLOCKS: Block[] = [
             button_link: '',
             reverse: true,
             bg: 'white',
-            mission_title: 'Awaken. Restore. Release.',
-            mission_text: "To awaken destinies, restore what is broken, and release every soul into the fullness of God's purpose — through the living power of His Word, Spirit-filled worship, and the genuine love of His family.",
-            vision_title: 'A people of light, sent into every darkness.',
-            vision_text: 'A worldwide community of believers walking in the light of God — a people who carry heaven into every home, marketplace, and nation, raising the next generation to shine brighter than the last.',
+        }
+    },
+
+    // ── 3b. Our Mission & Vision — clearly labeled, side-by-side cards ──
+    {
+        id: 'about-mission-vision',
+        type: 'content',
+        data: {
+            title: "",
+            content: `
+                <div class="max-w-6xl mx-auto">
+                    <div class="text-center mb-12">
+                        <p style="font-size:0.75rem;letter-spacing:0.35em;font-weight:800;text-transform:uppercase;color:#f5bb00;margin-bottom:0.75rem;">Who We Are · Where We're Going</p>
+                        <h2 style="font-size:clamp(2rem,4vw,3rem);font-weight:900;color:#140152;line-height:1.1;">Our Mission &amp; Vision</h2>
+                        <div style="margin:1.5rem auto 0;height:6px;width:6rem;border-radius:9999px;background:linear-gradient(to right,#140152,#7c3aed,#f5bb00);"></div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-6 md:gap-8">
+                        <!-- OUR MISSION -->
+                        <div class="relative group rounded-3xl bg-white border border-gray-100 shadow-lg p-8 md:p-10 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+                            <div style="position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(to right,#140152,#7c3aed);"></div>
+                            <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:9999px;background:rgba(124,58,237,0.08);pointer-events:none;"></div>
+                            <div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#140152,#7c3aed);box-shadow:0 14px 30px rgba(20,1,82,0.25);margin-bottom:1.25rem;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#f5bb00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                            </div>
+                            <p style="font-size:0.7rem;letter-spacing:0.35em;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-bottom:0.5rem;">Our Mission</p>
+                            <h3 style="font-size:1.75rem;font-weight:900;color:#140152;margin-bottom:1rem;line-height:1.2;">What we are sent to do.</h3>
+                            <p style="font-size:1.0625rem;line-height:1.7;color:#4a4a64;">To <strong style="color:#140152;">awaken destinies</strong>, restore what is broken, and release every soul into the <strong style="color:#140152;">fullness of God's purpose</strong> — through the living power of His Word, Spirit-filled worship, and the genuine love of His family.</p>
+                        </div>
+
+                        <!-- OUR VISION -->
+                        <div class="relative group rounded-3xl bg-white border border-gray-100 shadow-lg p-8 md:p-10 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+                            <div style="position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(to right,#f5bb00,#ffd633);"></div>
+                            <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:9999px;background:rgba(245,187,0,0.12);pointer-events:none;"></div>
+                            <div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#f5bb00,#d97706);box-shadow:0 14px 30px rgba(245,187,0,0.35);margin-bottom:1.25rem;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#140152" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </div>
+                            <p style="font-size:0.7rem;letter-spacing:0.35em;font-weight:800;text-transform:uppercase;color:#d97706;margin-bottom:0.5rem;">Our Vision</p>
+                            <h3 style="font-size:1.75rem;font-weight:900;color:#140152;margin-bottom:1rem;line-height:1.2;">Where we are headed.</h3>
+                            <p style="font-size:1.0625rem;line-height:1.7;color:#4a4a64;">A worldwide community of believers <strong style="color:#140152;">walking in the light of God</strong> — a people who carry heaven into every home, marketplace, and nation, raising the next generation to <strong style="color:#140152;">shine brighter than the last</strong>.</p>
+                        </div>
+                    </div>
+
+                    <!-- The three Mission verbs as a quiet anchor under the cards -->
+                    <div class="mt-10 flex flex-wrap items-center justify-center gap-x-10 gap-y-2 text-center">
+                        <p style="font-size:0.7rem;letter-spacing:0.35em;font-weight:800;text-transform:uppercase;color:#140152;opacity:0.5;">In Three Words</p>
+                        <p style="font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:1.5rem;font-weight:600;color:#140152;">Awaken. Restore. Release.</p>
+                    </div>
+                </div>
+            `,
+            width: 'wide',
+            bg_color: 'gray',
+            padding: 'medium'
         }
     },
 
