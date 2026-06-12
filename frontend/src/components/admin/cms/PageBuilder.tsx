@@ -32,6 +32,7 @@ const BLOCK_TYPES: { type: BlockType; label: string }[] = [
     { type: 'testimonies', label: '💬 Testimonies / Quotes' },
     { type: 'scripture', label: '📖 Scripture Verse' },
     { type: 'timeline', label: '🕰️ Story Timeline (Milestones)' },
+    { type: 'founder-card', label: '🙏 Founder / Leader Card (photo + bio)' },
 ];
 
 export default function PageBuilder({ blocks, onChange }: PageBuilderProps) {
@@ -95,6 +96,18 @@ export default function PageBuilder({ blocks, onChange }: PageBuilderProps) {
                 { text: 'For with You is the fountain of life; in Your light we see light.', reference: 'Psalm 36:9' },
                 { text: 'You are the light of the world.', reference: 'Matthew 5:14' },
             ]};
+            case 'founder-card': return {
+                eyebrow: 'The Heart Behind the House',
+                name: 'Our Founder',
+                quote: '',
+                bio: '',
+                image: '/Founder.png',
+                badge: 'FOUNDER & PRESIDENT',
+                button_text: '',
+                button_link: '',
+                reverse: false,
+                bg: 'white',
+            };
             case 'timeline': return {
                 eyebrow: 'A Journey of Faith', title: 'Our Story', subtitle: 'Every chapter has been written by grace.', bg: 'brand',
                 milestones: [
