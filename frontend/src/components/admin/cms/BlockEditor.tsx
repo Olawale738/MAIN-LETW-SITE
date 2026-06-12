@@ -22,7 +22,6 @@ import GalleryEditor from './editors/GalleryEditor';
 import NewsletterEditor from './editors/NewsletterEditor';
 import ScriptureMarqueeEditor from './editors/ScriptureMarqueeEditor';
 import TimelineEditor from './editors/TimelineEditor';
-import FounderCardEditor from './editors/FounderCardEditor';
 
 interface BlockEditorProps {
     block: Block;
@@ -50,7 +49,6 @@ const EDITOR_COMPONENTS: Record<string, React.FC<any>> = {
     newsletter: NewsletterEditor,
     'scripture-marquee': ScriptureMarqueeEditor,
     timeline: TimelineEditor,
-    'founder-card': FounderCardEditor,
 };
 
 export default function BlockEditor({

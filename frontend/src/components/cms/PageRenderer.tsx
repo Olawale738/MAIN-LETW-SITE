@@ -20,7 +20,6 @@ import GalleryBlock from './blocks/GalleryBlock';
 import NewsletterBlock from './blocks/NewsletterBlock';
 import ScriptureMarqueeBlock from './blocks/ScriptureMarqueeBlock';
 import TimelineBlock from './blocks/TimelineBlock';
-import FounderCardBlock from './blocks/FounderCardBlock';
 
 interface PageRendererProps {
     blocks: Block[];
@@ -45,7 +44,6 @@ const BLOCK_COMPONENTS: Record<string, React.FC<any>> = {
     newsletter: NewsletterBlock,
     'scripture-marquee': ScriptureMarqueeBlock,
     timeline: TimelineBlock,
-    'founder-card': FounderCardBlock,
 };
 
 export default function PageRenderer({ blocks }: PageRendererProps) {
