@@ -16,6 +16,11 @@ interface Props {
         button_link?: string
         reverse?: boolean               // image on right (default), or image on left
         bg?: 'white' | 'gray' | 'brand'
+        // Optional mission + vision cards rendered BELOW the founder content
+        mission_title?: string
+        mission_text?: string
+        vision_title?: string
+        vision_text?: string
     }
 }
 
@@ -36,7 +41,15 @@ export default function FounderCardBlock({ data }: Props) {
         button_link,
         reverse = false,
         bg = 'white',
+        mission_title,
+        mission_text,
+        vision_title,
+        vision_text,
     } = data
+
+    const showMission = !!(mission_title || mission_text)
+    const showVision = !!(vision_title || vision_text)
+    const showMV = showMission || showVision
 
     const img = resolveImg(image)
 
@@ -123,6 +136,55 @@ export default function FounderCardBlock({ data }: Props) {
                         )}
                     </div>
                 </div>
+
+                {/* MISSION + VISION — rendered inside the founder card, below the photo/bio grid */}
+                {showMV && (
+                    <div className="max-w-6xl mx-auto mt-14 md:mt-20">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                            {showMission && (
+                                <div className={`relative rounded-3xl p-7 md:p-9 border shadow-lg overflow-hidden ${isDark ? 'bg-white/[0.04] border-white/10 backdrop-blur-sm' : 'bg-white border-gray-100'}`}>
+                                    <div className="absolute top-0 left-0 h-full w-1.5 bg-[#f5bb00]" aria-hidden />
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-xl bg-[#f5bb00]/20 flex items-center justify-center text-[#f5bb00]" aria-hidden>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <circle cx="12" cy="12" r="10" />
+                                                <circle cx="12" cy="12" r="6" />
+                                                <circle cx="12" cy="12" r="2" />
+                                            </svg>
+                                        </div>
+                                        <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#f5bb00]">Our Mission</p>
+                                    </div>
+                                    <h3 className={`text-xl md:text-2xl font-black leading-tight mb-3 ${headingColor}`}>
+                                        {mission_title || 'Awaken. Restore. Release.'}
+                                    </h3>
+                                    {mission_text && (
+                                        <p className={`text-sm md:text-base leading-relaxed ${bodyColor}`}>{mission_text}</p>
+                                    )}
+                                </div>
+                            )}
+                            {showVision && (
+                                <div className={`relative rounded-3xl p-7 md:p-9 border shadow-lg overflow-hidden ${isDark ? 'bg-white/[0.04] border-white/10 backdrop-blur-sm' : 'bg-[#140152] text-white border-transparent'}`}>
+                                    <div className="absolute top-0 left-0 h-full w-1.5 bg-[#f5bb00]" aria-hidden />
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-xl bg-[#f5bb00]/20 flex items-center justify-center text-[#f5bb00]" aria-hidden>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
+                                        </div>
+                                        <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#f5bb00]">Our Vision</p>
+                                    </div>
+                                    <h3 className="text-xl md:text-2xl font-black leading-tight mb-3 text-white">
+                                        {vision_title || 'A people of light, sent into every darkness.'}
+                                    </h3>
+                                    {vision_text && (
+                                        <p className="text-sm md:text-base leading-relaxed text-white/80">{vision_text}</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </section>
     )
