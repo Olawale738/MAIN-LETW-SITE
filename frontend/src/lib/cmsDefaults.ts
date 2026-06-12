@@ -126,7 +126,7 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
             badge: '',
             button_text: 'Read Our Story',
             button_link: '/about',
-            reverse: true,
+            reverse: false,
             bg: 'white',
         }
     },
