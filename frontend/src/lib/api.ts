@@ -3160,3 +3160,78 @@ export const evangelismApi = {
             fetchApi<{ message: string }>(`/evangelism/interests/${id}`, { method: 'DELETE' }),
     },
 };
+
+// ============= Youth Programs =============
+
+export interface YouthProgramItem {
+    title: string;
+    description?: string;
+    icon?: string;
+}
+
+export interface YouthProgramScheduleItem {
+    day: string;
+    time?: string;
+    title?: string;
+    description?: string;
+}
+
+export interface YouthProgramResource {
+    title: string;
+    url: string;
+    type?: 'pdf' | 'video' | 'link';
+    meta?: string;
+}
+
+export interface YouthProgramAnnouncement {
+    title: string;
+    body?: string;
+    date?: string;
+    urgent?: boolean;
+}
+
+export interface YouthProgram {
+    id: string;
+    slug: string;
+    title: string;
+    badge?: string;
+    icon?: string;
+    color_class?: string;
+    hero_image_url?: string;
+    short_description?: string;
+    long_description?: string;
+    what_youll_do?: YouthProgramItem[];
+    who_its_for?: string[];
+    schedule?: YouthProgramScheduleItem[];
+    outcomes?: string[];
+    resources?: YouthProgramResource[];
+    announcements?: YouthProgramAnnouncement[];
+    leader_name?: string;
+    leader_role?: string;
+    leader_photo_url?: string;
+    leader_bio?: string;
+    registration_open: boolean;
+    join_cta_text?: string;
+    service_request_label?: string;
+    order_index: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export const youthProgramApi = {
+    list: (): Promise<YouthProgram[]> => fetchApi<YouthProgram[]>('/youth/programs'),
+    get: (slug: string): Promise<YouthProgram> => fetchApi<YouthProgram>(`/youth/programs/${slug}`),
+
+    admin: {
+        listAll: (): Promise<YouthProgram[]> => fetchApi<YouthProgram[]>('/youth/programs/admin/all'),
+        create: (data: Partial<YouthProgram>): Promise<YouthProgram> =>
+            fetchApi<YouthProgram>('/youth/programs/admin', { method: 'POST', body: JSON.stringify(data) }),
+        update: (id: string, data: Partial<YouthProgram>): Promise<YouthProgram> =>
+            fetchApi<YouthProgram>(`/youth/programs/admin/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+        remove: (id: string): Promise<void> =>
+            fetchApi<void>(`/youth/programs/admin/${id}`, { method: 'DELETE' }),
+        seedDefaults: (): Promise<{ inserted: number }> =>
+            fetchApi<{ inserted: number }>('/youth/programs/admin/seed-defaults', { method: 'POST' }),
+    },
+};

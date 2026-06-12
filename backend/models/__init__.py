@@ -34,6 +34,7 @@ from models.department import (
     DepartmentActivity, AttendanceRecord, DepartmentMessage,
     DepartmentType, ActivityType,
 )
+from models.youth_program import YouthProgram
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
@@ -129,4 +130,5 @@ __all__ = [
     "DepartmentMessage",
     "DepartmentType",
     "ActivityType",
+    "YouthProgram",
 ]

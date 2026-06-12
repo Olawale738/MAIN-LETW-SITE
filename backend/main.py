@@ -128,6 +128,10 @@ app.include_router(newsletter.router)
 from routers import ministries
 app.include_router(ministries.router)
 
+# Youth Programs (per-program detail page + dashboard)
+from routers import youth_program
+app.include_router(youth_program.router)
+
 # 360-Degree Chat Extensions (reactions, replies, polls, attachments, etc.)
 from routers import chat_extensions
 app.include_router(chat_extensions.router)

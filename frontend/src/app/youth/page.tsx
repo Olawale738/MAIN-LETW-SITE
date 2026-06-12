@@ -24,7 +24,7 @@ const programs = [
         title: 'Youth Retreat & Camp',
         description: 'Every year we pull young people away from the noise and into the presence of God. Our annual retreat is three days of deep worship, prophetic encounters, outdoor fellowship, and life-defining moments. Many of our strongest testimonies were born in a camp setting — this could be yours.',
         badge: 'Annual Event',
-        href: '/youth#join',
+        href: '/youth/youth-retreat-camp',
         cta: 'Reserve a Spot',
     },
     {
@@ -34,7 +34,7 @@ const programs = [
         title: 'Mentorship Circles',
         description: 'You don\'t have to figure life out alone. We pair young people with seasoned believers and industry professionals who have walked the road before you. Through monthly one-on-one sessions and small group circles, you gain wisdom, accountability, and real-world insight tailored to your season.',
         badge: 'One-on-One',
-        href: '/youth#join',
+        href: '/youth/mentorship-circles',
         cta: 'Find a Mentor',
     },
     {
@@ -44,7 +44,7 @@ const programs = [
         title: 'Digital Missions',
         description: 'The internet is the largest mission field in human history — and we are equipping young believers to occupy it. Learn content creation, storytelling, social media strategy, and online evangelism. Turn your phone into a pulpit and your platform into a ministry that reaches thousands.',
         badge: 'Tech-Powered',
-        href: '/youth#join',
+        href: '/youth/digital-missions',
         cta: 'Go Digital',
     },
     {
@@ -54,7 +54,7 @@ const programs = [
         title: 'Faith & Fitness',
         description: 'Your body is the temple of the Holy Spirit — and we treat it that way. Our Faith & Fitness program combines weekly sport sessions, fitness challenges, and devotional discussions. Build physical discipline, forge friendships, and discover how taking care of your body honours God and sharpens your mind.',
         badge: 'Body & Spirit',
-        href: '/youth#join',
+        href: '/youth/faith-and-fitness',
         cta: 'Get Active',
     },
     {
@@ -64,7 +64,7 @@ const programs = [
         title: 'Drama & Spoken Word',
         description: 'Art is one of the most powerful ways to move a heart. This creative arts track trains youth in drama, spoken word poetry, dance, and visual storytelling — all as tools for Gospel proclamation. Perform at church events, community outreaches, and special services. Let your creativity carry the message.',
         badge: 'Creative Arts',
-        href: '/youth#join',
+        href: '/youth/drama-and-spoken-word',
         cta: 'Express Your Gift',
     },
     {
@@ -74,7 +74,7 @@ const programs = [
         title: 'Financial Stewardship',
         description: 'Nobody taught most of us how to handle money — and it shows in a generation drowning in debt. This program teaches biblical principles of stewardship, budgeting, saving, investing, and entrepreneurship. We raise young people who are not chasing money but commanding it for the Kingdom.',
         badge: 'Kingdom Finance',
-        href: '/youth#join',
+        href: '/youth/financial-stewardship',
         cta: 'Build Wealth Wisely',
     },
     {
@@ -84,7 +84,7 @@ const programs = [
         title: 'Social Impact Projects',
         description: 'Faith without works is dead. Our youth-led social impact initiatives take the church outside its four walls — feeding the hungry, visiting the elderly, cleaning communities, and advocating for the vulnerable. These projects build compassion, character, and civic responsibility all at once.',
         badge: 'Community Love',
-        href: '/youth#join',
+        href: '/youth/social-impact',
         cta: 'Make an Impact',
     },
     {
@@ -94,7 +94,7 @@ const programs = [
         title: 'Relationships & Identity',
         description: 'In a world that is constantly redefining who you should be and who you should love, we anchor young people in God\'s truth. This program tackles identity, self-worth, healthy relationships, biblical courtship, purity, and emotional wholeness — giving you a foundation nothing can shake.',
         badge: 'Identity First',
-        href: '/youth#join',
+        href: '/youth/relationships-and-identity',
         cta: 'Know Who You Are',
     },
 ]
