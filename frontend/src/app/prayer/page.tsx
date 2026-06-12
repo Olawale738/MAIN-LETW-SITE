@@ -102,16 +102,14 @@ export default function PrayerPage() {
         </div>
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-32 md:py-44 text-center text-white">
-          {settings.hero_eyebrow && (
-            <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-[11px] md:text-xs font-bold uppercase tracking-[0.4em] text-[#f5bb00] mb-5"
-            >
-              {settings.hero_eyebrow}
-            </motion.p>
-          )}
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-[11px] md:text-xs font-bold uppercase tracking-[0.4em] text-[#f5bb00] mb-5"
+          >
+            {settings.hero_eyebrow || 'United in Prayer'}
+          </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -182,16 +180,12 @@ export default function PrayerPage() {
           <div className="absolute top-0 right-0 w-96 h-96 bg-[#f5bb00] rounded-full blur-[180px] opacity-15 pointer-events-none" />
           <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-10 md:mb-14">
-              {settings.stats_eyebrow && (
-                <p className="text-[11px] md:text-xs font-bold uppercase tracking-[0.4em] text-[#f5bb00] mb-3">
-                  {settings.stats_eyebrow}
-                </p>
-              )}
-              {settings.stats_heading && (
-                <h2 className="text-3xl md:text-5xl font-black leading-tight">
-                  {settings.stats_heading}
-                </h2>
-              )}
+              <p className="text-[11px] md:text-xs font-bold uppercase tracking-[0.4em] text-[#f5bb00] mb-3">
+                {settings.stats_eyebrow || 'The Movement'}
+              </p>
+              <h2 className="text-3xl md:text-5xl font-black leading-tight">
+                {settings.stats_heading || 'Lives Touched. Nations Shifted.'}
+              </h2>
               {settings.stats_subtitle && (
                 <p className="mt-4 text-white/75 max-w-2xl mx-auto">
                   {settings.stats_subtitle}
@@ -231,11 +225,9 @@ export default function PrayerPage() {
       {activeCategories.length > 0 && (
         <SectionWrapper>
           <div className="text-center mb-14 md:mb-16 space-y-4">
-            {settings.categories_eyebrow && (
-              <span className="text-[#f5bb00] font-bold uppercase tracking-[0.3em] text-xs">
-                {settings.categories_eyebrow}
-              </span>
-            )}
+            <span className="block text-[#f5bb00] font-bold uppercase tracking-[0.3em] text-xs">
+              {settings.categories_eyebrow || 'United in Prayer'}
+            </span>
             <h2 className="text-3xl md:text-5xl font-black text-[#140152] leading-tight">
               {settings.categories_heading || 'What Happens When We Pray Together'}
             </h2>
@@ -285,11 +277,9 @@ export default function PrayerPage() {
         <section className="py-16 md:py-24 bg-gradient-to-b from-white to-neutral-50">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-14 md:mb-16 space-y-4">
-              {settings.schedules_eyebrow && (
-                <span className="text-[#f5bb00] font-bold uppercase tracking-[0.3em] text-xs">
-                  {settings.schedules_eyebrow}
-                </span>
-              )}
+              <span className="block text-[#f5bb00] font-bold uppercase tracking-[0.3em] text-xs">
+                {settings.schedules_eyebrow || 'When We Gather'}
+              </span>
               <h2 className="text-3xl md:text-5xl font-black text-[#140152] leading-tight">
                 {settings.schedules_heading || 'Join a Prayer Gathering'}
               </h2>
@@ -372,7 +362,7 @@ export default function PrayerPage() {
               </p>
             )}
             <h2 className="text-4xl md:text-6xl font-black mb-8 text-white leading-[1.05]">
-              {settings.final_heading || 'Will You Step In?'}
+              {settings.final_heading || 'The Altar Is Open'}
             </h2>
 
             {settings.scripture_text && (
