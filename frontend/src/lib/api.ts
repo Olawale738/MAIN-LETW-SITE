@@ -2118,6 +2118,19 @@ export interface BibleStudyDownloadableResource {
     created_at?: string;
 }
 
+export interface BibleStudyQuizQuestion {
+    q: string;
+    options: string[];     // typically 4 options
+    answer: number;        // 0-indexed
+    explanation?: string;  // optional teaching after answer reveal
+}
+
+export interface BibleStudyImpactStat {
+    label: string;
+    value: string;
+    icon?: string;
+}
+
 export interface BibleStudyWeeklyTopic {
     id: number;
     week: string;
@@ -2131,6 +2144,7 @@ export interface BibleStudyWeeklyTopic {
     notes_url?: string;            // "Study Notes" PDF/doc link
     discussion_questions?: string[];
     resources?: BibleStudyTopicResource[]; // extra downloads/links per week
+    quiz?: BibleStudyQuizQuestion[]; // admin-controlled quiz (overrides built-in)
 }
 
 export interface BibleStudyGroupResource {
@@ -2214,6 +2228,7 @@ export interface BibleStudyPageSettings {
     resources_heading?: string;
     resources_subtitle?: string;
     mentors?: BibleStudyMentor[];
+    impact_stats?: BibleStudyImpactStat[];
     created_at: string;
     updated_at: string;
 }
@@ -2280,6 +2295,7 @@ export interface BibleStudyPageSettingsUpdate {
     resources_heading?: string;
     resources_subtitle?: string;
     mentors?: BibleStudyMentor[];
+    impact_stats?: BibleStudyImpactStat[];
 }
 
 export interface WeekReflection {

@@ -301,7 +301,13 @@ export default function BibleStudyPage() {
 
     const earnedBadges = useMemo(() => BADGES.filter(b => b.condition(studyState)), [studyState])
 
-    const quizzes = quizOpen !== null ? QUIZZES[quizOpen] ?? [] : []
+    // Quiz source: admin-saved quiz on the active topic wins; falls back to the
+    // built-in hardcoded set so nothing breaks if admin hasn't authored one yet.
+    const quizzes = quizOpen !== null
+        ? ((activeTopics[quizOpen]?.quiz && activeTopics[quizOpen].quiz!.length > 0)
+            ? activeTopics[quizOpen].quiz!
+            : (QUIZZES[quizOpen] ?? []))
+        : []
     const quizScore = quizAnswers.filter(Boolean).length
 
     // Quiz actions
@@ -386,23 +392,43 @@ export default function BibleStudyPage() {
                 </div>
             </div>
 
-            {/* Stats bar */}
-            <div className="bg-[#140152] py-6">
-                <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-4 px-4 text-center">
-                    {[
-                        { val: '200+', label: 'Active Participants' },
-                        { val: '4',    label: 'Study Groups' },
-                        { val: '52',   label: 'Weeks Per Year' },
-                        { val: '6+',   label: 'Years Running' },
-                        { val: studyState.streak?.toString() ?? '0', label: 'Your Streak 🔥' },
-                    ].map((s, i) => (
-                        <div key={i}>
-                            <div className="text-3xl font-black text-[#f5bb00]">{s.val}</div>
-                            <div className="text-sm text-white/70">{s.label}</div>
+            {/* Stats bar — admin-controlled (impact_stats), or honest derived metrics fallback */}
+            {(() => {
+                const adminStats = settings?.impact_stats ?? []
+                // No fake numbers. If admin hasn't authored any, show only real,
+                // derived metrics: current week #, # of weekly topics in this quarter,
+                // and the visitor's own streak + topics-attempted.
+                const realStats = [
+                    { val: String(activeTopics.length || 0), label: 'Weekly Topics' },
+                    { val: String(displayGroups.length || 0), label: 'Study Groups' },
+                    { val: String(Object.keys(studyState.quizScores ?? {}).length || 0), label: 'Quizzes You\'ve Taken' },
+                    { val: String(studyState.streak ?? 0), label: 'Your Streak 🔥' },
+                ].filter(s => parseInt(s.val) > 0 || s.label.startsWith('Your'))
+
+                const items = (adminStats.length > 0
+                    ? adminStats.map(s => ({ val: s.value, label: s.label }))
+                    : realStats)
+
+                if (items.length === 0) return null
+
+                return (
+                    <div className="bg-[#140152] py-6">
+                        <div className={`max-w-6xl mx-auto grid gap-4 px-4 text-center grid-cols-2 ${
+                            items.length === 3 ? 'md:grid-cols-3' :
+                            items.length === 4 ? 'md:grid-cols-4' :
+                            items.length === 5 ? 'md:grid-cols-5' :
+                            'md:grid-cols-4'
+                        }`}>
+                            {items.map((s, i) => (
+                                <div key={i}>
+                                    <div className="text-3xl font-black text-[#f5bb00]">{s.val}</div>
+                                    <div className="text-sm text-white/70">{s.label}</div>
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
-            </div>
+                    </div>
+                )
+            })()}
 
             {/* Sticky nav */}
             <div className="sticky top-0 z-30 bg-white dark:bg-neutral-900 border-b border-gray-200 shadow-sm">

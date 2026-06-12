@@ -113,6 +113,7 @@ async def init_db():
                 ("bible_study_page_settings", "resources_heading",  "VARCHAR(255)"),
                 ("bible_study_page_settings", "resources_subtitle", "TEXT"),
                 ("bible_study_page_settings", "mentors",            "JSONB DEFAULT '[]'::jsonb"),
+                ("bible_study_page_settings", "impact_stats",       "JSONB DEFAULT '[]'::jsonb"),
                 ("department_members", "is_coordinator", "BOOLEAN NOT NULL DEFAULT FALSE"),
                 # Prayer page settings: added section headings + CTAs
                 ("prayer_page_settings", "hero_eyebrow",         "VARCHAR(120)"),

@@ -184,6 +184,7 @@ class BibleStudyPageSettingsUpdate(BaseModel):
     resources_heading: Optional[str] = None
     resources_subtitle: Optional[str] = None
     mentors: Optional[list] = None
+    impact_stats: Optional[list] = None
 
 
 class BibleStudyPageSettingsResponse(BaseModel):
@@ -202,6 +203,7 @@ class BibleStudyPageSettingsResponse(BaseModel):
     resources_heading: Optional[str] = None
     resources_subtitle: Optional[str] = None
     mentors: Optional[list] = None
+    impact_stats: Optional[list] = None
     created_at: datetime
     updated_at: datetime
 

@@ -172,6 +172,11 @@ class BibleStudyPageSettings(Base):
     # mentors: list of {id, name, title, bio, focus, availability, photo, contact, is_available}
     mentors: Mapped[Optional[list]] = mapped_column(JSON, nullable=True, default=list)
 
+    # ── Impact Stats strip on the hero (NEW, admin-controlled) ──
+    # list of {label, value, icon?}   - displayed in order; if empty, frontend
+    # falls back to real derived metrics (no more invented "200+" numbers).
+    impact_stats: Mapped[Optional[list]] = mapped_column(JSON, nullable=True, default=list)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
