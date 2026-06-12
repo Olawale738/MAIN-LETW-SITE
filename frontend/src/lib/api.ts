@@ -1571,6 +1571,28 @@ export interface PrayerPageSettings {
     schedules_eyebrow?: string;
     schedules_heading?: string;
     schedules_subtitle?: string;
+    // Manifesto (NEW)
+    manifesto_eyebrow?: string;
+    manifesto_heading?: string;
+    manifesto_subtitle?: string;
+    manifesto_pillars?: Array<{ icon?: string; title: string; description: string }>;
+    // How To Pray (NEW)
+    how_eyebrow?: string;
+    how_heading?: string;
+    how_subtitle?: string;
+    how_steps?: Array<{ number?: string; title: string; description?: string; link?: string; link_text?: string }>;
+    // Answered Prayers (NEW)
+    answered_eyebrow?: string;
+    answered_heading?: string;
+    answered_subtitle?: string;
+    answered_max_items?: number;
+    // Prayer Wall preview (NEW)
+    wall_eyebrow?: string;
+    wall_heading?: string;
+    wall_subtitle?: string;
+    wall_link?: string;
+    wall_link_text?: string;
+    wall_max_items?: number;
     // Final CTA
     final_eyebrow?: string;
     final_heading?: string;
@@ -1581,11 +1603,33 @@ export interface PrayerPageSettings {
     updated_at: string;
 }
 
+export interface PublicAnsweredPrayer {
+    id: string;
+    title: string;
+    description: string;
+    testimony: string;
+    category?: string;
+    author_name: string;
+    created_at: string;
+}
+
+export interface PublicWallRequest {
+    id: string;
+    title: string;
+    description: string;
+    category?: string;
+    author_name: string;
+    prayer_count: number;
+    created_at: string;
+}
+
 export interface PrayerPageData {
     settings: PrayerPageSettings;
     categories: PrayerCategory[];
     schedules: PrayerSchedule[];
     stats: PrayerStat[];
+    answered_prayers?: PublicAnsweredPrayer[];
+    wall_preview?: PublicWallRequest[];
 }
 
 export interface PrayerCategoryCreate {

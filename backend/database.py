@@ -131,6 +131,25 @@ async def init_db():
                 ("prayer_page_settings", "schedules_subtitle",   "TEXT"),
                 ("prayer_page_settings", "final_eyebrow",        "VARCHAR(120)"),
                 ("prayer_page_settings", "final_heading",        "VARCHAR(255)"),
+                # Prayer page settings: revamp 2 (manifesto / how / answered / wall)
+                ("prayer_page_settings", "manifesto_eyebrow",    "VARCHAR(120)"),
+                ("prayer_page_settings", "manifesto_heading",    "VARCHAR(255)"),
+                ("prayer_page_settings", "manifesto_subtitle",   "TEXT"),
+                ("prayer_page_settings", "manifesto_pillars",    "JSONB DEFAULT '[]'::jsonb"),
+                ("prayer_page_settings", "how_eyebrow",          "VARCHAR(120)"),
+                ("prayer_page_settings", "how_heading",          "VARCHAR(255)"),
+                ("prayer_page_settings", "how_subtitle",         "TEXT"),
+                ("prayer_page_settings", "how_steps",            "JSONB DEFAULT '[]'::jsonb"),
+                ("prayer_page_settings", "answered_eyebrow",     "VARCHAR(120)"),
+                ("prayer_page_settings", "answered_heading",     "VARCHAR(255)"),
+                ("prayer_page_settings", "answered_subtitle",    "TEXT"),
+                ("prayer_page_settings", "answered_max_items",   "INTEGER DEFAULT 6"),
+                ("prayer_page_settings", "wall_eyebrow",         "VARCHAR(120)"),
+                ("prayer_page_settings", "wall_heading",         "VARCHAR(255)"),
+                ("prayer_page_settings", "wall_subtitle",        "TEXT"),
+                ("prayer_page_settings", "wall_link",            "VARCHAR(500)"),
+                ("prayer_page_settings", "wall_link_text",       "VARCHAR(120)"),
+                ("prayer_page_settings", "wall_max_items",       "INTEGER DEFAULT 4"),
             ]
 
             for table, column, col_def in missing_columns:

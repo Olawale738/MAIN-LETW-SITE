@@ -5,8 +5,9 @@ Prayer models for managing prayer categories, schedules, and requests
 import uuid
 import enum
 from datetime import datetime
-from typing import List, Optional
-from sqlalchemy import String, Text, Integer, Boolean, DateTime, Enum as SQLEnum, ForeignKey
+from typing import List, Optional, Any
+from sqlalchemy import String, Text, Integer, Boolean, DateTime, Enum as SQLEnum, ForeignKey, JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
@@ -132,6 +133,34 @@ class PrayerPageSettings(Base):
     schedules_eyebrow: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="When We Gather")
     schedules_heading: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default="Join a Prayer Gathering")
     schedules_subtitle: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # ── Manifesto / Why We Pray band (NEW, JSON pillars) ────────────────
+    manifesto_eyebrow: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="The Heart Behind the Altar")
+    manifesto_heading: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default="We Don't Just Pray. We War.")
+    manifesto_subtitle: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Each pillar: { icon, title, description }
+    manifesto_pillars: Mapped[Optional[Any]] = mapped_column(JSONB, nullable=True, default=list)
+
+    # ── How To Pray With Us steps (NEW, JSON) ──────────────────────────
+    how_eyebrow: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="Three Steps")
+    how_heading: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default="How To Pray With Us")
+    how_subtitle: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Each step: { number, title, description, link, link_text }
+    how_steps: Mapped[Optional[Any]] = mapped_column(JSONB, nullable=True, default=list)
+
+    # ── Answered Prayers / Testimonies band (NEW, fed by PrayerRequest) ─
+    answered_eyebrow: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="He Is Faithful")
+    answered_heading: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default="Recent Answered Prayers")
+    answered_subtitle: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    answered_max_items: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=6)
+
+    # ── Prayer Wall preview (NEW, fed by PrayerRequest) ─────────────────
+    wall_eyebrow: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="The Wall Is Alive")
+    wall_heading: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default="Stand With Your Brothers and Sisters")
+    wall_subtitle: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    wall_link: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, default="/dashboard/prayer-wall")
+    wall_link_text: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="See The Whole Wall")
+    wall_max_items: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=4)
 
     # ── Final CTA "The Altar is Open" ───────────────────────────────────
     final_eyebrow: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="The Altar Is Open")

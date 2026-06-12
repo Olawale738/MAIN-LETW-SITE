@@ -19,7 +19,7 @@ from schemas.prayer import (
     PrayerStatCreate, PrayerStatUpdate, PrayerStatResponse,
     PrayerRequestCreate, PrayerRequestUpdate, PrayerRequestResponse,
     PrayerPageSettingsUpdate, PrayerPageSettingsResponse,
-    PrayerPageData
+    PrayerPageData, PublicAnsweredPrayer, PublicWallRequest
 )
 from utils.dependencies import get_current_user, get_admin_user
 
@@ -69,11 +69,69 @@ async def get_prayer_page_data(db: AsyncSession = Depends(get_db)):
     )
     stats = stats_result.scalars().all()
 
+    # ── NEW: public Answered Prayers (status=answered, has testimony, is_public)
+    answered_limit = settings.answered_max_items if getattr(settings, 'answered_max_items', None) else 6
+    answered_q = await db.execute(
+        select(PrayerRequest)
+        .options(selectinload(PrayerRequest.user))
+        .where(PrayerRequest.status == PrayerRequestStatus.ANSWERED)
+        .where(PrayerRequest.is_public.is_(True))
+        .where(PrayerRequest.testimony.is_not(None))
+        .order_by(PrayerRequest.updated_at.desc())
+        .limit(answered_limit)
+    )
+    answered_rows = answered_q.scalars().all()
+
+    def _author(p: PrayerRequest) -> str:
+        if p.is_anonymous:
+            return "Anonymous"
+        if p.user is not None:
+            return p.user.name
+        return "Member"
+
+    answered_prayers = [
+        PublicAnsweredPrayer(
+            id=p.id,
+            title=p.title,
+            description=p.description,
+            testimony=p.testimony or "",
+            category=p.category,
+            author_name=_author(p),
+            created_at=p.created_at,
+        ) for p in answered_rows
+    ]
+
+    # ── NEW: Prayer Wall preview (recent public, non-archived)
+    wall_limit = settings.wall_max_items if getattr(settings, 'wall_max_items', None) else 4
+    wall_q = await db.execute(
+        select(PrayerRequest)
+        .options(selectinload(PrayerRequest.user))
+        .where(PrayerRequest.is_public.is_(True))
+        .where(PrayerRequest.status != PrayerRequestStatus.ARCHIVED)
+        .order_by(PrayerRequest.created_at.desc())
+        .limit(wall_limit)
+    )
+    wall_rows = wall_q.scalars().all()
+
+    wall_preview = [
+        PublicWallRequest(
+            id=p.id,
+            title=p.title,
+            description=p.description,
+            category=p.category,
+            author_name=_author(p),
+            prayer_count=p.prayer_count,
+            created_at=p.created_at,
+        ) for p in wall_rows
+    ]
+
     return PrayerPageData(
         settings=settings,
         categories=list(categories),
         schedules=list(schedules),
-        stats=list(stats)
+        stats=list(stats),
+        answered_prayers=answered_prayers,
+        wall_preview=wall_preview,
     )
 
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { ArrowLeft, Save, Loader2, Image as ImageIcon } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Image as ImageIcon, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import { prayerApi, cmsApi, PrayerPageSettings } from '@/lib/api'
 import { useToast } from '@/components/ui/toast'
 
@@ -12,6 +12,9 @@ const inputCls =
   'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#140152] focus:border-transparent text-gray-900'
 const labelCls = 'block text-sm font-semibold text-gray-700 mb-2'
 const hintCls = 'text-xs text-gray-500 mt-1'
+
+type Pillar = { icon?: string; title: string; description: string }
+type Step = { number?: string; title: string; description?: string; link?: string; link_text?: string }
 
 type FormState = {
   // Hero
@@ -36,6 +39,26 @@ type FormState = {
   schedules_eyebrow: string
   schedules_heading: string
   schedules_subtitle: string
+  // Manifesto (NEW)
+  manifesto_eyebrow: string
+  manifesto_heading: string
+  manifesto_subtitle: string
+  // How To Pray (NEW)
+  how_eyebrow: string
+  how_heading: string
+  how_subtitle: string
+  // Answered (NEW)
+  answered_eyebrow: string
+  answered_heading: string
+  answered_subtitle: string
+  answered_max_items: string
+  // Prayer Wall preview (NEW)
+  wall_eyebrow: string
+  wall_heading: string
+  wall_subtitle: string
+  wall_link: string
+  wall_link_text: string
+  wall_max_items: string
   // Final
   final_eyebrow: string
   final_heading: string
@@ -51,6 +74,10 @@ const blank: FormState = {
   stats_eyebrow: '', stats_heading: '', stats_subtitle: '',
   categories_eyebrow: '', categories_heading: '', categories_subtitle: '',
   schedules_eyebrow: '', schedules_heading: '', schedules_subtitle: '',
+  manifesto_eyebrow: '', manifesto_heading: '', manifesto_subtitle: '',
+  how_eyebrow: '', how_heading: '', how_subtitle: '',
+  answered_eyebrow: '', answered_heading: '', answered_subtitle: '', answered_max_items: '',
+  wall_eyebrow: '', wall_heading: '', wall_subtitle: '', wall_link: '', wall_link_text: '', wall_max_items: '',
   final_eyebrow: '', final_heading: '',
   scripture_text: '', scripture_reference: '', call_to_action_text: '', live_prayer_link: ''
 }
@@ -62,6 +89,8 @@ export default function PrayerSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [formData, setFormData] = useState<FormState>(blank)
+  const [pillars, setPillars] = useState<Pillar[]>([])
+  const [steps, setSteps] = useState<Step[]>([])
 
   useEffect(() => {
     fetchSettings()
@@ -90,6 +119,22 @@ export default function PrayerSettingsPage() {
         schedules_eyebrow: data.schedules_eyebrow || '',
         schedules_heading: data.schedules_heading || '',
         schedules_subtitle: data.schedules_subtitle || '',
+        manifesto_eyebrow: data.manifesto_eyebrow || '',
+        manifesto_heading: data.manifesto_heading || '',
+        manifesto_subtitle: data.manifesto_subtitle || '',
+        how_eyebrow: data.how_eyebrow || '',
+        how_heading: data.how_heading || '',
+        how_subtitle: data.how_subtitle || '',
+        answered_eyebrow: data.answered_eyebrow || '',
+        answered_heading: data.answered_heading || '',
+        answered_subtitle: data.answered_subtitle || '',
+        answered_max_items: data.answered_max_items != null ? String(data.answered_max_items) : '',
+        wall_eyebrow: data.wall_eyebrow || '',
+        wall_heading: data.wall_heading || '',
+        wall_subtitle: data.wall_subtitle || '',
+        wall_link: data.wall_link || '',
+        wall_link_text: data.wall_link_text || '',
+        wall_max_items: data.wall_max_items != null ? String(data.wall_max_items) : '',
         final_eyebrow: data.final_eyebrow || '',
         final_heading: data.final_heading || '',
         scripture_text: data.scripture_text,
@@ -97,6 +142,8 @@ export default function PrayerSettingsPage() {
         call_to_action_text: data.call_to_action_text,
         live_prayer_link: data.live_prayer_link || ''
       })
+      setPillars(Array.isArray(data.manifesto_pillars) ? data.manifesto_pillars : [])
+      setSteps(Array.isArray(data.how_steps) ? data.how_steps : [])
     } catch (error) {
       console.error('Failed to fetch settings:', error)
       showToast('Failed to load settings', 'error')
@@ -126,7 +173,12 @@ export default function PrayerSettingsPage() {
     e.preventDefault()
     try {
       setSaving(true)
-      await prayerApi.admin.updateSettings(formData)
+      const payload: any = { ...formData }
+      payload.manifesto_pillars = pillars.filter(p => p.title?.trim())
+      payload.how_steps = steps.filter(s => s.title?.trim())
+      payload.answered_max_items = formData.answered_max_items ? parseInt(formData.answered_max_items, 10) : undefined
+      payload.wall_max_items = formData.wall_max_items ? parseInt(formData.wall_max_items, 10) : undefined
+      await prayerApi.admin.updateSettings(payload)
       showToast('Prayer page updated', 'success')
       router.push('/admin/prayer')
     } catch (error) {
@@ -306,6 +358,207 @@ export default function PrayerSettingsPage() {
             <div>
               <label className={labelCls}>Schedules Subtitle (optional)</label>
               <textarea value={formData.schedules_subtitle} onChange={(e) => set('schedules_subtitle', e.target.value)} className={inputCls} rows={2} />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ─── NEW: Manifesto / Why We Pray ──────────────────────── */}
+        <Card>
+          <CardHeader>
+            <CardTitle>★ Manifesto — &ldquo;Why We Pray&rdquo; band</CardTitle>
+            <p className="text-xs text-gray-500">Sits right after the hero. 1–4 pillar cards.</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Manifesto Eyebrow</label>
+                <input type="text" value={formData.manifesto_eyebrow} onChange={(e) => set('manifesto_eyebrow', e.target.value)} className={inputCls} placeholder="The Heart Behind the Altar" />
+              </div>
+              <div>
+                <label className={labelCls}>Manifesto Heading</label>
+                <input type="text" value={formData.manifesto_heading} onChange={(e) => set('manifesto_heading', e.target.value)} className={inputCls} placeholder="We Don't Just Pray. We War." />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Manifesto Subtitle (optional)</label>
+              <textarea value={formData.manifesto_subtitle} onChange={(e) => set('manifesto_subtitle', e.target.value)} className={inputCls} rows={2} />
+            </div>
+
+            <div className="border-t pt-4 mt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="font-semibold text-gray-700">Pillars</p>
+                <button type="button" onClick={() => setPillars([...pillars, { icon: 'Flame', title: '', description: '' }])} className="inline-flex items-center gap-1 text-sm font-bold text-[#140152] hover:text-[#1d0175]">
+                  <Plus className="w-4 h-4" /> Add pillar
+                </button>
+              </div>
+              {pillars.length === 0 && (
+                <p className="text-xs text-gray-400 italic">No pillars saved — the page will render 3 sensible defaults until you add your own.</p>
+              )}
+              {pillars.map((p, idx) => (
+                <div key={idx} className="rounded-xl border border-gray-200 p-4 space-y-3 bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Pillar {idx + 1}</p>
+                    <div className="flex items-center gap-1">
+                      <button type="button" onClick={() => { if (idx === 0) return; const n = [...pillars]; [n[idx - 1], n[idx]] = [n[idx], n[idx - 1]]; setPillars(n); }} disabled={idx === 0} className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => { if (idx === pillars.length - 1) return; const n = [...pillars]; [n[idx + 1], n[idx]] = [n[idx], n[idx + 1]]; setPillars(n); }} disabled={idx === pillars.length - 1} className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => setPillars(pillars.filter((_, i) => i !== idx))} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Icon (lucide name)</label>
+                      <input value={p.icon || ''} onChange={(e) => { const n = [...pillars]; n[idx] = { ...n[idx], icon: e.target.value }; setPillars(n); }} className={inputCls + ' py-2 text-sm'} placeholder="Flame, Sword, HeartHandshake, Sparkles..." />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Title</label>
+                      <input value={p.title} onChange={(e) => { const n = [...pillars]; n[idx] = { ...n[idx], title: e.target.value }; setPillars(n); }} className={inputCls + ' py-2 text-sm'} placeholder="Persistent" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600">Description</label>
+                    <textarea value={p.description} onChange={(e) => { const n = [...pillars]; n[idx] = { ...n[idx], description: e.target.value }; setPillars(n); }} className={inputCls + ' py-2 text-sm'} rows={2} placeholder="What this pillar means to us." />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ─── NEW: How To Pray With Us ──────────────────────────── */}
+        <Card>
+          <CardHeader>
+            <CardTitle>★ How To Pray With Us — Steps</CardTitle>
+            <p className="text-xs text-gray-500">Sits after the &ldquo;What Happens&rdquo; grid. 1–4 numbered steps.</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>How Eyebrow</label>
+                <input type="text" value={formData.how_eyebrow} onChange={(e) => set('how_eyebrow', e.target.value)} className={inputCls} placeholder="Three Steps" />
+              </div>
+              <div>
+                <label className={labelCls}>How Heading</label>
+                <input type="text" value={formData.how_heading} onChange={(e) => set('how_heading', e.target.value)} className={inputCls} placeholder="How To Pray With Us" />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>How Subtitle (optional)</label>
+              <textarea value={formData.how_subtitle} onChange={(e) => set('how_subtitle', e.target.value)} className={inputCls} rows={2} />
+            </div>
+
+            <div className="border-t pt-4 mt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="font-semibold text-gray-700">Steps</p>
+                <button type="button" onClick={() => setSteps([...steps, { number: String(steps.length + 1).padStart(2, '0'), title: '', description: '' }])} className="inline-flex items-center gap-1 text-sm font-bold text-[#140152] hover:text-[#1d0175]">
+                  <Plus className="w-4 h-4" /> Add step
+                </button>
+              </div>
+              {steps.length === 0 && (
+                <p className="text-xs text-gray-400 italic">No steps saved — the page will render 3 sensible defaults until you add your own.</p>
+              )}
+              {steps.map((s, idx) => (
+                <div key={idx} className="rounded-xl border border-gray-200 p-4 space-y-3 bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Step {idx + 1}</p>
+                    <div className="flex items-center gap-1">
+                      <button type="button" onClick={() => { if (idx === 0) return; const n = [...steps]; [n[idx - 1], n[idx]] = [n[idx], n[idx - 1]]; setSteps(n); }} disabled={idx === 0} className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => { if (idx === steps.length - 1) return; const n = [...steps]; [n[idx + 1], n[idx]] = [n[idx], n[idx + 1]]; setSteps(n); }} disabled={idx === steps.length - 1} className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => setSteps(steps.filter((_, i) => i !== idx))} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Number</label>
+                      <input value={s.number || ''} onChange={(e) => { const n = [...steps]; n[idx] = { ...n[idx], number: e.target.value }; setSteps(n); }} className={inputCls + ' py-2 text-sm'} placeholder="01" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="text-xs font-semibold text-gray-600">Title</label>
+                      <input value={s.title} onChange={(e) => { const n = [...steps]; n[idx] = { ...n[idx], title: e.target.value }; setSteps(n); }} className={inputCls + ' py-2 text-sm'} placeholder="Submit Your Request" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600">Description</label>
+                    <textarea value={s.description || ''} onChange={(e) => { const n = [...steps]; n[idx] = { ...n[idx], description: e.target.value }; setSteps(n); }} className={inputCls + ' py-2 text-sm'} rows={2} />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Link URL (optional)</label>
+                      <input value={s.link || ''} onChange={(e) => { const n = [...steps]; n[idx] = { ...n[idx], link: e.target.value }; setSteps(n); }} className={inputCls + ' py-2 text-sm'} placeholder="/prayer-request" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Link text (optional)</label>
+                      <input value={s.link_text || ''} onChange={(e) => { const n = [...steps]; n[idx] = { ...n[idx], link_text: e.target.value }; setSteps(n); }} className={inputCls + ' py-2 text-sm'} placeholder="Submit a Request" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ─── NEW: Answered Prayers ─────────────────────────────── */}
+        <Card>
+          <CardHeader>
+            <CardTitle>★ Recent Answered Prayers</CardTitle>
+            <p className="text-xs text-gray-500">Auto-pulls from <strong>Prayer Requests</strong> with status=answered, public, with a testimony. Only headings/subtitle here.</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Answered Eyebrow</label>
+                <input type="text" value={formData.answered_eyebrow} onChange={(e) => set('answered_eyebrow', e.target.value)} className={inputCls} placeholder="He Is Faithful" />
+              </div>
+              <div>
+                <label className={labelCls}>Answered Heading</label>
+                <input type="text" value={formData.answered_heading} onChange={(e) => set('answered_heading', e.target.value)} className={inputCls} placeholder="Recent Answered Prayers" />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Answered Subtitle (optional)</label>
+              <textarea value={formData.answered_subtitle} onChange={(e) => set('answered_subtitle', e.target.value)} className={inputCls} rows={2} />
+            </div>
+            <div className="max-w-xs">
+              <label className={labelCls}>Max items shown</label>
+              <input type="number" min="1" max="24" value={formData.answered_max_items} onChange={(e) => set('answered_max_items', e.target.value)} className={inputCls} placeholder="6" />
+              <p className={hintCls}>Section hides if there are zero answered prayers with testimonies.</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ─── NEW: Prayer Wall Preview ──────────────────────────── */}
+        <Card>
+          <CardHeader>
+            <CardTitle>★ Prayer Wall preview</CardTitle>
+            <p className="text-xs text-gray-500">Auto-pulls from recent public Prayer Requests. Shows N items + a CTA.</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Wall Eyebrow</label>
+                <input type="text" value={formData.wall_eyebrow} onChange={(e) => set('wall_eyebrow', e.target.value)} className={inputCls} placeholder="The Wall Is Alive" />
+              </div>
+              <div>
+                <label className={labelCls}>Wall Heading</label>
+                <input type="text" value={formData.wall_heading} onChange={(e) => set('wall_heading', e.target.value)} className={inputCls} placeholder="Stand With Your Brothers and Sisters" />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Wall Subtitle (optional)</label>
+              <textarea value={formData.wall_subtitle} onChange={(e) => set('wall_subtitle', e.target.value)} className={inputCls} rows={2} />
+            </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <label className={labelCls}>Max items shown</label>
+                <input type="number" min="1" max="20" value={formData.wall_max_items} onChange={(e) => set('wall_max_items', e.target.value)} className={inputCls} placeholder="4" />
+              </div>
+              <div>
+                <label className={labelCls}>CTA URL</label>
+                <input type="text" value={formData.wall_link} onChange={(e) => set('wall_link', e.target.value)} className={inputCls} placeholder="/dashboard/prayer-wall" />
+              </div>
+              <div>
+                <label className={labelCls}>CTA text</label>
+                <input type="text" value={formData.wall_link_text} onChange={(e) => set('wall_link_text', e.target.value)} className={inputCls} placeholder="See The Whole Wall" />
+              </div>
             </div>
           </CardContent>
         </Card>

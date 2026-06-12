@@ -3,7 +3,7 @@ Pydantic schemas for prayer management
 """
 
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 from pydantic import BaseModel, Field
 
 
@@ -159,6 +159,28 @@ class PrayerPageSettingsUpdate(BaseModel):
     schedules_eyebrow: Optional[str] = None
     schedules_heading: Optional[str] = None
     schedules_subtitle: Optional[str] = None
+    # Manifesto (NEW)
+    manifesto_eyebrow: Optional[str] = None
+    manifesto_heading: Optional[str] = None
+    manifesto_subtitle: Optional[str] = None
+    manifesto_pillars: Optional[List[Any]] = None
+    # How To Pray (NEW)
+    how_eyebrow: Optional[str] = None
+    how_heading: Optional[str] = None
+    how_subtitle: Optional[str] = None
+    how_steps: Optional[List[Any]] = None
+    # Answered Prayers (NEW)
+    answered_eyebrow: Optional[str] = None
+    answered_heading: Optional[str] = None
+    answered_subtitle: Optional[str] = None
+    answered_max_items: Optional[int] = None
+    # Prayer Wall preview (NEW)
+    wall_eyebrow: Optional[str] = None
+    wall_heading: Optional[str] = None
+    wall_subtitle: Optional[str] = None
+    wall_link: Optional[str] = None
+    wall_link_text: Optional[str] = None
+    wall_max_items: Optional[int] = None
     # Final
     final_eyebrow: Optional[str] = None
     final_heading: Optional[str] = None
@@ -192,6 +214,28 @@ class PrayerPageSettingsResponse(BaseModel):
     schedules_eyebrow: Optional[str] = None
     schedules_heading: Optional[str] = None
     schedules_subtitle: Optional[str] = None
+    # Manifesto (NEW)
+    manifesto_eyebrow: Optional[str] = None
+    manifesto_heading: Optional[str] = None
+    manifesto_subtitle: Optional[str] = None
+    manifesto_pillars: Optional[List[Any]] = None
+    # How To Pray (NEW)
+    how_eyebrow: Optional[str] = None
+    how_heading: Optional[str] = None
+    how_subtitle: Optional[str] = None
+    how_steps: Optional[List[Any]] = None
+    # Answered Prayers (NEW)
+    answered_eyebrow: Optional[str] = None
+    answered_heading: Optional[str] = None
+    answered_subtitle: Optional[str] = None
+    answered_max_items: Optional[int] = None
+    # Prayer Wall preview (NEW)
+    wall_eyebrow: Optional[str] = None
+    wall_heading: Optional[str] = None
+    wall_subtitle: Optional[str] = None
+    wall_link: Optional[str] = None
+    wall_link_text: Optional[str] = None
+    wall_max_items: Optional[int] = None
     # Final CTA
     final_eyebrow: Optional[str] = None
     final_heading: Optional[str] = None
@@ -205,6 +249,33 @@ class PrayerPageSettingsResponse(BaseModel):
         from_attributes = True
 
 
+# Public sub-shapes (NEW) ─ shown on the public /prayer page
+class PublicAnsweredPrayer(BaseModel):
+    id: str
+    title: str
+    description: str
+    testimony: str
+    category: Optional[str] = None
+    author_name: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PublicWallRequest(BaseModel):
+    id: str
+    title: str
+    description: str
+    category: Optional[str] = None
+    author_name: str
+    prayer_count: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # Aggregated response for the prayer page
 class PrayerPageData(BaseModel):
     """Complete data for rendering the prayer page"""
@@ -212,3 +283,6 @@ class PrayerPageData(BaseModel):
     categories: List[PrayerCategoryResponse]
     schedules: List[PrayerScheduleResponse]
     stats: List[PrayerStatResponse]
+    # NEW: public feeds shown directly on /prayer (no auth required)
+    answered_prayers: List[PublicAnsweredPrayer] = []
+    wall_preview: List[PublicWallRequest] = []
