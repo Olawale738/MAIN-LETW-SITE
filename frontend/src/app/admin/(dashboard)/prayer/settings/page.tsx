@@ -96,6 +96,22 @@ export default function PrayerSettingsPage() {
     fetchSettings()
   }, [])
 
+  // Deep-link: when settings finish loading and there's a #hash, scroll to it.
+  useEffect(() => {
+    if (loading) return
+    if (typeof window === 'undefined') return
+    const hash = window.location.hash.replace('#', '')
+    if (!hash) return
+    const el = document.getElementById(hash)
+    if (el) {
+      setTimeout(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        el.classList.add('ring-2', 'ring-[#f5bb00]', 'ring-offset-2')
+        setTimeout(() => el.classList.remove('ring-2', 'ring-[#f5bb00]', 'ring-offset-2'), 2400)
+      }, 100)
+    }
+  }, [loading])
+
   const fetchSettings = async () => {
     try {
       setLoading(true)
@@ -215,7 +231,7 @@ export default function PrayerSettingsPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ─── 1. Hero ────────────────────────────────────────────── */}
-        <Card>
+        <Card id="hero">
           <CardHeader>
             <CardTitle>1. Hero Section</CardTitle>
             <p className="text-xs text-gray-500">Top of /prayer — overlaid on a background image.</p>
@@ -291,7 +307,7 @@ export default function PrayerSettingsPage() {
         </Card>
 
         {/* ─── 2. Stats Band ──────────────────────────────────────── */}
-        <Card>
+        <Card id="stats">
           <CardHeader>
             <CardTitle>2. Stats Band</CardTitle>
             <p className="text-xs text-gray-500">Heading copy for the impact-numbers band. Add/edit the actual numbers under <strong>Impact Stats</strong>.</p>
@@ -315,7 +331,7 @@ export default function PrayerSettingsPage() {
         </Card>
 
         {/* ─── 3. Categories Grid ─────────────────────────────────── */}
-        <Card>
+        <Card id="categories">
           <CardHeader>
             <CardTitle>3. "What Happens When We Pray Together" Grid</CardTitle>
             <p className="text-xs text-gray-500">Heading copy only. Add/edit the actual cards under <strong>Prayer Categories</strong>.</p>
@@ -339,7 +355,7 @@ export default function PrayerSettingsPage() {
         </Card>
 
         {/* ─── 4. Schedules Grid ──────────────────────────────────── */}
-        <Card>
+        <Card id="schedules">
           <CardHeader>
             <CardTitle>4. "Join a Prayer Gathering" Grid</CardTitle>
             <p className="text-xs text-gray-500">Heading copy only. Add/edit the actual gatherings under <strong>Prayer Schedules</strong>.</p>
@@ -363,7 +379,7 @@ export default function PrayerSettingsPage() {
         </Card>
 
         {/* ─── NEW: Manifesto / Why We Pray ──────────────────────── */}
-        <Card>
+        <Card id="manifesto">
           <CardHeader>
             <CardTitle>★ Manifesto — &ldquo;Why We Pray&rdquo; band</CardTitle>
             <p className="text-xs text-gray-500">Sits right after the hero. 1–4 pillar cards.</p>
@@ -425,7 +441,7 @@ export default function PrayerSettingsPage() {
         </Card>
 
         {/* ─── NEW: How To Pray With Us ──────────────────────────── */}
-        <Card>
+        <Card id="how">
           <CardHeader>
             <CardTitle>★ How To Pray With Us — Steps</CardTitle>
             <p className="text-xs text-gray-500">Sits after the &ldquo;What Happens&rdquo; grid. 1–4 numbered steps.</p>
@@ -497,7 +513,7 @@ export default function PrayerSettingsPage() {
         </Card>
 
         {/* ─── NEW: Answered Prayers ─────────────────────────────── */}
-        <Card>
+        <Card id="answered">
           <CardHeader>
             <CardTitle>★ Recent Answered Prayers</CardTitle>
             <p className="text-xs text-gray-500">Auto-pulls from <strong>Prayer Requests</strong> with status=answered, public, with a testimony. Only headings/subtitle here.</p>
@@ -526,7 +542,7 @@ export default function PrayerSettingsPage() {
         </Card>
 
         {/* ─── NEW: Prayer Wall Preview ──────────────────────────── */}
-        <Card>
+        <Card id="wall">
           <CardHeader>
             <CardTitle>★ Prayer Wall preview</CardTitle>
             <p className="text-xs text-gray-500">Auto-pulls from recent public Prayer Requests. Shows N items + a CTA.</p>
@@ -564,7 +580,7 @@ export default function PrayerSettingsPage() {
         </Card>
 
         {/* ─── 5. The Altar is Open ───────────────────────────────── */}
-        <Card>
+        <Card id="final">
           <CardHeader>
             <CardTitle>5. The Altar Is Open — Final Call</CardTitle>
             <p className="text-xs text-gray-500">Closing section with scripture + tagline + CTAs.</p>
