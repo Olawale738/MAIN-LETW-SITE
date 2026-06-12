@@ -114,6 +114,23 @@ async def init_db():
                 ("bible_study_page_settings", "resources_subtitle", "TEXT"),
                 ("bible_study_page_settings", "mentors",            "JSONB DEFAULT '[]'::jsonb"),
                 ("department_members", "is_coordinator", "BOOLEAN NOT NULL DEFAULT FALSE"),
+                # Prayer page settings: added section headings + CTAs
+                ("prayer_page_settings", "hero_eyebrow",         "VARCHAR(120)"),
+                ("prayer_page_settings", "primary_cta_text",     "VARCHAR(120)"),
+                ("prayer_page_settings", "primary_cta_link",     "VARCHAR(500)"),
+                ("prayer_page_settings", "secondary_cta_text",   "VARCHAR(120)"),
+                ("prayer_page_settings", "secondary_cta_link",   "VARCHAR(500)"),
+                ("prayer_page_settings", "stats_eyebrow",        "VARCHAR(120)"),
+                ("prayer_page_settings", "stats_heading",        "VARCHAR(255)"),
+                ("prayer_page_settings", "stats_subtitle",       "TEXT"),
+                ("prayer_page_settings", "categories_eyebrow",   "VARCHAR(120)"),
+                ("prayer_page_settings", "categories_heading",   "VARCHAR(255)"),
+                ("prayer_page_settings", "categories_subtitle",  "TEXT"),
+                ("prayer_page_settings", "schedules_eyebrow",    "VARCHAR(120)"),
+                ("prayer_page_settings", "schedules_heading",    "VARCHAR(255)"),
+                ("prayer_page_settings", "schedules_subtitle",   "TEXT"),
+                ("prayer_page_settings", "final_eyebrow",        "VARCHAR(120)"),
+                ("prayer_page_settings", "final_heading",        "VARCHAR(255)"),
             ]
 
             for table, column, col_def in missing_columns:

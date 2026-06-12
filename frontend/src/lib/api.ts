@@ -1549,10 +1549,31 @@ export interface PrayerRequest {
 
 export interface PrayerPageSettings {
     id: string;
+    // Hero
+    hero_eyebrow?: string;
     hero_title: string;
     hero_subtitle: string;
     hero_description: string;
     hero_image_url?: string;
+    primary_cta_text?: string;
+    primary_cta_link?: string;
+    secondary_cta_text?: string;
+    secondary_cta_link?: string;
+    // Stats
+    stats_eyebrow?: string;
+    stats_heading?: string;
+    stats_subtitle?: string;
+    // Categories
+    categories_eyebrow?: string;
+    categories_heading?: string;
+    categories_subtitle?: string;
+    // Schedules
+    schedules_eyebrow?: string;
+    schedules_heading?: string;
+    schedules_subtitle?: string;
+    // Final CTA
+    final_eyebrow?: string;
+    final_heading?: string;
     scripture_text: string;
     scripture_reference: string;
     call_to_action_text: string;

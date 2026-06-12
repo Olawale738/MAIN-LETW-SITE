@@ -137,24 +137,64 @@ class PrayerRequestResponse(PrayerRequestBase):
 
 # Prayer Page Settings Schemas
 class PrayerPageSettingsUpdate(BaseModel):
+    # Hero
+    hero_eyebrow: Optional[str] = None
     hero_title: Optional[str] = None
     hero_subtitle: Optional[str] = None
     hero_description: Optional[str] = None
     hero_image_url: Optional[str] = None
+    primary_cta_text: Optional[str] = None
+    primary_cta_link: Optional[str] = None
+    secondary_cta_text: Optional[str] = None
+    secondary_cta_link: Optional[str] = None
+    # Stats
+    stats_eyebrow: Optional[str] = None
+    stats_heading: Optional[str] = None
+    stats_subtitle: Optional[str] = None
+    # Categories
+    categories_eyebrow: Optional[str] = None
+    categories_heading: Optional[str] = None
+    categories_subtitle: Optional[str] = None
+    # Schedules
+    schedules_eyebrow: Optional[str] = None
+    schedules_heading: Optional[str] = None
+    schedules_subtitle: Optional[str] = None
+    # Final
+    final_eyebrow: Optional[str] = None
+    final_heading: Optional[str] = None
     scripture_text: Optional[str] = None
     scripture_reference: Optional[str] = None
-
-
     call_to_action_text: Optional[str] = None
     live_prayer_link: Optional[str] = None
 
 
 class PrayerPageSettingsResponse(BaseModel):
     id: str
+    # Hero
+    hero_eyebrow: Optional[str] = None
     hero_title: str
     hero_subtitle: str
     hero_description: str
     hero_image_url: Optional[str] = None
+    primary_cta_text: Optional[str] = None
+    primary_cta_link: Optional[str] = None
+    secondary_cta_text: Optional[str] = None
+    secondary_cta_link: Optional[str] = None
+    # Stats
+    stats_eyebrow: Optional[str] = None
+    stats_heading: Optional[str] = None
+    stats_subtitle: Optional[str] = None
+    # Categories
+    categories_eyebrow: Optional[str] = None
+    categories_heading: Optional[str] = None
+    categories_subtitle: Optional[str] = None
+    # Schedules
+    schedules_eyebrow: Optional[str] = None
+    schedules_heading: Optional[str] = None
+    schedules_subtitle: Optional[str] = None
+    # Final CTA
+    final_eyebrow: Optional[str] = None
+    final_heading: Optional[str] = None
     scripture_text: str
     scripture_reference: str
     call_to_action_text: str

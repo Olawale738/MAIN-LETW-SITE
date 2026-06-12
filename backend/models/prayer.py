@@ -104,15 +104,42 @@ class UserPrayer(Base):
 class PrayerPageSettings(Base):
     """Global settings for the prayer page (hero image, title, etc.)"""
     __tablename__ = "prayer_page_settings"
-    
+
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+
+    # ── Hero band ───────────────────────────────────────────────────────
+    hero_eyebrow: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="United in Prayer")
     hero_title: Mapped[str] = mapped_column(String(255), default="Global Prayer Altar")
     hero_subtitle: Mapped[str] = mapped_column(String(255), default="Where heaven touches earth.")
     hero_description: Mapped[str] = mapped_column(Text, default="Millions united. Nations transformed. Breakthrough released.")
     hero_image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    primary_cta_text: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="Enter the Prayer Room")
+    primary_cta_link: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    secondary_cta_text: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="Submit a Prayer Request")
+    secondary_cta_link: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, default="/prayer-request")
+
+    # ── Stats band ──────────────────────────────────────────────────────
+    stats_eyebrow: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="The Movement")
+    stats_heading: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default="Lives Touched. Nations Shifted.")
+    stats_subtitle: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # ── Categories grid ─────────────────────────────────────────────────
+    categories_eyebrow: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="United in Prayer")
+    categories_heading: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default="What Happens When We Pray Together")
+    categories_subtitle: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # ── Schedules grid (was previously completely unrendered) ───────────
+    schedules_eyebrow: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="When We Gather")
+    schedules_heading: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default="Join a Prayer Gathering")
+    schedules_subtitle: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # ── Final CTA "The Altar is Open" ───────────────────────────────────
+    final_eyebrow: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="The Altar Is Open")
+    final_heading: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default="Will You Step In?")
     scripture_text: Mapped[str] = mapped_column(Text, default="My house shall be called a house of prayer for all nations.")
     scripture_reference: Mapped[str] = mapped_column(String(100), default="Isaiah 56:7")
     call_to_action_text: Mapped[str] = mapped_column(Text, default="Join the global prayer movement. Your voice matters. Your prayer changes history.")
     live_prayer_link: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
