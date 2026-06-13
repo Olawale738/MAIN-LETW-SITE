@@ -24,6 +24,7 @@ class YouthProgramBase(BaseModel):
     leader_role: Optional[str] = None
     leader_photo_url: Optional[str] = None
     leader_bio: Optional[str] = None
+    coordinator_user_ids: Optional[List[str]] = None
     registration_open: bool = True
     join_cta_text: Optional[str] = None
     service_request_label: Optional[str] = None
@@ -53,6 +54,7 @@ class YouthProgramUpdate(BaseModel):
     leader_role: Optional[str] = None
     leader_photo_url: Optional[str] = None
     leader_bio: Optional[str] = None
+    coordinator_user_ids: Optional[List[str]] = None
     registration_open: Optional[bool] = None
     join_cta_text: Optional[str] = None
     service_request_label: Optional[str] = None

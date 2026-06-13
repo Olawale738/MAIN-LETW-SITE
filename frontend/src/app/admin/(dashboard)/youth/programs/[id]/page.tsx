@@ -11,8 +11,9 @@ import { useToast } from '@/components/ui/toast'
 import {
     Loader2, ArrowLeft, Save, ExternalLink, Plus, Trash2, ChevronUp, ChevronDown,
     Sparkles, Target, Calendar, BookOpen, Megaphone, User, Image as ImageIcon,
+    UserCog, Search, X, ShieldCheck,
 } from 'lucide-react'
-import { youthProgramApi, YouthProgram, cmsApi } from '@/lib/api'
+import { youthProgramApi, YouthProgram, cmsApi, dashboardApi, AdminUser } from '@/lib/api'
 
 type Item = { title: string; description?: string; icon?: string }
 type Sched = { day: string; time?: string; title?: string; description?: string }
@@ -47,6 +48,10 @@ export default function YouthProgramEditor() {
     const [leaderRole, setLeaderRole] = useState('')
     const [leaderPhoto, setLeaderPhoto] = useState('')
     const [leaderBio, setLeaderBio] = useState('')
+    const [coordinatorIds, setCoordinatorIds] = useState<string[]>([])
+    const [allUsers, setAllUsers] = useState<AdminUser[]>([])
+    const [userSearch, setUserSearch] = useState('')
+    const [usersLoading, setUsersLoading] = useState(false)
     const [registrationOpen, setRegistrationOpen] = useState(true)
     const [joinCtaText, setJoinCtaText] = useState('')
     const [serviceRequestLabel, setServiceRequestLabel] = useState('')
@@ -85,6 +90,7 @@ export default function YouthProgramEditor() {
                 setLeaderRole(p.leader_role || '')
                 setLeaderPhoto(p.leader_photo_url || '')
                 setLeaderBio(p.leader_bio || '')
+                setCoordinatorIds(Array.isArray(p.coordinator_user_ids) ? p.coordinator_user_ids : [])
                 setRegistrationOpen(!!p.registration_open)
                 setJoinCtaText(p.join_cta_text || '')
                 setServiceRequestLabel(p.service_request_label || '')
@@ -98,6 +104,23 @@ export default function YouthProgramEditor() {
         })()
         return () => { cancelled = true }
     }, [params?.id, isNew, router, showToast])
+
+    // Load users for the coordinator picker (one-shot, admin-only endpoint)
+    useEffect(() => {
+        let cancelled = false
+        ;(async () => {
+            try {
+                setUsersLoading(true)
+                const res = await dashboardApi.getUsers('active', 500, 0)
+                if (!cancelled) setAllUsers(res.users || [])
+            } catch {
+                /* swallow — picker just shows empty */
+            } finally {
+                if (!cancelled) setUsersLoading(false)
+            }
+        })()
+        return () => { cancelled = true }
+    }, [])
 
     const handleImageUpload = async (file: File, setter: (url: string) => void) => {
         try {
@@ -136,6 +159,7 @@ export default function YouthProgramEditor() {
             leader_role: leaderRole || undefined,
             leader_photo_url: leaderPhoto || undefined,
             leader_bio: leaderBio || undefined,
+            coordinator_user_ids: coordinatorIds,
             registration_open: registrationOpen,
             join_cta_text: joinCtaText || undefined,
             service_request_label: serviceRequestLabel || undefined,
@@ -390,6 +414,107 @@ export default function YouthProgramEditor() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Coordinators */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <UserCog className="w-5 h-5 text-[#f5bb00]" /> Program Coordinators
+                        </CardTitle>
+                        <p className="text-xs text-gray-500">
+                            These users can post announcements + manage resources for this program from the per-program coordinator view (admins always have access regardless).
+                        </p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {/* Assigned coordinators */}
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                                Assigned ({coordinatorIds.length})
+                            </p>
+                            {coordinatorIds.length === 0 ? (
+                                <p className="text-sm text-gray-400 italic">No coordinators assigned. Pick from the list below.</p>
+                            ) : (
+                                <div className="flex flex-wrap gap-2">
+                                    {coordinatorIds.map((uid) => {
+                                        const u = allUsers.find(x => x.id === uid)
+                                        return (
+                                            <span key={uid} className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full pl-3 pr-1.5 py-1 text-sm">
+                                                <ShieldCheck className="w-3.5 h-3.5" />
+                                                <span className="font-bold">{u?.name || 'Unknown user'}</span>
+                                                {u?.email && <span className="text-emerald-600/80 text-xs">{u.email}</span>}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCoordinatorIds(coordinatorIds.filter(x => x !== uid))}
+                                                    className="ml-1 p-1 hover:bg-emerald-100 rounded-full"
+                                                    aria-label="Remove coordinator"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </span>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Picker: search + add */}
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                                Add coordinator
+                            </p>
+                            <div className="relative">
+                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <Input
+                                    value={userSearch}
+                                    onChange={(e) => setUserSearch(e.target.value)}
+                                    placeholder="Search by name or email..."
+                                    className="text-gray-900 pl-10"
+                                />
+                            </div>
+                            {usersLoading ? (
+                                <p className="text-sm text-gray-400 mt-3 inline-flex items-center gap-2">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading members...
+                                </p>
+                            ) : (
+                                <div className="mt-3 max-h-72 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">
+                                    {(() => {
+                                        const q = userSearch.trim().toLowerCase()
+                                        const candidates = allUsers
+                                            .filter(u => !coordinatorIds.includes(u.id))
+                                            .filter(u => !q || (u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)))
+                                            .slice(0, 50)
+                                        if (candidates.length === 0) {
+                                            return (
+                                                <p className="p-4 text-sm text-gray-400 italic text-center">
+                                                    {q ? `No members match "${userSearch}".` : 'All loaded members are already coordinators.'}
+                                                </p>
+                                            )
+                                        }
+                                        return candidates.map(u => (
+                                            <button
+                                                key={u.id}
+                                                type="button"
+                                                onClick={() => { setCoordinatorIds([...coordinatorIds, u.id]); setUserSearch('') }}
+                                                className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center justify-between gap-3"
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className="font-bold text-sm text-[#140152] truncate">{u.name || 'Unnamed user'}</p>
+                                                    <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                                                </div>
+                                                <span className="text-xs font-bold text-[#140152] inline-flex items-center gap-1 shrink-0">
+                                                    <Plus className="w-3.5 h-3.5" /> Assign
+                                                </span>
+                                            </button>
+                                        ))
+                                    })()}
+                                </div>
+                            )}
+                            <p className="text-xs text-gray-400 mt-2">
+                                Loaded {allUsers.length} active members. Use the search to narrow.
+                            </p>
                         </div>
                     </CardContent>
                 </Card>

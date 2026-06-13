@@ -50,6 +50,11 @@ class YouthProgram(Base):
     leader_photo_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     leader_bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
+    # Coordinator assignment — list of user_ids who can manage this program's
+    # announcements / resources / etc. from the per-program coordinator view.
+    # Admins always have access regardless of this list.
+    coordinator_user_ids: Mapped[Optional[Any]] = mapped_column(JSONB, nullable=True, default=list)
+
     # Registration
     registration_open: Mapped[bool] = mapped_column(Boolean, default=True)
     join_cta_text: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)    # e.g. "Reserve a Spot"

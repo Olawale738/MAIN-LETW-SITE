@@ -213,6 +213,7 @@ export default function AdminYouthProgramsPage() {
                                                 <span className="text-gray-500">Schedule: <strong className="text-[#140152]">{(p.schedule || []).length}</strong></span>
                                                 <span className="text-gray-500">Resources: <strong className="text-[#140152]">{(p.resources || []).length}</strong></span>
                                                 <span className="text-gray-500">Announcements: <strong className="text-[#140152]">{(p.announcements || []).length}</strong></span>
+                                                <span className="text-gray-500">Coordinators: <strong className={(p.coordinator_user_ids || []).length > 0 ? 'text-emerald-600' : 'text-amber-600'}>{(p.coordinator_user_ids || []).length}</strong></span>
                                             </div>
                                         </div>
 

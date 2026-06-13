@@ -3210,6 +3210,7 @@ export interface YouthProgram {
     leader_role?: string;
     leader_photo_url?: string;
     leader_bio?: string;
+    coordinator_user_ids?: string[];
     registration_open: boolean;
     join_cta_text?: string;
     service_request_label?: string;
