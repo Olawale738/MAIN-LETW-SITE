@@ -24,6 +24,7 @@ const programs = [
         title: 'Youth Retreat & Camp',
         description: 'Every year we pull young people away from the noise and into the presence of God. Our annual retreat is three days of deep worship, prophetic encounters, outdoor fellowship, and life-defining moments. Many of our strongest testimonies were born in a camp setting — this could be yours.',
         badge: 'Annual Event',
+        slug: 'youth-retreat-camp',
         href: '/youth/youth-retreat-camp',
         cta: 'Reserve a Spot',
     },
@@ -34,6 +35,7 @@ const programs = [
         title: 'Mentorship Circles',
         description: 'You don\'t have to figure life out alone. We pair young people with seasoned believers and industry professionals who have walked the road before you. Through monthly one-on-one sessions and small group circles, you gain wisdom, accountability, and real-world insight tailored to your season.',
         badge: 'One-on-One',
+        slug: 'mentorship-circles',
         href: '/youth/mentorship-circles',
         cta: 'Find a Mentor',
     },
@@ -44,6 +46,7 @@ const programs = [
         title: 'Digital Missions',
         description: 'The internet is the largest mission field in human history — and we are equipping young believers to occupy it. Learn content creation, storytelling, social media strategy, and online evangelism. Turn your phone into a pulpit and your platform into a ministry that reaches thousands.',
         badge: 'Tech-Powered',
+        slug: 'digital-missions',
         href: '/youth/digital-missions',
         cta: 'Go Digital',
     },
@@ -54,6 +57,7 @@ const programs = [
         title: 'Faith & Fitness',
         description: 'Your body is the temple of the Holy Spirit — and we treat it that way. Our Faith & Fitness program combines weekly sport sessions, fitness challenges, and devotional discussions. Build physical discipline, forge friendships, and discover how taking care of your body honours God and sharpens your mind.',
         badge: 'Body & Spirit',
+        slug: 'faith-and-fitness',
         href: '/youth/faith-and-fitness',
         cta: 'Get Active',
     },
@@ -64,6 +68,7 @@ const programs = [
         title: 'Drama & Spoken Word',
         description: 'Art is one of the most powerful ways to move a heart. This creative arts track trains youth in drama, spoken word poetry, dance, and visual storytelling — all as tools for Gospel proclamation. Perform at church events, community outreaches, and special services. Let your creativity carry the message.',
         badge: 'Creative Arts',
+        slug: 'drama-and-spoken-word',
         href: '/youth/drama-and-spoken-word',
         cta: 'Express Your Gift',
     },
@@ -74,6 +79,7 @@ const programs = [
         title: 'Financial Stewardship',
         description: 'Nobody taught most of us how to handle money — and it shows in a generation drowning in debt. This program teaches biblical principles of stewardship, budgeting, saving, investing, and entrepreneurship. We raise young people who are not chasing money but commanding it for the Kingdom.',
         badge: 'Kingdom Finance',
+        slug: 'financial-stewardship',
         href: '/youth/financial-stewardship',
         cta: 'Build Wealth Wisely',
     },
@@ -84,6 +90,7 @@ const programs = [
         title: 'Social Impact Projects',
         description: 'Faith without works is dead. Our youth-led social impact initiatives take the church outside its four walls — feeding the hungry, visiting the elderly, cleaning communities, and advocating for the vulnerable. These projects build compassion, character, and civic responsibility all at once.',
         badge: 'Community Love',
+        slug: 'social-impact',
         href: '/youth/social-impact',
         cta: 'Make an Impact',
     },
@@ -94,6 +101,7 @@ const programs = [
         title: 'Relationships & Identity',
         description: 'In a world that is constantly redefining who you should be and who you should love, we anchor young people in God\'s truth. This program tackles identity, self-worth, healthy relationships, biblical courtship, purity, and emotional wholeness — giving you a foundation nothing can shake.',
         badge: 'Identity First',
+        slug: 'relationships-and-identity',
         href: '/youth/relationships-and-identity',
         cta: 'Know Who You Are',
     },
@@ -113,6 +121,8 @@ const values = [
     { icon: Globe, title: 'Global Vision', desc: 'Raising world-changers with a heart for the nations.' },
 ]
 
+type ProgramStatus = 'approved' | 'pending' | 'none'
+
 export default function YouthMinistryPage() {
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', ageGroup: '16–19', interest: '' })
     const [loading, setLoading] = useState(false)
@@ -120,6 +130,8 @@ export default function YouthMinistryPage() {
     const [error, setError] = useState('')
     const [authChecked, setAuthChecked] = useState(false)
     const [isLoggedIn, setIsLoggedIn] = useState(false)
+    // Per-program status keyed by slug. Empty when guest or not yet loaded.
+    const [programStatus, setProgramStatus] = useState<Record<string, ProgramStatus>>({})
 
     useEffect(() => {
         const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
@@ -134,6 +146,33 @@ export default function YouthMinistryPage() {
                 .finally(() => setAuthChecked(true))
         )
     }, [])
+
+    // Once we know the visitor is logged in, fetch their per-program status so
+    // each card CTA can route to "Open Dashboard" vs. "Submit Request" smartly.
+    useEffect(() => {
+        if (!isLoggedIn) return
+        let cancelled = false
+        ;(async () => {
+            try {
+                const { serviceRequestApi } = await import('@/lib/api')
+                const reqs = await serviceRequestApi.getMyRequests()
+                if (cancelled) return
+                const approved = new Set((reqs.approved || []).map((r: { service_name: string }) => r.service_name))
+                const pending  = new Set((reqs.pending  || []).map((r: { service_name: string }) => r.service_name))
+                const map: Record<string, ProgramStatus> = {}
+                for (const p of programs) {
+                    const label = `Youth :: ${p.title}`
+                    if (approved.has(label)) map[p.slug] = 'approved'
+                    else if (pending.has(label)) map[p.slug] = 'pending'
+                    else map[p.slug] = 'none'
+                }
+                setProgramStatus(map)
+            } catch {
+                /* leave status empty — cards fall back to public detail route */
+            }
+        })()
+        return () => { cancelled = true }
+    }, [isLoggedIn])
 
     const handleJoin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -308,46 +347,74 @@ export default function YouthMinistryPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {programs.map(({ icon: Icon, color, image, title, description, badge, href, cta }, i) => (
-                            <motion.div
-                                key={title}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: i * 0.05 }}
-                            >
-                                <Card className="border-none shadow-md hover:shadow-2xl transition-all duration-300 h-full flex flex-col group hover:-translate-y-1 overflow-hidden">
-                                    {/* Image banner */}
-                                    <div className="relative w-full h-52 overflow-hidden">
-                                        <Image
-                                            src={image}
-                                            alt={title}
-                                            fill
-                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                        />
-                                        {/* Gradient overlay so badge reads clearly */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                                        {badge && (
-                                            <span className="absolute top-3 right-3 text-xs font-bold bg-white/90 text-[#140152] px-3 py-1 rounded-full shadow-sm backdrop-blur-sm">
-                                                {badge}
-                                            </span>
-                                        )}
-                                        {/* Icon chip over image */}
-                                        <div className={`absolute bottom-3 left-4 w-11 h-11 ${color} rounded-xl flex items-center justify-center shadow-lg`}>
-                                            <Icon className="w-5 h-5" />
+                        {programs.map(({ icon: Icon, color, image, title, description, badge, slug, href, cta }, i) => {
+                            const status = isLoggedIn ? (programStatus[slug] ?? 'none') : 'guest'
+                            // Smart routing:
+                            //   guest          -> /youth/{slug}#join (program detail's join form auth-gates)
+                            //   logged in approved -> /youth/{slug}/dashboard
+                            //   logged in pending  -> /youth/{slug}#join (program detail shows "Awaiting approval")
+                            //   logged in none -> /youth/{slug}#join
+                            const smartHref =
+                                status === 'approved' ? `/youth/${slug}/dashboard` :
+                                `/youth/${slug}#join`
+                            const smartCta =
+                                status === 'approved' ? 'Open Dashboard' :
+                                status === 'pending'  ? 'Awaiting Approval' :
+                                cta
+                            const ctaBg =
+                                status === 'approved' ? 'bg-emerald-600 hover:bg-emerald-700' :
+                                status === 'pending'  ? 'bg-amber-500 hover:bg-amber-600 text-[#140152]' :
+                                'bg-[#140152] hover:bg-[#1d0175]'
+                            return (
+                                <motion.div
+                                    key={title}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: i * 0.05 }}
+                                >
+                                    <Card className="border-none shadow-md hover:shadow-2xl transition-all duration-300 h-full flex flex-col group hover:-translate-y-1 overflow-hidden">
+                                        {/* Image banner */}
+                                        <div className="relative w-full h-52 overflow-hidden">
+                                            <Image
+                                                src={image}
+                                                alt={title}
+                                                fill
+                                                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                                            {badge && (
+                                                <span className="absolute top-3 right-3 text-xs font-bold bg-white/90 text-[#140152] px-3 py-1 rounded-full shadow-sm backdrop-blur-sm">
+                                                    {badge}
+                                                </span>
+                                            )}
+                                            <div className={`absolute bottom-3 left-4 w-11 h-11 ${color} rounded-xl flex items-center justify-center shadow-lg`}>
+                                                <Icon className="w-5 h-5" />
+                                            </div>
+                                            {/* Member-status chip — only shown when logged in */}
+                                            {status === 'approved' && (
+                                                <span className="absolute top-3 left-3 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-emerald-500 text-white px-2.5 py-1 rounded-full shadow-sm">
+                                                    <CheckCircle className="w-3 h-3" /> Member
+                                                </span>
+                                            )}
+                                            {status === 'pending' && (
+                                                <span className="absolute top-3 left-3 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-[#140152] px-2.5 py-1 rounded-full shadow-sm">
+                                                    <Loader2 className="w-3 h-3 animate-spin" /> Pending
+                                                </span>
+                                            )}
                                         </div>
-                                    </div>
-                                    <CardContent className="p-7 flex flex-col flex-1">
-                                        <h3 className="font-black text-[#140152] text-xl mb-3">{title}</h3>
-                                        <p className="text-sm text-gray-500 leading-relaxed flex-1 mb-5">{description}</p>
-                                        <Link href={href}
-                                            className="inline-flex items-center gap-2 bg-[#140152] text-white font-bold text-sm px-5 py-3 rounded-xl hover:bg-[#1d0175] transition-all group-hover:gap-3 self-start">
-                                            {cta} <ArrowRight className="w-4 h-4" />
-                                        </Link>
-                                    </CardContent>
-                                </Card>
-                            </motion.div>
-                        ))}
+                                        <CardContent className="p-7 flex flex-col flex-1">
+                                            <h3 className="font-black text-[#140152] text-xl mb-3">{title}</h3>
+                                            <p className="text-sm text-gray-500 leading-relaxed flex-1 mb-5">{description}</p>
+                                            <Link href={smartHref}
+                                                className={`inline-flex items-center gap-2 ${ctaBg} text-white font-bold text-sm px-5 py-3 rounded-xl transition-all group-hover:gap-3 self-start`}>
+                                                {smartCta} <ArrowRight className="w-4 h-4" />
+                                            </Link>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            )
+                        })}
                     </div>
                 </SectionWrapper>
             </div>
