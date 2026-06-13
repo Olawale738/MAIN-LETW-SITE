@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import {
     Loader2, ArrowLeft, ArrowRight, CheckCircle, Lock, LogIn, UserPlus,
     Calendar, Sparkles, Target, Heart, ChevronRight, Quote, MapPin, Clock,
+    LayoutDashboard,
 } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { youthProgramApi, YouthProgram, serviceRequestApi } from '@/lib/api'
@@ -30,6 +31,7 @@ export default function YouthProgramDetailPage() {
 
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [authChecked, setAuthChecked] = useState(false)
+    const [memberStatus, setMemberStatus] = useState<'approved' | 'pending' | 'none' | 'unknown'>('unknown')
     const [joinNote, setJoinNote] = useState('')
     const [joining, setJoining] = useState(false)
     const [joinSuccess, setJoinSuccess] = useState(false)
@@ -56,6 +58,29 @@ export default function YouthProgramDetailPage() {
         setIsLoggedIn(!!token)
         setAuthChecked(true)
     }, [])
+
+    // Once logged in + program loaded, fetch this user's status for THIS program
+    useEffect(() => {
+        if (!isLoggedIn || !program) return
+        let cancelled = false
+        ;(async () => {
+            try {
+                const reqs = await serviceRequestApi.getMyRequests()
+                if (cancelled) return
+                const label = program.service_request_label || `Youth :: ${program.title}`
+                if ((reqs.approved || []).some((r: { service_name: string }) => r.service_name === label)) {
+                    setMemberStatus('approved')
+                } else if ((reqs.pending || []).some((r: { service_name: string }) => r.service_name === label)) {
+                    setMemberStatus('pending')
+                } else {
+                    setMemberStatus('none')
+                }
+            } catch {
+                if (!cancelled) setMemberStatus('none')
+            }
+        })()
+        return () => { cancelled = true }
+    }, [isLoggedIn, program])
 
     const handleJoin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -149,7 +174,15 @@ export default function YouthProgramDetailPage() {
                     )}
 
                     <div className="flex flex-wrap gap-3">
-                        {program.registration_open ? (
+                        {memberStatus === 'approved' ? (
+                            <Link href={`/youth/${program.slug}/dashboard`} className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-7 py-3.5 rounded-full transition-all hover:scale-105 shadow-2xl">
+                                <LayoutDashboard className="w-4 h-4" /> Open Your Dashboard <ChevronRight className="w-4 h-4" />
+                            </Link>
+                        ) : memberStatus === 'pending' ? (
+                            <span className="inline-flex items-center gap-2 bg-amber-400 text-[#140152] font-bold px-7 py-3.5 rounded-full shadow-2xl">
+                                <Loader2 className="w-4 h-4 animate-spin" /> Awaiting Approval
+                            </span>
+                        ) : program.registration_open ? (
                             <a href="#join" className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-white text-[#140152] font-bold px-7 py-3.5 rounded-full transition-all hover:scale-105 shadow-2xl">
                                 {program.join_cta_text || 'Join This Program'} <ArrowRight className="w-4 h-4" />
                             </a>
@@ -158,7 +191,7 @@ export default function YouthProgramDetailPage() {
                                 <Lock className="w-4 h-4" /> Registration currently closed
                             </span>
                         )}
-                        {isLoggedIn && (
+                        {isLoggedIn && memberStatus !== 'approved' && (
                             <Link href={`/youth/${program.slug}/dashboard`} className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold px-7 py-3.5 rounded-full transition-all">
                                 Open Dashboard <ChevronRight className="w-4 h-4" />
                             </Link>

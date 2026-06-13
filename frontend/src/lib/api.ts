@@ -3220,9 +3220,47 @@ export interface YouthProgram {
     updated_at: string;
 }
 
+export interface YouthProgramChatMessage {
+    id: string;
+    body: string;
+    user_id: string;
+    user_name: string;
+    user_avatar_url?: string;
+    is_mine: boolean;
+    can_delete: boolean;
+    created_at: string;
+}
+
+export interface YouthProgramMember {
+    user_id: string;
+    name: string;
+    email?: string;
+    avatar_url?: string;
+    role: 'coordinator' | 'member';
+}
+
+export interface YouthProgramMembershipStatus {
+    is_member: boolean;
+    is_coordinator: boolean;
+    is_admin: boolean;
+    can_access: boolean;
+}
+
 export const youthProgramApi = {
     list: (): Promise<YouthProgram[]> => fetchApi<YouthProgram[]>('/youth/programs'),
     get: (slug: string): Promise<YouthProgram> => fetchApi<YouthProgram>(`/youth/programs/${slug}`),
+
+    // Per-program chat + members + membership check
+    listMessages: (slug: string, limit = 100): Promise<YouthProgramChatMessage[]> =>
+        fetchApi<YouthProgramChatMessage[]>(`/youth/programs/${slug}/messages?limit=${limit}`),
+    sendMessage: (slug: string, body: string): Promise<YouthProgramChatMessage> =>
+        fetchApi<YouthProgramChatMessage>(`/youth/programs/${slug}/messages`, { method: 'POST', body: JSON.stringify({ body }) }),
+    deleteMessage: (slug: string, messageId: string): Promise<void> =>
+        fetchApi<void>(`/youth/programs/${slug}/messages/${messageId}`, { method: 'DELETE' }),
+    listMembers: (slug: string): Promise<YouthProgramMember[]> =>
+        fetchApi<YouthProgramMember[]>(`/youth/programs/${slug}/members`),
+    membership: (slug: string): Promise<YouthProgramMembershipStatus> =>
+        fetchApi<YouthProgramMembershipStatus>(`/youth/programs/${slug}/membership`),
 
     admin: {
         listAll: (): Promise<YouthProgram[]> => fetchApi<YouthProgram[]>('/youth/programs/admin/all'),

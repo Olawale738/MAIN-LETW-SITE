@@ -10,18 +10,55 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, func
+from pydantic import BaseModel
+from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from database import get_db
 from models.user import User
 from models.youth_program import YouthProgram
+from models.youth_program_message import YouthProgramMessage
+from models.service_request import ServiceRequest, ServiceRequestStatus
 from schemas.youth_program import (
     YouthProgramResponse, YouthProgramCreate, YouthProgramUpdate,
 )
-from utils.dependencies import get_admin_user
+from utils.dependencies import get_admin_user, get_current_user
 
 router = APIRouter(prefix="/api/youth/programs", tags=["youth-programs"])
+
+
+# ─── Membership helper ────────────────────────────────────────────────────────
+
+async def _user_can_access_program(db: AsyncSession, program: YouthProgram, user: User) -> bool:
+    """A user can access a program's chat / members if they are:
+       - admin (any role above 'user')
+       - an assigned coordinator on the program
+       - an approved member (has an approved service_request matching the label)"""
+    if str(user.role) in ("admin", "UserRole.admin", "UserRole.ADMIN") or (hasattr(user.role, "value") and user.role.value == "admin"):
+        return True
+    coord_ids = program.coordinator_user_ids or []
+    if user.id in coord_ids:
+        return True
+    label = program.service_request_label or f"Youth :: {program.title}"
+    q = await db.execute(
+        select(ServiceRequest)
+        .where(ServiceRequest.user_id == user.id)
+        .where(ServiceRequest.service_name == label)
+        .where(ServiceRequest.status == ServiceRequestStatus.APPROVED)
+        .limit(1)
+    )
+    return q.scalar_one_or_none() is not None
+
+
+async def _list_approved_user_ids_for_program(db: AsyncSession, program: YouthProgram) -> list[str]:
+    label = program.service_request_label or f"Youth :: {program.title}"
+    q = await db.execute(
+        select(ServiceRequest.user_id)
+        .where(ServiceRequest.service_name == label)
+        .where(ServiceRequest.status == ServiceRequestStatus.APPROVED)
+    )
+    return [row[0] for row in q.all()]
 
 
 # ─── Default seed ─────────────────────────────────────────────────────────────
@@ -370,3 +407,215 @@ async def admin_seed_defaults(
     """Manually trigger the default seed. Safe — only inserts if table is empty."""
     inserted = await _seed_if_empty(db)
     return {"inserted": inserted}
+
+
+# ─── Per-program chat (group thread, one per program) ─────────────────────────
+
+class YouthProgramMessageOut(BaseModel):
+    id: str
+    body: str
+    user_id: str
+    user_name: str
+    user_avatar_url: Optional[str] = None
+    is_mine: bool = False
+    can_delete: bool = False
+    created_at: datetime
+
+
+class YouthProgramMessageIn(BaseModel):
+    body: str
+
+
+class YouthProgramMemberOut(BaseModel):
+    user_id: str
+    name: str
+    email: Optional[str] = None
+    avatar_url: Optional[str] = None
+    role: str  # "coordinator" | "member"
+
+
+async def _get_program_or_404(db: AsyncSession, slug: str) -> YouthProgram:
+    result = await db.execute(select(YouthProgram).where(YouthProgram.slug == slug))
+    p = result.scalar_one_or_none()
+    if not p or not p.is_active:
+        raise HTTPException(status_code=404, detail="Program not found")
+    return p
+
+
+def _is_admin(user: User) -> bool:
+    role = getattr(user, "role", None)
+    val = role.value if hasattr(role, "value") else str(role)
+    return val in ("admin", "ADMIN", "UserRole.admin", "UserRole.ADMIN")
+
+
+@router.get("/{slug}/messages", response_model=List[YouthProgramMessageOut])
+async def list_program_messages(
+    slug: str,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not await _user_can_access_program(db, p, user):
+        raise HTTPException(status_code=403, detail="You're not a member of this program.")
+
+    coord_ids = set(p.coordinator_user_ids or [])
+    is_admin = _is_admin(user)
+
+    rows = (await db.execute(
+        select(YouthProgramMessage)
+        .options(selectinload(YouthProgramMessage.user))
+        .where(YouthProgramMessage.program_id == p.id)
+        .where(YouthProgramMessage.is_deleted.is_(False))
+        .order_by(YouthProgramMessage.created_at.desc())
+        .limit(max(1, min(500, limit)))
+    )).scalars().all()
+
+    out: List[YouthProgramMessageOut] = []
+    for m in rows:
+        author = m.user
+        out.append(YouthProgramMessageOut(
+            id=m.id,
+            body=m.body,
+            user_id=m.user_id,
+            user_name=author.name if author else "Unknown",
+            user_avatar_url=getattr(author, "avatar_url", None),
+            is_mine=(m.user_id == user.id),
+            can_delete=(m.user_id == user.id) or is_admin or (user.id in coord_ids),
+            created_at=m.created_at,
+        ))
+    # Return chronological so the client renders oldest-first
+    return list(reversed(out))
+
+
+@router.post("/{slug}/messages", response_model=YouthProgramMessageOut, status_code=201)
+async def post_program_message(
+    slug: str,
+    payload: YouthProgramMessageIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    body = (payload.body or "").strip()
+    if not body:
+        raise HTTPException(status_code=400, detail="Message body required.")
+    if len(body) > 4000:
+        raise HTTPException(status_code=400, detail="Message too long (max 4000 chars).")
+
+    p = await _get_program_or_404(db, slug)
+    if not await _user_can_access_program(db, p, user):
+        raise HTTPException(status_code=403, detail="You're not a member of this program.")
+
+    msg = YouthProgramMessage(program_id=p.id, user_id=user.id, body=body)
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+
+    return YouthProgramMessageOut(
+        id=msg.id,
+        body=msg.body,
+        user_id=msg.user_id,
+        user_name=user.name,
+        user_avatar_url=getattr(user, "avatar_url", None),
+        is_mine=True,
+        can_delete=True,
+        created_at=msg.created_at,
+    )
+
+
+@router.delete("/{slug}/messages/{message_id}", status_code=204)
+async def delete_program_message(
+    slug: str,
+    message_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    coord_ids = set(p.coordinator_user_ids or [])
+
+    row = (await db.execute(
+        select(YouthProgramMessage)
+        .where(YouthProgramMessage.id == message_id)
+        .where(YouthProgramMessage.program_id == p.id)
+    )).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Message not found.")
+
+    can = (row.user_id == user.id) or _is_admin(user) or (user.id in coord_ids)
+    if not can:
+        raise HTTPException(status_code=403, detail="Not allowed to delete this message.")
+
+    row.is_deleted = True
+    await db.commit()
+
+
+# ─── Per-program members list ─────────────────────────────────────────────────
+
+@router.get("/{slug}/members", response_model=List[YouthProgramMemberOut])
+async def list_program_members(
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not await _user_can_access_program(db, p, user):
+        raise HTTPException(status_code=403, detail="You're not a member of this program.")
+
+    coord_ids = set(p.coordinator_user_ids or [])
+    member_ids = set(await _list_approved_user_ids_for_program(db, p))
+
+    all_ids = coord_ids | member_ids
+    if not all_ids:
+        return []
+
+    rows = (await db.execute(
+        select(User).where(User.id.in_(all_ids))
+    )).scalars().all()
+
+    out = []
+    for u in rows:
+        out.append(YouthProgramMemberOut(
+            user_id=u.id,
+            name=u.name or "Member",
+            email=u.email,
+            avatar_url=getattr(u, "avatar_url", None),
+            role=("coordinator" if u.id in coord_ids else "member"),
+        ))
+    # Coordinators first, then sorted by name
+    out.sort(key=lambda x: (0 if x.role == "coordinator" else 1, x.name.lower()))
+    return out
+
+
+# ─── Membership status (per-user) ─────────────────────────────────────────────
+
+class MembershipStatusOut(BaseModel):
+    is_member: bool
+    is_coordinator: bool
+    is_admin: bool
+    can_access: bool
+
+
+@router.get("/{slug}/membership", response_model=MembershipStatusOut)
+async def get_my_program_membership(
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    coord_ids = set(p.coordinator_user_ids or [])
+    is_admin = _is_admin(user)
+    is_coord = user.id in coord_ids
+    label = p.service_request_label or f"Youth :: {p.title}"
+    sr = (await db.execute(
+        select(ServiceRequest)
+        .where(ServiceRequest.user_id == user.id)
+        .where(ServiceRequest.service_name == label)
+        .where(ServiceRequest.status == ServiceRequestStatus.APPROVED)
+        .limit(1)
+    )).scalar_one_or_none()
+    is_member = sr is not None
+    return MembershipStatusOut(
+        is_member=is_member,
+        is_coordinator=is_coord,
+        is_admin=is_admin,
+        can_access=is_admin or is_coord or is_member,
+    )
