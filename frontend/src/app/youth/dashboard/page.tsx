@@ -351,13 +351,44 @@ export default function YouthDashboard() {
   )
 
   /* ═══════════════════════════════════════════════════════════════
-     NOT A MEMBER — redirect to registration page
-     (Coordinators and Admins bypass this check)
+     NOT A YOUTH-DEPT MEMBER — show a friendly hub redirect instead
+     of bouncing them silently to /youth. Users who registered via
+     a specific program (Mentorship, Faith & Fitness, etc.) live in
+     the per-program dashboard at /youth/{slug}/dashboard, but they
+     also need a way to land somewhere helpful from /youth/dashboard.
+     (Coordinators and Admins bypass this check.)
   ═══════════════════════════════════════════════════════════════ */
-  if (!isCoordinator && !membership?.is_member) {
-    router.replace('/youth')
-    return null
-  }
+  if (!isCoordinator && !membership?.is_member) return (
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: BG }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden border border-violet-100">
+        <div className="px-8 py-7 text-center" style={{ background: `linear-gradient(135deg,${PRIMARY}20,${PRIMARY}05)` }}>
+          <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: `${PRIMARY}25` }}>
+            <Users className="w-8 h-8" style={{ color: PRIMARY }} />
+          </div>
+          <h2 className="font-black text-xl mb-2" style={{ color: PRIMARY }}>Welcome to Youth Ministry</h2>
+          <p className="text-gray-600 text-sm leading-relaxed">
+            This umbrella dashboard is for approved general youth-ministry members. If you registered for a specific program (Mentorship, Faith &amp; Fitness, Digital Missions, etc.), your dashboard lives below.
+          </p>
+        </div>
+        <div className="px-8 py-6 space-y-3 bg-white">
+          <button
+            onClick={() => router.push('/dashboard/youth-programs')}
+            className="w-full bg-[#140152] text-white font-bold py-3 rounded-xl hover:bg-[#1d0175] transition-colors flex items-center justify-center gap-2"
+          >
+            <Star className="w-4 h-4" /> Open Youth Programs Hub
+          </button>
+          <button
+            onClick={() => router.push('/youth')}
+            className="w-full bg-amber-50 text-amber-700 font-bold py-3 rounded-xl hover:bg-amber-100 transition-colors flex items-center justify-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> Browse Youth Programs
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  )
 
   /* ═══════════════════════════════════════════════════════════════
      PENDING APPROVAL — member registered but not yet approved

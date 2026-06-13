@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, MessageSquare, Megaphone, Send, HandHeart, CheckCircle2, Phone, CalendarDays, Bell, X, ChevronRight, ArrowRight } from 'lucide-react'
+import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, MessageSquare, Megaphone, Send, HandHeart, CheckCircle2, Phone, CalendarDays, Bell, X, ChevronRight, ArrowRight, Sparkles } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
 import { serviceRequestApi, notificationApi, Notification, ServiceRequest } from '@/lib/api'
 import { checkMembership, type Department } from '@/lib/dept-api'
@@ -483,6 +483,26 @@ export default function UserDashboard() {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Youth Programs hub link — universal entry point */}
+                                <div className="bg-gradient-to-r from-amber-50 to-[#fbf5e6] rounded-2xl p-5 border border-[#f5bb00]/30">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="w-10 h-10 rounded-xl bg-[#140152] flex items-center justify-center shrink-0">
+                                                <Sparkles className="w-5 h-5 text-[#f5bb00]" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-black text-[#140152]">Youth Programs</p>
+                                                <p className="text-xs text-gray-600 leading-snug">
+                                                    Mentorship, Digital Missions, Faith &amp; Fitness, and more — see all 8 programs in one place.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Link href="/dashboard/youth-programs" className="shrink-0 text-xs font-bold text-[#140152] hover:underline flex items-center gap-1 ml-3">
+                                            Open <ChevronRight className="w-3.5 h-3.5" />
+                                        </Link>
+                                    </div>
+                                </div>
 
                                 {/* Empty state */}
                                 {visibleApproved.length === 0 && visiblePending.length === 0 && deptMemberships.length === 0 && (
