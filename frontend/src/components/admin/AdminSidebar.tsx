@@ -104,6 +104,7 @@ const sidebarItems: SidebarItem[] = [
         items: [
             { title: 'Custom Ministries',     href: '/admin/ministries',             icon: Heart },
             { title: 'Volunteer Departments', href: '/admin/volunteer-departments',  icon: HandHeart },
+            { title: 'Youth Overview',        href: '/admin/youth',                  icon: Zap },
             { title: 'Youth Ministry',        href: '/youth/coordinator',            icon: Zap },
             { title: 'Youth Programs',        href: '/admin/youth/programs',         icon: Sparkles },
             { title: 'Children Ministry',     href: '/children/coordinator',         icon: Baby },

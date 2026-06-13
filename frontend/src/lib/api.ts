@@ -3246,6 +3246,63 @@ export interface YouthProgramMembershipStatus {
     can_access: boolean;
 }
 
+export interface YouthProgramActivity {
+    id: string;
+    title: string;
+    description?: string;
+    activity_type?: string;
+    location?: string;
+    start_at: string;
+    end_at?: string;
+    rsvp_yes: number;
+    rsvp_maybe: number;
+    my_rsvp?: 'yes' | 'maybe' | 'no';
+    can_manage: boolean;
+    created_at: string;
+}
+
+export interface YouthProgramActivityInput {
+    title: string;
+    description?: string;
+    activity_type?: string;
+    location?: string;
+    start_at: string;  // ISO
+    end_at?: string;
+}
+
+export interface YouthProgramAttendanceRow {
+    user_id: string;
+    name: string;
+    avatar_url?: string;
+    present: boolean;
+}
+
+export interface YouthProgramAttendanceItem {
+    activity_id: string;
+    activity_title: string;
+    activity_start_at: string;
+    present: boolean;
+    recorded_at: string;
+}
+
+export interface YouthProgramAttendanceSummary {
+    total_recorded: number;
+    present_count: number;
+    rate: number;
+    streak: number;
+    history: YouthProgramAttendanceItem[];
+}
+
+export interface YouthProgramPendingMember {
+    request_id: string;
+    user_id: string;
+    name: string;
+    email?: string;
+    avatar_url?: string;
+    note?: string;
+    requested_at: string;
+}
+
 export const youthProgramApi = {
     list: (): Promise<YouthProgram[]> => fetchApi<YouthProgram[]>('/youth/programs'),
     get: (slug: string): Promise<YouthProgram> => fetchApi<YouthProgram>(`/youth/programs/${slug}`),
@@ -3261,6 +3318,42 @@ export const youthProgramApi = {
         fetchApi<YouthProgramMember[]>(`/youth/programs/${slug}/members`),
     membership: (slug: string): Promise<YouthProgramMembershipStatus> =>
         fetchApi<YouthProgramMembershipStatus>(`/youth/programs/${slug}/membership`),
+
+    // Activities
+    listActivities: (slug: string, upcomingOnly = false): Promise<YouthProgramActivity[]> =>
+        fetchApi<YouthProgramActivity[]>(`/youth/programs/${slug}/activities${upcomingOnly ? '?upcoming_only=true' : ''}`),
+    createActivity: (slug: string, data: YouthProgramActivityInput): Promise<YouthProgramActivity> =>
+        fetchApi<YouthProgramActivity>(`/youth/programs/${slug}/activities`, { method: 'POST', body: JSON.stringify(data) }),
+    deleteActivity: (slug: string, activityId: string): Promise<void> =>
+        fetchApi<void>(`/youth/programs/${slug}/activities/${activityId}`, { method: 'DELETE' }),
+    setRsvp: (slug: string, activityId: string, status: 'yes' | 'maybe' | 'no', note?: string): Promise<{ status: string }> =>
+        fetchApi<{ status: string }>(`/youth/programs/${slug}/activities/${activityId}/rsvp`, { method: 'POST', body: JSON.stringify({ status, note }) }),
+
+    // Attendance
+    recordAttendance: (slug: string, activityId: string, entries: Array<{ user_id: string; present: boolean }>): Promise<{ recorded: number }> =>
+        fetchApi<{ recorded: number }>(`/youth/programs/${slug}/activities/${activityId}/attendance`, { method: 'POST', body: JSON.stringify({ entries }) }),
+    listActivityAttendance: (slug: string, activityId: string): Promise<YouthProgramAttendanceRow[]> =>
+        fetchApi<YouthProgramAttendanceRow[]>(`/youth/programs/${slug}/activities/${activityId}/attendance`),
+    myAttendance: (slug: string): Promise<YouthProgramAttendanceSummary> =>
+        fetchApi<YouthProgramAttendanceSummary>(`/youth/programs/${slug}/attendance/me`),
+
+    // Coordinator: announcements + resources (writes to YouthProgram JSONB)
+    coordPostAnnouncement: (slug: string, data: { title: string; body?: string; date?: string; urgent?: boolean }): Promise<{ count: number }> =>
+        fetchApi<{ count: number }>(`/youth/programs/${slug}/coord/announcements`, { method: 'POST', body: JSON.stringify(data) }),
+    coordDeleteAnnouncement: (slug: string, index: number): Promise<void> =>
+        fetchApi<void>(`/youth/programs/${slug}/coord/announcements/${index}`, { method: 'DELETE' }),
+    coordAddResource: (slug: string, data: { title: string; url: string; type?: string; meta?: string }): Promise<{ count: number }> =>
+        fetchApi<{ count: number }>(`/youth/programs/${slug}/coord/resources`, { method: 'POST', body: JSON.stringify(data) }),
+    coordDeleteResource: (slug: string, index: number): Promise<void> =>
+        fetchApi<void>(`/youth/programs/${slug}/coord/resources/${index}`, { method: 'DELETE' }),
+
+    // Coordinator: pending members
+    coordListPending: (slug: string): Promise<YouthProgramPendingMember[]> =>
+        fetchApi<YouthProgramPendingMember[]>(`/youth/programs/${slug}/coord/pending`),
+    coordApprovePending: (slug: string, requestId: string): Promise<{ status: string }> =>
+        fetchApi<{ status: string }>(`/youth/programs/${slug}/coord/pending/${requestId}/approve`, { method: 'POST' }),
+    coordRejectPending: (slug: string, requestId: string): Promise<{ status: string }> =>
+        fetchApi<{ status: string }>(`/youth/programs/${slug}/coord/pending/${requestId}/reject`, { method: 'POST' }),
 
     admin: {
         listAll: (): Promise<YouthProgram[]> => fetchApi<YouthProgram[]>('/youth/programs/admin/all'),

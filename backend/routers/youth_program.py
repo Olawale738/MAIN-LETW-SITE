@@ -19,6 +19,9 @@ from database import get_db
 from models.user import User
 from models.youth_program import YouthProgram
 from models.youth_program_message import YouthProgramMessage
+from models.youth_program_activity import (
+    YouthProgramActivity, YouthProgramRSVP, YouthProgramAttendance,
+)
 from models.service_request import ServiceRequest, ServiceRequestStatus
 from schemas.youth_program import (
     YouthProgramResponse, YouthProgramCreate, YouthProgramUpdate,
@@ -619,3 +622,505 @@ async def get_my_program_membership(
         is_admin=is_admin,
         can_access=is_admin or is_coord or is_member,
     )
+
+
+# ─── Activities ───────────────────────────────────────────────────────────────
+
+class ActivityIn(BaseModel):
+    title: str
+    description: Optional[str] = None
+    activity_type: Optional[str] = None
+    location: Optional[str] = None
+    start_at: datetime
+    end_at: Optional[datetime] = None
+
+
+class ActivityOut(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    activity_type: Optional[str] = None
+    location: Optional[str] = None
+    start_at: datetime
+    end_at: Optional[datetime] = None
+    rsvp_yes: int = 0
+    rsvp_maybe: int = 0
+    my_rsvp: Optional[str] = None
+    can_manage: bool = False
+    created_at: datetime
+
+
+def _is_coord_or_admin(program: YouthProgram, user: User) -> bool:
+    return _is_admin(user) or (user.id in set(program.coordinator_user_ids or []))
+
+
+@router.get("/{slug}/activities", response_model=List[ActivityOut])
+async def list_program_activities(
+    slug: str,
+    upcoming_only: bool = False,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not await _user_can_access_program(db, p, user):
+        raise HTTPException(status_code=403, detail="You're not a member of this program.")
+
+    q = select(YouthProgramActivity).where(YouthProgramActivity.program_id == p.id)
+    if upcoming_only:
+        q = q.where(YouthProgramActivity.start_at >= datetime.utcnow())
+    q = q.order_by(YouthProgramActivity.start_at)
+    rows = (await db.execute(q)).scalars().all()
+
+    can_manage = _is_coord_or_admin(p, user)
+    out: List[ActivityOut] = []
+    if not rows:
+        return out
+
+    activity_ids = [a.id for a in rows]
+    rsvp_counts = await db.execute(
+        select(YouthProgramRSVP.activity_id, YouthProgramRSVP.status, func.count(YouthProgramRSVP.id))
+        .where(YouthProgramRSVP.activity_id.in_(activity_ids))
+        .group_by(YouthProgramRSVP.activity_id, YouthProgramRSVP.status)
+    )
+    counts: dict = {}
+    for aid, st, n in rsvp_counts.all():
+        counts.setdefault(aid, {})[st] = n
+
+    my_rsvps = (await db.execute(
+        select(YouthProgramRSVP.activity_id, YouthProgramRSVP.status)
+        .where(YouthProgramRSVP.activity_id.in_(activity_ids))
+        .where(YouthProgramRSVP.user_id == user.id)
+    )).all()
+    my_rsvp_map = {aid: st for aid, st in my_rsvps}
+
+    for a in rows:
+        c = counts.get(a.id, {})
+        out.append(ActivityOut(
+            id=a.id, title=a.title, description=a.description,
+            activity_type=a.activity_type, location=a.location,
+            start_at=a.start_at, end_at=a.end_at,
+            rsvp_yes=c.get("yes", 0), rsvp_maybe=c.get("maybe", 0),
+            my_rsvp=my_rsvp_map.get(a.id),
+            can_manage=can_manage, created_at=a.created_at,
+        ))
+    return out
+
+
+@router.post("/{slug}/activities", response_model=ActivityOut, status_code=201)
+async def create_program_activity(
+    slug: str,
+    payload: ActivityIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not _is_coord_or_admin(p, user):
+        raise HTTPException(status_code=403, detail="Coordinators only.")
+    if not payload.title.strip():
+        raise HTTPException(status_code=400, detail="Title is required.")
+
+    a = YouthProgramActivity(
+        program_id=p.id, title=payload.title.strip(),
+        description=payload.description, activity_type=payload.activity_type,
+        location=payload.location, start_at=payload.start_at,
+        end_at=payload.end_at, created_by=user.id,
+    )
+    db.add(a)
+    await db.commit()
+    await db.refresh(a)
+    return ActivityOut(
+        id=a.id, title=a.title, description=a.description,
+        activity_type=a.activity_type, location=a.location,
+        start_at=a.start_at, end_at=a.end_at,
+        rsvp_yes=0, rsvp_maybe=0, my_rsvp=None,
+        can_manage=True, created_at=a.created_at,
+    )
+
+
+@router.delete("/{slug}/activities/{activity_id}", status_code=204)
+async def delete_program_activity(
+    slug: str,
+    activity_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not _is_coord_or_admin(p, user):
+        raise HTTPException(status_code=403, detail="Coordinators only.")
+    row = (await db.execute(
+        select(YouthProgramActivity)
+        .where(YouthProgramActivity.id == activity_id)
+        .where(YouthProgramActivity.program_id == p.id)
+    )).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Activity not found.")
+    await db.delete(row)
+    await db.commit()
+
+
+# ─── RSVP ─────────────────────────────────────────────────────────────────────
+
+class RSVPIn(BaseModel):
+    status: str
+    note: Optional[str] = None
+
+
+@router.post("/{slug}/activities/{activity_id}/rsvp", status_code=200)
+async def set_activity_rsvp(
+    slug: str,
+    activity_id: str,
+    payload: RSVPIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if payload.status not in ("yes", "maybe", "no"):
+        raise HTTPException(status_code=400, detail="status must be yes / maybe / no")
+    p = await _get_program_or_404(db, slug)
+    if not await _user_can_access_program(db, p, user):
+        raise HTTPException(status_code=403, detail="You're not a member of this program.")
+    a = (await db.execute(
+        select(YouthProgramActivity)
+        .where(YouthProgramActivity.id == activity_id)
+        .where(YouthProgramActivity.program_id == p.id)
+    )).scalar_one_or_none()
+    if not a:
+        raise HTTPException(status_code=404, detail="Activity not found.")
+
+    existing = (await db.execute(
+        select(YouthProgramRSVP)
+        .where(YouthProgramRSVP.activity_id == activity_id)
+        .where(YouthProgramRSVP.user_id == user.id)
+    )).scalar_one_or_none()
+    if existing:
+        existing.status = payload.status
+        existing.note = payload.note
+    else:
+        db.add(YouthProgramRSVP(
+            activity_id=activity_id, user_id=user.id,
+            status=payload.status, note=payload.note,
+        ))
+    await db.commit()
+    return {"status": payload.status}
+
+
+# ─── Attendance ───────────────────────────────────────────────────────────────
+
+class AttendanceEntry(BaseModel):
+    user_id: str
+    present: bool
+
+
+class AttendanceBulkIn(BaseModel):
+    entries: List[AttendanceEntry]
+
+
+class AttendanceRowOut(BaseModel):
+    user_id: str
+    name: str
+    avatar_url: Optional[str] = None
+    present: bool
+
+
+class MyAttendanceItem(BaseModel):
+    activity_id: str
+    activity_title: str
+    activity_start_at: datetime
+    present: bool
+    recorded_at: datetime
+
+
+class MyAttendanceSummary(BaseModel):
+    total_recorded: int
+    present_count: int
+    rate: float
+    streak: int
+    history: List[MyAttendanceItem]
+
+
+@router.post("/{slug}/activities/{activity_id}/attendance", status_code=200)
+async def record_attendance(
+    slug: str,
+    activity_id: str,
+    payload: AttendanceBulkIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not _is_coord_or_admin(p, user):
+        raise HTTPException(status_code=403, detail="Coordinators only.")
+    a = (await db.execute(
+        select(YouthProgramActivity)
+        .where(YouthProgramActivity.id == activity_id)
+        .where(YouthProgramActivity.program_id == p.id)
+    )).scalar_one_or_none()
+    if not a:
+        raise HTTPException(status_code=404, detail="Activity not found.")
+
+    for entry in payload.entries:
+        existing = (await db.execute(
+            select(YouthProgramAttendance)
+            .where(YouthProgramAttendance.activity_id == activity_id)
+            .where(YouthProgramAttendance.user_id == entry.user_id)
+        )).scalar_one_or_none()
+        if existing:
+            existing.present = entry.present
+            existing.recorded_by = user.id
+            existing.recorded_at = datetime.utcnow()
+        else:
+            db.add(YouthProgramAttendance(
+                activity_id=activity_id, program_id=p.id,
+                user_id=entry.user_id, present=entry.present,
+                recorded_by=user.id,
+            ))
+    await db.commit()
+    return {"recorded": len(payload.entries)}
+
+
+@router.get("/{slug}/activities/{activity_id}/attendance", response_model=List[AttendanceRowOut])
+async def list_attendance(
+    slug: str,
+    activity_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not _is_coord_or_admin(p, user):
+        raise HTTPException(status_code=403, detail="Coordinators only.")
+
+    rows = (await db.execute(
+        select(YouthProgramAttendance, User)
+        .join(User, User.id == YouthProgramAttendance.user_id)
+        .where(YouthProgramAttendance.activity_id == activity_id)
+    )).all()
+    return [
+        AttendanceRowOut(
+            user_id=u.id, name=u.name,
+            avatar_url=getattr(u, "avatar_url", None),
+            present=att.present,
+        )
+        for att, u in rows
+    ]
+
+
+@router.get("/{slug}/attendance/me", response_model=MyAttendanceSummary)
+async def my_attendance(
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not await _user_can_access_program(db, p, user):
+        raise HTTPException(status_code=403, detail="You're not a member of this program.")
+
+    rows = (await db.execute(
+        select(YouthProgramAttendance, YouthProgramActivity)
+        .join(YouthProgramActivity, YouthProgramActivity.id == YouthProgramAttendance.activity_id)
+        .where(YouthProgramAttendance.program_id == p.id)
+        .where(YouthProgramAttendance.user_id == user.id)
+        .order_by(YouthProgramActivity.start_at.desc())
+    )).all()
+
+    items = [
+        MyAttendanceItem(
+            activity_id=a.id, activity_title=a.title,
+            activity_start_at=a.start_at, present=att.present,
+            recorded_at=att.recorded_at,
+        ) for att, a in rows
+    ]
+    total = len(items)
+    present_count = sum(1 for x in items if x.present)
+    rate = (present_count / total) if total else 0.0
+    streak = 0
+    for x in items:
+        if x.present:
+            streak += 1
+        else:
+            break
+    return MyAttendanceSummary(
+        total_recorded=total, present_count=present_count,
+        rate=rate, streak=streak, history=items[:20],
+    )
+
+
+# ─── Coordinator panel ────────────────────────────────────────────────────────
+
+class CoordAnnouncementIn(BaseModel):
+    title: str
+    body: Optional[str] = None
+    date: Optional[str] = None
+    urgent: bool = False
+
+
+@router.post("/{slug}/coord/announcements", status_code=201)
+async def coord_post_announcement(
+    slug: str,
+    payload: CoordAnnouncementIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not _is_coord_or_admin(p, user):
+        raise HTTPException(status_code=403, detail="Coordinators only.")
+    if not payload.title.strip():
+        raise HTTPException(status_code=400, detail="Title required.")
+    items = list(p.announcements or [])
+    items.insert(0, {
+        "title": payload.title.strip(),
+        "body": (payload.body or "").strip() or None,
+        "date": payload.date or datetime.utcnow().strftime("%Y-%m-%d"),
+        "urgent": bool(payload.urgent),
+    })
+    p.announcements = items
+    await db.commit()
+    return {"count": len(items)}
+
+
+@router.delete("/{slug}/coord/announcements/{index}", status_code=204)
+async def coord_delete_announcement(
+    slug: str,
+    index: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not _is_coord_or_admin(p, user):
+        raise HTTPException(status_code=403, detail="Coordinators only.")
+    items = list(p.announcements or [])
+    if index < 0 or index >= len(items):
+        raise HTTPException(status_code=404, detail="Out of range.")
+    items.pop(index)
+    p.announcements = items
+    await db.commit()
+
+
+class CoordResourceIn(BaseModel):
+    title: str
+    url: str
+    type: Optional[str] = "link"
+    meta: Optional[str] = None
+
+
+@router.post("/{slug}/coord/resources", status_code=201)
+async def coord_add_resource(
+    slug: str,
+    payload: CoordResourceIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not _is_coord_or_admin(p, user):
+        raise HTTPException(status_code=403, detail="Coordinators only.")
+    if not payload.title.strip() or not payload.url.strip():
+        raise HTTPException(status_code=400, detail="Title and URL required.")
+    items = list(p.resources or [])
+    items.append({
+        "title": payload.title.strip(),
+        "url": payload.url.strip(),
+        "type": (payload.type or "link"),
+        "meta": payload.meta,
+    })
+    p.resources = items
+    await db.commit()
+    return {"count": len(items)}
+
+
+@router.delete("/{slug}/coord/resources/{index}", status_code=204)
+async def coord_delete_resource(
+    slug: str,
+    index: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not _is_coord_or_admin(p, user):
+        raise HTTPException(status_code=403, detail="Coordinators only.")
+    items = list(p.resources or [])
+    if index < 0 or index >= len(items):
+        raise HTTPException(status_code=404, detail="Out of range.")
+    items.pop(index)
+    p.resources = items
+    await db.commit()
+
+
+# ─── Pending members + approval ───────────────────────────────────────────────
+
+class PendingMemberOut(BaseModel):
+    request_id: str
+    user_id: str
+    name: str
+    email: Optional[str] = None
+    avatar_url: Optional[str] = None
+    note: Optional[str] = None
+    requested_at: datetime
+
+
+@router.get("/{slug}/coord/pending", response_model=List[PendingMemberOut])
+async def coord_list_pending(
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not _is_coord_or_admin(p, user):
+        raise HTTPException(status_code=403, detail="Coordinators only.")
+
+    label = p.service_request_label or f"Youth :: {p.title}"
+    rows = (await db.execute(
+        select(ServiceRequest, User)
+        .join(User, User.id == ServiceRequest.user_id)
+        .where(ServiceRequest.service_name == label)
+        .where(ServiceRequest.status == ServiceRequestStatus.PENDING)
+        .order_by(ServiceRequest.created_at.desc())
+    )).all()
+    return [
+        PendingMemberOut(
+            request_id=sr.id, user_id=u.id, name=u.name,
+            email=u.email, avatar_url=getattr(u, "avatar_url", None),
+            note=getattr(sr, "message", None),
+            requested_at=sr.created_at,
+        )
+        for sr, u in rows
+    ]
+
+
+@router.post("/{slug}/coord/pending/{request_id}/approve", status_code=200)
+async def coord_approve_pending(
+    slug: str,
+    request_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not _is_coord_or_admin(p, user):
+        raise HTTPException(status_code=403, detail="Coordinators only.")
+    sr = (await db.execute(
+        select(ServiceRequest).where(ServiceRequest.id == request_id)
+    )).scalar_one_or_none()
+    if not sr:
+        raise HTTPException(status_code=404, detail="Request not found.")
+    label = p.service_request_label or f"Youth :: {p.title}"
+    if sr.service_name != label:
+        raise HTTPException(status_code=400, detail="Request does not belong to this program.")
+    sr.status = ServiceRequestStatus.APPROVED
+    await db.commit()
+    return {"status": "approved"}
+
+
+@router.post("/{slug}/coord/pending/{request_id}/reject", status_code=200)
+async def coord_reject_pending(
+    slug: str,
+    request_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    p = await _get_program_or_404(db, slug)
+    if not _is_coord_or_admin(p, user):
+        raise HTTPException(status_code=403, detail="Coordinators only.")
+    sr = (await db.execute(
+        select(ServiceRequest).where(ServiceRequest.id == request_id)
+    )).scalar_one_or_none()
+    if not sr:
+        raise HTTPException(status_code=404, detail="Request not found.")
+    sr.status = ServiceRequestStatus.REJECTED
+    await db.commit()
+    return {"status": "rejected"}

@@ -36,6 +36,7 @@ from models.department import (
 )
 from models.youth_program import YouthProgram
 from models.youth_program_message import YouthProgramMessage
+from models.youth_program_activity import YouthProgramActivity, YouthProgramRSVP, YouthProgramAttendance
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
@@ -133,4 +134,7 @@ __all__ = [
     "ActivityType",
     "YouthProgram",
     "YouthProgramMessage",
+    "YouthProgramActivity",
+    "YouthProgramRSVP",
+    "YouthProgramAttendance",
 ]
