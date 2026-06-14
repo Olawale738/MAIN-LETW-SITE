@@ -11,6 +11,7 @@ import {
     LogIn, UserPlus, Lock, CheckCircle, ChevronRight,
 } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
+import { CustomSectionsAt, type CustomSection } from '@/components/ministry/MinistryCustomSection'
 
 const getIcon = (name?: string, fallback: any = Sparkles) => {
     if (!name) return fallback
@@ -82,6 +83,8 @@ export default function WomenMinistryPage() {
     const liveCarousel = (Array.isArray(content.carousel) && content.carousel.length > 0)
         ? content.carousel.map((c: any) => ({ value: c.value || '', label: c.label || '' }))
         : carouselQuotes
+    const customSections: CustomSection[] = Array.isArray(content.custom_sections) ? content.custom_sections : []
+    const slotProps = { sections: customSections, primary: ROSE, accent: GOLD, navy: NAVY }
 
     const c = {
         hero_eyebrow:           content.hero_eyebrow           || "Women's Ministry",
@@ -176,6 +179,8 @@ export default function WomenMinistryPage() {
                 </div>
             </section>
 
+            <CustomSectionsAt {...slotProps} position="after_hero" />
+
             {/* ─── ROTATING IDENTITY BAND ────────────────────────────────── */}
             <section
                 className="relative overflow-hidden py-20 md:py-24"
@@ -218,6 +223,8 @@ export default function WomenMinistryPage() {
                 </div>
             </section>
 
+            <CustomSectionsAt {...slotProps} position="after_carousel" />
+
             {/* ─── PILLARS ───────────────────────────────────────────────── */}
             <section className="py-24 md:py-32 bg-white">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -251,6 +258,8 @@ export default function WomenMinistryPage() {
                     </div>
                 </div>
             </section>
+
+            <CustomSectionsAt {...slotProps} position="after_pillars" />
 
             {/* ─── PROGRAMS ──────────────────────────────────────────────── */}
             <section id="programs" className="py-24 md:py-32" style={{ background: `linear-gradient(180deg, ${ROSE_LIGHT} 0%, white 100%)` }}>
@@ -293,6 +302,8 @@ export default function WomenMinistryPage() {
                 </div>
             </section>
 
+            <CustomSectionsAt {...slotProps} position="after_programs" />
+
             {/* ─── SCRIPTURE BAND ────────────────────────────────────────── */}
             <section className="py-20 md:py-24 relative overflow-hidden" style={{ background: NAVY }}>
                 <div className="absolute inset-0 pointer-events-none">
@@ -306,6 +317,8 @@ export default function WomenMinistryPage() {
                     <p className="mt-7 text-xs font-bold uppercase tracking-[0.4em] text-[#f5bb00]">{c.scripture_band_ref}</p>
                 </div>
             </section>
+
+            <CustomSectionsAt {...slotProps} position="after_scripture" />
 
             {/* ─── JOIN FORM ─────────────────────────────────────────────── */}
             <section id="join" className="py-24 md:py-32 bg-white">
@@ -345,6 +358,9 @@ export default function WomenMinistryPage() {
                     )}
                 </div>
             </section>
+
+            <CustomSectionsAt {...slotProps} position="after_join" />
+            <CustomSectionsAt {...slotProps} position="before_footer" />
 
             {/* ─── FOOTER CTA ────────────────────────────────────────────── */}
             <section className="py-20" style={{ background: `linear-gradient(135deg, ${ROSE} 0%, ${NAVY} 100%)` }}>

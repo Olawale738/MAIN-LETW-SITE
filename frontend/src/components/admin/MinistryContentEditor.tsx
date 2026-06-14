@@ -10,13 +10,47 @@ import { useToast } from '@/components/ui/toast'
 import {
     Loader2, Save, ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown,
     ExternalLink, Image as ImageIcon, Sparkles, BookOpen, Target,
-    Calendar, Heart, Crown,
+    Calendar, Heart, Crown, LayoutTemplate, Layers,
 } from 'lucide-react'
 import { ministryContentApi } from '@/lib/api'
 
 type Pillar = { icon: string; title: string; desc: string }
 type Program = { icon: string; title: string; desc: string; badge: string; cta: string }
 type Carousel = { value: string; label: string }
+
+type CustomSectionPosition = 'after_hero' | 'after_carousel' | 'after_pillars' | 'after_programs' | 'after_scripture' | 'after_join' | 'before_footer'
+type CustomSectionKind = 'text' | 'scripture' | 'cards' | 'cta'
+type CustomSection = {
+    id?: string
+    position: CustomSectionPosition
+    kind: CustomSectionKind
+    bg?: 'white' | 'tint' | 'dark'
+    eyebrow?: string
+    heading?: string
+    subtitle?: string
+    body?: string
+    reference?: string
+    button_text?: string
+    button_link?: string
+    items?: Array<{ icon?: string; title?: string; desc?: string }>
+}
+
+const POSITION_LABELS: Record<CustomSectionPosition, string> = {
+    after_hero: 'After Hero',
+    after_carousel: 'After Identity Carousel',
+    after_pillars: 'After Pillars',
+    after_programs: 'After Programs',
+    after_scripture: 'After Scripture Band',
+    after_join: 'After Join Form',
+    before_footer: 'Before Footer CTA',
+}
+
+const KIND_LABELS: Record<CustomSectionKind, string> = {
+    text: 'Text band (eyebrow + heading + paragraph)',
+    scripture: 'Scripture band (italic quote + reference)',
+    cards: 'Cards grid (2–4 cards with icon, title, description)',
+    cta: 'Call-to-action band (heading + button)',
+}
 
 interface Props {
     ministryKey: 'women' | 'men'
@@ -60,6 +94,7 @@ export default function MinistryContentEditor({ ministryKey, label, livePath, de
     const [pillars, setPillars] = useState<Pillar[]>(defaults.pillars)
     const [programs, setPrograms] = useState<Program[]>(defaults.programs)
     const [carousel, setCarousel] = useState<Carousel[]>(defaults.carousel)
+    const [customSections, setCustomSections] = useState<CustomSection[]>([])
 
     useEffect(() => {
         (async () => {
@@ -70,6 +105,7 @@ export default function MinistryContentEditor({ ministryKey, label, livePath, de
                     ...prev,
                     ...Object.fromEntries(Object.keys(prev).map(k => [k, (c as any)[k] ?? (prev as any)[k]])),
                 }))
+                if (Array.isArray(c.custom_sections)) setCustomSections(c.custom_sections)
                 if (Array.isArray(c.pillars) && c.pillars.length > 0) setPillars(c.pillars)
                 if (Array.isArray(c.programs) && c.programs.length > 0) setPrograms(c.programs)
                 if (Array.isArray(c.carousel) && c.carousel.length > 0) setCarousel(c.carousel)
@@ -91,6 +127,7 @@ export default function MinistryContentEditor({ ministryKey, label, livePath, de
                 pillars: pillars.filter(p => p.title?.trim()),
                 programs: programs.filter(p => p.title?.trim()),
                 carousel: carousel.filter(c => c.value?.trim() || c.label?.trim()),
+                custom_sections: customSections,
             }
             await ministryContentApi.update(ministryKey, content)
             showToast(`Saved ${label} content`, 'success')
@@ -275,6 +312,70 @@ export default function MinistryContentEditor({ ministryKey, label, livePath, de
                 </CardContent>
             </Card>
 
+            {/* CUSTOM SECTIONS — add your own NEW sections anywhere on the page */}
+            <Card className="border-l-4 border-l-[#f5bb00]">
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                        <LayoutTemplate className="w-5 h-5 text-[#f5bb00]" /> Custom Sections ({customSections.length})
+                    </CardTitle>
+                    <div className="flex gap-1.5 flex-wrap">
+                        {(['text', 'scripture', 'cards', 'cta'] as CustomSectionKind[]).map(k => (
+                            <button
+                                key={k}
+                                type="button"
+                                onClick={() => setCustomSections(prev => [...prev, {
+                                    id: `cs-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                                    position: 'after_pillars',
+                                    kind: k,
+                                    bg: k === 'scripture' || k === 'cta' ? 'dark' : 'white',
+                                    eyebrow: '', heading: '', subtitle: '', body: '',
+                                    reference: '', button_text: '', button_link: '',
+                                    items: k === 'cards' ? [{ icon: 'Sparkles', title: '', desc: '' }] : undefined,
+                                }])}
+                                className="text-xs font-bold inline-flex items-center gap-1 bg-[#140152] hover:bg-[#1d0175] text-white px-2.5 py-1.5 rounded-md"
+                            >
+                                <Plus className="w-3 h-3" /> {k}
+                            </button>
+                        ))}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-xs text-gray-500 mb-4">
+                        Add brand-new sections anywhere on the page. Pick a position (which existing
+                        section it sits after) and a style. Sections render with the page's brand
+                        colors automatically.
+                    </p>
+
+                    {customSections.length === 0 && (
+                        <div className="rounded-xl border-2 border-dashed border-gray-200 p-8 text-center">
+                            <Layers className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                            <p className="font-bold text-gray-500">No custom sections yet</p>
+                            <p className="text-xs text-gray-400 mt-1">Click a button above to add your first.</p>
+                        </div>
+                    )}
+
+                    <div className="space-y-3">
+                        {customSections.map((s, i) => (
+                            <CustomSectionCard
+                                key={s.id || i}
+                                section={s}
+                                onChange={updated => setCustomSections(arr => arr.map((x, k) => k === i ? updated : x))}
+                                onMove={(dir) => {
+                                    const j = i + dir
+                                    if (j < 0 || j >= customSections.length) return
+                                    const next = [...customSections]
+                                    ;[next[i], next[j]] = [next[j], next[i]]
+                                    setCustomSections(next)
+                                }}
+                                onDelete={() => setCustomSections(arr => arr.filter((_, k) => k !== i))}
+                                isFirst={i === 0}
+                                isLast={i === customSections.length - 1}
+                            />
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
             {/* FOOTER CTA */}
             <Card>
                 <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon className="w-5 h-5 text-[#f5bb00]" /> Footer Call</CardTitle></CardHeader>
@@ -308,6 +409,139 @@ function TextField({ label, value, onChange, rows = 3 }: { label: string; value:
         <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">{label}</label>
             <Textarea value={value} onChange={e => onChange(e.target.value)} rows={rows} className="text-gray-900" />
+        </div>
+    )
+}
+
+function CustomSectionCard({
+    section, onChange, onMove, onDelete, isFirst, isLast,
+}: {
+    section: CustomSection
+    onChange: (s: CustomSection) => void
+    onMove: (dir: -1 | 1) => void
+    onDelete: () => void
+    isFirst: boolean
+    isLast: boolean
+}) {
+    const items = section.items || []
+
+    return (
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+            {/* Header strip */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <span className="font-black uppercase tracking-wider bg-[#140152] text-white px-2 py-1 rounded">{section.kind}</span>
+                    <span className="font-bold text-gray-600">→ {POSITION_LABELS[section.position]}</span>
+                </div>
+                <div className="flex gap-1">
+                    <button type="button" onClick={() => onMove(-1)} disabled={isFirst} className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
+                    <button type="button" onClick={() => onMove(1)} disabled={isLast} className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
+                    <button type="button" onClick={onDelete} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                </div>
+            </div>
+
+            {/* Position + Background row */}
+            <div className="grid md:grid-cols-2 gap-2">
+                <div>
+                    <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">Position on page</label>
+                    <select
+                        value={section.position}
+                        onChange={e => onChange({ ...section, position: e.target.value as CustomSectionPosition })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+                    >
+                        {(Object.entries(POSITION_LABELS) as [CustomSectionPosition, string][]).map(([k, label]) => (
+                            <option key={k} value={k}>{label}</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">Background</label>
+                    <select
+                        value={section.bg || 'white'}
+                        onChange={e => onChange({ ...section, bg: e.target.value as 'white' | 'tint' | 'dark' })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+                    >
+                        <option value="white">White</option>
+                        <option value="tint">Tint (soft brand color wash)</option>
+                        <option value="dark">Dark (brand gradient)</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* Type-specific fields */}
+            {section.kind === 'text' && (
+                <>
+                    <div className="grid md:grid-cols-2 gap-2">
+                        <Input value={section.eyebrow || ''} onChange={e => onChange({ ...section, eyebrow: e.target.value })} placeholder="Eyebrow (optional, gold uppercase)" className="text-gray-900 text-sm" />
+                        <Input value={section.heading || ''} onChange={e => onChange({ ...section, heading: e.target.value })} placeholder="Heading" className="text-gray-900 text-sm" />
+                    </div>
+                    <Input value={section.subtitle || ''} onChange={e => onChange({ ...section, subtitle: e.target.value })} placeholder="Italic subtitle (optional)" className="text-gray-900 text-sm" />
+                    <Textarea value={section.body || ''} onChange={e => onChange({ ...section, body: e.target.value })} rows={3} placeholder="Body paragraph" className="text-gray-900 text-sm" />
+                </>
+            )}
+
+            {section.kind === 'scripture' && (
+                <>
+                    <Input value={section.eyebrow || ''} onChange={e => onChange({ ...section, eyebrow: e.target.value })} placeholder="Eyebrow (optional)" className="text-gray-900 text-sm" />
+                    <Textarea value={section.body || ''} onChange={e => onChange({ ...section, body: e.target.value })} rows={3} placeholder="Scripture text (no quotes — auto-added)" className="text-gray-900 text-sm" />
+                    <Input value={section.reference || ''} onChange={e => onChange({ ...section, reference: e.target.value })} placeholder="Reference (e.g. — Romans 8:28)" className="text-gray-900 text-sm" />
+                </>
+            )}
+
+            {section.kind === 'cta' && (
+                <>
+                    <div className="grid md:grid-cols-2 gap-2">
+                        <Input value={section.eyebrow || ''} onChange={e => onChange({ ...section, eyebrow: e.target.value })} placeholder="Eyebrow (optional)" className="text-gray-900 text-sm" />
+                        <Input value={section.heading || ''} onChange={e => onChange({ ...section, heading: e.target.value })} placeholder="Heading" className="text-gray-900 text-sm" />
+                    </div>
+                    <Textarea value={section.body || ''} onChange={e => onChange({ ...section, body: e.target.value })} rows={2} placeholder="Body" className="text-gray-900 text-sm" />
+                    <div className="grid md:grid-cols-2 gap-2">
+                        <Input value={section.button_text || ''} onChange={e => onChange({ ...section, button_text: e.target.value })} placeholder="Button text" className="text-gray-900 text-sm" />
+                        <Input value={section.button_link || ''} onChange={e => onChange({ ...section, button_link: e.target.value })} placeholder="Button link (e.g. /events)" className="text-gray-900 text-sm" />
+                    </div>
+                </>
+            )}
+
+            {section.kind === 'cards' && (
+                <>
+                    <div className="grid md:grid-cols-2 gap-2">
+                        <Input value={section.eyebrow || ''} onChange={e => onChange({ ...section, eyebrow: e.target.value })} placeholder="Eyebrow (optional)" className="text-gray-900 text-sm" />
+                        <Input value={section.heading || ''} onChange={e => onChange({ ...section, heading: e.target.value })} placeholder="Heading" className="text-gray-900 text-sm" />
+                    </div>
+                    <Input value={section.subtitle || ''} onChange={e => onChange({ ...section, subtitle: e.target.value })} placeholder="Subtitle (optional)" className="text-gray-900 text-sm" />
+                    <div className="border-t border-gray-200 pt-3">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-bold uppercase text-gray-500">Cards ({items.length})</p>
+                            <button
+                                type="button"
+                                onClick={() => onChange({ ...section, items: [...items, { icon: 'Sparkles', title: '', desc: '' }] })}
+                                className="text-xs font-bold inline-flex items-center gap-1 text-[#140152] hover:text-[#1d0175]"
+                            >
+                                <Plus className="w-3 h-3" /> Add card
+                            </button>
+                        </div>
+                        <div className="space-y-2">
+                            {items.map((it, j) => (
+                                <div key={j} className="rounded-lg bg-white border border-gray-200 p-3 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[10px] font-bold uppercase text-gray-500">Card {j + 1}</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => onChange({ ...section, items: items.filter((_, k) => k !== j) })}
+                                            className="p-1 text-red-500 hover:bg-red-50 rounded"
+                                        ><Trash2 className="w-3.5 h-3.5" /></button>
+                                    </div>
+                                    <div className="grid md:grid-cols-2 gap-2">
+                                        <Input value={it.icon || ''} onChange={e => onChange({ ...section, items: items.map((x, k) => k === j ? { ...x, icon: e.target.value } : x) })} placeholder="Icon (Heart, Sword, etc.)" className="text-gray-900 text-sm font-mono" />
+                                        <Input value={it.title || ''} onChange={e => onChange({ ...section, items: items.map((x, k) => k === j ? { ...x, title: e.target.value } : x) })} placeholder="Title" className="text-gray-900 text-sm" />
+                                    </div>
+                                    <Textarea value={it.desc || ''} onChange={e => onChange({ ...section, items: items.map((x, k) => k === j ? { ...x, desc: e.target.value } : x) })} rows={2} placeholder="Description" className="text-gray-900 text-sm" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     )
 }
