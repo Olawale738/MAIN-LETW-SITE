@@ -22,10 +22,16 @@ export default function AdminMenPage() {
                     </h1>
                     <p className="text-gray-600 mt-1">Admin overview for the men&apos;s brotherhood.</p>
                 </div>
-                <a href="/men" target="_blank" rel="noopener noreferrer"
-                   className="inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-[#140152] font-bold px-4 py-2.5 rounded-lg transition-colors text-sm">
-                    View live /men <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                <div className="flex gap-2">
+                    <a href="/men" target="_blank" rel="noopener noreferrer"
+                       className="inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-[#140152] font-bold px-4 py-2.5 rounded-lg transition-colors text-sm">
+                        View live <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    <Link href="/admin/men/edit"
+                          className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-4 py-2.5 rounded-lg transition-colors text-sm">
+                        Edit Page Content
+                    </Link>
+                </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

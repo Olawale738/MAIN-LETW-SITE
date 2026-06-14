@@ -3367,3 +3367,18 @@ export const youthProgramApi = {
             fetchApi<{ inserted: number }>('/youth/programs/admin/seed-defaults', { method: 'POST' }),
     },
 };
+
+// ============= Ministry Content (Women's + Men's ministry editable sections) =============
+
+export interface MinistryContent {
+    key: string;
+    content: Record<string, any>;
+    updated_at?: string | null;
+}
+
+export const ministryContentApi = {
+    get: (key: 'women' | 'men'): Promise<MinistryContent> =>
+        fetchApi<MinistryContent>(`/ministry-content/${key}`),
+    update: (key: 'women' | 'men', content: Record<string, any>): Promise<MinistryContent> =>
+        fetchApi<MinistryContent>(`/ministry-content/${key}`, { method: 'PUT', body: JSON.stringify({ content }) }),
+};

@@ -9,7 +9,7 @@ import {
     Lock, LayoutDashboard, Flower2, Heart, Sparkles,
 } from 'lucide-react'
 
-const ROSE = '#be1c5e'
+const ROSE = '#1e3a8a'  // blue palette (variable name kept to minimize diff)
 const GOLD = '#f5bb00'
 const NAVY = '#140152'
 
@@ -25,7 +25,7 @@ export default function WomenDashboard() {
 
     if (!authChecked) {
         return (
-            <div className="min-h-[60vh] flex items-center justify-center bg-rose-50/40">
+            <div className="min-h-[60vh] flex items-center justify-center bg-blue-50/40">
                 <Loader2 className="w-10 h-10 animate-spin" style={{ color: ROSE }} />
             </div>
         )
@@ -33,7 +33,7 @@ export default function WomenDashboard() {
 
     if (!isLoggedIn) {
         return (
-            <div className="min-h-[60vh] flex flex-col items-center justify-center bg-rose-50/40 text-center p-8">
+            <div className="min-h-[60vh] flex flex-col items-center justify-center bg-blue-50/40 text-center p-8">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: ROSE }}>
                     <Lock className="w-8 h-8 text-[#f5bb00]" />
                 </div>
@@ -47,7 +47,7 @@ export default function WomenDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-rose-50/40">
+        <div className="min-h-screen bg-blue-50/40">
             {/* Header */}
             <div className="text-white" style={{ background: `linear-gradient(135deg, ${ROSE}, ${NAVY})` }}>
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">

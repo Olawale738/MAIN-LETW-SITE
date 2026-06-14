@@ -9,6 +9,13 @@ import {
     Users, Hammer, BookOpen, Crown, Flame, Target,
     LogIn, UserPlus, Lock, CheckCircle, ChevronRight,
 } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
+
+const getIcon = (name?: string, fallback: any = Sparkles) => {
+    if (!name) return fallback
+    const I = (LucideIcons as any)[name]
+    return I || fallback
+}
 
 const STEEL = '#1f2937'
 const STEEL_DARK = '#0f172a'
@@ -43,6 +50,7 @@ export default function MenMinistryPage() {
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [slideIndex, setSlideIndex] = useState(0)
     const [paused, setPaused] = useState(false)
+    const [content, setContent] = useState<Record<string, any>>({})
 
     useEffect(() => {
         const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
@@ -51,10 +59,55 @@ export default function MenMinistryPage() {
     }, [])
 
     useEffect(() => {
+        let cancelled = false
+        import('@/lib/api').then(({ ministryContentApi }) =>
+            ministryContentApi.get('men')
+                .then(r => { if (!cancelled) setContent(r.content || {}) })
+                .catch(() => {})
+        )
+        return () => { cancelled = true }
+    }, [])
+
+    const livePillars = (Array.isArray(content.pillars) && content.pillars.length > 0)
+        ? content.pillars.map((p: any) => ({ icon: getIcon(p.icon, Sword), title: p.title || '', desc: p.desc || '' }))
+        : pillars
+    const livePrograms = (Array.isArray(content.programs) && content.programs.length > 0)
+        ? content.programs.map((p: any) => ({ icon: getIcon(p.icon, Sword), title: p.title || '', desc: p.desc || '', badge: p.badge || '', cta: p.cta || 'Learn More' }))
+        : programs
+    const liveCarousel = (Array.isArray(content.carousel) && content.carousel.length > 0)
+        ? content.carousel.map((c: any) => ({ value: c.value || '', label: c.label || '' }))
+        : carouselQuotes
+
+    const c = {
+        hero_eyebrow:           content.hero_eyebrow           || "Men's Ministry",
+        hero_title_line1:       content.hero_title_line1       || 'Be',
+        hero_title_highlight:   content.hero_title_highlight   || 'Strong.',
+        hero_title_line2:       content.hero_title_line2       || 'Be Courageous.',
+        hero_scripture:         content.hero_scripture         || 'Be on your guard; stand firm in the faith; be courageous; be strong. Do everything in love.',
+        hero_scripture_ref:     content.hero_scripture_ref     || '— 1 Corinthians 16:13–14',
+        hero_description:       content.hero_description       || 'A brotherhood of men forged in the Word, sharpened in accountability, and sent into every battle — at home, at work, in our cities — as men who fear God and nothing else.',
+        hero_primary_cta:       content.hero_primary_cta       || 'Join the Brotherhood',
+        hero_secondary_cta:     content.hero_secondary_cta     || 'Explore Programs',
+        carousel_eyebrow:       content.carousel_eyebrow       || 'Who We Are',
+        pillars_eyebrow:        content.pillars_eyebrow        || 'Our Foundation',
+        pillars_heading:        content.pillars_heading        || 'Four Pillars Every Man Stands On',
+        programs_eyebrow:       content.programs_eyebrow       || 'Our Programs',
+        programs_heading:       content.programs_heading       || 'Six Battlegrounds. One Brotherhood.',
+        programs_subtitle:      content.programs_subtitle      || "Whatever season of warfare you're in — there's a band of brothers ready to fight beside you.",
+        scripture_band_text:    content.scripture_band_text    || 'As iron sharpens iron, so one man sharpens another.',
+        scripture_band_ref:     content.scripture_band_ref     || '— Proverbs 27:17',
+        join_eyebrow:           content.join_eyebrow           || 'Step In',
+        join_heading:           content.join_heading           || 'Take Your Position',
+        join_description:       content.join_description       || "Tell us where you're at. Our men's lead will reach out within 48 hours.",
+        footer_heading:         content.footer_heading         || "You're not alone, brother.",
+        footer_subtext:         content.footer_subtext         || 'Already a member? Open your dashboard for announcements, upcoming events, and your iron-sharpens-iron group.',
+    }
+
+    useEffect(() => {
         if (paused) return
-        const t = setInterval(() => setSlideIndex(i => (i + 1) % carouselQuotes.length), 4500)
+        const t = setInterval(() => setSlideIndex(i => (i + 1) % liveCarousel.length), 4500)
         return () => clearInterval(t)
-    }, [paused])
+    }, [paused, liveCarousel.length])
 
     return (
         <div className="min-h-screen bg-white">
@@ -70,7 +123,7 @@ export default function MenMinistryPage() {
                     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
                         <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-[#f5bb00]/40 rounded-full px-4 py-1.5 mb-7">
                             <Sword className="w-4 h-4 text-[#f5bb00]" />
-                            <span className="text-xs font-bold uppercase tracking-[0.35em] text-[#f5bb00]">Men&apos;s Ministry</span>
+                            <span className="text-xs font-bold uppercase tracking-[0.35em] text-[#f5bb00]">{c.hero_eyebrow}</span>
                         </div>
                     </motion.div>
 
@@ -78,8 +131,8 @@ export default function MenMinistryPage() {
                         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.1 }}
                         className="text-5xl md:text-7xl lg:text-8xl font-black leading-[1.02] mb-7"
                     >
-                        Be <span className="bg-gradient-to-r from-[#f5bb00] via-white to-[#f5bb00] bg-clip-text text-transparent">Strong.</span>
-                        <br />Be Courageous.
+                        {c.hero_title_line1} <span className="bg-gradient-to-r from-[#f5bb00] via-white to-[#f5bb00] bg-clip-text text-transparent">{c.hero_title_highlight}</span>
+                        <br />{c.hero_title_line2}
                     </motion.h1>
 
                     <motion.p
@@ -87,19 +140,18 @@ export default function MenMinistryPage() {
                         className="text-xl md:text-2xl text-[#f5bb00] font-bold italic max-w-3xl mx-auto mb-3"
                         style={{ fontFamily: '"Cormorant Garamond","Playfair Display",Georgia,serif' }}
                     >
-                        &ldquo;Be on your guard; stand firm in the faith; be courageous; be strong. Do everything in love.&rdquo;
+                        &ldquo;{c.hero_scripture}&rdquo;
                     </motion.p>
                     <motion.p
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
                         className="text-sm text-white/70 tracking-[0.3em] uppercase font-bold mb-12"
-                    >— 1 Corinthians 16:13–14</motion.p>
+                    >{c.hero_scripture_ref}</motion.p>
 
                     <motion.p
                         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.4 }}
                         className="text-base md:text-lg text-white/85 max-w-2xl mx-auto leading-relaxed mb-12"
                     >
-                        A brotherhood of men forged in the Word, sharpened in accountability, and sent into
-                        every battle — at home, at work, in our cities — as men who fear God and nothing else.
+                        {c.hero_description}
                     </motion.p>
 
                     <motion.div
@@ -108,11 +160,11 @@ export default function MenMinistryPage() {
                     >
                         <a href="#join"
                            className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-white text-[#140152] font-bold px-8 py-4 rounded-full transition-all hover:scale-105 shadow-2xl">
-                            Join the Brotherhood <ArrowRight className="w-4 h-4" />
+                            {c.hero_primary_cta} <ArrowRight className="w-4 h-4" />
                         </a>
                         <a href="#programs"
                            className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white font-bold px-8 py-4 rounded-full transition-all hover:scale-105">
-                            Explore Programs
+                            {c.hero_secondary_cta}
                         </a>
                     </motion.div>
                 </div>
@@ -130,7 +182,7 @@ export default function MenMinistryPage() {
                     <div className="absolute -bottom-40 -right-20 w-[32rem] h-[32rem] rounded-full blur-[140px]" style={{ background: `#7c3aed33` }} />
                 </div>
                 <div className="relative max-w-4xl mx-auto px-4 text-center">
-                    <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.4em] text-[#f5bb00] mb-8">Who We Are</p>
+                    <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.4em] text-[#f5bb00] mb-8">{c.carousel_eyebrow}</p>
                     <div className="relative min-h-[180px] md:min-h-[200px] flex items-center justify-center">
                         <AnimatePresence mode="wait">
                             <motion.div
@@ -142,15 +194,15 @@ export default function MenMinistryPage() {
                                 className="text-center"
                             >
                                 <p className="text-7xl md:text-9xl font-black leading-none bg-gradient-to-br from-white via-white to-[#f5bb00] bg-clip-text text-transparent drop-shadow-[0_4px_30px_rgba(245,187,0,0.25)]">
-                                    {carouselQuotes[slideIndex].value}
+                                    {liveCarousel[slideIndex].value}
                                 </p>
-                                <p className="mt-5 text-sm md:text-base font-black uppercase tracking-[0.3em] text-white">{carouselQuotes[slideIndex].label}</p>
+                                <p className="mt-5 text-sm md:text-base font-black uppercase tracking-[0.3em] text-white">{liveCarousel[slideIndex].label}</p>
                                 <div className="mt-2 mx-auto h-0.5 w-32 bg-gradient-to-r from-transparent via-[#f5bb00] to-transparent" />
                             </motion.div>
                         </AnimatePresence>
                     </div>
                     <div className="flex items-center justify-center gap-2.5 mt-10">
-                        {carouselQuotes.map((_, i) => (
+                        {liveCarousel.map((_, i) => (
                             <button key={i} onClick={() => setSlideIndex(i)} aria-label={`Slide ${i + 1}`}
                                 className="h-2 rounded-full transition-all duration-500"
                                 style={{ width: i === slideIndex ? '2.5rem' : '0.5rem', background: i === slideIndex ? GOLD : 'rgba(255,255,255,0.3)' }} />
@@ -163,12 +215,12 @@ export default function MenMinistryPage() {
             <section className="py-24 md:py-32 bg-white">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-16 space-y-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em]" style={{ color: STEEL }}>Our Foundation</p>
-                        <h2 className="text-4xl md:text-5xl font-black text-[#140152] leading-tight">Four Pillars Every Man Stands On</h2>
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em]" style={{ color: STEEL }}>{c.pillars_eyebrow}</p>
+                        <h2 className="text-4xl md:text-5xl font-black text-[#140152] leading-tight">{c.pillars_heading}</h2>
                         <div className="w-24 h-1.5 mx-auto rounded-full" style={{ background: `linear-gradient(to right, ${STEEL}, ${GOLD})` }} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {pillars.map((p, i) => (
+                        {livePillars.map((p, i) => (
                             <motion.div
                                 key={p.title}
                                 initial={{ opacity: 0, y: 24 }}
@@ -197,15 +249,13 @@ export default function MenMinistryPage() {
             <section id="programs" className="py-24 md:py-32" style={{ background: 'linear-gradient(180deg, #f3f4f6 0%, white 100%)' }}>
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-16 space-y-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em]" style={{ color: STEEL }}>Our Programs</p>
-                        <h2 className="text-4xl md:text-5xl font-black text-[#140152] leading-tight">Six Battlegrounds. One Brotherhood.</h2>
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em]" style={{ color: STEEL }}>{c.programs_eyebrow}</p>
+                        <h2 className="text-4xl md:text-5xl font-black text-[#140152] leading-tight">{c.programs_heading}</h2>
                         <div className="w-24 h-1.5 mx-auto rounded-full" style={{ background: `linear-gradient(to right, ${STEEL}, ${GOLD})` }} />
-                        <p className="text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                            Whatever season of warfare you&apos;re in — there&apos;s a band of brothers ready to fight beside you.
-                        </p>
+                        <p className="text-gray-600 max-w-2xl mx-auto leading-relaxed">{c.programs_subtitle}</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {programs.map((p, i) => (
+                        {livePrograms.map((p, i) => (
                             <motion.div
                                 key={p.title}
                                 initial={{ opacity: 0, y: 24 }}
@@ -244,9 +294,9 @@ export default function MenMinistryPage() {
                 <div className="relative max-w-4xl mx-auto px-4 text-center">
                     <Sparkles className="w-10 h-10 mx-auto mb-6" style={{ color: GOLD }} />
                     <p className="text-2xl md:text-4xl leading-snug font-bold italic text-white" style={{ fontFamily: '"Cormorant Garamond","Playfair Display",Georgia,serif' }}>
-                        &ldquo;As iron sharpens iron, so one man sharpens another.&rdquo;
+                        &ldquo;{c.scripture_band_text}&rdquo;
                     </p>
-                    <p className="mt-7 text-xs font-bold uppercase tracking-[0.4em] text-[#f5bb00]">— Proverbs 27:17</p>
+                    <p className="mt-7 text-xs font-bold uppercase tracking-[0.4em] text-[#f5bb00]">{c.scripture_band_ref}</p>
                 </div>
             </section>
 
@@ -254,12 +304,10 @@ export default function MenMinistryPage() {
             <section id="join" className="py-24 md:py-32 bg-white">
                 <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-10 space-y-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em]" style={{ color: STEEL }}>Step In</p>
-                        <h2 className="text-4xl md:text-5xl font-black text-[#140152] leading-tight">Take Your Position</h2>
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em]" style={{ color: STEEL }}>{c.join_eyebrow}</p>
+                        <h2 className="text-4xl md:text-5xl font-black text-[#140152] leading-tight">{c.join_heading}</h2>
                         <div className="w-24 h-1.5 mx-auto rounded-full" style={{ background: `linear-gradient(to right, ${STEEL}, ${GOLD})` }} />
-                        <p className="text-gray-600 leading-relaxed">
-                            Tell us where you&apos;re at. Our men&apos;s lead will reach out within 48 hours.
-                        </p>
+                        <p className="text-gray-600 leading-relaxed">{c.join_description}</p>
                     </div>
 
                     {!authChecked ? (
@@ -295,8 +343,8 @@ export default function MenMinistryPage() {
             <section className="py-20" style={{ background: `linear-gradient(135deg, ${STEEL_DARK} 0%, ${NAVY} 100%)` }}>
                 <div className="max-w-3xl mx-auto px-4 text-center text-white">
                     <Sword className="w-10 h-10 mx-auto mb-5" style={{ color: GOLD }} />
-                    <h3 className="text-3xl md:text-4xl font-black mb-4">You&apos;re not alone, brother.</h3>
-                    <p className="text-white/80 leading-relaxed mb-8">Already a member? Open your dashboard for announcements, upcoming events, and your iron-sharpens-iron group.</p>
+                    <h3 className="text-3xl md:text-4xl font-black mb-4">{c.footer_heading}</h3>
+                    <p className="text-white/80 leading-relaxed mb-8">{c.footer_subtext}</p>
                     <Link href="/men/dashboard" className="inline-flex items-center gap-2 bg-white text-[#140152] font-bold px-7 py-3.5 rounded-full hover:bg-[#f5bb00] transition-all hover:scale-105 shadow-2xl">
                         Open Your Dashboard <ChevronRight className="w-4 h-4" />
                     </Link>

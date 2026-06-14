@@ -7,7 +7,7 @@ import {
     Calendar, BookOpen, Sparkles,
 } from 'lucide-react'
 
-const ROSE = '#be1c5e'
+const ROSE = '#1e3a8a'  // blue palette to match women's ministry
 const GOLD = '#f5bb00'
 
 export default function AdminWomenPage() {
@@ -21,10 +21,16 @@ export default function AdminWomenPage() {
                     </h1>
                     <p className="text-gray-600 mt-1">Admin overview for the women&apos;s sisterhood.</p>
                 </div>
-                <a href="/women" target="_blank" rel="noopener noreferrer"
-                   className="inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-[#140152] font-bold px-4 py-2.5 rounded-lg transition-colors text-sm">
-                    View live /women <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                <div className="flex gap-2">
+                    <a href="/women" target="_blank" rel="noopener noreferrer"
+                       className="inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-[#140152] font-bold px-4 py-2.5 rounded-lg transition-colors text-sm">
+                        View live <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    <Link href="/admin/women/edit"
+                          className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-4 py-2.5 rounded-lg transition-colors text-sm">
+                        Edit Page Content
+                    </Link>
+                </div>
             </div>
 
             {/* Stats */}

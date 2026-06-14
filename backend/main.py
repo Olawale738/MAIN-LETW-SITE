@@ -131,6 +131,10 @@ app.include_router(ministries.router)
 # Youth Programs (per-program detail page + dashboard)
 from routers import youth_program
 app.include_router(youth_program.router)
+
+# Ministry content (Women's + Men's ministry editable sections)
+from routers import ministry_content
+app.include_router(ministry_content.router)
 # Deploy nudge: ensures Render picks up youth_programs router and tables
 # (youth_programs, youth_program_messages, youth_program_activities,
 #  youth_program_rsvps, youth_program_attendances).
