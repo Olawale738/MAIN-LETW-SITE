@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell, Heart, Sparkles, FileText, Tag, Plus, BarChart, ChevronRight, Mail } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell, Heart, Sparkles, FileText, Tag, Plus, BarChart, ChevronRight, Mail, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager, chatApi, serviceRequestApi } from '@/lib/api'
 import { useState, useEffect } from 'react'
@@ -108,6 +108,8 @@ const sidebarItems: SidebarItem[] = [
             { title: 'Youth Ministry',        href: '/youth/coordinator',            icon: Zap },
             { title: 'Youth Programs',        href: '/admin/youth/programs',         icon: Sparkles },
             { title: 'Children Ministry',     href: '/children/coordinator',         icon: Baby },
+            { title: "Men's Ministry",        href: '/admin/men',                    icon: ShieldCheck },
+            { title: "Women's Ministry",      href: '/admin/women',                  icon: Heart },
             { title: 'Department Coords',     href: '/admin/coordinators',           icon: Users },
             { title: 'Volunteer Dashboard',   href: '/dashboard/volunteer',          icon: HandHeart },
             { title: 'Mentor Dashboard',      href: '/dashboard/mentor',             icon: BookOpen },

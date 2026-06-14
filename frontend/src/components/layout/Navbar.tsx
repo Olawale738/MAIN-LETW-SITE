@@ -12,12 +12,17 @@ const navLinks = [
   { name: 'Home', href: '/' },
   { name: 'About', href: '/about' },
   { name: 'Services', href: '/services' },
-  { name: 'Youth', href: '/youth' },
-  { name: 'Children', href: '/children' },
   { name: 'Events', href: '/events' },
   { name: 'Sermons', href: '/sermons' },
   { name: 'Impact', href: '/impact' },
   { name: 'Give', href: '/giving' },
+]
+
+const ministriesLinks = [
+  { name: 'Youth Ministry',     href: '/youth' },
+  { name: "Children's Ministry", href: '/children' },
+  { name: "Men's Ministry",      href: '/men' },
+  { name: "Women's Ministry",    href: '/women' },
 ]
 
 const educationLinks = [
@@ -32,6 +37,7 @@ export default function Navbar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [isEducationHovered, setIsEducationHovered] = useState(false)
+  const [isMinistriesHovered, setIsMinistriesHovered] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
@@ -130,7 +136,86 @@ export default function Navbar() {
               </Link>
             ))}
 
-            {/* CUSTOM DROPDOWN */}
+            {/* MINISTRIES DROPDOWN */}
+            <div
+              className="relative px-2"
+              onMouseEnter={() => setIsMinistriesHovered(true)}
+              onMouseLeave={() => setIsMinistriesHovered(false)}
+            >
+              <button className={cn(
+                "flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-full transition-colors outline-none",
+                isMinistriesHovered || ['/youth','/children','/men','/women'].some(p => pathname?.startsWith(p))
+                  ? "text-[#140152] bg-[#140152]/5" : "text-gray-600 hover:bg-gray-100/50"
+              )}>
+                Ministries <ChevronDown className={cn("w-4 h-4 transition-transform duration-300", isMinistriesHovered && "rotate-180")} />
+              </button>
+
+              <AnimatePresence>
+                {isMinistriesHovered && (
+                  <motion.div
+                    initial="closed"
+                    animate="open"
+                    exit="closed"
+                    variants={dropdownVariants}
+                    className="absolute top-full right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden p-2"
+                    style={{ transformOrigin: "top right" }}
+                  >
+                    {ministriesLinks.map((item) => (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:text-[#140152] hover:bg-gray-50 rounded-xl transition-colors group"
+                      >
+                        <div className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-[#f5bb00] transition-colors" />
+                        {item.name}
+                      </Link>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* MINISTRIES DROPDOWN */}
+            <div
+              className="relative px-2"
+              onMouseEnter={() => setIsMinistriesHovered(true)}
+              onMouseLeave={() => setIsMinistriesHovered(false)}
+            >
+              <button className={cn(
+                "flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-full transition-colors outline-none",
+                isMinistriesHovered || pathname?.startsWith('/youth') || pathname?.startsWith('/children') || pathname?.startsWith('/men') || pathname?.startsWith('/women')
+                  ? "text-[#140152] bg-[#140152]/5"
+                  : "text-gray-600 hover:bg-gray-100/50"
+              )}>
+                Ministries <ChevronDown className={cn("w-4 h-4 transition-transform duration-300", isMinistriesHovered && "rotate-180")} />
+              </button>
+
+              <AnimatePresence>
+                {isMinistriesHovered && (
+                  <motion.div
+                    initial="closed"
+                    animate="open"
+                    exit="closed"
+                    variants={dropdownVariants}
+                    className="absolute top-full right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden p-2"
+                    style={{ transformOrigin: "top right" }}
+                  >
+                    {ministriesLinks.map((item) => (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:text-[#140152] hover:bg-gray-50 rounded-xl transition-colors group"
+                      >
+                        <div className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-[#f5bb00] transition-colors" />
+                        {item.name}
+                      </Link>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* EDUCATION DROPDOWN */}
             <div
               className="relative px-2"
               onMouseEnter={() => setIsEducationHovered(true)}
@@ -226,8 +311,25 @@ export default function Navbar() {
                 </motion.div>
               ))}
 
-              {/* Mobile Dropdown Section */}
+              {/* Mobile Ministries Section */}
               <motion.div custom={navLinks.length} variants={linkVariants} className="pt-4">
+                <p className="text-sm font-bold text-[#f5bb00] uppercase tracking-widest mb-4">Ministries</p>
+                <div className="grid grid-cols-1 gap-3 pl-4 border-l-2 border-gray-100">
+                  {ministriesLinks.map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setIsOpen(false)}
+                      className="text-lg font-medium text-gray-600 hover:text-[#140152]"
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Mobile Education Section */}
+              <motion.div custom={navLinks.length + 1} variants={linkVariants} className="pt-4">
                 <p className="text-sm font-bold text-[#f5bb00] uppercase tracking-widest mb-4">Education</p>
                 <div className="grid grid-cols-1 gap-3 pl-4 border-l-2 border-gray-100">
                   {educationLinks.map((item) => (
