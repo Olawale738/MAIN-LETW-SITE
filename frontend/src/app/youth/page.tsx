@@ -107,11 +107,15 @@ const programs = [
     },
 ]
 
+// Truthful, dynamic stats — no invented numbers.
+// stat 1 fills from the live programs API at runtime; the rest are
+// honest facts about the ministry. Format kept identical so the UI
+// section it powers does not change layout.
 const stats = [
-    { value: '500+', label: 'Youth Members' },
-    { value: '8', label: 'Active Programs' },
-    { value: '12+', label: 'Events Per Year' },
-    { value: '100%', label: 'Faith-Based' },
+    { value: '8',            label: 'Dimensions of Growth' },   // count of active programs, hydrated dynamically below
+    { value: 'Year-Round',   label: 'Formation & Fellowship' },
+    { value: 'Weekly',       label: 'Gatherings & Events' },
+    { value: 'Christ',       label: 'At the Centre' },
 ]
 
 const values = [
@@ -132,6 +136,18 @@ export default function YouthMinistryPage() {
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     // Per-program status keyed by slug. Empty when guest or not yet loaded.
     const [programStatus, setProgramStatus] = useState<Record<string, ProgramStatus>>({})
+    const [livePrograms, setLivePrograms] = useState<number | null>(null)
+
+    // Hydrate stat 1 from the real youth-programs API.
+    useEffect(() => {
+        let cancelled = false
+        import('@/lib/api').then(({ youthProgramApi }) =>
+            youthProgramApi.list()
+                .then(progs => { if (!cancelled) setLivePrograms(progs.filter(p => p.is_active).length) })
+                .catch(() => { /* keep static fallback */ })
+        )
+        return () => { cancelled = true }
+    }, [])
 
     useEffect(() => {
         const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
@@ -284,7 +300,11 @@ export default function YouthMinistryPage() {
             <div className="bg-[#f5bb00] py-12">
                 <div className="max-w-5xl mx-auto px-4">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-                        {stats.map(({ value, label }) => (
+                        {([
+                            // stat 1 hydrates from the live API when available; '8' is the truthful fallback
+                            { value: livePrograms != null ? String(livePrograms) : stats[0].value, label: stats[0].label },
+                            stats[1], stats[2], stats[3],
+                        ]).map(({ value, label }) => (
                             <div key={label}>
                                 <p className="text-4xl md:text-5xl font-black text-[#140152]">{value}</p>
                                 <p className="text-sm font-bold text-[#140152]/70 uppercase tracking-wider mt-1">{label}</p>
