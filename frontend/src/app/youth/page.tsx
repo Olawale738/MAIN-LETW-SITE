@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
@@ -137,6 +137,8 @@ export default function YouthMinistryPage() {
     // Per-program status keyed by slug. Empty when guest or not yet loaded.
     const [programStatus, setProgramStatus] = useState<Record<string, ProgramStatus>>({})
     const [livePrograms, setLivePrograms] = useState<number | null>(null)
+    const [slideIndex, setSlideIndex] = useState(0)
+    const [slidesPaused, setSlidesPaused] = useState(false)
 
     // Hydrate stat 1 from the real youth-programs API.
     useEffect(() => {
@@ -148,6 +150,13 @@ export default function YouthMinistryPage() {
         )
         return () => { cancelled = true }
     }, [])
+
+    // Auto-rotate the stats slides every 4.5s (unless hovered)
+    useEffect(() => {
+        if (slidesPaused) return
+        const t = setInterval(() => setSlideIndex(i => (i + 1) % 4), 4500)
+        return () => clearInterval(t)
+    }, [slidesPaused])
 
     useEffect(() => {
         const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
@@ -296,19 +305,93 @@ export default function YouthMinistryPage() {
                 </div>
             </div>
 
-            {/* ─── STATS ────────────────────────────────────────────── */}
-            <div className="bg-[#f5bb00] py-12">
-                <div className="max-w-5xl mx-auto px-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-                        {([
-                            // stat 1 hydrates from the live API when available; '8' is the truthful fallback
-                            { value: livePrograms != null ? String(livePrograms) : stats[0].value, label: stats[0].label },
-                            stats[1], stats[2], stats[3],
-                        ]).map(({ value, label }) => (
-                            <div key={label}>
-                                <p className="text-4xl md:text-5xl font-black text-[#140152]">{value}</p>
-                                <p className="text-sm font-bold text-[#140152]/70 uppercase tracking-wider mt-1">{label}</p>
-                            </div>
+            {/* ─── STATS — cinematic rotating slides on brand blue ──────────── */}
+            <div
+                className="relative overflow-hidden bg-gradient-to-br from-[#0a0028] via-[#140152] to-[#1d0175] py-20 md:py-24"
+                onMouseEnter={() => setSlidesPaused(true)}
+                onMouseLeave={() => setSlidesPaused(false)}
+            >
+                {/* Decorative floating orbs */}
+                <div className="pointer-events-none absolute inset-0">
+                    <div className="absolute -top-32 -left-32 w-[28rem] h-[28rem] bg-[#f5bb00]/15 rounded-full blur-[120px]" />
+                    <div className="absolute -bottom-40 -right-20 w-[32rem] h-[32rem] bg-[#7c3aed]/25 rounded-full blur-[140px]" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[50rem] h-[50rem] bg-[radial-gradient(closest-side,rgba(245,187,0,0.08),transparent_70%)]" />
+                </div>
+
+                {/* Faint grid overlay for texture */}
+                <div
+                    className="pointer-events-none absolute inset-0 opacity-[0.04]"
+                    style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '64px 64px' }}
+                />
+
+                <div className="relative max-w-4xl mx-auto px-4">
+                    {/* Eyebrow */}
+                    <p className="text-center text-[10px] md:text-xs font-black uppercase tracking-[0.4em] text-[#f5bb00] mb-8">
+                        Why this matters
+                    </p>
+
+                    {/* Stage */}
+                    <div className="relative min-h-[180px] md:min-h-[200px] flex items-center justify-center">
+                        <AnimatePresence mode="wait">
+                            {(() => {
+                                const slide = slideIndex === 0
+                                    ? { value: livePrograms != null ? String(livePrograms) : stats[0].value, label: stats[0].label }
+                                    : stats[slideIndex]
+                                return (
+                                    <motion.div
+                                        key={slideIndex}
+                                        initial={{ opacity: 0, y: 24, scale: 0.92 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -24, scale: 0.92 }}
+                                        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                                        className="text-center"
+                                    >
+                                        {/* Live indicator only for stat #0 */}
+                                        {slideIndex === 0 && livePrograms != null && (
+                                            <div className="inline-flex items-center gap-2 mb-4 text-[10px] font-bold uppercase tracking-[0.3em] text-[#f5bb00]/90 bg-[#f5bb00]/10 border border-[#f5bb00]/30 rounded-full px-3.5 py-1.5">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-[#f5bb00] animate-pulse" />
+                                                Live count
+                                            </div>
+                                        )}
+                                        <p className="text-7xl md:text-9xl font-black leading-none bg-gradient-to-br from-white via-white to-[#f5bb00] bg-clip-text text-transparent drop-shadow-[0_4px_30px_rgba(245,187,0,0.25)]">
+                                            {slide.value}
+                                        </p>
+                                        <div className="mt-5 inline-block">
+                                            <p className="text-sm md:text-base font-black uppercase tracking-[0.3em] text-white">
+                                                {slide.label}
+                                            </p>
+                                            <div className="mt-2 h-0.5 w-full bg-gradient-to-r from-transparent via-[#f5bb00] to-transparent" />
+                                        </div>
+                                    </motion.div>
+                                )
+                            })()}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Pagination dots */}
+                    <div className="flex items-center justify-center gap-2.5 mt-10">
+                        {[0, 1, 2, 3].map(i => (
+                            <button
+                                key={i}
+                                onClick={() => setSlideIndex(i)}
+                                aria-label={`Show stat ${i + 1}`}
+                                className="group relative h-2 rounded-full transition-all duration-500"
+                                style={{ width: i === slideIndex ? '2.5rem' : '0.5rem' }}
+                            >
+                                <span className={`absolute inset-0 rounded-full transition-colors ${
+                                    i === slideIndex ? 'bg-[#f5bb00]' : 'bg-white/25 group-hover:bg-white/45'
+                                }`} />
+                                {i === slideIndex && !slidesPaused && (
+                                    <motion.span
+                                        key={`progress-${slideIndex}`}
+                                        className="absolute inset-0 rounded-full bg-white/40"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: '100%' }}
+                                        transition={{ duration: 4.5, ease: 'linear' }}
+                                        style={{ width: '100%', originX: 0 }}
+                                    />
+                                )}
+                            </button>
                         ))}
                     </div>
                 </div>
