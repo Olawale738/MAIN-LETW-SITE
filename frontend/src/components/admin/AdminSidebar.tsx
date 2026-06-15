@@ -110,6 +110,7 @@ const sidebarItems: SidebarItem[] = [
             { title: 'Children Ministry',     href: '/children/coordinator',         icon: Baby },
             { title: "Men's Ministry",        href: '/admin/men',                    icon: ShieldCheck },
             { title: "Women's Ministry",      href: '/admin/women',                  icon: Heart },
+            { title: 'Theology School',       href: '/admin/theology-school',        icon: BookOpen },
             { title: 'Department Coords',     href: '/admin/coordinators',           icon: Users },
             { title: 'Volunteer Dashboard',   href: '/dashboard/volunteer',          icon: HandHeart },
             { title: 'Mentor Dashboard',      href: '/dashboard/mentor',             icon: BookOpen },

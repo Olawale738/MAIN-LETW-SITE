@@ -3377,8 +3377,8 @@ export interface MinistryContent {
 }
 
 export const ministryContentApi = {
-    get: (key: 'women' | 'men'): Promise<MinistryContent> =>
+    get: (key: 'women' | 'men' | 'theology'): Promise<MinistryContent> =>
         fetchApi<MinistryContent>(`/ministry-content/${key}`),
-    update: (key: 'women' | 'men', content: Record<string, any>): Promise<MinistryContent> =>
+    update: (key: 'women' | 'men' | 'theology', content: Record<string, any>): Promise<MinistryContent> =>
         fetchApi<MinistryContent>(`/ministry-content/${key}`, { method: 'PUT', body: JSON.stringify({ content }) }),
 };
