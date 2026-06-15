@@ -19,6 +19,86 @@ type JourneyStep = { step: string; title: string; desc: string }
 type StatItem = { value: string; label: string }
 type CarouselSlide = { value: string; label: string }
 type ImageItem = { src: string; alt: string }
+type Semester = { name: string; courses: string[] }
+type Requirements = { basics: string[]; docs: string[] }
+type ProgramEntry = {
+    level: number
+    title: string
+    subtitle: string
+    tag: string
+    duration: string
+    credits: string
+    courses_count: string
+    description: string
+    accent: string
+    accentTo: string
+    semesters: Semester[]
+    requirements: Requirements
+    hidden?: boolean
+}
+
+const DEFAULT_PROGRAMS: ProgramEntry[] = [
+    {
+        level: 1,
+        title: 'Certificate in Ministry',
+        subtitle: 'Foundation Program',
+        tag: 'Open to those beginning their theological journey',
+        duration: '1 Year',
+        credits: '36–40 Credit Hours',
+        courses_count: '15 Core Courses',
+        description: 'Build a strong foundation in biblical studies, theology, and practical ministry. Introduces you to Scripture, Christian doctrine, spiritual formation, and essential ministry skills.',
+        accent: '#3b82f6',
+        accentTo: '#06b6d4',
+        semesters: [
+            { name: 'Semester 1', courses: ['Ministry Formation','Introduction to Biblical Literature','Foundations of Ministry','Intro to Christian Theology','Spiritual Disciplines','Old Testament Survey','Synoptic Gospels','Ethics & Christian Worldview'] },
+            { name: 'Semester 2', courses: ['Pentateuch','New Testament Survey','Jesus and the Gospels','Spiritual Gifts I','Introduction to Worship & Service','Biblical Interpretation & Application','Introduction to Christian Ethics','Introduction to Church History','World Religions Overview'] },
+        ],
+        requirements: {
+            basics: ['Basic secondary school education (or equivalent life experience)','Ability to read, write, and communicate effectively in English','Personal commitment to Christian faith and spiritual growth','Interest in ministry, leadership, or biblical studies'],
+            docs:   ['Completed application form','Short personal statement (calling, faith journey, ministry interest)','Recommendation from a pastor, church leader, or mentor (optional but encouraged)'],
+        },
+    },
+    {
+        level: 2,
+        title: 'Diploma in Ministry and Divinity',
+        subtitle: 'Intermediate Program',
+        tag: 'Deeper academic and practical ministry formation',
+        duration: '1 Year',
+        credits: '36–40 Credit Hours',
+        courses_count: '18 Advanced Courses',
+        description: 'Deepen your theological understanding and ministry competencies. Advances your study in systematic theology, biblical exegesis, church history, and practical applications including preaching and discipleship.',
+        accent: '#7c3aed',
+        accentTo: '#a855f7',
+        semesters: [
+            { name: 'Semester 1', courses: ['Theology II (Systematic Theology)','Scripture, Exegesis & Hermeneutics','Cultures of Ancient Civilizations','Spiritual Gifts II','Church History: Early to Medieval Period','Mission in Contemporary Context','Christian Doctrine & Ethics','Pauline Theology','Protestant Reformation'] },
+            { name: 'Semester 2', courses: ['Christian Communication Skills','Romans (Biblical Book Study)','Exploring Other Faiths','Kings & Prophets','Biblical Exegesis Practicum','Preaching & Teaching Practicum','Methods in Discipleship','Church Planting & Evangelism','Leadership and Spirituality'] },
+        ],
+        requirements: {
+            basics: ['Successful completion of Certificate in Ministry OR equivalent theological training','Demonstrated commitment to church involvement or ministry service','Basic understanding of Scripture and Christian doctrine'],
+            docs:   ['Completed application form','Academic transcript or proof of prior theological study','Personal statement outlining ministry goals','Recommendation from a pastor or ministry supervisor'],
+        },
+    },
+    {
+        level: 3,
+        title: 'Advanced Diploma in Ministry and Divinity',
+        subtitle: 'Advanced Leadership',
+        tag: 'For strategic ministry, pastoral work, and theological engagement',
+        duration: '1 Year',
+        credits: '36–40 Credit Hours',
+        courses_count: '29 Specialized Courses + Internship',
+        description: 'Achieve scholarly expertise and advanced ministry leadership. Master biblical languages, engage with cutting-edge theological discourse, specialize in pastoral care or missional leadership, and complete a comprehensive internship.',
+        accent: '#f5bb00',
+        accentTo: '#ea580c',
+        semesters: [
+            { name: 'Semester 1', courses: ['Greek & Hebrew Exegesis Studies','Theology III (Advanced Systematic Theology)','Pastoral Leadership & Care','Doctrine of God','Digital Theology','Global Theologies','Christianity and the Arts','Pneumatology','Evangelism & Apologetics','Church History: Reformation to Contemporary','Ecclesiology & Church Mission','Church Planting & Evangelism'] },
+            { name: 'Semester 2', courses: ['Contextualized Ministry','Hermeneutics & Homiletics','The Bible and Global Challenges','Wisdom Literature','Political Theologies: Wealth, Race, Gender','Leadership & Theology for Ministry & Mission','Multimedia Worship Skills','Cross-cultural Ministry','Missions & Social Transformation','Counselling in a Pastoral Setting','Internship (Practical Ministry Experience)'] },
+        ],
+        requirements: {
+            basics: ['Successful completion of Diploma in Ministry and Divinity OR equivalent qualification','Demonstrated leadership responsibility in church or ministry context','Academic readiness for advanced theological study','Willingness to complete internship/supervised ministry placement'],
+            docs:   ['Completed application form','Official transcripts or evidence of prior theological education','Detailed personal statement or ministry vision statement','Pastoral or professional reference confirming leadership experience'],
+        },
+    },
+]
 
 export default function TheologyContentEditorPage() {
     const { showToast, ToastComponent } = useToast()
@@ -99,6 +179,8 @@ export default function TheologyContentEditorPage() {
         { src: '/theology2.png', alt: 'Theology Flyer 2' },
         { src: '/theology3.png', alt: 'Theology Flyer 3' },
     ])
+    const [programs, setPrograms] = useState<ProgramEntry[]>(DEFAULT_PROGRAMS)
+    const [expandedProgram, setExpandedProgram] = useState<number | null>(null)
 
     useEffect(() => {
         (async () => {
@@ -147,6 +229,7 @@ export default function TheologyContentEditorPage() {
                 if (Array.isArray(c.journey) && c.journey.length > 0) setJourney(c.journey)
                 if (Array.isArray(c.gains) && c.gains.length > 0) setGains(c.gains)
                 if (Array.isArray(c.images) && c.images.length > 0) setImages(c.images)
+                if (Array.isArray(c.programs) && c.programs.length > 0) setPrograms(c.programs)
             } catch (e) {
                 showToast('Load failed — will save fresh', 'info')
             } finally {
@@ -166,6 +249,7 @@ export default function TheologyContentEditorPage() {
                 journey: journey.filter(j => j.title?.trim()),
                 gains: gains.filter(g => g.trim()),
                 images: images.filter(i => i.src?.trim()),
+                programs: programs.filter(p => p.title?.trim()),
             }
             await ministryContentApi.update('theology', content)
             showToast('Saved theology school content', 'success')
@@ -433,16 +517,148 @@ export default function TheologyContentEditorPage() {
                 </CardContent>
             </Card>
 
-            {/* PROGRAMS NOTE */}
-            <Card className="border-l-4 border-l-amber-400 bg-amber-50/30">
-                <CardContent className="p-5 text-sm text-amber-900">
-                    <p className="font-bold mb-1">A note on the three programs</p>
-                    <p>
-                        The Certificate / Diploma / Advanced Diploma programs (with their semester course
-                        lists, requirements, and credit hours) live in code as protected defaults. To rename
-                        or restructure them, ping a developer — the rest of the page (every heading, every
-                        pillar, every step, every CTA, every image, every stat) is fully editable above.
+            {/* PROGRAMS MANAGER */}
+            <Card className="border-l-4 border-l-[#f5bb00]">
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2"><GraduationCap className="w-5 h-5 text-[#f5bb00]" /> Programs ({programs.length})</CardTitle>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const nextLevel = Math.max(0, ...programs.map(p => p.level)) + 1
+                            setPrograms([...programs, {
+                                level: nextLevel,
+                                title: 'New Program',
+                                subtitle: '', tag: '',
+                                duration: '1 Year', credits: '', courses_count: '',
+                                description: '',
+                                accent: '#7c3aed', accentTo: '#a855f7',
+                                semesters: [{ name: 'Semester 1', courses: [''] }],
+                                requirements: { basics: [''], docs: [''] },
+                            }])
+                            setExpandedProgram(programs.length)
+                        }}
+                        className="text-sm font-bold text-[#140152] hover:text-[#f5bb00] inline-flex items-center gap-1"
+                    >
+                        <Plus className="w-4 h-4" /> Add program
+                    </button>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-xs text-gray-500 mb-2">
+                        Click a program to expand its full editor (title, semesters, courses, requirements).
+                        Drag with ↑↓ to reorder. Delete entirely with 🗑.
                     </p>
+                    {programs.map((p, i) => {
+                        const isOpen = expandedProgram === i
+                        return (
+                            <div key={i} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                                <div className="flex items-center justify-between gap-3 p-3 cursor-pointer hover:bg-gray-50" onClick={() => setExpandedProgram(isOpen ? null : i)}>
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <span className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-white font-black text-xs"
+                                            style={{ background: `linear-gradient(135deg, ${p.accent}, ${p.accentTo})` }}>
+                                            L{p.level}
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="font-black text-[#140152] truncate">{p.title || '(untitled)'}</p>
+                                            <p className="text-xs text-gray-500 truncate">{p.subtitle} · {p.semesters.length} semester{p.semesters.length === 1 ? '' : 's'} · {p.semesters.reduce((a, s) => a + s.courses.length, 0)} courses</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                        <button type="button" onClick={(e) => { e.stopPropagation(); move(programs, setPrograms, i, -1) }} disabled={i === 0} className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
+                                        <button type="button" onClick={(e) => { e.stopPropagation(); move(programs, setPrograms, i, 1) }} disabled={i === programs.length - 1} className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
+                                        <button type="button" onClick={(e) => { e.stopPropagation(); if (confirm(`Delete program "${p.title}"?`)) setPrograms(arr => arr.filter((_, k) => k !== i)) }} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                </div>
+
+                                {isOpen && (
+                                    <div className="border-t border-gray-100 p-4 space-y-4 bg-gray-50/50">
+                                        {/* Identity row */}
+                                        <div className="grid md:grid-cols-3 gap-2">
+                                            <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Level number</label>
+                                                <Input type="number" value={p.level} onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, level: parseInt(e.target.value) || 0 } : x))} className="text-gray-900 text-sm" /></div>
+                                            <div className="md:col-span-2"><label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Title</label>
+                                                <Input value={p.title} onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, title: e.target.value } : x))} className="text-gray-900 text-sm" /></div>
+                                        </div>
+                                        <div className="grid md:grid-cols-2 gap-2">
+                                            <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Subtitle (Foundation Program, etc.)</label>
+                                                <Input value={p.subtitle} onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, subtitle: e.target.value } : x))} className="text-gray-900 text-sm" /></div>
+                                            <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Tag (italic header line)</label>
+                                                <Input value={p.tag} onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, tag: e.target.value } : x))} className="text-gray-900 text-sm" /></div>
+                                        </div>
+                                        <div className="grid md:grid-cols-3 gap-2">
+                                            <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Duration</label>
+                                                <Input value={p.duration} onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, duration: e.target.value } : x))} placeholder="1 Year" className="text-gray-900 text-sm" /></div>
+                                            <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Credits</label>
+                                                <Input value={p.credits} onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, credits: e.target.value } : x))} placeholder="36–40 Credit Hours" className="text-gray-900 text-sm" /></div>
+                                            <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Courses count</label>
+                                                <Input value={p.courses_count} onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, courses_count: e.target.value } : x))} placeholder="15 Core Courses" className="text-gray-900 text-sm" /></div>
+                                        </div>
+                                        <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Description</label>
+                                            <Textarea value={p.description} onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, description: e.target.value } : x))} rows={3} className="text-gray-900 text-sm" /></div>
+                                        <div className="grid md:grid-cols-2 gap-2">
+                                            <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Accent color (start)</label>
+                                                <Input value={p.accent} onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, accent: e.target.value } : x))} placeholder="#3b82f6" className="text-gray-900 text-sm font-mono" /></div>
+                                            <div><label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Accent color (end)</label>
+                                                <Input value={p.accentTo} onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, accentTo: e.target.value } : x))} placeholder="#06b6d4" className="text-gray-900 text-sm font-mono" /></div>
+                                        </div>
+
+                                        {/* Semesters */}
+                                        <div className="border-t border-gray-200 pt-4">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <p className="text-xs font-bold uppercase tracking-wider text-gray-700">Semesters ({p.semesters.length})</p>
+                                                <button type="button"
+                                                    onClick={() => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, semesters: [...x.semesters, { name: `Semester ${x.semesters.length + 1}`, courses: [''] }] } : x))}
+                                                    className="text-xs font-bold inline-flex items-center gap-1 text-[#140152] hover:text-[#1d0175]"><Plus className="w-3 h-3" /> Add semester</button>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {p.semesters.map((s, si) => (
+                                                    <div key={si} className="rounded-lg bg-white border border-gray-200 p-3 space-y-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <Input value={s.name} onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, semesters: x.semesters.map((y, kk) => kk === si ? { ...y, name: e.target.value } : y) } : x))} placeholder="Semester 1" className="text-gray-900 text-sm" />
+                                                            <button type="button" onClick={() => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, semesters: x.semesters.filter((_, kk) => kk !== si) } : x))} className="p-1 text-red-500 hover:bg-red-50 rounded shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Courses (one per line — press Enter for a new course)</label>
+                                                            <Textarea
+                                                                value={s.courses.join('\n')}
+                                                                onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, semesters: x.semesters.map((y, kk) => kk === si ? { ...y, courses: e.target.value.split('\n') } : y) } : x))}
+                                                                onBlur={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, semesters: x.semesters.map((y, kk) => kk === si ? { ...y, courses: e.target.value.split('\n').map(c => c.trim()).filter(Boolean) } : y) } : x))}
+                                                                rows={Math.max(5, Math.min(15, s.courses.length + 1))}
+                                                                className="text-gray-900 text-sm font-mono"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Requirements */}
+                                        <div className="border-t border-gray-200 pt-4 grid md:grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Eligibility (one per line)</label>
+                                                <Textarea
+                                                    value={p.requirements.basics.join('\n')}
+                                                    onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, requirements: { ...x.requirements, basics: e.target.value.split('\n') } } : x))}
+                                                    onBlur={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, requirements: { ...x.requirements, basics: e.target.value.split('\n').map(b => b.trim()).filter(Boolean) } } : x))}
+                                                    rows={5}
+                                                    className="text-gray-900 text-sm"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Required documents (one per line)</label>
+                                                <Textarea
+                                                    value={p.requirements.docs.join('\n')}
+                                                    onChange={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, requirements: { ...x.requirements, docs: e.target.value.split('\n') } } : x))}
+                                                    onBlur={e => setPrograms(arr => arr.map((x, k) => k === i ? { ...x, requirements: { ...x.requirements, docs: e.target.value.split('\n').map(d => d.trim()).filter(Boolean) } } : x))}
+                                                    rows={5}
+                                                    className="text-gray-900 text-sm"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
                 </CardContent>
             </Card>
 
