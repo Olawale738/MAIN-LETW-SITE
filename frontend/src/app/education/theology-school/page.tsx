@@ -720,10 +720,10 @@ export default function TheologySchoolPage() {
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                        <Link href="/auth/register?next=/education/theology-school"
+                        <a href="https://live.letw.org" target="_blank" rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-white text-[#140152] font-bold px-8 py-4 rounded-full transition-all hover:scale-105 shadow-2xl">
                             {c.final_primary_cta} <ArrowRight className="w-4 h-4" />
-                        </Link>
+                        </a>
                         <Link href="/contact"
                             className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white font-bold px-8 py-4 rounded-full transition-all hover:scale-105">
                             <Quote className="w-4 h-4" /> {c.final_secondary_cta}
