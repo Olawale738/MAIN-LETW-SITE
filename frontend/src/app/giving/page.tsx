@@ -42,7 +42,8 @@ export default function GivingPage() {
   const intlCurrency = selectedIntl?.currency || 'USD'
   const intlSymbol = ({ USD: '$', EUR: '€', GBP: '£', CAD: 'C$', AUD: 'A$', ZAR: 'R' } as Record<string, string>)[intlCurrency] || intlCurrency + ' '
   const isValidIntlAmount = intlAmount && !isNaN(parseFloat(intlAmount)) && parseFloat(intlAmount) > 0
-  const isValidIntl = isValidIntlAmount && email && email.includes('@')
+  // Email is optional — only validated if provided (for receipt). Amount alone is enough to give.
+  const isValidIntl = !!isValidIntlAmount
 
   const handleIntlGive = async () => {
     if (!isValidIntl || !intlProviderId) return
@@ -87,8 +88,8 @@ export default function GivingPage() {
 
   // Basic validation check
   const isValidAmount = amount && !isNaN(parseInt(amount)) && parseInt(amount) > 0;
-  const isValidEmail = email && email.includes('@');
-  const isValid = isValidAmount && isValidEmail;
+  // Email is optional — only used for receipt if provided. Amount alone is enough to give.
+  const isValid = !!isValidAmount;
 
   const getFundName = (id: string) => funds.find(f => f.id === id)?.name || 'Donation';
 
@@ -273,7 +274,7 @@ export default function GivingPage() {
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          placeholder="Enter your email address"
+                          placeholder="Email (optional, for receipt)"
                           className="w-full h-14 px-4 rounded-xl border-gray-200 bg-gray-50/50 hover:bg-gray-100 focus:bg-white transition-all focus:ring-2 focus:ring-[#140152] focus:border-transparent outline-none font-medium text-[#140152]"
                         />
                       </div>
@@ -477,7 +478,7 @@ export default function GivingPage() {
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          placeholder="Enter your email address"
+                          placeholder="Email (optional, for receipt)"
                           className="w-full h-14 px-4 rounded-xl border-gray-200 bg-gray-50/50 hover:bg-gray-100 focus:bg-white transition-all focus:ring-2 focus:ring-[#140152] focus:border-transparent outline-none font-medium text-[#140152]"
                         />
                       </div>
