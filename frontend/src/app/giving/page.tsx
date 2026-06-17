@@ -168,8 +168,8 @@ export default function GivingPage() {
                 ))}
               </div>
               <div>
-                <p className="font-bold text-lg">Join 500+ Givers</p>
-                <p className="text-sm text-gray-400">Supporting the vision weekly</p>
+                <p className="font-bold text-lg">Join the Cheerful Givers</p>
+                <p className="text-sm text-gray-400">Sowing into eternity</p>
               </div>
             </div>
           </div>
