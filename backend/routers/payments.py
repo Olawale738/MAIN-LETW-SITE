@@ -385,6 +385,21 @@ async def list_donations(
     } for d in rows]
 
 
+@router.get("/donations/by-reference/{reference}")
+async def donation_by_reference(reference: str, db: AsyncSession = Depends(get_db)):
+    """Public lookup by reference — for the thank-you page to confirm payment status.
+    Reference is an unguessable random token, so this is safe to expose unauthenticated."""
+    res = await db.execute(select(Donation).where(Donation.reference == reference))
+    d = res.scalar_one_or_none()
+    if not d:
+        raise HTTPException(404, "Donation not found")
+    return {
+        "reference": d.reference, "payer_name": d.payer_name,
+        "amount": float(d.amount), "currency": d.currency,
+        "fund": d.fund, "status": d.status, "created_at": d.created_at,
+    }
+
+
 @router.get("/stats")
 async def donation_stats(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     res = await db.execute(

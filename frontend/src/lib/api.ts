@@ -3540,6 +3540,8 @@ export const paymentsApi = {
         return fetchApi<Donation[]>(`/payments/donations?${qs.toString()}`);
     },
     stats: () => fetchApi<{ by_status: Record<string, { count: number; amount: number }>; by_fund: Array<{ fund: string; count: number; amount: number }> }>('/payments/stats'),
+    lookupByReference: (reference: string) =>
+        fetchApi<{ reference: string; payer_name: string; amount: number; currency: string; fund: string; status: string; created_at: string }>(`/payments/donations/by-reference/${encodeURIComponent(reference)}`),
 };
 
 // ─── Event photo upload (file) ──────────────────────────────────────────────
