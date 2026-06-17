@@ -4,34 +4,65 @@ import { toast } from 'sonner'
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Heart, Building, Users, BookOpen, CreditCard, Landmark, Bitcoin, CheckCircle2, ChevronRight, Copy, ChevronDown, Loader2 } from 'lucide-react'
+import { Heart, Building, Users, BookOpen, CreditCard, Landmark, Bitcoin, CheckCircle2, ChevronRight, Copy, ChevronDown, Loader2, Globe } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { paymentsApi, type PaymentProvider } from '@/lib/api'
 
 export default function GivingPage() {
-  const [activeMethod, setActiveMethod] = useState<'card' | 'bank' | 'paypal'>('card')
+  const [activeMethod, setActiveMethod] = useState<'card' | 'bank' | 'intl' | 'paypal'>('card')
   const [amount, setAmount] = useState('5000')
   const [email, setEmail] = useState('')
   const [copied, setCopied] = useState(false)
   const [fund, setFund] = useState('tithe')
   const [providers, setProviders] = useState<PaymentProvider[]>([])
+  const [intlProviders, setIntlProviders] = useState<PaymentProvider[]>([])
   const [selectedProviderId, setSelectedProviderId] = useState('')
+  const [intlProviderId, setIntlProviderId] = useState('')
+  const [intlAmount, setIntlAmount] = useState('25')
   const [submitting, setSubmitting] = useState(false)
 
-  // Load admin-configured payment providers from API. Card tab uses these
-  // (whichever is first/active). Bank & PayPal tabs continue showing instructions.
+  // Load admin-configured payment providers from API. Card tab uses NGN providers;
+  // International tab uses Stripe + any non-NGN provider. Bank & PayPal tabs unchanged.
   useEffect(() => {
     paymentsApi.publicProviders()
       .then((p) => {
-        // Prefer card-style providers (anything that isn't 'manual') for the Card tab
-        const cardProviders = p.filter(x => x.slug !== 'manual')
-        setProviders(cardProviders)
-        if (cardProviders[0]) setSelectedProviderId(cardProviders[0].id)
+        const ngnCard = p.filter(x => x.slug !== 'manual' && (x.currency || '').toUpperCase() === 'NGN')
+        const intl = p.filter(x => x.slug !== 'manual' && (x.slug === 'stripe' || x.slug === 'paypal' || (x.currency || '').toUpperCase() !== 'NGN'))
+        setProviders(ngnCard)
+        setIntlProviders(intl)
+        if (ngnCard[0]) setSelectedProviderId(ngnCard[0].id)
+        if (intl[0]) setIntlProviderId(intl[0].id)
       })
       .catch(() => { /* silently fall back to disabled button */ })
   }, [])
+
+  const selectedIntl = intlProviders.find(p => p.id === intlProviderId)
+  const intlCurrency = selectedIntl?.currency || 'USD'
+  const intlSymbol = ({ USD: '$', EUR: '€', GBP: '£', CAD: 'C$', AUD: 'A$', ZAR: 'R' } as Record<string, string>)[intlCurrency] || intlCurrency + ' '
+  const isValidIntlAmount = intlAmount && !isNaN(parseFloat(intlAmount)) && parseFloat(intlAmount) > 0
+  const isValidIntl = isValidIntlAmount && email && email.includes('@')
+
+  const handleIntlGive = async () => {
+    if (!isValidIntl || !intlProviderId) return
+    setSubmitting(true)
+    try {
+      const r = await paymentsApi.checkout({
+        provider_id: intlProviderId,
+        amount: parseFloat(intlAmount),
+        currency: intlCurrency,
+        fund: funds.find(f => f.id === fund)?.name || 'Donation',
+        payer_name: 'Anonymous',
+        payer_email: email,
+      })
+      if (r.checkout_url) window.location.href = r.checkout_url
+    } catch (err) {
+      toast.error((err as Error).message || 'Failed to start checkout. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -43,6 +74,7 @@ export default function GivingPage() {
   const paymentMethods = [
     { id: 'card', name: 'Card', icon: CreditCard },
     { id: 'bank', name: 'Transfer', icon: Landmark },
+    { id: 'intl', name: 'International', icon: Globe },
     { id: 'paypal', name: 'Paypal', icon: Bitcoin },
   ]
 
@@ -342,6 +374,137 @@ export default function GivingPage() {
                               <Copy className="w-4 h-4" />
                             </Button>
                           </div> */}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeMethod === 'intl' && (
+                    <motion.div
+                      key="intl"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-6"
+                    >
+                      <div className="text-center mb-2">
+                        <div className="mx-auto w-14 h-14 rounded-2xl bg-[#f5bb00]/10 flex items-center justify-center text-[#f5bb00] mb-3">
+                          <Globe className="w-7 h-7" />
+                        </div>
+                        <p className="text-xs font-extrabold text-[#140152] uppercase tracking-wider">Give from anywhere in the world</p>
+                        <p className="text-[11px] text-gray-500 mt-1">Stripe, PayPal, and international cards. {intlCurrency} processed by your bank.</p>
+                      </div>
+
+                      {/* Fund selector */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-extrabold text-[#140152] uppercase tracking-wider ml-1">Select Fund</label>
+                        <Select onValueChange={setFund} value={fund}>
+                          <SelectTrigger className="w-full h-14 rounded-xl border-gray-200 bg-gray-50/50 hover:bg-gray-100 transition-colors focus:ring-1 focus:ring-[#140152] focus:border-[#140152]">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-[#f5bb00]/10 flex items-center justify-center text-[#f5bb00]">
+                                {funds.map(f => f.id === fund && <f.icon key={f.id} className="w-4 h-4" />)}
+                              </div>
+                              <SelectValue placeholder="Select Fund" />
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {funds.map(f => (
+                              <SelectItem key={f.id} value={f.id} className="font-medium">{f.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Provider chips — shown when admin has configured >1 international provider */}
+                      {intlProviders.length > 1 && (
+                        <div className="space-y-2">
+                          <label className="text-xs font-extrabold text-[#140152] uppercase tracking-wider ml-1">Payment Method</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {intlProviders.map(p => (
+                              <button key={p.id} onClick={() => setIntlProviderId(p.id)}
+                                className={cn(
+                                  "px-3 py-2.5 rounded-xl border text-left text-sm font-bold transition-all",
+                                  intlProviderId === p.id
+                                    ? "border-[#140152] bg-[#140152] text-white shadow-md"
+                                    : "border-gray-200 text-gray-600 bg-white hover:border-[#140152]"
+                                )}>
+                                {p.name}
+                                <span className="block text-[10px] font-semibold opacity-60 uppercase">{p.currency}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Amount presets (currency-aware) */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-extrabold text-[#140152] uppercase tracking-wider ml-1">Or Choose Amount</label>
+                        <div className="grid grid-cols-4 gap-2">
+                          {['10', '25', '50', '100'].map((amt) => (
+                            <button
+                              key={amt}
+                              onClick={() => setIntlAmount(amt)}
+                              className={cn(
+                                "py-2.5 rounded-xl border font-bold text-xs transition-all",
+                                intlAmount === amt
+                                  ? "border-[#140152] bg-[#140152] text-white shadow-lg shadow-[#140152]/30"
+                                  : "border-gray-200 text-gray-500 hover:border-[#140152] bg-white"
+                              )}
+                            >
+                              {intlSymbol}{parseInt(amt).toLocaleString()}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Custom amount */}
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#140152] font-black text-lg">{intlSymbol}</span>
+                          <input
+                            type="number"
+                            value={intlAmount}
+                            onChange={(e) => setIntlAmount(e.target.value)}
+                            placeholder="Custom Amount"
+                            className="w-full h-14 pl-12 pr-4 rounded-xl border-gray-200 bg-gray-50/50 hover:bg-gray-100 focus:bg-white transition-all focus:ring-2 focus:ring-[#140152] focus:border-transparent outline-none font-bold text-xl text-[#140152]"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Email */}
+                      <div className="space-y-2">
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="Enter your email address"
+                          className="w-full h-14 px-4 rounded-xl border-gray-200 bg-gray-50/50 hover:bg-gray-100 focus:bg-white transition-all focus:ring-2 focus:ring-[#140152] focus:border-transparent outline-none font-medium text-[#140152]"
+                        />
+                      </div>
+
+                      {/* Action button */}
+                      <div className="pt-2">
+                        {intlProviders.length === 0 ? (
+                          <Button disabled className="w-full h-14 text-base shadow-none bg-gray-100 text-gray-400 font-bold rounded-xl">
+                            International giving not yet enabled
+                          </Button>
+                        ) : !isValidIntl ? (
+                          <Button disabled className="w-full h-14 text-base shadow-none bg-gray-100 text-gray-400 font-bold rounded-xl">
+                            {!isValidIntlAmount ? 'Enter Valid Amount' : 'Enter Email to Give'}
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={handleIntlGive}
+                            disabled={submitting}
+                            className="w-full h-14 text-base shadow-xl shadow-[#f5bb00]/20 bg-[#f5bb00] text-[#140152] font-bold rounded-xl hover:bg-[#ffc820] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                          >
+                            {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                            Give {intlSymbol}{parseFloat(intlAmount || '0').toLocaleString()}
+                          </Button>
+                        )}
+                        <div className="flex items-center justify-center gap-2 mt-4 text-[10px] text-gray-400 font-medium uppercase tracking-widest">
+                          <CheckCircle2 className="w-3 h-3 text-green-500" />
+                          Secure SSL Encrypted
                         </div>
                       </div>
                     </motion.div>
