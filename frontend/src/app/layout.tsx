@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import ConditionalLayout from "@/components/layout/ConditionalLayout";
+import BrandingApplier from "@/components/BrandingApplier";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="scroll-smooth">
       <body className={`${poppins.variable} font-sans antialiased animate-page-load`} suppressHydrationWarning>
+        <BrandingApplier />
         <ConditionalLayout>
           {children}
         </ConditionalLayout>

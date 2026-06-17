@@ -107,7 +107,7 @@ export default function Navbar() {
           {/* LOGO */}
           <Link href="/" className="flex-shrink-0 flex items-center gap-1 group z-50 relative">
             <motion.div whileHover={{ rotate: 10 }} className="w-12 h-12 md:w-10 md:h-10 flex items-center justify-center">
-              <img src="/headerNewLETWlogo.png" alt="LETWlogo" className="w-full h-full object-cover" />
+              <img src="/headerNewLETWlogo.png" alt="LETWlogo" data-branding="logo" className="w-full h-full object-cover" />
             </motion.div>
             <span className="font-black text-sm md:text-xs tracking-tight text-[#140152] leading-tight">
               LETW

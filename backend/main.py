@@ -135,6 +135,10 @@ app.include_router(youth_program.router)
 # Ministry content (Women's + Men's ministry editable sections)
 from routers import ministry_content
 app.include_router(ministry_content.router)
+
+# Site Branding (admin-uploaded logo + favicon)
+from routers import site_branding
+app.include_router(site_branding.router)
 # Deploy nudge: ensures Render picks up youth_programs router and tables
 # (youth_programs, youth_program_messages, youth_program_activities,
 #  youth_program_rsvps, youth_program_attendances).
@@ -169,6 +173,7 @@ os.makedirs(UPLOADS_DIR, exist_ok=True)
 os.makedirs(f"{UPLOADS_DIR}/audio", exist_ok=True)
 os.makedirs(f"{UPLOADS_DIR}/audio/covers", exist_ok=True)
 os.makedirs(f"{UPLOADS_DIR}/bible-resources", exist_ok=True)
+os.makedirs(f"{UPLOADS_DIR}/branding", exist_ok=True)
 
 # Mount the uploads directory to serve static files
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")

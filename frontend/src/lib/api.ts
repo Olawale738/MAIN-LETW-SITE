@@ -3382,3 +3382,45 @@ export const ministryContentApi = {
     update: (key: 'women' | 'men' | 'theology', content: Record<string, any>): Promise<MinistryContent> =>
         fetchApi<MinistryContent>(`/ministry-content/${key}`, { method: 'PUT', body: JSON.stringify({ content }) }),
 };
+
+// ============= Site Branding (admin-uploaded logo + favicon) =============
+
+export interface SiteBranding {
+    logo_url: string | null;
+    favicon_url: string | null;
+    updated_at?: string | null;
+}
+
+// Backend serves uploads at <origin>/uploads/...  — strip the trailing /api off API_BASE_URL.
+const ASSET_BASE = API_BASE_URL.replace(/\/api\/?$/, '');
+
+export function resolveBrandingUrl(path: string | null | undefined): string | null {
+    if (!path) return null;
+    if (/^https?:\/\//i.test(path)) return path;
+    return `${ASSET_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+async function uploadBrandingFile(endpoint: '/site-branding/logo' | '/site-branding/favicon', file: File): Promise<SiteBranding> {
+    const fd = new FormData();
+    fd.append('file', file);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        body: fd,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || `Upload failed (${res.status})`);
+    }
+    const partial = await res.json();
+    return { logo_url: partial.logo_url ?? null, favicon_url: partial.favicon_url ?? null };
+}
+
+export const siteBrandingApi = {
+    get: (): Promise<SiteBranding> => fetchApi<SiteBranding>('/site-branding'),
+    uploadLogo: (file: File) => uploadBrandingFile('/site-branding/logo', file),
+    uploadFavicon: (file: File) => uploadBrandingFile('/site-branding/favicon', file),
+    clearLogo: (): Promise<SiteBranding> => fetchApi<SiteBranding>('/site-branding/logo', { method: 'DELETE' }),
+    clearFavicon: (): Promise<SiteBranding> => fetchApi<SiteBranding>('/site-branding/favicon', { method: 'DELETE' }),
+};
