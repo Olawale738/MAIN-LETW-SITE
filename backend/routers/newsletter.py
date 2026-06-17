@@ -10,7 +10,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import select, func as sql_func
+from sqlalchemy import select, delete as sql_delete, func as sql_func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
@@ -231,3 +231,29 @@ async def list_broadcasts(
         select(NewsletterBroadcast).order_by(NewsletterBroadcast.created_at.desc())
     )
     return res.scalars().all()
+
+
+@router.delete("/broadcasts", status_code=200)
+async def clear_broadcast_history(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+):
+    """Delete every past broadcast record. Does not unsend any email — just clears the log."""
+    res = await db.execute(sql_delete(NewsletterBroadcast))
+    await db.commit()
+    return {"deleted": res.rowcount or 0}
+
+
+@router.delete("/broadcasts/{broadcast_id}", status_code=200)
+async def delete_broadcast(
+    broadcast_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+):
+    res = await db.execute(select(NewsletterBroadcast).where(NewsletterBroadcast.id == broadcast_id))
+    record = res.scalar_one_or_none()
+    if not record:
+        raise HTTPException(status_code=404, detail="Broadcast not found")
+    await db.delete(record)
+    await db.commit()
+    return {"deleted": 1}

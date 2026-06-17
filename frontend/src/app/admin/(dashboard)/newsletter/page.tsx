@@ -116,6 +116,30 @@ export default function AdminNewsletterPage() {
         }
     }
 
+    const deleteBroadcast = async (id: string, subject: string) => {
+        if (!confirm(`Delete "${subject || '(no subject)'}" from history?\n\nThis only clears the log entry — it does NOT unsend the email.`)) return
+        try {
+            await api(`/newsletter/broadcasts/${id}`, { method: 'DELETE' })
+            setOk('Broadcast entry removed from history.')
+            await loadBroadcasts()
+        } catch (e) {
+            setErr((e as Error).message)
+        }
+    }
+
+    const clearAllHistory = async () => {
+        if (broadcasts.length === 0) return
+        if (!confirm(`Clear ALL ${broadcasts.length} broadcast${broadcasts.length === 1 ? '' : 's'} from history?\n\nThis only clears the log — it does NOT unsend any emails. This cannot be undone.`)) return
+        if (!confirm('Are you absolutely sure? Type-check: this will delete every past broadcast record permanently.')) return
+        try {
+            const r = await api<{ deleted: number }>(`/newsletter/broadcasts`, { method: 'DELETE' })
+            setOk(`Cleared ${r.deleted} broadcast${r.deleted === 1 ? '' : 's'} from history.`)
+            await loadBroadcasts()
+        } catch (e) {
+            setErr((e as Error).message)
+        }
+    }
+
     if (loading) {
         return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-[#140152]" /></div>
     }
@@ -262,15 +286,27 @@ export default function AdminNewsletterPage() {
             {/* HISTORY */}
             {tab === 'history' && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="px-5 py-4 border-b border-gray-100">
+                    <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
                         <p className="font-bold text-[#140152]">Past Broadcasts ({broadcasts.length})</p>
+                        <div className="flex items-center gap-2">
+                            <button onClick={loadBroadcasts}
+                                className="text-sm text-gray-500 hover:text-[#140152] flex items-center gap-1.5">
+                                <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                            </button>
+                            {broadcasts.length > 0 && (
+                                <button onClick={clearAllHistory}
+                                    className="inline-flex items-center gap-1.5 text-sm font-bold text-red-600 hover:text-white hover:bg-red-600 border border-red-200 hover:border-red-600 rounded-lg px-3 py-1.5 transition-colors">
+                                    <Trash2 className="w-3.5 h-3.5" /> Clear All History
+                                </button>
+                            )}
+                        </div>
                     </div>
                     {broadcasts.length === 0 ? (
                         <div className="px-5 py-12 text-center text-gray-400">No broadcasts have been sent yet.</div>
                     ) : (
                         <div className="divide-y divide-gray-100">
                             {broadcasts.map(b => (
-                                <div key={b.id} className="px-5 py-4 flex items-start gap-3">
+                                <div key={b.id} className="px-5 py-4 flex items-start gap-3 hover:bg-gray-50 group">
                                     <div className="w-9 h-9 rounded-xl bg-[#f5bb00]/15 text-[#140152] flex items-center justify-center flex-shrink-0"><Mail className="w-4 h-4" /></div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-bold text-[#140152] truncate">{b.subject}</p>
@@ -278,10 +314,16 @@ export default function AdminNewsletterPage() {
                                             {new Date(b.created_at).toLocaleString()} · {b.success_count}/{b.recipients_count} delivered{b.failure_count ? ` · ${b.failure_count} failed` : ''}
                                         </p>
                                     </div>
+                                    <button onClick={() => deleteBroadcast(b.id, b.subject)} title="Remove from history"
+                                        className="p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    ><Trash2 className="w-4 h-4" /></button>
                                 </div>
                             ))}
                         </div>
                     )}
+                    <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 text-[11px] text-gray-500">
+                        Clearing history only removes log entries — it does <strong>not</strong> unsend any email already delivered to subscribers.
+                    </div>
                 </div>
             )}
         </div>
