@@ -3424,3 +3424,149 @@ export const siteBrandingApi = {
     clearLogo: (): Promise<SiteBranding> => fetchApi<SiteBranding>('/site-branding/logo', { method: 'DELETE' }),
     clearFavicon: (): Promise<SiteBranding> => fetchApi<SiteBranding>('/site-branding/favicon', { method: 'DELETE' }),
 };
+
+// ─── Welcome Flow ───────────────────────────────────────────────────────────
+export interface WelcomeStep {
+    id: string; day_offset: number; subject: string; body_html: string;
+    is_active: boolean; sort_order: number;
+    created_at?: string; updated_at?: string;
+}
+export const welcomeFlowApi = {
+    listSteps: () => fetchApi<WelcomeStep[]>('/welcome-flow/steps'),
+    createStep: (body: Omit<WelcomeStep, 'id' | 'created_at' | 'updated_at'>) =>
+        fetchApi<WelcomeStep>('/welcome-flow/steps', { method: 'POST', body: JSON.stringify(body) }),
+    updateStep: (id: string, body: Omit<WelcomeStep, 'id' | 'created_at' | 'updated_at'>) =>
+        fetchApi<WelcomeStep>(`/welcome-flow/steps/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    deleteStep: (id: string) => fetchApi<{ deleted: number }>(`/welcome-flow/steps/${id}`, { method: 'DELETE' }),
+    runTick: () => fetchApi<{ sent: number }>('/welcome-flow/run-tick', { method: 'POST' }),
+    sentLog: (limit = 100) => fetchApi<Array<{ id: string; user_id: string; step_id: string; sent_at: string; success: boolean; error: string | null }>>(`/welcome-flow/sent-log?limit=${limit}`),
+};
+
+// ─── Discipleship ───────────────────────────────────────────────────────────
+export interface DiscipleshipStage {
+    id: string; key: string; title: string; description: string; icon: string;
+    cta_label?: string | null; cta_href?: string | null; sort_order: number; is_active: boolean;
+}
+export const discipleshipApi = {
+    publicStages: () => fetchApi<DiscipleshipStage[]>('/discipleship/stages'),
+    adminStages: () => fetchApi<DiscipleshipStage[]>('/discipleship/admin/stages'),
+    createStage: (body: Omit<DiscipleshipStage, 'id'>) =>
+        fetchApi<DiscipleshipStage>('/discipleship/admin/stages', { method: 'POST', body: JSON.stringify(body) }),
+    updateStage: (id: string, body: Omit<DiscipleshipStage, 'id'>) =>
+        fetchApi<DiscipleshipStage>(`/discipleship/admin/stages/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    deleteStage: (id: string) => fetchApi<{ deleted: number }>(`/discipleship/admin/stages/${id}`, { method: 'DELETE' }),
+    myProgress: () => fetchApi<Array<{ stage_id: string; completed_at: string; note: string | null }>>('/discipleship/progress'),
+    markComplete: (stage_id: string, note?: string) =>
+        fetchApi<{ status: string }>('/discipleship/progress', { method: 'POST', body: JSON.stringify({ stage_id, note }) }),
+    unmark: (stage_id: string) => fetchApi<{ status: string }>(`/discipleship/progress/${stage_id}`, { method: 'DELETE' }),
+};
+
+// ─── Counselling ────────────────────────────────────────────────────────────
+export interface CounsellingAvailability {
+    id?: string; pastor_id: string; day_of_week: number;
+    start_time: string; end_time: string; slot_minutes: number; is_active: boolean;
+}
+export interface CounsellingSlot { pastor_id: string; starts_at: string; duration_minutes: number; }
+export interface CounsellingBooking {
+    id: string; pastor_id: string | null; user_name: string; user_email: string;
+    user_phone: string | null; scheduled_at: string; duration_minutes: number;
+    topic: string; notes: string | null; status: string; pastor_notes: string | null; created_at: string;
+}
+export const counsellingApi = {
+    listAvailability: () => fetchApi<CounsellingAvailability[]>('/counselling/availability'),
+    addAvailability: (b: Omit<CounsellingAvailability, 'id'>) =>
+        fetchApi<CounsellingAvailability>('/counselling/availability', { method: 'POST', body: JSON.stringify(b) }),
+    updateAvailability: (id: string, b: Omit<CounsellingAvailability, 'id'>) =>
+        fetchApi<CounsellingAvailability>(`/counselling/availability/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    deleteAvailability: (id: string) => fetchApi<{ deleted: number }>(`/counselling/availability/${id}`, { method: 'DELETE' }),
+    slots: (days = 14) => fetchApi<CounsellingSlot[]>(`/counselling/slots?days=${days}`),
+    book: (b: { pastor_id?: string | null; user_name: string; user_email: string; user_phone?: string; scheduled_at: string; duration_minutes?: number; topic?: string; notes?: string }) =>
+        fetchApi<CounsellingBooking>('/counselling/bookings', { method: 'POST', body: JSON.stringify(b) }),
+    listBookings: (status?: string) => fetchApi<CounsellingBooking[]>(`/counselling/bookings${status ? `?status=${status}` : ''}`),
+    updateBooking: (id: string, b: { status?: string; pastor_notes?: string }) =>
+        fetchApi<CounsellingBooking>(`/counselling/bookings/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    deleteBooking: (id: string) => fetchApi<{ deleted: number }>(`/counselling/bookings/${id}`, { method: 'DELETE' }),
+};
+
+// ─── Life Events ────────────────────────────────────────────────────────────
+export interface LifeEventRequest {
+    id: string; kind: string; requester_name: string; requester_email: string;
+    requester_phone: string | null; preferred_date: string; alternate_date: string | null;
+    details: any; status: string; admin_notes: string | null; approved_date: string | null; created_at: string;
+}
+export const lifeEventApi = {
+    submit: (b: { kind: string; requester_name: string; requester_email: string; requester_phone?: string; preferred_date: string; alternate_date?: string; details?: any }) =>
+        fetchApi<LifeEventRequest>('/life-events/', { method: 'POST', body: JSON.stringify(b) }),
+    list: (status?: string, kind?: string) => {
+        const qs = new URLSearchParams();
+        if (status) qs.set('status', status);
+        if (kind) qs.set('kind', kind);
+        const s = qs.toString();
+        return fetchApi<LifeEventRequest[]>(`/life-events/${s ? `?${s}` : ''}`);
+    },
+    update: (id: string, b: { status?: string; admin_notes?: string; approved_date?: string }) =>
+        fetchApi<LifeEventRequest>(`/life-events/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    delete: (id: string) => fetchApi<{ deleted: number }>(`/life-events/${id}`, { method: 'DELETE' }),
+};
+
+// ─── Payments ───────────────────────────────────────────────────────────────
+export interface PaymentProvider {
+    id: string; slug: string; name: string; mode: string;
+    public_key: string | null; secret_key?: string | null; webhook_secret?: string | null;
+    currency: string; config: any; description: string | null;
+    is_active?: boolean; sort_order: number;
+    created_at?: string; updated_at?: string;
+}
+export interface Donation {
+    id: string; reference: string; provider_id: string | null;
+    payer_name: string; payer_email: string | null;
+    amount: number; currency: string; fund: string; status: string; message: string | null;
+    created_at: string;
+}
+export const paymentsApi = {
+    publicProviders: () => fetchApi<PaymentProvider[]>('/payments/providers/public'),
+    listProviders: () => fetchApi<PaymentProvider[]>('/payments/providers'),
+    createProvider: (b: Omit<PaymentProvider, 'id' | 'created_at' | 'updated_at'>) =>
+        fetchApi<PaymentProvider>('/payments/providers', { method: 'POST', body: JSON.stringify(b) }),
+    updateProvider: (id: string, b: Omit<PaymentProvider, 'id' | 'created_at' | 'updated_at'>) =>
+        fetchApi<PaymentProvider>(`/payments/providers/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    deleteProvider: (id: string) => fetchApi<{ deleted: number }>(`/payments/providers/${id}`, { method: 'DELETE' }),
+    checkout: (b: { provider_id: string; amount: number; currency?: string; fund?: string; payer_name?: string; payer_email?: string; message?: string }) =>
+        fetchApi<{ checkout_url: string | null; reference: string; instructions_md?: string }>('/payments/checkout', { method: 'POST', body: JSON.stringify(b) }),
+    donations: (status?: string, fund?: string, limit = 200) => {
+        const qs = new URLSearchParams({ limit: String(limit) });
+        if (status) qs.set('status', status);
+        if (fund) qs.set('fund', fund);
+        return fetchApi<Donation[]>(`/payments/donations?${qs.toString()}`);
+    },
+    stats: () => fetchApi<{ by_status: Record<string, { count: number; amount: number }>; by_fund: Array<{ fund: string; count: number; amount: number }> }>('/payments/stats'),
+};
+
+// ─── Event photo upload (file) ──────────────────────────────────────────────
+export interface EventPhoto {
+    id: string; event_id: string; image_url: string; thumbnail_url?: string | null;
+    caption?: string | null; photographer?: string | null; phase?: string;
+    is_cover?: boolean; sort_order?: number; created_at?: string;
+}
+export const eventPhotoApi = {
+    list: (event_id: string) => fetchApi<EventPhoto[]>(`/api/events/${event_id}/photos`.replace('/api', '')),
+    upload: async (event_id: string, file: File, caption?: string, phase: string = 'promotional', is_cover = false): Promise<EventPhoto> => {
+        const fd = new FormData();
+        fd.append('file', file);
+        if (caption) fd.append('caption', caption);
+        fd.append('phase', phase);
+        fd.append('is_cover', String(is_cover));
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+        const res = await fetch(`${API_BASE_URL}/events/${event_id}/photos/upload`, {
+            method: 'POST', body: fd,
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) {
+            const t = await res.text().catch(() => '');
+            throw new Error(t || `Upload failed (${res.status})`);
+        }
+        return res.json();
+    },
+    delete: (event_id: string, photo_id: string) =>
+        fetchApi<{ deleted: number }>(`/events/${event_id}/photos/${photo_id}`, { method: 'DELETE' }),
+};

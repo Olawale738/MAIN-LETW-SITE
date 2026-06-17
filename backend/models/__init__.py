@@ -39,6 +39,11 @@ from models.youth_program_message import YouthProgramMessage
 from models.youth_program_activity import YouthProgramActivity, YouthProgramRSVP, YouthProgramAttendance
 from models.ministry_content import MinistryContent
 from models.site_branding import SiteBranding
+from models.welcome_flow import WelcomeStep, WelcomeStepSent
+from models.discipleship import DiscipleshipStage, DiscipleshipProgress
+from models.counselling import CounsellingAvailability, CounsellingBooking
+from models.life_event import LifeEventRequest
+from models.payment import PaymentProvider, Donation
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
@@ -141,4 +146,13 @@ __all__ = [
     "YouthProgramAttendance",
     "MinistryContent",
     "SiteBranding",
+    "WelcomeStep",
+    "WelcomeStepSent",
+    "DiscipleshipStage",
+    "DiscipleshipProgress",
+    "CounsellingAvailability",
+    "CounsellingBooking",
+    "LifeEventRequest",
+    "PaymentProvider",
+    "Donation",
 ]

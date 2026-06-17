@@ -117,6 +117,24 @@ const sidebarItems: SidebarItem[] = [
         ]
     },
     { title: 'Messages', href: '/admin/chat', icon: MessageCircle },
+    {
+        title: 'Member Journey',
+        icon: Sparkles,
+        items: [
+            { title: 'Welcome Flow',         href: '/admin/welcome-flow',  icon: Mail },
+            { title: 'Discipleship Pathway', href: '/admin/discipleship',  icon: Sparkles },
+            { title: 'Counselling',          href: '/admin/counselling',   icon: Calendar },
+            { title: 'Life Events',          href: '/admin/life-events',   icon: Heart },
+        ],
+    },
+    {
+        title: 'Giving',
+        icon: HandHeart,
+        items: [
+            { title: 'Payment Providers',    href: '/admin/payments',      icon: HandHeart },
+            { title: 'Donations Log',        href: '/admin/donations',     icon: BarChart },
+        ],
+    },
     { title: 'Branding (Logo + Favicon)', href: '/admin/branding', icon: ImageIcon },
     { title: 'Admin Settings', href: '/admin/settings', icon: Settings },
 ]

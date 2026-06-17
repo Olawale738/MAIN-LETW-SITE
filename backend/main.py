@@ -139,6 +139,26 @@ app.include_router(ministry_content.router)
 # Site Branding (admin-uploaded logo + favicon)
 from routers import site_branding
 app.include_router(site_branding.router)
+
+# Welcome onboarding flow
+from routers import welcome_flow
+app.include_router(welcome_flow.router)
+
+# Discipleship pathway
+from routers import discipleship
+app.include_router(discipleship.router)
+
+# Counselling appointment booking
+from routers import counselling
+app.include_router(counselling.router)
+
+# Life event requests (wedding / baptism / dedication / funeral)
+from routers import life_events
+app.include_router(life_events.router)
+
+# Payments (provider registry + checkout + webhooks + donation log)
+from routers import payments
+app.include_router(payments.router)
 # Deploy nudge: ensures Render picks up youth_programs router and tables
 # (youth_programs, youth_program_messages, youth_program_activities,
 #  youth_program_rsvps, youth_program_attendances).
@@ -174,6 +194,7 @@ os.makedirs(f"{UPLOADS_DIR}/audio", exist_ok=True)
 os.makedirs(f"{UPLOADS_DIR}/audio/covers", exist_ok=True)
 os.makedirs(f"{UPLOADS_DIR}/bible-resources", exist_ok=True)
 os.makedirs(f"{UPLOADS_DIR}/branding", exist_ok=True)
+os.makedirs(f"{UPLOADS_DIR}/event-photos", exist_ok=True)
 
 # Mount the uploads directory to serve static files
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")

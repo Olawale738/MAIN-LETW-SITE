@@ -10,7 +10,8 @@ import uuid
 from datetime import datetime, date as date_type, timedelta
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+import os
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func as sql_func, delete
@@ -414,6 +415,41 @@ async def add_photo(
     """Upload photo (members + admin)."""
     p = EventPhoto(
         event_id=event_id, uploaded_by=current_user.id, **body.model_dump()
+    )
+    db.add(p)
+    await db.commit()
+    await db.refresh(p)
+    return p
+
+
+@router.post("/{event_id}/photos/upload", status_code=201)
+async def upload_photo_file(
+    event_id: str,
+    file: UploadFile = File(...),
+    caption: Optional[str] = Form(None),
+    phase: str = Form("promotional"),
+    is_cover: bool = Form(False),
+    sort_order: int = Form(0),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Upload a photo file directly (multipart). Saves to uploads/event-photos/{event_id}/."""
+    safe_name = (file.filename or "photo").replace("..", "_").replace("/", "_").replace("\\", "_")
+    ext = os.path.splitext(safe_name)[1].lower() or ".jpg"
+    fname = f"{uuid.uuid4().hex}{ext}"
+    dest_dir = os.path.join("uploads", "event-photos", event_id)
+    os.makedirs(dest_dir, exist_ok=True)
+    dest_path = os.path.join(dest_dir, fname)
+    data = await file.read()
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(413, "File too large (max 10 MB)")
+    with open(dest_path, "wb") as f:
+        f.write(data)
+    image_url = f"/uploads/event-photos/{event_id}/{fname}"
+    p = EventPhoto(
+        event_id=event_id, image_url=image_url, caption=caption,
+        phase=phase, is_cover=is_cover, sort_order=sort_order,
+        uploaded_by=current_user.id,
     )
     db.add(p)
     await db.commit()
