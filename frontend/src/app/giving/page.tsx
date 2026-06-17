@@ -8,7 +8,47 @@ import { Heart, Building, Users, BookOpen, CreditCard, Landmark, Bitcoin, CheckC
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { paymentsApi, type PaymentProvider } from '@/lib/api'
+import { paymentsApi, ministryContentApi, type PaymentProvider } from '@/lib/api'
+
+// Defaults — overridden by admin via /admin/giving-content
+const DEFAULTS = {
+  hero: {
+    eyebrow: 'Secure Giving',
+    title_a: 'Sow Into',
+    title_b: 'Good Ground',
+    scripture: '"Give, and it will be given to you. A good measure, pressed down, shaken together and running over, will be poured into your lap."',
+    scripture_ref: '— Luke 6:38',
+    footer_name: 'Join Our Givers Family',
+    footer_subtitle: 'Hearts sown into the vision',
+  },
+  tabs: {
+    card: 'Card',
+    bank: 'Transfer',
+    intl: 'International',
+    paypal: 'Paypal',
+  },
+  bank_naira: {
+    heading: 'Naira Account',
+    bank_label: 'Bank',
+    bank_value: 'Providus Bank',
+    account_label: 'Account',
+    account_value: 'Light Encounter Tabernacle',
+    number: '1308078805',
+  },
+  bank_usd: {
+    heading: 'Domiciliary (USD)',
+    bank_label: 'Bank',
+    bank_value: 'Zenith Bank',
+    account_label: '',
+    account_value: '',
+    number: '',
+  },
+  paypal: {
+    heading: 'PayPal',
+    body: 'Send your gift via PayPal to our church account.',
+    footer: 'Transactions are inevitable and non-reversible.',
+  },
+}
 
 export default function GivingPage() {
   const [activeMethod, setActiveMethod] = useState<'card' | 'bank' | 'intl' | 'paypal'>('card')
@@ -22,6 +62,21 @@ export default function GivingPage() {
   const [intlProviderId, setIntlProviderId] = useState('')
   const [intlAmount, setIntlAmount] = useState('25')
   const [submitting, setSubmitting] = useState(false)
+  const [cms, setCms] = useState<typeof DEFAULTS>(DEFAULTS)
+
+  // Load admin CMS content (every visible word is editable).
+  useEffect(() => {
+    ministryContentApi.get('giving').then((r) => {
+      const c = r.content || {}
+      setCms({
+        hero: { ...DEFAULTS.hero, ...(c.hero || {}) },
+        tabs: { ...DEFAULTS.tabs, ...(c.tabs || {}) },
+        bank_naira: { ...DEFAULTS.bank_naira, ...(c.bank_naira || {}) },
+        bank_usd: { ...DEFAULTS.bank_usd, ...(c.bank_usd || {}) },
+        paypal: { ...DEFAULTS.paypal, ...(c.paypal || {}) },
+      })
+    }).catch(() => { /* defaults stay */ })
+  }, [])
 
   // Load admin-configured payment providers from API. Card tab uses NGN providers;
   // International tab uses Stripe + any non-NGN provider. Bank & PayPal tabs unchanged.
@@ -73,10 +128,10 @@ export default function GivingPage() {
   }
 
   const paymentMethods = [
-    { id: 'card', name: 'Card', icon: CreditCard },
-    { id: 'bank', name: 'Transfer', icon: Landmark },
-    { id: 'intl', name: 'International', icon: Globe },
-    { id: 'paypal', name: 'Paypal', icon: Bitcoin },
+    { id: 'card', name: cms.tabs.card, icon: CreditCard },
+    { id: 'bank', name: cms.tabs.bank, icon: Landmark },
+    { id: 'intl', name: cms.tabs.intl, icon: Globe },
+    { id: 'paypal', name: cms.tabs.paypal, icon: Bitcoin },
   ]
 
   const funds = [
@@ -135,19 +190,19 @@ export default function GivingPage() {
           <div className="text-white space-y-8 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/10">
               <span className="w-2 h-2 rounded-full bg-[#f5bb00] animate-pulse" />
-              <span className="text-[#f5bb00] font-bold text-xs uppercase tracking-widest">Secure Giving</span>
+              <span className="text-[#f5bb00] font-bold text-xs uppercase tracking-widest">{cms.hero.eyebrow}</span>
             </div>
 
             <h1 className="text-5xl md:text-7xl font-black leading-tight">
-              Sow Into <br />
+              {cms.hero.title_a} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f5bb00] to-yellow-200">
-                Good Ground
+                {cms.hero.title_b}
               </span>
             </h1>
 
             <p className="text-xl text-gray-300 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-              "Give, and it will be given to you. A good measure, pressed down, shaken together and running over, will be poured into your lap."
-              <span className="block mt-2 text-[#f5bb00] font-bold">— Luke 6:38</span>
+              {cms.hero.scripture}
+              <span className="block mt-2 text-[#f5bb00] font-bold">{cms.hero.scripture_ref}</span>
             </p>
 
             <div className="hidden lg:flex gap-8 pt-8">
@@ -168,8 +223,8 @@ export default function GivingPage() {
                 ))}
               </div>
               <div>
-                <p className="font-bold text-lg">Join the Cheerful Givers</p>
-                <p className="text-sm text-gray-400">Sowing into eternity</p>
+                <p className="font-bold text-lg">{cms.hero.footer_name}</p>
+                <p className="text-sm text-gray-400">{cms.hero.footer_subtitle}</p>
               </div>
             </div>
           </div>
@@ -342,33 +397,51 @@ export default function GivingPage() {
                       className="space-y-6"
                     >
                       <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-4">
-                        <h4 className="font-extrabold text-[#f5bb00] text-xs uppercase tracking-widest">Naira Account</h4>
+                        <h4 className="font-extrabold text-[#f5bb00] text-xs uppercase tracking-widest">{cms.bank_naira.heading}</h4>
                         <div className="space-y-3">
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-500">Bank</span>
-                            <span className="font-bold text-[#140152]">Providus Bank</span>
+                            <span className="text-gray-500">{cms.bank_naira.bank_label}</span>
+                            <span className="font-bold text-[#140152]">{cms.bank_naira.bank_value}</span>
                           </div>
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-500">Account</span>
-                            <span className="font-bold text-[#140152]">Light Encounter Tabernacle</span>
+                            <span className="text-gray-500">{cms.bank_naira.account_label}</span>
+                            <span className="font-bold text-[#140152]">{cms.bank_naira.account_value}</span>
                           </div>
-                          <div className="p-3 bg-white rounded-xl border border-gray-200 flex justify-between items-center">
-                            <span className="font-mono font-bold text-lg text-[#140152] tracking-widest">1308078805</span>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleCopy('1308078805')}>
-                              {copied ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                            </Button>
-                          </div>
+                          {cms.bank_naira.number && (
+                            <div className="p-3 bg-white rounded-xl border border-gray-200 flex justify-between items-center">
+                              <span className="font-mono font-bold text-lg text-[#140152] tracking-widest">{cms.bank_naira.number}</span>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleCopy(cms.bank_naira.number)}>
+                                {copied ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       <div className="bg-[#140152] p-6 rounded-2xl border border-white/10 space-y-4 relative overflow-hidden text-white">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#f5bb00]/10 rounded-full -translate-y-16 translate-x-16" />
-                        <h4 className="font-extrabold text-[#f5bb00] text-xs uppercase tracking-widest relative z-10">Domiciliary (USD)</h4>
+                        <h4 className="font-extrabold text-[#f5bb00] text-xs uppercase tracking-widest relative z-10">{cms.bank_usd.heading}</h4>
                         <div className="space-y-3 relative z-10">
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-300">Bank</span>
-                            <span className="font-bold">Zenith Bank</span>
-                          </div>
+                          {cms.bank_usd.bank_value && (
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-gray-300">{cms.bank_usd.bank_label}</span>
+                              <span className="font-bold">{cms.bank_usd.bank_value}</span>
+                            </div>
+                          )}
+                          {cms.bank_usd.account_value && (
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-gray-300">{cms.bank_usd.account_label}</span>
+                              <span className="font-bold">{cms.bank_usd.account_value}</span>
+                            </div>
+                          )}
+                          {cms.bank_usd.number && (
+                            <div className="p-3 bg-white/10 rounded-xl border border-white/10 flex justify-between items-center">
+                              <span className="font-mono font-bold text-lg tracking-widest">{cms.bank_usd.number}</span>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-white/10 text-white" onClick={() => handleCopy(cms.bank_usd.number)}>
+                                <Copy className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
                           {/* <div className="p-3 bg-white/10 rounded-xl border border-white/10 flex justify-between items-center">
                             <span className="font-mono font-bold text-lg tracking-widest">5040302010</span>
                             <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-white/10 text-white" onClick={() => handleCopy('5040302010')}>
@@ -523,8 +596,9 @@ export default function GivingPage() {
                         <Bitcoin className="w-8 h-8" />
                       </div>
 
-
-                      <p className="text-[10px] text-gray-400">Transactions are inevitable and non-reversible.</p>
+                      <h4 className="font-extrabold text-[#140152] text-lg">{cms.paypal.heading}</h4>
+                      <p className="text-sm text-gray-600 max-w-xs mx-auto">{cms.paypal.body}</p>
+                      <p className="text-[10px] text-gray-400">{cms.paypal.footer}</p>
                     </motion.div>
                   )}
                 </AnimatePresence>

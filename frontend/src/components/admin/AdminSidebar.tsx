@@ -132,6 +132,7 @@ const sidebarItems: SidebarItem[] = [
         title: 'Giving',
         icon: HandHeart,
         items: [
+            { title: 'Giving Page Content',  href: '/admin/giving-content', icon: FileText },
             { title: 'Payment Providers',    href: '/admin/payments',      icon: HandHeart },
             { title: 'Donations Log',        href: '/admin/donations',     icon: BarChart },
         ],

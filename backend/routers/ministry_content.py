@@ -22,7 +22,7 @@ from utils.dependencies import get_admin_user
 
 router = APIRouter(prefix="/api/ministry-content", tags=["ministry-content"])
 
-ALLOWED_KEYS = {"women", "men", "theology", "leadership"}
+ALLOWED_KEYS = {"women", "men", "theology", "leadership", "giving"}
 
 
 class MinistryContentOut(BaseModel):
