@@ -16,36 +16,98 @@ import ServicePageLayout from '@/components/shared/ServicePageLayout'
 import SectionWrapper from '@/components/shared/SectionWrapper'
 
 // ─── PUBLIC LANDING (unauthenticated) ────────────────────────────────────────
+
+// Defaults — replaced by admin CMS content via ministry-content/leadership.
+const DEFAULT_PILLARS = [
+  { icon: 'Flame', title: 'Servant Leadership', desc: 'Learn to lead from a posture of humility and sacrifice, putting others first.' },
+  { icon: 'Shield', title: 'Integrity & Character', desc: 'Build an unshakeable foundation of godly character that inspires trust.' },
+  { icon: 'Target', title: 'Vision & Strategy', desc: 'Develop the ability to cast vision, plan strategically, and execute with excellence.' },
+  { icon: 'Globe', title: 'Kingdom Impact', desc: 'Lead beyond the church walls — influence family, community, and the marketplace.' },
+  { icon: 'Users', title: 'Team Building', desc: 'Learn how to raise, empower, and multiply leaders around you.' },
+  { icon: 'Lightbulb', title: 'Problem Solving', desc: 'Develop creative, Spirit-led approaches to real challenges.' },
+]
+const DEFAULT_TRACKS = [
+  { level: 'Foundation', color: '#f5bb00', tag: 'Beginner', modules: 4, desc: 'Core leadership principles and biblical foundations for new leaders.' },
+  { level: 'Development', color: '#3b82f6', tag: 'Intermediate', modules: 6, desc: 'Practical skills for ministry leadership, communication, and team management.' },
+  { level: 'Advanced', color: '#8b5cf6', tag: 'Advanced', modules: 5, desc: 'Strategic leadership, organisational development, and mentoring others.' },
+  { level: 'Excellence', color: '#ef4444', tag: 'Senior', modules: 3, desc: 'Legacy building, succession planning, and global kingdom influence.' },
+]
+const DEFAULT_MENTORS = [
+  { name: 'Pastor Segun Wale', role: 'Senior Pastor', specialty: 'Visionary Leadership' },
+  { name: 'Minister Grace', role: 'Ministry Director', specialty: 'Women in Leadership' },
+  { name: 'Bro. Emmanuel', role: 'Admin Director', specialty: 'Organisational Excellence' },
+]
+const DEFAULT_JOURNEY = [
+  { step: '01', title: 'Register & Enroll', desc: 'Create your account and express interest in Leadership Training.' },
+  { step: '02', title: 'Assessment', desc: 'Take our leadership profile assessment to be placed on the right track.' },
+  { step: '03', title: 'Learn & Practice', desc: 'Work through modules with video lessons, documents, and live sessions.' },
+  { step: '04', title: 'Mentorship', desc: 'Be paired with an experienced ministry leader for one-on-one growth.' },
+  { step: '05', title: 'Graduate & Lead', desc: 'Complete your track, receive your certificate, and step into leadership.' },
+]
+const DEFAULT_STATS = [
+  { val: '18+', label: 'Training Modules' },
+  { val: '4', label: 'Leadership Tracks' },
+  { val: '200+', label: 'Leaders Trained' },
+  { val: '100%', label: 'Faith-Based' },
+]
+const DEFAULT_GAINS = [
+  'Certificate of Completion for each track',
+  'Personalised leadership assessment & profile',
+  'One-on-one mentorship sessions',
+  'Access to exclusive leadership resources',
+  'Live workshops & leadership retreats',
+  'A network of like-minded kingdom leaders',
+  'Ministry placement opportunities',
+]
+const DEFAULT_HERO = {
+  eyebrow: 'Leadership Training Program',
+  title_a: 'Raise the Next',
+  title_b: 'Generation',
+  title_c: 'of Leaders',
+  description: 'A structured, Spirit-led leadership development program that transforms believers into effective servants, visionaries, and kingdom influencers.',
+  cta_primary: 'Join the Program',
+  cta_secondary: 'Access My Training',
+}
+const DEFAULT_HEADINGS = {
+  pillars_eyebrow: 'Core Curriculum',
+  pillars_title: '6 Pillars of Servant Leadership',
+  tracks_eyebrow: 'Program Levels',
+  tracks_title: 'Your Leadership Track',
+  journey_eyebrow: 'Your Pathway',
+  journey_title: 'The Leadership Journey',
+  mentors_eyebrow: 'Personal Guidance',
+  mentors_title: 'Meet Your Mentors',
+  gains_eyebrow: 'Outcomes',
+  gains_title: "What You'll Gain",
+  cert_title: 'Leadership Certificate',
+  cert_body: 'Earn a recognised certificate upon completing each leadership track — a mark of your growth and commitment.',
+  cert_cta: 'Start Your Journey',
+  quote: '"But whoever would be great among you must be your servant."',
+  quote_ref: '— Matthew 20:26',
+  quote_cta: 'Join Leadership Training',
+}
+
+const ICON_MAP: Record<string, any> = {
+  Flame, Shield, Target, Globe, Users, Lightbulb, Heart, BookOpen, Crown, Award, Trophy, Star, Zap, Mic2, CheckCircle2,
+}
+
 function LeadershipLanding() {
-  const pillars = [
-    { icon: Flame, title: 'Servant Leadership', desc: 'Learn to lead from a posture of humility and sacrifice, putting others first.' },
-    { icon: Shield, title: 'Integrity & Character', desc: 'Build an unshakeable foundation of godly character that inspires trust.' },
-    { icon: Target, title: 'Vision & Strategy', desc: 'Develop the ability to cast vision, plan strategically, and execute with excellence.' },
-    { icon: Globe, title: 'Kingdom Impact', desc: 'Lead beyond the church walls — influence family, community, and the marketplace.' },
-    { icon: Users, title: 'Team Building', desc: 'Learn how to raise, empower, and multiply leaders around you.' },
-    { icon: Lightbulb, title: 'Problem Solving', desc: 'Develop creative, Spirit-led approaches to real challenges.' },
-  ]
+  const [content, setContent] = useState<Record<string, any>>({})
 
-  const tracks = [
-    { level: 'Foundation', color: '#f5bb00', tag: 'Beginner', modules: 4, desc: 'Core leadership principles and biblical foundations for new leaders.' },
-    { level: 'Development', color: '#3b82f6', tag: 'Intermediate', modules: 6, desc: 'Practical skills for ministry leadership, communication, and team management.' },
-    { level: 'Advanced', color: '#8b5cf6', tag: 'Advanced', modules: 5, desc: 'Strategic leadership, organisational development, and mentoring others.' },
-    { level: 'Excellence', color: '#ef4444', tag: 'Senior', modules: 3, desc: 'Legacy building, succession planning, and global kingdom influence.' },
-  ]
+  useEffect(() => {
+    import('@/lib/api').then(({ ministryContentApi }) =>
+      ministryContentApi.get('leadership').then(r => setContent(r.content || {})).catch(() => {})
+    )
+  }, [])
 
-  const mentors = [
-    { name: 'Pastor Segun Wale', role: 'Senior Pastor', specialty: 'Visionary Leadership' },
-    { name: 'Minister Grace', role: 'Ministry Director', specialty: 'Women in Leadership' },
-    { name: 'Bro. Emmanuel', role: 'Admin Director', specialty: 'Organisational Excellence' },
-  ]
-
-  const journey = [
-    { step: '01', title: 'Register & Enroll', desc: 'Create your account and express interest in Leadership Training.' },
-    { step: '02', title: 'Assessment', desc: 'Take our leadership profile assessment to be placed on the right track.' },
-    { step: '03', title: 'Learn & Practice', desc: 'Work through modules with video lessons, documents, and live sessions.' },
-    { step: '04', title: 'Mentorship', desc: 'Be paired with an experienced ministry leader for one-on-one growth.' },
-    { step: '05', title: 'Graduate & Lead', desc: 'Complete your track, receive your certificate, and step into leadership.' },
-  ]
+  const hero = { ...DEFAULT_HERO, ...(content.hero || {}) }
+  const headings = { ...DEFAULT_HEADINGS, ...(content.headings || {}) }
+  const stats = Array.isArray(content.stats) && content.stats.length ? content.stats : DEFAULT_STATS
+  const pillars = Array.isArray(content.pillars) && content.pillars.length ? content.pillars : DEFAULT_PILLARS
+  const tracks = Array.isArray(content.tracks) && content.tracks.length ? content.tracks : DEFAULT_TRACKS
+  const mentors = Array.isArray(content.mentors) && content.mentors.length ? content.mentors : DEFAULT_MENTORS
+  const journey = Array.isArray(content.journey) && content.journey.length ? content.journey : DEFAULT_JOURNEY
+  const gains: string[] = Array.isArray(content.gains) && content.gains.length ? content.gains : DEFAULT_GAINS
 
   return (
     <div className="min-h-screen bg-white">
@@ -60,23 +122,23 @@ function LeadershipLanding() {
         <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
             <span className="inline-block px-5 py-2 bg-[#f5bb00]/20 text-[#f5bb00] rounded-full text-sm font-bold tracking-widest uppercase mb-6 border border-[#f5bb00]/30">
-              Leadership Training Program
+              {hero.eyebrow}
             </span>
             <h1 className="text-5xl md:text-7xl font-black text-white leading-tight mb-6">
-              Raise the Next<br /><span className="text-[#f5bb00]">Generation</span> of Leaders
+              {hero.title_a}<br /><span className="text-[#f5bb00]">{hero.title_b}</span> {hero.title_c}
             </h1>
             <p className="text-xl text-white/70 max-w-2xl mx-auto mb-10">
-              A structured, Spirit-led leadership development program that transforms believers into effective servants, visionaries, and kingdom influencers.
+              {hero.description}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth/register?redirect=/leadership">
                 <Button className="bg-[#f5bb00] text-[#140152] font-black px-8 py-6 rounded-full text-lg hover:bg-[#f5bb00]/90 shadow-xl">
-                  Join the Program <ArrowRight className="w-5 h-5 ml-2" />
+                  {hero.cta_primary} <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
               <Link href="/auth/login?redirect=/leadership">
                 <Button variant="outline" className="border-white/30 text-white hover:bg-white/10 px-8 py-6 rounded-full text-lg">
-                  Access My Training
+                  {hero.cta_secondary}
                 </Button>
               </Link>
             </div>
@@ -87,12 +149,7 @@ function LeadershipLanding() {
       {/* Stats */}
       <div className="bg-[#f5bb00] py-8">
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 px-4 text-center">
-          {[
-            { val: '18+', label: 'Training Modules' },
-            { val: '4', label: 'Leadership Tracks' },
-            { val: '200+', label: 'Leaders Trained' },
-            { val: '100%', label: 'Faith-Based' },
-          ].map((s, i) => (
+          {stats.map((s: any, i: number) => (
             <div key={i}>
               <div className="text-3xl font-black text-[#140152]">{s.val}</div>
               <div className="text-sm font-semibold text-[#140152]/70">{s.label}</div>
@@ -104,30 +161,33 @@ function LeadershipLanding() {
       <SectionWrapper>
         {/* Leadership Pillars */}
         <div className="text-center mb-16">
-          <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Core Curriculum</span>
-          <h2 className="text-4xl font-black text-[#140152] mt-2">6 Pillars of Servant Leadership</h2>
+          <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">{headings.pillars_eyebrow}</span>
+          <h2 className="text-4xl font-black text-[#140152] mt-2">{headings.pillars_title}</h2>
           <div className="w-20 h-1.5 bg-[#f5bb00] mx-auto rounded-full mt-4" />
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
-          {pillars.map((p, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-              className="p-8 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-[#f5bb00] transition-all group">
-              <div className="w-14 h-14 bg-[#140152]/5 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-[#f5bb00]/10 transition-colors">
-                <p.icon className="w-7 h-7 text-[#140152] group-hover:text-[#f5bb00] transition-colors" />
-              </div>
-              <h3 className="text-xl font-bold text-[#140152] mb-3">{p.title}</h3>
-              <p className="text-gray-600 leading-relaxed">{p.desc}</p>
-            </motion.div>
-          ))}
+          {pillars.map((p: any, i: number) => {
+            const Icon = ICON_MAP[p.icon] || ICON_MAP.Flame
+            return (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                className="p-8 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-[#f5bb00] transition-all group">
+                <div className="w-14 h-14 bg-[#140152]/5 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-[#f5bb00]/10 transition-colors">
+                  <Icon className="w-7 h-7 text-[#140152] group-hover:text-[#f5bb00] transition-colors" />
+                </div>
+                <h3 className="text-xl font-bold text-[#140152] mb-3">{p.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{p.desc}</p>
+              </motion.div>
+            )
+          })}
         </div>
 
         {/* Training Tracks */}
         <div className="text-center mb-16">
-          <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Program Levels</span>
-          <h2 className="text-4xl font-black text-[#140152] mt-2">Your Leadership Track</h2>
+          <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">{headings.tracks_eyebrow}</span>
+          <h2 className="text-4xl font-black text-[#140152] mt-2">{headings.tracks_title}</h2>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-24">
-          {tracks.map((t, i) => (
+          {tracks.map((t: any, i: number) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
               className="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-xl transition-all overflow-hidden group">
               <div className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl" style={{ backgroundColor: t.color }} />
@@ -144,11 +204,11 @@ function LeadershipLanding() {
         {/* Journey Steps */}
         <div className="bg-gradient-to-br from-[#140152] to-[#1a0270] rounded-[2.5rem] p-12 mb-24">
           <div className="text-center mb-12">
-            <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Your Pathway</span>
-            <h2 className="text-4xl font-black text-white mt-2">The Leadership Journey</h2>
+            <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">{headings.journey_eyebrow}</span>
+            <h2 className="text-4xl font-black text-white mt-2">{headings.journey_title}</h2>
           </div>
           <div className="grid md:grid-cols-5 gap-6">
-            {journey.map((j, i) => (
+            {journey.map((j: any, i: number) => (
               <div key={i} className="text-center">
                 <div className="w-16 h-16 bg-[#f5bb00] rounded-full flex items-center justify-center mx-auto mb-4 text-[#140152] font-black text-lg">{j.step}</div>
                 <h4 className="font-bold text-white mb-2">{j.title}</h4>
@@ -163,11 +223,11 @@ function LeadershipLanding() {
 
         {/* Mentorship */}
         <div className="text-center mb-16">
-          <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Personal Guidance</span>
-          <h2 className="text-4xl font-black text-[#140152] mt-2">Meet Your Mentors</h2>
+          <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">{headings.mentors_eyebrow}</span>
+          <h2 className="text-4xl font-black text-[#140152] mt-2">{headings.mentors_title}</h2>
         </div>
         <div className="grid md:grid-cols-3 gap-8 mb-24">
-          {mentors.map((m, i) => (
+          {mentors.map((m: any, i: number) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
               className="text-center p-8 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all">
               <div className="w-20 h-20 bg-gradient-to-br from-[#140152] to-[#1a0270] rounded-full flex items-center justify-center mx-auto mb-6">
@@ -184,18 +244,10 @@ function LeadershipLanding() {
         <div className="bg-gray-50 rounded-[2.5rem] p-12 mb-24">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">Outcomes</span>
-              <h2 className="text-4xl font-black text-[#140152] mt-2 mb-8">What You'll Gain</h2>
+              <span className="text-[#f5bb00] font-bold uppercase tracking-[0.2em] text-sm">{headings.gains_eyebrow}</span>
+              <h2 className="text-4xl font-black text-[#140152] mt-2 mb-8">{headings.gains_title}</h2>
               <div className="space-y-5">
-                {[
-                  'Certificate of Completion for each track',
-                  'Personalised leadership assessment & profile',
-                  'One-on-one mentorship sessions',
-                  'Access to exclusive leadership resources',
-                  'Live workshops & leadership retreats',
-                  'A network of like-minded kingdom leaders',
-                  'Ministry placement opportunities',
-                ].map((item, i) => (
+                {gains.map((item: string, i: number) => (
                   <div key={i} className="flex items-center gap-4">
                     <div className="w-8 h-8 bg-[#f5bb00]/20 rounded-full flex items-center justify-center flex-shrink-0">
                       <CheckCircle2 className="w-4 h-4 text-[#f5bb00]" />
@@ -207,11 +259,11 @@ function LeadershipLanding() {
             </div>
             <div className="bg-[#140152] rounded-[2rem] p-10 text-center text-white">
               <Award className="w-16 h-16 text-[#f5bb00] mx-auto mb-6" />
-              <h3 className="text-2xl font-black mb-4">Leadership Certificate</h3>
-              <p className="text-white/70 mb-8">Earn a recognised certificate upon completing each leadership track — a mark of your growth and commitment.</p>
+              <h3 className="text-2xl font-black mb-4">{headings.cert_title}</h3>
+              <p className="text-white/70 mb-8">{headings.cert_body}</p>
               <Link href="/auth/register?redirect=/leadership">
                 <Button className="bg-[#f5bb00] text-[#140152] font-black px-8 py-4 rounded-xl hover:bg-[#f5bb00]/90 w-full">
-                  Start Your Journey
+                  {headings.cert_cta}
                 </Button>
               </Link>
             </div>
@@ -220,11 +272,11 @@ function LeadershipLanding() {
 
         {/* Quote CTA */}
         <div className="bg-[#140152] rounded-3xl p-12 text-center text-white">
-          <p className="text-2xl italic text-white/80 mb-4">"But whoever would be great among you must be your servant."</p>
-          <p className="text-[#f5bb00] font-bold mb-8">— Matthew 20:26</p>
+          <p className="text-2xl italic text-white/80 mb-4">{headings.quote}</p>
+          <p className="text-[#f5bb00] font-bold mb-8">{headings.quote_ref}</p>
           <Link href="/auth/register?redirect=/leadership">
             <Button className="bg-[#f5bb00] text-[#140152] font-black px-10 py-5 rounded-full text-lg hover:bg-[#f5bb00]/90">
-              Join Leadership Training <ArrowRight className="w-5 h-5 ml-2" />
+              {headings.quote_cta} <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </Link>
         </div>

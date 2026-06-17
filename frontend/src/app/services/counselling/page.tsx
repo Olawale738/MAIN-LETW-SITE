@@ -97,6 +97,18 @@ export default function CounsellingPage() {
                             </div>
                         ))}
 
+                        {/* Specific-time booking link */}
+                        <a href="/counselling/book" className="block bg-gradient-to-br from-[#f5bb00] to-yellow-400 text-[#140152] p-6 rounded-2xl shadow-md hover:shadow-xl transition-shadow">
+                            <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+                                <Clock className="w-5 h-5" />
+                                Prefer a specific date &amp; time?
+                            </h3>
+                            <p className="text-[#140152]/80 text-sm mb-3">Pick from a live pastor calendar with available slots and reserve a specific appointment.</p>
+                            <span className="inline-flex items-center gap-1.5 text-sm font-black underline underline-offset-2">
+                                Book a specific slot →
+                            </span>
+                        </a>
+
                         {/* Chat option */}
                         <div className="bg-[#140152] text-white p-6 rounded-2xl">
                             <h3 className="font-bold text-lg mb-2 flex items-center gap-2">

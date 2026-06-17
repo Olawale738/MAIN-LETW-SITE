@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, CheckCircle2, Clock, XCircle, Heart, ArrowRight, HandHeart } from 'lucide-react'
@@ -8,6 +8,14 @@ import { paymentsApi } from '@/lib/api'
 type Donation = Awaited<ReturnType<typeof paymentsApi.lookupByReference>>
 
 export default function ThankYouPage() {
+    return (
+        <Suspense fallback={<main className="min-h-screen flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-[#140152]" /></main>}>
+            <ThankYouInner />
+        </Suspense>
+    )
+}
+
+function ThankYouInner() {
     const params = useSearchParams()
     // Different providers return the reference under different keys:
     //   Paystack:    ?reference=LETW-xyz&trxref=LETW-xyz

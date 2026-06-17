@@ -4,16 +4,11 @@ import { toast } from 'sonner'
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Heart, Building, Users, BookOpen, CreditCard, Landmark, Bitcoin, CheckCircle2, ChevronRight, Copy, ChevronDown } from 'lucide-react'
+import { Heart, Building, Users, BookOpen, CreditCard, Landmark, Bitcoin, CheckCircle2, ChevronRight, Copy, ChevronDown, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import dynamic from 'next/dynamic'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-const PaystackButton = dynamic(
-  () => import('react-paystack').then((mod) => mod.PaystackButton),
-  { ssr: false }
-)
+import { paymentsApi, type PaymentProvider } from '@/lib/api'
 
 export default function GivingPage() {
   const [activeMethod, setActiveMethod] = useState<'card' | 'bank' | 'paypal'>('card')
@@ -21,15 +16,22 @@ export default function GivingPage() {
   const [email, setEmail] = useState('')
   const [copied, setCopied] = useState(false)
   const [fund, setFund] = useState('tithe')
+  const [providers, setProviders] = useState<PaymentProvider[]>([])
+  const [selectedProviderId, setSelectedProviderId] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  // Debug key presence (masked)
+  // Load admin-configured payment providers from API. Card tab uses these
+  // (whichever is first/active). Bank & PayPal tabs continue showing instructions.
   useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_PAYSTACK_KEY;
-    console.log('Paystack Key Loaded:', key ? `${key.substring(0, 8)}...` : 'MISSING');
-  }, []);
-
-  // Use the environment variable, fallback to empty string (component should handle error or we check before render)
-  const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_KEY || ''
+    paymentsApi.publicProviders()
+      .then((p) => {
+        // Prefer card-style providers (anything that isn't 'manual') for the Card tab
+        const cardProviders = p.filter(x => x.slug !== 'manual')
+        setProviders(cardProviders)
+        if (cardProviders[0]) setSelectedProviderId(cardProviders[0].id)
+      })
+      .catch(() => { /* silently fall back to disabled button */ })
+  }, [])
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -58,20 +60,28 @@ export default function GivingPage() {
 
   const getFundName = (id: string) => funds.find(f => f.id === id)?.name || 'Donation';
 
-  const componentProps = {
-    email,
-    amount: isValidAmount ? parseInt(amount) * 100 : 0, // Paystack expects amount in kobos/cents
-    currency: 'NGN',
-    metadata: {
-      name: 'Light Encounter Tabernacle',
-      custom_fields: [
-        { display_name: "Fund", variable_name: "fund", value: getFundName(fund) }
-      ]
-    },
-    publicKey,
-    text: `Give ₦${parseInt(amount || '0').toLocaleString()}`,
-    onSuccess: () => toast.success('Payment successful! Thank you for your generosity.'),
-    onClose: () => toast.info("Payment cancelled. You can try again anytime."),
+  // Initiate checkout via admin-managed provider, then redirect to its hosted page.
+  const handleGive = async () => {
+    if (!isValid || !selectedProviderId) return
+    setSubmitting(true)
+    try {
+      const r = await paymentsApi.checkout({
+        provider_id: selectedProviderId,
+        amount: parseInt(amount),
+        fund: getFundName(fund),
+        payer_name: 'Anonymous',
+        payer_email: email,
+      })
+      if (r.checkout_url) {
+        window.location.href = r.checkout_url
+      } else if (r.instructions_md) {
+        toast.success('Payment instructions sent — check the new page.')
+      }
+    } catch (err) {
+      toast.error((err as Error).message || 'Failed to start checkout. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -236,9 +246,36 @@ export default function GivingPage() {
                         />
                       </div>
 
+                      {/* Provider selector — shown only when more than one is configured */}
+                      {providers.length > 1 && (
+                        <div className="space-y-2">
+                          <label className="text-xs font-extrabold text-[#140152] uppercase tracking-wider ml-1">Payment Method</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {providers.map(p => (
+                              <button key={p.id} onClick={() => setSelectedProviderId(p.id)}
+                                className={cn(
+                                  "px-3 py-2 rounded-xl border text-left text-sm font-bold transition-all",
+                                  selectedProviderId === p.id
+                                    ? "border-[#140152] bg-[#140152] text-white shadow-md"
+                                    : "border-gray-200 text-gray-600 bg-white hover:border-[#140152]"
+                                )}>
+                                {p.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Action Button */}
                       <div className="pt-2">
-                        {!isValid ? (
+                        {providers.length === 0 ? (
+                          <Button
+                            disabled
+                            className="w-full h-14 text-base shadow-none bg-gray-100 text-gray-400 font-bold rounded-xl"
+                          >
+                            Giving setup in progress
+                          </Button>
+                        ) : !isValid ? (
                           <Button
                             disabled
                             className="w-full h-14 text-base shadow-none bg-gray-100 text-gray-400 font-bold rounded-xl"
@@ -246,11 +283,14 @@ export default function GivingPage() {
                             {!isValidAmount ? 'Enter Valid Amount' : 'Enter Email to Give'}
                           </Button>
                         ) : (
-                          <PaystackButton
-                            className="w-full h-14 text-base shadow-xl shadow-[#f5bb00]/20 bg-[#f5bb00] text-[#140152] font-bold rounded-xl hover:bg-[#ffc820] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                            {...componentProps}
-                            amount={parseInt(amount) * 100}
-                          />
+                          <Button
+                            onClick={handleGive}
+                            disabled={submitting}
+                            className="w-full h-14 text-base shadow-xl shadow-[#f5bb00]/20 bg-[#f5bb00] text-[#140152] font-bold rounded-xl hover:bg-[#ffc820] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                          >
+                            {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                            Give ₦{parseInt(amount || '0').toLocaleString()}
+                          </Button>
                         )}
                         <div className="flex items-center justify-center gap-2 mt-4 text-[10px] text-gray-400 font-medium uppercase tracking-widest">
                           <CheckCircle2 className="w-3 h-3 text-green-500" />

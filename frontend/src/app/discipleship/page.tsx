@@ -1,16 +1,48 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { BookOpen, Users, TrendingUp, ArrowRight, Heart, CheckCircle, Loader2 } from 'lucide-react'
+import { BookOpen, Users, TrendingUp, ArrowRight, Heart, CheckCircle, Loader2, CheckCircle2, Sparkles, Flame, Crown, Shield, HandHeart } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
 import SectionWrapper from '@/components/shared/SectionWrapper'
 import { Card, CardContent } from '@/components/ui/card'
+import { discipleshipApi, tokenManager, type DiscipleshipStage } from '@/lib/api'
 
 export default function DiscipleshipPage() {
     const [enrolled, setEnrolled] = useState(false)
     const [enrollLoading, setEnrollLoading] = useState(false)
     const [enrollError, setEnrollError] = useState('')
+    const [stages, setStages] = useState<DiscipleshipStage[]>([])
+    const [progress, setProgress] = useState<Set<string>>(new Set())
+    const [signedIn, setSignedIn] = useState(false)
+
+    useEffect(() => {
+        const loggedIn = tokenManager.isLoggedIn()
+        setSignedIn(loggedIn)
+        Promise.all([
+            discipleshipApi.publicStages(),
+            loggedIn ? discipleshipApi.myProgress().catch(() => []) : Promise.resolve([]),
+        ]).then(([s, p]) => {
+            setStages(s)
+            setProgress(new Set(p.map(x => x.stage_id)))
+        }).catch(() => {})
+    }, [])
+
+    const toggleStage = async (stageId: string) => {
+        if (!signedIn) return
+        try {
+            if (progress.has(stageId)) {
+                await discipleshipApi.unmark(stageId)
+                const next = new Set(progress); next.delete(stageId); setProgress(next)
+            } else {
+                await discipleshipApi.markComplete(stageId)
+                setProgress(new Set([...progress, stageId]))
+            }
+        } catch { /* no-op */ }
+    }
+
+    const nextStageIdx = stages.findIndex(s => !progress.has(s.id))
 
     const handleEnroll = async () => {
         setEnrollLoading(true)
@@ -125,6 +157,51 @@ export default function DiscipleshipPage() {
                     </div>
                 </div>
             </SectionWrapper>
+
+            {stages.length > 0 && (
+                <SectionWrapper>
+                    <div className="max-w-4xl mx-auto">
+                        <div className="text-center mb-12">
+                            <span className="text-[#f5bb00] font-bold tracking-[0.2em] uppercase text-xs">Your Journey</span>
+                            <h2 className="text-3xl md:text-5xl font-black text-[#140152] mt-2 mb-3">Walk the Pathway, Step by Step</h2>
+                            <p className="text-gray-600 max-w-xl mx-auto">{signedIn ? 'Tick each step as you walk it. Your next step is highlighted in gold.' : 'Sign in to track your progress through each stage.'}</p>
+                        </div>
+                        <div className="space-y-4">
+                            {stages.map((s, i) => {
+                                const done = progress.has(s.id)
+                                const isNext = i === nextStageIdx
+                                const Icon = (LucideIcons as any)[s.icon] || Sparkles
+                                return (
+                                    <div key={s.id} className={`bg-white rounded-2xl shadow-md border-2 p-5 transition-all ${done ? 'border-green-200 bg-green-50/40' : isNext ? 'border-[#f5bb00] ring-4 ring-[#f5bb00]/10' : 'border-gray-100'}`}>
+                                        <div className="flex items-start gap-4">
+                                            <button onClick={() => toggleStage(s.id)} disabled={!signedIn}
+                                                className="flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center disabled:cursor-not-allowed">
+                                                {done ? <CheckCircle2 className="w-12 h-12 text-green-500" /> :
+                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isNext ? 'bg-[#f5bb00] text-[#140152]' : 'bg-gray-100 text-gray-400'}`}>
+                                                        <Icon className="w-6 h-6" />
+                                                    </div>}
+                                            </button>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <p className="font-black text-[#140152] text-lg">{s.title}</p>
+                                                    {isNext && <span className="text-[10px] font-bold uppercase tracking-wider text-[#140152] bg-[#f5bb00] px-2 py-0.5 rounded-full">Your next step</span>}
+                                                    {done && <span className="text-[10px] font-bold uppercase tracking-wider text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Completed</span>}
+                                                </div>
+                                                <p className="text-gray-600 mt-1.5 text-sm leading-relaxed">{s.description}</p>
+                                                {s.cta_label && s.cta_href && (
+                                                    <a href={s.cta_href} className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-[#140152] hover:underline">
+                                                        {s.cta_label} <ArrowRight className="w-4 h-4" />
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                </SectionWrapper>
+            )}
 
             <SectionWrapper>
                 <div className="rounded-[3rem] p-12 md:p-24 text-center relative overflow-hidden">

@@ -3376,10 +3376,12 @@ export interface MinistryContent {
     updated_at?: string | null;
 }
 
+export type MinistryContentKey = 'women' | 'men' | 'theology' | 'leadership';
+
 export const ministryContentApi = {
-    get: (key: 'women' | 'men' | 'theology'): Promise<MinistryContent> =>
+    get: (key: MinistryContentKey): Promise<MinistryContent> =>
         fetchApi<MinistryContent>(`/ministry-content/${key}`),
-    update: (key: 'women' | 'men' | 'theology', content: Record<string, any>): Promise<MinistryContent> =>
+    update: (key: MinistryContentKey, content: Record<string, any>): Promise<MinistryContent> =>
         fetchApi<MinistryContent>(`/ministry-content/${key}`, { method: 'PUT', body: JSON.stringify({ content }) }),
 };
 
