@@ -7,6 +7,7 @@ from typing import List, Optional, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
+from utils.rate_limit import rate_limit
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,7 +48,11 @@ class RequestOut(BaseModel):
 
 
 @router.post("/", response_model=RequestOut, status_code=201)
-async def submit_request(body: RequestIn, db: AsyncSession = Depends(get_db)):
+async def submit_request(
+    body: RequestIn,
+    db: AsyncSession = Depends(get_db),
+    _rl=Depends(rate_limit(3, 600, "life-events")),  # 3 requests / 10 min / IP
+):
     if body.kind not in KINDS:
         raise HTTPException(400, f"kind must be one of {sorted(KINDS)}")
     r = LifeEventRequest(**body.model_dump())

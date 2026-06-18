@@ -1,8 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import ConditionalLayout from "@/components/layout/ConditionalLayout";
 import BrandingApplier from "@/components/BrandingApplier";
+import CookieConsent from "@/components/CookieConsent";
+import PWARegister from "@/components/PWARegister";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -14,6 +16,12 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "LETW - Light Encounter Tabernacle Worldwide",
   description: "Dedicated to spreading the Word of GOD, empowering individuals, and engaging in charitable activities",
+  manifest: "/manifest.json",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "LETW" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#140152",
 };
 
 import { Toaster } from 'sonner';
@@ -33,6 +41,8 @@ export default function RootLayout({
           {children}
         </ConditionalLayout>
         {modal}
+        <CookieConsent />
+        <PWARegister />
         <Toaster richColors position="top-center" />
       </body>
     </html>

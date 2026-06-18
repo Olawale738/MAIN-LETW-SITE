@@ -41,3 +41,8 @@ uvloop==0.22.1
 watchfiles==1.1.1
 websockets==16.0
 Pillow==11.0.0
+pyotp==2.9.0
+qrcode[pil]==7.4.2
+boto3==1.35.36
+sentry-sdk[fastapi]==2.18.0
+slowapi==0.1.9

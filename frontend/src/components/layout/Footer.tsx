@@ -187,8 +187,8 @@ export default function Footer() {
             © {new Date().getFullYear()} Light Encounter Tabernacle Worldwide. All rights reserved.
           </p>
           <div className="flex items-center gap-6 text-sm text-gray-500">
-            <Link href="#" className="hover:text-[#f5bb00] transition-colors">Privacy Policy</Link>
-            <Link href="#" className="hover:text-[#f5bb00] transition-colors">Terms of Service</Link>
+            <Link href="/privacy" className="hover:text-[#f5bb00] transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-[#f5bb00] transition-colors">Terms of Service</Link>
             <Link href="/contact" className="hover:text-[#f5bb00] transition-colors">Contact</Link>
           </div>
         </div>

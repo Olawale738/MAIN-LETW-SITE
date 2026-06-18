@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Offline · LETW</title>
+<style>
+  body { margin: 0; min-height: 100vh; background: linear-gradient(160deg, #140152, #1a0270); color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .card { background: rgba(255,255,255,0.06); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 40px 32px; max-width: 420px; text-align: center; }
+  h1 { font-size: 28px; font-weight: 900; margin: 16px 0 8px; }
+  p { color: rgba(255,255,255,0.7); line-height: 1.6; margin: 8px 0; }
+  .gold { color: #f5bb00; font-weight: 700; }
+  button { margin-top: 24px; background: #f5bb00; color: #140152; border: 0; padding: 12px 28px; border-radius: 12px; font-weight: 900; font-size: 14px; cursor: pointer; }
+  button:hover { background: #ffc820; }
+  .icon { width: 64px; height: 64px; border-radius: 16px; background: rgba(245, 187, 0, 0.15); color: #f5bb00; display: inline-flex; align-items: center; justify-content: center; font-size: 32px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">⛅</div>
+    <h1>You're offline</h1>
+    <p>The internet connection is sleeping. When you're back online, we'll be right here.</p>
+    <p class="gold">"Be still, and know that I am God." — Psalm 46:10</p>
+    <button onclick="location.reload()">Try again</button>
+  </div>
+</body>
+</html>

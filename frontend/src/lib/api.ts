@@ -3376,7 +3376,7 @@ export interface MinistryContent {
     updated_at?: string | null;
 }
 
-export type MinistryContentKey = 'women' | 'men' | 'theology' | 'leadership' | 'giving' | 'statement-of-faith';
+export type MinistryContentKey = 'women' | 'men' | 'theology' | 'leadership' | 'giving' | 'statement-of-faith' | 'privacy-policy' | 'terms-of-service';
 
 export const ministryContentApi = {
     get: (key: MinistryContentKey): Promise<MinistryContent> =>
@@ -3720,4 +3720,19 @@ export const youtubeApi = {
 export const billingApi = {
     portal: (customer_email: string, return_url?: string) =>
         fetchApi<{ url: string }>('/payments/billing-portal', { method: 'POST', body: JSON.stringify({ customer_email, return_url }) }),
+};
+
+// ─── Global search ─────────────────────────────────────────────────────────
+export interface SearchHit { id: string; title?: string; preacher?: string; date?: string; url: string; reference?: string; text?: string; translation?: string | null; excerpt?: string }
+export interface SearchResults { query: string; total: number; results: { sermons: SearchHit[]; blog: SearchHit[]; events: SearchHit[]; verses: SearchHit[] } }
+export const searchApi = {
+    query: (q: string, limit = 8) => fetchApi<SearchResults>(`/search/?q=${encodeURIComponent(q)}&limit=${limit}`),
+};
+
+// ─── 2FA ───────────────────────────────────────────────────────────────────
+export const twoFactorApi = {
+    status: () => fetchApi<{ enabled: boolean; verified: boolean; last_used_at: string | null }>('/2fa/status'),
+    setup: () => fetchApi<{ secret: string; otpauth_uri: string; qr_png_base64: string }>('/2fa/setup', { method: 'POST' }),
+    verify: (code: string) => fetchApi<{ verified: boolean; recovery_codes: string[]; message: string }>('/2fa/verify', { method: 'POST', body: JSON.stringify({ code }) }),
+    disable: (code: string) => fetchApi<{ disabled: boolean }>('/2fa/disable', { method: 'POST', body: JSON.stringify({ code }) }),
 };

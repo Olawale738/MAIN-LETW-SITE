@@ -12,6 +12,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
+from utils.rate_limit import rate_limit
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -136,7 +137,11 @@ class BookingOut(BaseModel):
 
 
 @router.post("/bookings", response_model=BookingOut, status_code=201)
-async def create_booking(body: BookingIn, db: AsyncSession = Depends(get_db)):
+async def create_booking(
+    body: BookingIn,
+    db: AsyncSession = Depends(get_db),
+    _rl=Depends(rate_limit(5, 600, "counselling")),
+):
     b = CounsellingBooking(**body.model_dump())
     db.add(b)
     await db.commit()

@@ -50,6 +50,7 @@ from models.governance import LeadAssignment, AuditLog
 from models.social_post import SocialPostTarget, SocialPost
 from models.seo_meta import SeoMeta
 from models.blog import BlogPost
+from models.two_factor import TwoFactorSecret
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
@@ -169,4 +170,5 @@ __all__ = [
     "SocialPost",
     "SeoMeta",
     "BlogPost",
+    "TwoFactorSecret",
 ]

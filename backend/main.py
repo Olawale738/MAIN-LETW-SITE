@@ -9,6 +9,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 
+# ── Sentry error tracking ────────────────────────────────────────────────────
+# Set SENTRY_DSN in Render env vars to enable. No-op when unset, so safe to
+# leave in for all deployments.
+try:
+    _sentry_dsn = os.getenv("SENTRY_DSN")
+    if _sentry_dsn:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        sentry_sdk.init(
+            dsn=_sentry_dsn,
+            integrations=[FastApiIntegration()],
+            traces_sample_rate=float(os.getenv("SENTRY_TRACES_RATE", "0.1")),
+            environment=os.getenv("APP_ENV", "production"),
+        )
+except Exception:
+    pass
+
 from config import settings
 from database import init_db
 
@@ -187,6 +204,14 @@ app.include_router(blog.router)
 # YouTube metadata import (sermons)
 from routers import youtube_import
 app.include_router(youtube_import.router)
+
+# 2FA (TOTP)
+from routers import two_factor
+app.include_router(two_factor.router)
+
+# Global search
+from routers import search as search_router
+app.include_router(search_router.router)
 # Deploy nudge: ensures Render picks up youth_programs router and tables
 # (youth_programs, youth_program_messages, youth_program_activities,
 #  youth_program_rsvps, youth_program_attendances).

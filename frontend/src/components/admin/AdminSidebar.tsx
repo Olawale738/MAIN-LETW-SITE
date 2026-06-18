@@ -123,6 +123,8 @@ const sidebarItems: SidebarItem[] = [
     { title: 'SEO Meta', href: '/admin/seo-meta', icon: Globe },
     { title: 'Statement of Faith', href: '/admin/statement-of-faith', icon: BookOpen },
     { title: 'Moderators', href: '/admin/moderators', icon: ShieldCheck },
+    { title: 'Two-Factor Auth', href: '/admin/2fa', icon: ShieldCheck },
+    { title: 'Legal Pages', href: '/admin/legal', icon: FileText },
     {
         title: 'Governance',
         icon: Crown,
