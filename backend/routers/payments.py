@@ -33,6 +33,7 @@ from database import get_db
 from models.payment import PaymentProvider, Donation
 from models.user import User
 from utils.dependencies import get_admin_user
+from utils.audit import log_action
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/payments", tags=["Payments"])
@@ -105,9 +106,15 @@ async def list_providers_admin(db: AsyncSession = Depends(get_db), _: User = Dep
 
 
 @router.post("/providers", response_model=ProviderOutAdmin, status_code=201)
-async def create_provider(body: ProviderIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+async def create_provider(body: ProviderIn, request: Request, db: AsyncSession = Depends(get_db), admin: User = Depends(get_admin_user)):
     p = PaymentProvider(**body.model_dump())
     db.add(p)
+    await log_action(
+        db, request, admin,
+        action="payment_provider.create",
+        target_kind="payment_provider", target_id=p.id,
+        details={"slug": p.slug, "name": p.name, "mode": p.mode, "currency": p.currency},
+    )
     await db.commit()
     await db.refresh(p)
     return ProviderOutAdmin(
@@ -145,11 +152,17 @@ async def update_provider(pid: str, body: ProviderIn, db: AsyncSession = Depends
 
 
 @router.delete("/providers/{pid}")
-async def delete_provider(pid: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+async def delete_provider(pid: str, request: Request, db: AsyncSession = Depends(get_db), admin: User = Depends(get_admin_user)):
     res = await db.execute(select(PaymentProvider).where(PaymentProvider.id == pid))
     p = res.scalar_one_or_none()
     if not p:
         return {"deleted": 0}
+    await log_action(
+        db, request, admin,
+        action="payment_provider.delete",
+        target_kind="payment_provider", target_id=pid,
+        details={"slug": p.slug, "name": p.name},
+    )
     await db.delete(p)
     await db.commit()
     return {"deleted": 1}

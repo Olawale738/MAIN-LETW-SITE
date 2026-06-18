@@ -120,6 +120,14 @@ const sidebarItems: SidebarItem[] = [
     { title: 'Daily Verse', href: '/admin/daily-verse', icon: Sparkles },
     { title: 'Statement of Faith', href: '/admin/statement-of-faith', icon: BookOpen },
     { title: 'Moderators', href: '/admin/moderators', icon: ShieldCheck },
+    {
+        title: 'Governance',
+        icon: Crown,
+        items: [
+            { title: 'Lead Coordinators', href: '/admin/leads',     icon: Crown },
+            { title: 'Audit Log',         href: '/admin/audit-log', icon: FileText },
+        ],
+    },
     { title: 'Messages', href: '/admin/chat', icon: MessageCircle },
     {
         title: 'Member Journey',

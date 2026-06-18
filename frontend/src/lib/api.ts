@@ -3605,3 +3605,37 @@ export const moderatorsApi = {
         fetchApi<Moderator>(`/admin/moderators/${user_id}/grants`, { method: 'PUT', body: JSON.stringify({ scopes }) }),
     demote: (user_id: string) => fetchApi<{ demoted: string }>(`/admin/moderators/${user_id}`, { method: 'DELETE' }),
 };
+
+// ─── Governance: Lead Coordinators + Audit Log ─────────────────────────────
+export type GroupKind = 'custom_ministry' | 'youth_program' | 'department' | 'volunteer_team'
+export interface LeadAssignment {
+    id: string; user_id: string; user_name: string; user_email: string;
+    group_kind: GroupKind; group_id: string;
+    assigned_by_user_id: string | null; assigned_at: string;
+}
+export interface AuditEntry {
+    id: string; actor_user_id: string | null; actor_name: string; actor_email: string | null;
+    action: string; target_kind: string | null; target_id: string | null;
+    group_kind: string | null; group_id: string | null;
+    details: any; ip: string | null; created_at: string;
+}
+export const governanceApi = {
+    listLeads: (group_kind?: GroupKind, group_id?: string) => {
+        const qs = new URLSearchParams()
+        if (group_kind) qs.set('group_kind', group_kind)
+        if (group_id) qs.set('group_id', group_id)
+        const s = qs.toString()
+        return fetchApi<LeadAssignment[]>(`/governance/leads${s ? `?${s}` : ''}`)
+    },
+    assignLead: (b: { user_id: string; group_kind: GroupKind; group_id: string }) =>
+        fetchApi<LeadAssignment>('/governance/leads', { method: 'POST', body: JSON.stringify(b) }),
+    removeLead: (id: string) => fetchApi<{ deleted: number }>(`/governance/leads/${id}`, { method: 'DELETE' }),
+    audit: (opts: { group_kind?: string; group_id?: string; actor_user_id?: string; action?: string; limit?: number } = {}) => {
+        const qs = new URLSearchParams()
+        Object.entries(opts).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)) })
+        const s = qs.toString()
+        return fetchApi<AuditEntry[]>(`/governance/audit${s ? `?${s}` : ''}`)
+    },
+    logCustom: (b: { action: string; target_kind?: string; target_id?: string; group_kind?: string; group_id?: string; details?: any }) =>
+        fetchApi<AuditEntry>('/governance/audit', { method: 'POST', body: JSON.stringify(b) }),
+};

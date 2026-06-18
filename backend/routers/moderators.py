@@ -11,7 +11,7 @@ existing admin endpoint can adopt `require_scope("…")` to honour these.
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +20,7 @@ from database import get_db
 from models.user import User, UserRole
 from models.moderator_grant import ModeratorGrant
 from utils.dependencies import get_admin_user, get_current_active_user
+from utils.audit import log_action
 
 
 router = APIRouter(prefix="/api/admin/moderators", tags=["Moderators"])
@@ -167,6 +168,7 @@ class PromoteIn(BaseModel):
 @router.post("/promote", response_model=ModeratorOut, status_code=201)
 async def promote_to_moderator(
     body: PromoteIn,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
@@ -182,6 +184,12 @@ async def promote_to_moderator(
         raise HTTPException(400, f"Unknown scope(s): {invalid}")
     for s in body.scopes:
         db.add(ModeratorGrant(user_id=u.id, scope=s, granted_by_user_id=admin.id))
+    await log_action(
+        db, request, admin,
+        action="moderator.promote",
+        target_kind="user", target_id=u.id,
+        details={"scopes": body.scopes},
+    )
     await db.commit()
     return ModeratorOut(
         user_id=u.id, email=u.email, name=u.name or u.email.split("@")[0],
@@ -197,6 +205,7 @@ class GrantsIn(BaseModel):
 async def set_grants(
     user_id: str,
     body: GrantsIn,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
@@ -216,6 +225,12 @@ async def set_grants(
         await db.delete(g)
     for s in body.scopes:
         db.add(ModeratorGrant(user_id=user_id, scope=s, granted_by_user_id=admin.id))
+    await log_action(
+        db, request, admin,
+        action="moderator.set_grants",
+        target_kind="user", target_id=user_id,
+        details={"scopes": body.scopes},
+    )
     await db.commit()
     return ModeratorOut(
         user_id=u.id, email=u.email, name=u.name or u.email.split("@")[0],
@@ -226,8 +241,9 @@ async def set_grants(
 @router.delete("/{user_id}")
 async def demote_moderator(
     user_id: str,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_admin_user),
+    admin: User = Depends(get_admin_user),
 ):
     """Revoke all grants AND demote back to regular user."""
     res = await db.execute(select(User).where(User.id == user_id))
@@ -240,5 +256,10 @@ async def demote_moderator(
     res2 = await db.execute(select(ModeratorGrant).where(ModeratorGrant.user_id == user_id))
     for g in res2.scalars().all():
         await db.delete(g)
+    await log_action(
+        db, request, admin,
+        action="moderator.demote",
+        target_kind="user", target_id=user_id,
+    )
     await db.commit()
     return {"demoted": user_id}

@@ -46,6 +46,7 @@ from models.life_event import LifeEventRequest
 from models.payment import PaymentProvider, Donation
 from models.daily_verse import DailyVerse
 from models.moderator_grant import ModeratorGrant
+from models.governance import LeadAssignment, AuditLog
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
@@ -159,4 +160,6 @@ __all__ = [
     "Donation",
     "DailyVerse",
     "ModeratorGrant",
+    "LeadAssignment",
+    "AuditLog",
 ]

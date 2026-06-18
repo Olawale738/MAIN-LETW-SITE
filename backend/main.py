@@ -167,6 +167,10 @@ app.include_router(daily_verse.router)
 # Moderator management — admin assigns per-scope access
 from routers import moderators as moderators_router
 app.include_router(moderators_router.router)
+
+# Governance — Lead Coordinators + Audit Log
+from routers import governance
+app.include_router(governance.router)
 # Deploy nudge: ensures Render picks up youth_programs router and tables
 # (youth_programs, youth_program_messages, youth_program_activities,
 #  youth_program_rsvps, youth_program_attendances).
