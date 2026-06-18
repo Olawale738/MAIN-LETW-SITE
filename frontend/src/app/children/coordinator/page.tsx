@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import LeadsPanel from '@/components/governance/LeadsPanel'
+import AuditLogPanel from '@/components/governance/AuditLogPanel'
 import {
   Users, Bell, BarChart2, Calendar, Home, LogOut,
   Plus, Search, Trash2, CheckCircle2, XCircle,
@@ -1348,6 +1350,11 @@ function SessionGroup({ session, rows, pct }: { session: string; rows: Attendanc
           </motion.div>
         )}
       </AnimatePresence>
+
+      <div className="grid lg:grid-cols-2 gap-4 mt-8 px-4 sm:px-6 pb-12 max-w-7xl mx-auto">
+        <LeadsPanel groupKind="department" groupId="children" groupLabel="Children Ministry" canManage />
+        <AuditLogPanel groupKind="department" groupId="children" title="Children Ministry — Activity Log" canCustomLog />
+      </div>
     </div>
   )
 }

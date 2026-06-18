@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/toast'
+import LeadsPanel from '@/components/governance/LeadsPanel'
+import AuditLogPanel from '@/components/governance/AuditLogPanel'
 import {
     Loader2, ArrowLeft, Save, ExternalLink, Plus, Trash2, ChevronUp, ChevronDown,
     Sparkles, Target, Calendar, BookOpen, Megaphone, User, Image as ImageIcon,
@@ -595,6 +597,13 @@ export default function YouthProgramEditor() {
                     </Button>
                 </div>
             </form>
+
+            {!isNew && (
+                <div className="grid lg:grid-cols-2 gap-4 mt-8">
+                    <LeadsPanel groupKind="youth_program" groupId={String(params?.id || '')} groupLabel="This Youth Program" canManage />
+                    <AuditLogPanel groupKind="youth_program" groupId={String(params?.id || '')} title="Program — Activity Log" canCustomLog />
+                </div>
+            )}
         </div>
     )
 }

@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import LeadsPanel from '@/components/governance/LeadsPanel'
+import AuditLogPanel from '@/components/governance/AuditLogPanel'
 import {
     Plus, Edit2, Trash2, Eye, EyeOff, Users, ExternalLink,
     Loader2, X, Shield, Heart, HandHeart, Music, Video,
@@ -405,6 +407,11 @@ export default function VolunteerDepartmentsAdminPage() {
                     </div>
                 </div>
             )}
+
+            <div className="grid lg:grid-cols-2 gap-4 mt-6 px-4 sm:px-6 pb-8">
+                <LeadsPanel groupKind="department" groupId="all" groupLabel="All Departments" canManage />
+                <AuditLogPanel groupKind="department" title="Volunteer Departments — Activity Log" canCustomLog />
+            </div>
         </div>
     )
 }

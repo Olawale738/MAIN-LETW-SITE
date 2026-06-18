@@ -8,6 +8,8 @@ import {
     Mail, Clock, MessageSquare, ArrowLeft, UserCheck
 } from 'lucide-react'
 import { messageApi } from '@/lib/api'
+import LeadsPanel from '@/components/governance/LeadsPanel'
+import AuditLogPanel from '@/components/governance/AuditLogPanel'
 
 interface Mentee {
     id: string
@@ -159,6 +161,11 @@ export default function MentorDashboard() {
                         ))}
                     </div>
                 )}
+
+                <div className="grid lg:grid-cols-2 gap-4 mt-8">
+                    <LeadsPanel groupKind="volunteer_team" groupId="mentors" groupLabel="Mentor Team" />
+                    <AuditLogPanel groupKind="volunteer_team" groupId="mentors" title="Mentor Team — Activity Log" canCustomLog />
+                </div>
             </main>
         </div>
     )

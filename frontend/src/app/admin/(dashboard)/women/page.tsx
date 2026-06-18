@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import LeadsPanel from '@/components/governance/LeadsPanel'
+import AuditLogPanel from '@/components/governance/AuditLogPanel'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
     Flower2, ExternalLink, ArrowRight, UserCheck, Megaphone,
@@ -130,6 +132,11 @@ export default function AdminWomenPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <div className="grid lg:grid-cols-2 gap-4 mt-6">
+                <LeadsPanel groupKind="custom_ministry" groupId="women" groupLabel="Women's Ministry" canManage />
+                <AuditLogPanel groupKind="custom_ministry" groupId="women" title="Women's Ministry — Activity Log" canCustomLog />
+            </div>
         </div>
     )
 }
