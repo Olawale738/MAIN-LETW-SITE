@@ -213,7 +213,17 @@ async def create_sermon(
     db.add(sermon)
     await db.commit()
     await db.refresh(sermon)
-    
+
+    # Best-effort: fire auto-post to any configured social platforms.
+    # Failures don't break the sermon-create response — they're recorded in
+    # social_posts so admin can retry from /admin/social-posts.
+    try:
+        from routers.social_posts import fire_auto_post_for_sermon
+        await fire_auto_post_for_sermon(db, sermon)
+        await db.commit()
+    except Exception:
+        pass
+
     return sermon_to_response(sermon)
 
 

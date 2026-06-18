@@ -161,11 +161,15 @@ async def create_prayer_request(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new prayer request"""
-    prayer_request = PrayerRequest(
-        **request_data.model_dump(),
-        user_id=current_user.id
-    )
+    """Create a new prayer request. Auto-tags category if the submitter didn't pick one."""
+    data = request_data.model_dump()
+    if not data.get("category"):
+        from utils.prayer_classifier import classify
+        title_text = data.get("title") or ""
+        body_text = data.get("description") or ""
+        primary, _all = classify(f"{title_text} {body_text}")
+        data["category"] = primary
+    prayer_request = PrayerRequest(**data, user_id=current_user.id)
 
     db.add(prayer_request)
     await db.commit()

@@ -3639,3 +3639,70 @@ export const governanceApi = {
     logCustom: (b: { action: string; target_kind?: string; target_id?: string; group_kind?: string; group_id?: string; details?: any }) =>
         fetchApi<AuditEntry>('/governance/audit', { method: 'POST', body: JSON.stringify(b) }),
 };
+
+// ─── Social auto-poster ─────────────────────────────────────────────────────
+export interface SocialTarget {
+    id: string; platform: string; display_name: string;
+    access_token_masked: string | null; page_id: string | null; account_id: string | null;
+    is_active: boolean; auto_post_sermons: boolean; config: any; updated_at: string;
+}
+export interface SocialPost {
+    id: string; platform: string; source_kind: string | null; source_id: string | null;
+    message: string; status: string; external_url: string | null; error: string | null;
+    posted_at: string | null; created_at: string;
+}
+export const socialApi = {
+    listTargets: () => fetchApi<SocialTarget[]>('/social/targets'),
+    upsertTarget: (platform: string, b: { display_name?: string; access_token?: string; page_id?: string; account_id?: string; is_active?: boolean; auto_post_sermons?: boolean; config?: any }) =>
+        fetchApi<SocialTarget>(`/social/targets/${platform}`, { method: 'PUT', body: JSON.stringify({ platform, ...b }) }),
+    deleteTarget: (platform: string) => fetchApi<{ deleted: number }>(`/social/targets/${platform}`, { method: 'DELETE' }),
+    postManual: (b: { message: string; platforms: string[]; media_url?: string }) =>
+        fetchApi<{ results: Array<{ platform: string; status: string; external_url?: string; error?: string }> }>('/social/post-manual', { method: 'POST', body: JSON.stringify(b) }),
+    postSermon: (sermonId: string) =>
+        fetchApi<{ sermon_id: string; results: Array<{ platform: string; status: string; external_url?: string; error?: string }> }>(`/social/post-sermon/${sermonId}`, { method: 'POST' }),
+    listPosts: (platform?: string, status?: string) => {
+        const qs = new URLSearchParams()
+        if (platform) qs.set('platform', platform)
+        if (status) qs.set('status', status)
+        return fetchApi<SocialPost[]>(`/social/posts${qs.toString() ? `?${qs}` : ''}`)
+    },
+};
+
+// ─── SEO Meta ───────────────────────────────────────────────────────────────
+export interface SeoMeta {
+    slug: string; title: string | null; description: string | null;
+    og_title: string | null; og_description: string | null; og_image_url: string | null;
+    canonical_url: string | null; robots: string | null; keywords: string | null;
+    updated_at: string;
+}
+export const seoApi = {
+    list: () => fetchApi<SeoMeta[]>('/seo-meta/'),
+    get: (slug: string) => fetchApi<SeoMeta | null>(`/seo-meta/${encodeURIComponent(slug)}`),
+    upsert: (slug: string, b: Omit<Partial<SeoMeta>, 'slug' | 'updated_at'>) =>
+        fetchApi<SeoMeta>(`/seo-meta/${encodeURIComponent(slug)}`, { method: 'PUT', body: JSON.stringify(b) }),
+    delete: (slug: string) => fetchApi<{ deleted: number }>(`/seo-meta/${encodeURIComponent(slug)}`, { method: 'DELETE' }),
+};
+
+// ─── Blog ───────────────────────────────────────────────────────────────────
+export interface BlogPost {
+    id: string; slug: string; title: string; excerpt: string | null;
+    body_html: string; hero_image_url: string | null;
+    author_user_id: string | null; author_name: string; tags: string | null;
+    status: string; published_at: string | null; is_featured: boolean;
+    created_at: string; updated_at: string;
+}
+export const blogApi = {
+    publicList: (opts: { q?: string; tag?: string; limit?: number } = {}) => {
+        const qs = new URLSearchParams()
+        if (opts.q) qs.set('q', opts.q)
+        if (opts.tag) qs.set('tag', opts.tag)
+        if (opts.limit) qs.set('limit', String(opts.limit))
+        return fetchApi<BlogPost[]>(`/blog/posts${qs.toString() ? `?${qs}` : ''}`)
+    },
+    publicGet: (slug: string) => fetchApi<BlogPost>(`/blog/posts/${encodeURIComponent(slug)}`),
+    adminList: (status?: string) => fetchApi<BlogPost[]>(`/blog/admin/posts${status ? `?status=${status}` : ''}`),
+    adminGet: (id: string) => fetchApi<BlogPost>(`/blog/admin/posts/${id}`),
+    create: (b: Partial<BlogPost>) => fetchApi<BlogPost>('/blog/admin/posts', { method: 'POST', body: JSON.stringify(b) }),
+    update: (id: string, b: Partial<BlogPost>) => fetchApi<BlogPost>(`/blog/admin/posts/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    delete: (id: string) => fetchApi<{ deleted: number }>(`/blog/admin/posts/${id}`, { method: 'DELETE' }),
+};

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell, Heart, Sparkles, FileText, Tag, Plus, BarChart, ChevronRight, Mail, ShieldCheck, Image as ImageIcon } from 'lucide-react'
+import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell, Heart, Sparkles, FileText, Tag, Plus, BarChart, ChevronRight, Mail, ShieldCheck, Image as ImageIcon, PenSquare, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager, chatApi, serviceRequestApi } from '@/lib/api'
 import { useState, useEffect } from 'react'
@@ -118,6 +118,9 @@ const sidebarItems: SidebarItem[] = [
         ]
     },
     { title: 'Daily Verse', href: '/admin/daily-verse', icon: Sparkles },
+    { title: "Pastor's Blog", href: '/admin/blog', icon: PenSquare },
+    { title: 'Social Auto-Poster', href: '/admin/social-posts', icon: Share2 },
+    { title: 'SEO Meta', href: '/admin/seo-meta', icon: Globe },
     { title: 'Statement of Faith', href: '/admin/statement-of-faith', icon: BookOpen },
     { title: 'Moderators', href: '/admin/moderators', icon: ShieldCheck },
     {

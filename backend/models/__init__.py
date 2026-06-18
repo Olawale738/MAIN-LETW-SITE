@@ -47,6 +47,9 @@ from models.payment import PaymentProvider, Donation
 from models.daily_verse import DailyVerse
 from models.moderator_grant import ModeratorGrant
 from models.governance import LeadAssignment, AuditLog
+from models.social_post import SocialPostTarget, SocialPost
+from models.seo_meta import SeoMeta
+from models.blog import BlogPost
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
@@ -162,4 +165,8 @@ __all__ = [
     "ModeratorGrant",
     "LeadAssignment",
     "AuditLog",
+    "SocialPostTarget",
+    "SocialPost",
+    "SeoMeta",
+    "BlogPost",
 ]
