@@ -29,6 +29,10 @@ export default function BlogIndexPage() {
                 <p className="text-[#f5bb00] font-bold tracking-[0.3em] text-xs uppercase mb-3 inline-flex items-center gap-2"><PenSquare className="w-3.5 h-3.5" /> Pastor's Column</p>
                 <h1 className="text-4xl md:text-5xl font-black text-[#140152] leading-tight">Truth that lasts. Words for now.</h1>
                 <p className="text-gray-600 mt-4 max-w-2xl mx-auto">Weekly reflections, devotionals, and pastoral notes from Light Encounter Tabernacle.</p>
+                <a href="/blog/rss.xml" className="text-xs text-gray-400 hover:text-[#140152] inline-flex items-center gap-1 mt-4" target="_blank" rel="noopener noreferrer">
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="currentColor"><path d="M4 11a9 9 0 0 1 9 9h-3a6 6 0 0 0-6-6v-3zm0-7a16 16 0 0 1 16 16h-3A13 13 0 0 0 4 7V4zm2 13a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" /></svg>
+                    Subscribe via RSS
+                </a>
             </section>
 
             <section className="max-w-4xl mx-auto px-4 sm:px-6 pb-8">

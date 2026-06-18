@@ -110,6 +110,8 @@ export default function Footer() {
             <h4 className="font-black text-sm uppercase tracking-widest mb-6 text-[#f5bb00]">Connect</h4>
             <ul className="space-y-2.5">
               {[
+                { name: "Pastor's Blog", href: '/blog' },
+                { name: 'Give', href: '/giving' },
                 { name: 'Volunteer', href: '/volunteer' },
                 { name: 'Contact', href: '/contact' },
               ].map((link) => (

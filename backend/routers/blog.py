@@ -130,6 +130,16 @@ async def admin_create_post(body: PostIn, db: AsyncSession = Depends(get_db), ad
     db.add(p)
     await db.commit()
     await db.refresh(p)
+
+    # Auto-post to social if created already-published
+    if p.status == "published":
+        try:
+            from routers.social_posts import fire_auto_post_for_blog
+            await fire_auto_post_for_blog(db, p)
+            await db.commit()
+        except Exception:
+            pass
+
     return p
 
 
@@ -140,8 +150,9 @@ async def admin_update_post(post_id: str, body: PostIn, db: AsyncSession = Depen
     if not p:
         raise HTTPException(404, "Post not found")
     data = body.model_dump()
-    # When transitioning draft → published, stamp published_at
-    if p.status != "published" and data.get("status") == "published" and not p.published_at:
+    # When transitioning draft → published, stamp published_at + fire social autopost
+    just_published = (p.status != "published" and data.get("status") == "published")
+    if just_published and not p.published_at:
         data["published_at"] = datetime.utcnow()
     for k, v in data.items():
         if k == "slug" and not v:
@@ -149,6 +160,15 @@ async def admin_update_post(post_id: str, body: PostIn, db: AsyncSession = Depen
         setattr(p, k, v)
     await db.commit()
     await db.refresh(p)
+
+    if just_published:
+        try:
+            from routers.social_posts import fire_auto_post_for_blog
+            await fire_auto_post_for_blog(db, p)
+            await db.commit()
+        except Exception:
+            pass
+
     return p
 
 

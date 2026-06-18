@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { Loader2, Mail, Users, Send, Trash2, AlertCircle, CheckCircle, RefreshCw, History } from 'lucide-react'
 import RichTextEditor from '@/components/ui/rich-text-editor'
+import { blogApi, type BlogPost } from '@/lib/api'
 
 interface Subscriber {
     id: string
@@ -202,7 +203,10 @@ export default function AdminNewsletterPage() {
                         placeholder="e.g. Weekly Update — Encounter Service this Sunday"
                         className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#140152]/30 mb-4" />
 
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Message Body</label>
+                    <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Message Body</label>
+                        <InsertLatestBlogButton onInsert={(html) => setBody(body + html)} />
+                    </div>
                     <p className="text-[11px] text-gray-500 mb-2">Use the toolbar to format your message — bold, italic, links, headings, lists. The branded header and unsubscribe footer are added automatically when we send.</p>
                     <div className="border border-gray-200 rounded-xl overflow-hidden">
                         <RichTextEditor
@@ -327,5 +331,32 @@ export default function AdminNewsletterPage() {
                 </div>
             )}
         </div>
+    )
+}
+
+function InsertLatestBlogButton({ onInsert }: { onInsert: (html: string) => void }) {
+    const [latest, setLatest] = useState<BlogPost | null>(null)
+    useEffect(() => {
+        blogApi.publicList({ limit: 1 }).then(rows => setLatest(rows[0] || null)).catch(() => setLatest(null))
+    }, [])
+
+    const insert = () => {
+        if (!latest) return
+        const url = `https://letw.org/blog/${latest.slug}`
+        const html = `
+<div style="border-top:1px solid #e5e7eb;margin:24px 0 16px 0;padding-top:16px">
+  <p style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;font-weight:bold;color:#f5bb00;margin:0 0 8px 0">From the Pastor's Blog</p>
+  <p style="font-size:18px;font-weight:bold;color:#140152;margin:0 0 6px 0">${latest.title}</p>
+  ${latest.excerpt ? `<p style="font-size:14px;color:#475569;margin:0 0 12px 0">${latest.excerpt}</p>` : ''}
+  <p style="margin:0"><a href="${url}" style="display:inline-block;background:#140152;color:#fff;padding:10px 18px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:13px">Read on the blog →</a></p>
+</div>`
+        onInsert(html)
+    }
+
+    if (!latest) return <span className="text-[10px] text-gray-400">(no blog posts yet)</span>
+    return (
+        <button onClick={insert} type="button" className="text-[11px] font-bold text-[#140152] bg-[#f5bb00]/15 hover:bg-[#f5bb00]/30 px-2.5 py-1 rounded-md inline-flex items-center gap-1.5">
+            + Insert latest blog post
+        </button>
     )
 }

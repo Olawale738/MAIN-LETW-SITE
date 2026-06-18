@@ -209,6 +209,27 @@ async def fire_auto_post_for_sermon(db: AsyncSession, sermon: Sermon) -> None:
                               message=message, status="failed", error=str(e)[:500]))
 
 
+async def fire_auto_post_for_blog(db: AsyncSession, post) -> None:
+    """Hook called from the blog router when a post transitions to published.
+    Fires every ACTIVE target (re-uses the auto_post_sermons toggle so admins
+    don't need a second flag). Best-effort: failures logged, never raise."""
+    title = (post.title or "").strip()
+    excerpt = (post.excerpt or "").strip()
+    base = f"New on the blog: {title}"
+    if excerpt:
+        base = f"{base} — {excerpt}"
+    link = f"https://letw.org/blog/{post.slug}"
+    message = f"{base} {link}"
+
+    res = await db.execute(select(SocialPostTarget).where(SocialPostTarget.is_active == True, SocialPostTarget.auto_post_sermons == True))
+    for t in res.scalars().all():
+        try:
+            await _post_once(db, t.platform, message, link, "blog", post.id)
+        except Exception as e:
+            db.add(SocialPost(platform=t.platform, source_kind="blog", source_id=post.id,
+                              message=message, status="failed", error=str(e)[:500]))
+
+
 # ─── Post log ────────────────────────────────────────────────────────────────
 
 @router.get("/posts")
