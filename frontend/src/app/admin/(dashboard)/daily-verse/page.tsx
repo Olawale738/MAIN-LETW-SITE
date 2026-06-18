@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Loader2, Plus, Save, Trash2, Sparkles, AlertCircle, CheckCircle, ArrowUp, ArrowDown } from 'lucide-react'
+import { Loader2, Plus, Save, Trash2, Sparkles, AlertCircle, CheckCircle, ArrowUp, ArrowDown, Download } from 'lucide-react'
 import { dailyVerseApi, type DailyVerse } from '@/lib/api'
 
 export default function AdminDailyVersePage() {
@@ -9,6 +9,7 @@ export default function AdminDailyVersePage() {
     const [showNew, setShowNew] = useState(false)
     const [editing, setEditing] = useState<DailyVerse | null>(null)
     const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
+    const [seeding, setSeeding] = useState(false)
 
     const load = async () => {
         try { setVerses(await dailyVerseApi.list()) }
@@ -36,6 +37,20 @@ export default function AdminDailyVersePage() {
         try { await dailyVerseApi.update(v.id, { ...v, sort_order: v.sort_order + delta }); await load() }
         catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
     }
+    const seedKjv = async () => {
+        const force = verses.length > 0
+        const confirmText = force
+            ? `You already have ${verses.length} verses. Add 365 KJV verses anyway? Duplicates will be skipped automatically.`
+            : 'Add 365 KJV verses to the rotation? One verse will be featured each day for a full year.'
+        if (!confirm(confirmText)) return
+        setSeeding(true)
+        try {
+            const r = await dailyVerseApi.seedKjv(force)
+            setMsg({ kind: 'ok', text: `Added ${r.added} verses. ${r.skipped} duplicates skipped. Total now: ${r.total_now}.` })
+            await load()
+        } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setSeeding(false) }
+    }
 
     if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-[#140152]" /></div>
 
@@ -46,6 +61,9 @@ export default function AdminDailyVersePage() {
                     <h1 className="text-3xl font-black text-[#140152] flex items-center gap-3"><Sparkles className="w-7 h-7 text-[#f5bb00]" /> Daily Verse Rotation</h1>
                     <p className="text-gray-500 mt-1 text-sm">A different verse from this list is shown on the homepage each day, rotating by day-of-year. Add as many as you like.</p>
                 </div>
+                <button onClick={seedKjv} disabled={seeding} className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-[#ffc820] text-[#140152] font-bold px-5 py-3 rounded-xl disabled:opacity-50 shadow-md">
+                    {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Seed 365 KJV Verses
+                </button>
             </div>
 
             {msg && <div className={`mb-4 p-3 rounded-xl border flex items-start gap-2 ${msg.kind === 'ok' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>

@@ -3587,6 +3587,7 @@ export const dailyVerseApi = {
     create: (b: Omit<DailyVerse, 'id'>) => fetchApi<DailyVerse>('/daily-verse/', { method: 'POST', body: JSON.stringify(b) }),
     update: (id: string, b: Omit<DailyVerse, 'id'>) => fetchApi<DailyVerse>(`/daily-verse/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
     delete: (id: string) => fetchApi<{ deleted: number }>(`/daily-verse/${id}`, { method: 'DELETE' }),
+    seedKjv: (force = false) => fetchApi<{ added: number; skipped: number; total_now: number; reason?: string }>(`/daily-verse/seed-kjv${force ? '?force=true' : ''}`, { method: 'POST' }),
 };
 
 // ─── Moderators ─────────────────────────────────────────────────────────────

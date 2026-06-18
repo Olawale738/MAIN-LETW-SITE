@@ -79,6 +79,31 @@ async def update_verse(vid: str, body: VerseIn, db: AsyncSession = Depends(get_d
     return v
 
 
+@router.post("/seed-kjv")
+async def seed_kjv(
+    force: bool = False,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+):
+    """Populate the rotation with 365 KJV verses (public domain).
+    Skips by default if any verses already exist. Pass ?force=true to add anyway."""
+    from data.kjv_daily_verses import KJV_VERSES
+    res = await db.execute(select(DailyVerse))
+    existing = list(res.scalars().all())
+    if existing and not force:
+        return {"added": 0, "skipped": len(KJV_VERSES), "total_now": len(existing), "reason": "verses already exist; pass force=true to add anyway"}
+    existing_refs = {(v.reference, v.text) for v in existing}
+    added = 0
+    for idx, (ref, text) in enumerate(KJV_VERSES):
+        if (ref, text) in existing_refs:
+            continue
+        db.add(DailyVerse(reference=ref, text=text, translation="KJV", is_active=True, sort_order=idx))
+        added += 1
+    await db.commit()
+    res2 = await db.execute(select(DailyVerse))
+    return {"added": added, "skipped": len(KJV_VERSES) - added, "total_now": len(list(res2.scalars().all()))}
+
+
 @router.delete("/{vid}")
 async def delete_verse(vid: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     res = await db.execute(select(DailyVerse).where(DailyVerse.id == vid))
