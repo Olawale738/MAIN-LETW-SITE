@@ -159,6 +159,10 @@ app.include_router(life_events.router)
 # Payments (provider registry + checkout + webhooks + donation log)
 from routers import payments
 app.include_router(payments.router)
+
+# Daily Verse rotation (homepage widget)
+from routers import daily_verse
+app.include_router(daily_verse.router)
 # Deploy nudge: ensures Render picks up youth_programs router and tables
 # (youth_programs, youth_program_messages, youth_program_activities,
 #  youth_program_rsvps, youth_program_attendances).

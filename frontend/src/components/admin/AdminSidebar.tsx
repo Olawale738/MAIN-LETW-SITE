@@ -117,6 +117,8 @@ const sidebarItems: SidebarItem[] = [
             { title: 'Mentor Dashboard',      href: '/dashboard/mentor',             icon: BookOpen },
         ]
     },
+    { title: 'Daily Verse', href: '/admin/daily-verse', icon: Sparkles },
+    { title: 'Statement of Faith', href: '/admin/statement-of-faith', icon: BookOpen },
     { title: 'Messages', href: '/admin/chat', icon: MessageCircle },
     {
         title: 'Member Journey',

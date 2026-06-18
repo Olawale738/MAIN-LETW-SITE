@@ -44,6 +44,7 @@ from models.discipleship import DiscipleshipStage, DiscipleshipProgress
 from models.counselling import CounsellingAvailability, CounsellingBooking
 from models.life_event import LifeEventRequest
 from models.payment import PaymentProvider, Donation
+from models.daily_verse import DailyVerse
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
@@ -155,4 +156,5 @@ __all__ = [
     "LifeEventRequest",
     "PaymentProvider",
     "Donation",
+    "DailyVerse",
 ]

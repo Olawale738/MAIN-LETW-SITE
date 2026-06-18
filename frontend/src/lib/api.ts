@@ -3376,7 +3376,7 @@ export interface MinistryContent {
     updated_at?: string | null;
 }
 
-export type MinistryContentKey = 'women' | 'men' | 'theology' | 'leadership' | 'giving';
+export type MinistryContentKey = 'women' | 'men' | 'theology' | 'leadership' | 'giving' | 'statement-of-faith';
 
 export const ministryContentApi = {
     get: (key: MinistryContentKey): Promise<MinistryContent> =>
@@ -3573,4 +3573,18 @@ export const eventPhotoApi = {
     },
     delete: (event_id: string, photo_id: string) =>
         fetchApi<{ deleted: number }>(`/events/${event_id}/photos/${photo_id}`, { method: 'DELETE' }),
+};
+
+// ─── Daily Verse ────────────────────────────────────────────────────────────
+export interface DailyVerse {
+    id: string; reference: string; text: string;
+    translation?: string | null; is_active: boolean; sort_order: number;
+}
+export interface TodayVerse { id: string; reference: string; text: string; translation: string | null; date: string }
+export const dailyVerseApi = {
+    today: () => fetchApi<TodayVerse | null>('/daily-verse/today'),
+    list: () => fetchApi<DailyVerse[]>('/daily-verse/'),
+    create: (b: Omit<DailyVerse, 'id'>) => fetchApi<DailyVerse>('/daily-verse/', { method: 'POST', body: JSON.stringify(b) }),
+    update: (id: string, b: Omit<DailyVerse, 'id'>) => fetchApi<DailyVerse>(`/daily-verse/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    delete: (id: string) => fetchApi<{ deleted: number }>(`/daily-verse/${id}`, { method: 'DELETE' }),
 };

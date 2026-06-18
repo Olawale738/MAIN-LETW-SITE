@@ -6,6 +6,7 @@ import { cmsApi, Block } from '@/lib/api'
 import PageRenderer from '@/components/cms/PageRenderer'
 import { DEFAULT_HOME_BLOCKS } from '@/lib/cmsDefaults'
 import LiveStreamPlayer from '@/components/LiveStreamPlayer'
+import DailyVerseWidget from '@/components/widgets/DailyVerseWidget'
 
 export default function HomePage() {
     const [blocks, setBlocks] = useState<Block[]>([])
@@ -71,6 +72,7 @@ export default function HomePage() {
 
                         <LiveStreamPlayer />
                         <PageRenderer blocks={blocks} />
+                        <DailyVerseWidget />
                     </motion.div>
                 )}
             </AnimatePresence>
