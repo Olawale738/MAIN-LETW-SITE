@@ -5,7 +5,6 @@ import { cmsApi, Block } from '@/lib/api'
 import PageRenderer from '@/components/cms/PageRenderer'
 import { DEFAULT_ABOUT_BLOCKS } from '@/lib/cmsDefaults'
 import { Loader2 } from 'lucide-react'
-import StatementOfFaithSection from '@/components/about/StatementOfFaithSection'
 
 export default function AboutPage() {
   const [blocks, setBlocks] = useState<Block[]>([])
@@ -42,7 +41,6 @@ export default function AboutPage() {
   return (
     <div className="bg-white dark:bg-black min-h-screen">
       <PageRenderer blocks={blocks} />
-      <StatementOfFaithSection />
     </div>
   )
 }

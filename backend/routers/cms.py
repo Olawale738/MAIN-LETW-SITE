@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
@@ -74,25 +74,29 @@ async def update_page(
 
 @router.post("/images", response_model=ImageResponse)
 async def upload_image(
+    request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_admin_user)
 ):
     contents = await file.read()
-    
+
     image = CMSImage(
         filename=file.filename,
         mime_type=file.content_type or "application/octet-stream",
         data=contents,
         size=len(contents)
     )
-    
+
     db.add(image)
     await db.commit()
     await db.refresh(image)
-    
-    # Construct a URL for the frontend to use
-    image_url = f"/api/cms/images/{image.id}"
+
+    # Construct an absolute URL using the request's scheme/host so the browser
+    # fetches from the backend origin instead of the frontend host.
+    scheme = request.headers.get("x-forwarded-proto") or request.url.scheme
+    host = request.headers.get("x-forwarded-host") or request.url.netloc
+    image_url = f"{scheme}://{host}/api/cms/images/{image.id}"
     
     return ImageResponse(
         id=image.id,
