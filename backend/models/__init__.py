@@ -45,6 +45,7 @@ from models.counselling import CounsellingAvailability, CounsellingBooking
 from models.life_event import LifeEventRequest
 from models.payment import PaymentProvider, Donation
 from models.daily_verse import DailyVerse
+from models.moderator_grant import ModeratorGrant
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
@@ -157,4 +158,5 @@ __all__ = [
     "PaymentProvider",
     "Donation",
     "DailyVerse",
+    "ModeratorGrant",
 ]

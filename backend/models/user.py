@@ -34,6 +34,7 @@ class UserRole(str, enum.Enum):
     """User role."""
     USER                   = "user"
     ADMIN                  = "admin"
+    MODERATOR              = "moderator"
     CHOIRMASTER            = "choirmaster"
     YOUTH_LEADER           = "youth_leader"
     CHILDREN_COORDINATOR   = "children_coordinator"

@@ -3588,3 +3588,19 @@ export const dailyVerseApi = {
     update: (id: string, b: Omit<DailyVerse, 'id'>) => fetchApi<DailyVerse>(`/daily-verse/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
     delete: (id: string) => fetchApi<{ deleted: number }>(`/daily-verse/${id}`, { method: 'DELETE' }),
 };
+
+// ─── Moderators ─────────────────────────────────────────────────────────────
+export interface ModeratorScope { key: string; label: string; group: string }
+export interface Moderator { user_id: string; email: string; name: string; role: string; scopes: string[] }
+export interface MyPermissions { role: string; is_admin: boolean; scopes: string[] }
+export const moderatorsApi = {
+    scopes: () => fetchApi<{ scopes: ModeratorScope[] }>('/admin/moderators/scopes'),
+    me: () => fetchApi<MyPermissions>('/admin/moderators/me'),
+    list: () => fetchApi<Moderator[]>('/admin/moderators/'),
+    candidates: (q?: string) => fetchApi<Array<{ id: string; email: string; name: string }>>(`/admin/moderators/candidates${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+    promote: (user_id: string, scopes: string[]) =>
+        fetchApi<Moderator>('/admin/moderators/promote', { method: 'POST', body: JSON.stringify({ user_id, scopes }) }),
+    setGrants: (user_id: string, scopes: string[]) =>
+        fetchApi<Moderator>(`/admin/moderators/${user_id}/grants`, { method: 'PUT', body: JSON.stringify({ scopes }) }),
+    demote: (user_id: string) => fetchApi<{ demoted: string }>(`/admin/moderators/${user_id}`, { method: 'DELETE' }),
+};

@@ -85,11 +85,42 @@ async def get_admin_user(
     Raises HTTPException if user is not an admin.
     """
     from models.user import UserRole
-    
+
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
         )
     return current_user
+
+
+def require_scope(scope: str):
+    """
+    Allow access if the user is an ADMIN (implicit all-scopes) OR a MODERATOR
+    with an explicit grant for the named scope.
+    """
+    from models.user import UserRole
+    from models.moderator_grant import ModeratorGrant
+
+    async def _dep(
+        current_user: User = Depends(get_current_active_user),
+        db: AsyncSession = Depends(get_db),
+    ) -> User:
+        if current_user.role == UserRole.ADMIN:
+            return current_user
+        if current_user.role == UserRole.MODERATOR:
+            res = await db.execute(
+                select(ModeratorGrant).where(
+                    ModeratorGrant.user_id == current_user.id,
+                    ModeratorGrant.scope == scope,
+                )
+            )
+            if res.scalar_one_or_none():
+                return current_user
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Missing permission for scope '{scope}'",
+        )
+
+    return _dep
 

@@ -119,6 +119,7 @@ const sidebarItems: SidebarItem[] = [
     },
     { title: 'Daily Verse', href: '/admin/daily-verse', icon: Sparkles },
     { title: 'Statement of Faith', href: '/admin/statement-of-faith', icon: BookOpen },
+    { title: 'Moderators', href: '/admin/moderators', icon: ShieldCheck },
     { title: 'Messages', href: '/admin/chat', icon: MessageCircle },
     {
         title: 'Member Journey',
