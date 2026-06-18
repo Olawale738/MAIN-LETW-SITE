@@ -7,7 +7,7 @@ import {
     Plus, Trash2, Loader2, Edit2, Video, Search, Eye, EyeOff,
     Star, StarOff, FileText, Upload, X, Calendar, User, Link as LinkIcon
 } from 'lucide-react'
-import { sermonApi, Sermon, SermonCreateData } from '@/lib/api'
+import { sermonApi, Sermon, SermonCreateData, youtubeApi } from '@/lib/api'
 
 export default function AdminSermonsPage() {
     const [sermons, setSermons] = useState<Sermon[]>([])
@@ -259,7 +259,13 @@ export default function AdminSermonsPage() {
 
                             <div className="grid md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="block text-sm font-medium text-gray-700">YouTube URL</label>
+                                        <YouTubeImportButton url={videoUrl} onMetadata={(m) => {
+                                            if (m.title && !title.trim()) setTitle(m.title)
+                                            if (m.author && !preacher.trim()) setPreacher(m.author)
+                                        }} />
+                                    </div>
                                     <input
                                         value={videoUrl}
                                         onChange={e => setVideoUrl(e.target.value)}
@@ -500,5 +506,25 @@ export default function AdminSermonsPage() {
                 </CardContent>
             </Card>
         </div>
+    )
+}
+
+function YouTubeImportButton({ url, onMetadata }: { url: string; onMetadata: (m: { title?: string; author?: string }) => void }) {
+    const [busy, setBusy] = useState(false)
+    const run = async () => {
+        if (!url.trim()) return
+        setBusy(true)
+        try {
+            const m = await youtubeApi.import(url)
+            onMetadata({ title: m.title, author: m.author })
+        } catch (e) { alert((e as Error).message) }
+        finally { setBusy(false) }
+    }
+    if (!url.trim()) return null
+    return (
+        <button type="button" onClick={run} disabled={busy} className="text-[11px] font-bold text-[#140152] bg-[#f5bb00]/15 hover:bg-[#f5bb00]/30 px-2.5 py-1 rounded-md inline-flex items-center gap-1.5 disabled:opacity-50">
+            {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+            Import from YouTube
+        </button>
     )
 }

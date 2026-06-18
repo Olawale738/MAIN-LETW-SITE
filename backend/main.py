@@ -183,6 +183,10 @@ app.include_router(seo_meta.router)
 # Pastor's blog
 from routers import blog
 app.include_router(blog.router)
+
+# YouTube metadata import (sermons)
+from routers import youtube_import
+app.include_router(youtube_import.router)
 # Deploy nudge: ensures Render picks up youth_programs router and tables
 # (youth_programs, youth_program_messages, youth_program_activities,
 #  youth_program_rsvps, youth_program_attendances).

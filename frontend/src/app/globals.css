@@ -243,3 +243,26 @@ a,
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* ── Native-quality scrolling (#184) ──────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  overscroll-behavior-y: none;
+  scroll-padding-top: 80px;
+}
+body {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+/* ── Reduced-motion (#190) ───────────────────────────────────────────────────
+   Honour the OS-level setting. Disables all animations + smooth-scroll. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

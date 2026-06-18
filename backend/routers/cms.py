@@ -80,10 +80,37 @@ async def upload_image(
     admin: User = Depends(get_admin_user)
 ):
     contents = await file.read()
+    mime_type = file.content_type or "application/octet-stream"
+    filename = file.filename or "upload"
+
+    # Auto-convert raster images (JPEG/PNG) to WebP for ~30-70% size reduction.
+    # Skip GIFs (animation), SVGs (vector), and anything that isn't a known raster type.
+    if mime_type.startswith("image/") and mime_type not in ("image/gif", "image/svg+xml", "image/webp"):
+        try:
+            from PIL import Image
+            import io
+            img = Image.open(io.BytesIO(contents))
+            # Preserve transparency where present
+            if img.mode in ("RGBA", "LA", "P"):
+                img = img.convert("RGBA")
+            else:
+                img = img.convert("RGB")
+            buf = io.BytesIO()
+            img.save(buf, format="WEBP", quality=82, method=6)
+            new_bytes = buf.getvalue()
+            # Only switch if WebP is actually smaller (rare for some PNG icons it may not be)
+            if len(new_bytes) < len(contents):
+                contents = new_bytes
+                mime_type = "image/webp"
+                stem = filename.rsplit(".", 1)[0] if "." in filename else filename
+                filename = f"{stem}.webp"
+        except Exception:
+            # Pillow not installed or unsupported image — keep original
+            pass
 
     image = CMSImage(
-        filename=file.filename,
-        mime_type=file.content_type or "application/octet-stream",
+        filename=filename,
+        mime_type=mime_type,
         data=contents,
         size=len(contents)
     )

@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react'
 import { Loader2, Mail, Users, Send, Trash2, AlertCircle, CheckCircle, RefreshCw, History } from 'lucide-react'
 import RichTextEditor from '@/components/ui/rich-text-editor'
 import { blogApi, type BlogPost } from '@/lib/api'
+import { useMultiSelect } from '@/hooks/useMultiSelect'
+import BulkActionBar from '@/components/admin/BulkActionBar'
 
 interface Subscriber {
     id: string
@@ -257,35 +259,7 @@ export default function AdminNewsletterPage() {
             )}
 
             {/* SUBSCRIBERS */}
-            {tab === 'subscribers' && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                        <p className="font-bold text-[#140152]">All Active Subscribers ({subs.length})</p>
-                        <button onClick={() => Promise.all([loadCount(), loadSubs()])} className="text-sm text-gray-500 hover:text-[#140152] flex items-center gap-1.5"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
-                    </div>
-                    {subs.length === 0 ? (
-                        <div className="px-5 py-12 text-center text-gray-400">No subscribers yet.</div>
-                    ) : (
-                        <div className="divide-y divide-gray-100">
-                            {subs.map(s => (
-                                <div key={s.id} className="px-5 py-3 flex items-center gap-3 hover:bg-gray-50">
-                                    <div className="w-9 h-9 rounded-full bg-[#140152]/10 flex items-center justify-center font-bold text-[#140152] text-sm flex-shrink-0">
-                                        {(s.name || s.email).slice(0, 1).toUpperCase()}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold text-[#140152] truncate">{s.email}</p>
-                                        <p className="text-[11px] text-gray-400 truncate">
-                                            {s.name ? `${s.name} · ` : ''}{new Date(s.subscribed_at).toLocaleDateString()} · via {s.source || 'unknown'}
-                                        </p>
-                                    </div>
-                                    <button onClick={() => removeSub(s.id, s.email)} title="Remove from list"
-                                        className="p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            )}
+            {tab === 'subscribers' && <SubscribersTab subs={subs} loadCount={loadCount} loadSubs={loadSubs} setOk={setOk} setErr={setErr} />}
 
             {/* HISTORY */}
             {tab === 'history' && (
@@ -330,6 +304,64 @@ export default function AdminNewsletterPage() {
                     </div>
                 </div>
             )}
+        </div>
+    )
+}
+
+function SubscribersTab({ subs, loadCount, loadSubs, setOk, setErr }: { subs: Subscriber[]; loadCount: () => Promise<void>; loadSubs: () => Promise<void>; setOk: (s: string) => void; setErr: (s: string) => void }) {
+    const allIds = subs.map(s => s.id)
+    const { selected, isSelected, toggle, toggleAll, clear, count, allSelected, someSelected } = useMultiSelect(allIds)
+
+    const bulkRemove = async () => {
+        try {
+            await Promise.all([...selected].map(id => api(`/newsletter/subscribers/${id}`, { method: 'DELETE' })))
+            setOk(`Removed ${count} subscriber${count === 1 ? '' : 's'}.`)
+            clear()
+            await Promise.all([loadCount(), loadSubs()])
+        } catch (e) { setErr((e as Error).message) }
+    }
+
+    const removeOne = async (id: string, email: string) => {
+        if (!confirm(`Remove ${email}?`)) return
+        try { await api(`/newsletter/subscribers/${id}`, { method: 'DELETE' }); setOk('Subscriber removed.'); await Promise.all([loadCount(), loadSubs()]) }
+        catch (e) { setErr((e as Error).message) }
+    }
+
+    return (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <label className="flex items-center gap-2 font-bold text-[#140152] cursor-pointer">
+                    <input type="checkbox" checked={allSelected} ref={(el) => { if (el) el.indeterminate = someSelected }} onChange={toggleAll} />
+                    All Active Subscribers ({subs.length})
+                </label>
+                <button onClick={() => Promise.all([loadCount(), loadSubs()])} className="text-sm text-gray-500 hover:text-[#140152] flex items-center gap-1.5"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
+            </div>
+            {subs.length === 0 ? (
+                <div className="px-5 py-12 text-center text-gray-400">No subscribers yet.</div>
+            ) : (
+                <div className="divide-y divide-gray-100">
+                    {subs.map(s => (
+                        <div key={s.id} className={`px-5 py-3 flex items-center gap-3 ${isSelected(s.id) ? 'bg-[#f5bb00]/10' : 'hover:bg-gray-50'}`}>
+                            <input type="checkbox" checked={isSelected(s.id)} onChange={() => toggle(s.id)} />
+                            <div className="w-9 h-9 rounded-full bg-[#140152]/10 flex items-center justify-center font-bold text-[#140152] text-sm flex-shrink-0">
+                                {(s.name || s.email).slice(0, 1).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-[#140152] truncate">{s.email}</p>
+                                <p className="text-[11px] text-gray-400 truncate">
+                                    {s.name ? `${s.name} · ` : ''}{new Date(s.subscribed_at).toLocaleDateString()} · via {s.source || 'unknown'}
+                                </p>
+                            </div>
+                            <button onClick={() => removeOne(s.id, s.email)} title="Remove from list"
+                                className="p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <BulkActionBar count={count} onClear={clear} label="subscriber" actions={[
+                { label: 'Remove', destructive: true, icon: Trash2, confirm: 'Remove {count} subscribers from the list?', onClick: bulkRemove },
+            ]} />
         </div>
     )
 }

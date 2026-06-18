@@ -3706,3 +3706,18 @@ export const blogApi = {
     update: (id: string, b: Partial<BlogPost>) => fetchApi<BlogPost>(`/blog/admin/posts/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
     delete: (id: string) => fetchApi<{ deleted: number }>(`/blog/admin/posts/${id}`, { method: 'DELETE' }),
 };
+
+// ─── YouTube import (sermons) ──────────────────────────────────────────────
+export interface YouTubeMetadata {
+    video_id: string; title: string; author: string; author_url: string;
+    thumbnail_url: string; canonical_url: string; embed_url: string;
+}
+export const youtubeApi = {
+    import: (url: string) => fetchApi<YouTubeMetadata>('/youtube/import', { method: 'POST', body: JSON.stringify({ url }) }),
+};
+
+// ─── Stripe Customer Portal ────────────────────────────────────────────────
+export const billingApi = {
+    portal: (customer_email: string, return_url?: string) =>
+        fetchApi<{ url: string }>('/payments/billing-portal', { method: 'POST', body: JSON.stringify({ customer_email, return_url }) }),
+};

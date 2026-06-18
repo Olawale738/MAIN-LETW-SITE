@@ -1,8 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, PenSquare, Search, Calendar, ArrowRight } from 'lucide-react'
+import { PenSquare, Search, Calendar, ArrowRight } from 'lucide-react'
 import { blogApi, type BlogPost } from '@/lib/api'
+import { SkeletonGrid, Skeleton, SkeletonText } from '@/components/ui/Skeleton'
+import ScrollReveal from '@/components/effects/ScrollReveal'
 
 export default function BlogIndexPage() {
     const [posts, setPosts] = useState<BlogPost[]>([])
@@ -41,7 +43,19 @@ export default function BlogIndexPage() {
                     <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search posts…" className="w-full bg-white border border-gray-200 rounded-2xl pl-11 pr-4 py-3.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#140152]/30" />
                 </div>
 
-                {loading ? <div className="py-16 flex justify-center"><Loader2 className="w-10 h-10 animate-spin text-[#140152]" /></div> : posts.length === 0 ? (
+                {loading ? (
+                    <>
+                        <div className="bg-white rounded-3xl shadow-xl overflow-hidden mb-8">
+                            <Skeleton className="aspect-video w-full" />
+                            <div className="p-6 sm:p-8">
+                                <Skeleton className="h-4 w-20 mb-3" />
+                                <Skeleton className="h-8 w-3/4 mb-3" />
+                                <SkeletonText lines={2} />
+                            </div>
+                        </div>
+                        <SkeletonGrid count={4} />
+                    </>
+                ) : posts.length === 0 ? (
                     <div className="bg-white rounded-2xl p-12 text-center text-gray-400">
                         <PenSquare className="w-12 h-12 mx-auto mb-3 opacity-40" />
                         <p>No posts yet. Check back soon.</p>
@@ -61,8 +75,9 @@ export default function BlogIndexPage() {
                         )}
 
                         <div className="grid md:grid-cols-2 gap-5">
-                            {rest.map(p => (
-                                <Link key={p.id} href={`/blog/${p.slug}`} className="block bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-shadow group">
+                            {rest.map((p, i) => (
+                                <ScrollReveal key={p.id} delay={i * 60}>
+                                <Link href={`/blog/${p.slug}`} className="block bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-shadow group">
                                     {p.hero_image_url && <div className="aspect-video bg-gray-100 overflow-hidden"><img src={p.hero_image_url} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /></div>}
                                     <div className="p-5">
                                         <h3 className="font-bold text-[#140152] text-lg leading-tight">{p.title}</h3>
@@ -71,6 +86,7 @@ export default function BlogIndexPage() {
                                         <p className="mt-3 text-xs font-bold text-[#140152] inline-flex items-center gap-1 group-hover:gap-2 transition-all">Read more <ArrowRight className="w-3 h-3" /></p>
                                     </div>
                                 </Link>
+                                </ScrollReveal>
                             ))}
                         </div>
                     </>

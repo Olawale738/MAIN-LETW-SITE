@@ -398,6 +398,77 @@ async def list_donations(
     } for d in rows]
 
 
+class BillingPortalIn(BaseModel):
+    return_url: Optional[str] = None
+    customer_email: Optional[str] = None
+
+
+@router.post("/billing-portal")
+async def stripe_billing_portal(
+    body: BillingPortalIn,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a Stripe Customer Portal session so recurring donors can self-manage
+    their subscriptions (pause, update card, cancel). Returns the portal URL.
+
+    Notes:
+    - Stripe needs a customer_id. We look it up by the payer_email of the most
+      recent successful Stripe donation. Once recurring donations exist, store
+      stripe_customer_id on the user record for cleaner lookup.
+    - The Customer Portal must be enabled in Stripe Dashboard → Settings → Billing
+      → Customer Portal (one-time setup).
+    """
+    res = await db.execute(select(PaymentProvider).where(
+        PaymentProvider.slug == "stripe", PaymentProvider.is_active == True
+    ))
+    provider = res.scalar_one_or_none()
+    if not provider or not provider.secret_key:
+        raise HTTPException(400, "Stripe provider not configured")
+
+    if not body.customer_email:
+        raise HTTPException(400, "customer_email is required to locate the Stripe customer")
+
+    # Find a Stripe customer from past donations by this email
+    res2 = await db.execute(select(Donation).where(
+        Donation.payer_email == body.customer_email,
+        Donation.provider_id == provider.id,
+        Donation.status == "success",
+    ).order_by(Donation.created_at.desc()).limit(1))
+    last = res2.scalar_one_or_none()
+
+    customer_id: Optional[str] = None
+    if last and last.raw_payload:
+        # Stripe checkout.session.completed payloads include the customer id
+        obj = (last.raw_payload.get("data") or {}).get("object") or last.raw_payload
+        customer_id = obj.get("customer") if isinstance(obj, dict) else None
+
+    if not customer_id:
+        # Search Stripe for a customer by email as a fallback
+        async with httpx.AsyncClient(timeout=15) as cli:
+            r = await cli.get(
+                "https://api.stripe.com/v1/customers",
+                headers={"Authorization": f"Bearer {provider.secret_key}"},
+                params={"email": body.customer_email, "limit": 1},
+            )
+        if r.status_code >= 300:
+            raise HTTPException(502, f"Stripe customer lookup failed: {r.text[:200]}")
+        items = r.json().get("data", [])
+        if not items:
+            raise HTTPException(404, "No Stripe customer found for this email")
+        customer_id = items[0]["id"]
+
+    return_url = body.return_url or "https://letw.org/giving/thank-you"
+    async with httpx.AsyncClient(timeout=15) as cli:
+        r = await cli.post(
+            "https://api.stripe.com/v1/billing_portal/sessions",
+            headers={"Authorization": f"Bearer {provider.secret_key}", "Content-Type": "application/x-www-form-urlencoded"},
+            data={"customer": customer_id, "return_url": return_url},
+        )
+    if r.status_code >= 300:
+        raise HTTPException(502, f"Stripe portal create failed: {r.text[:300]}")
+    return {"url": r.json().get("url")}
+
+
 @router.get("/donations/by-reference/{reference}")
 async def donation_by_reference(reference: str, db: AsyncSession = Depends(get_db)):
     """Public lookup by reference — for the thank-you page to confirm payment status.
