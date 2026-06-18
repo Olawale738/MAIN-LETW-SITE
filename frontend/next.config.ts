@@ -58,4 +58,19 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Wrap with Sentry to upload source maps + auto-instrument routes.
+// withSentryConfig is a no-op when SENTRY_DSN env vars aren't set.
+import { withSentryConfig } from '@sentry/nextjs';
+
+export default withSentryConfig(nextConfig, {
+    // Build-time options
+    org: 'letworg',
+    project: 'letw-frontend',
+    silent: !process.env.CI,
+    widenClientFileUpload: true,
+    reactComponentAnnotation: { enabled: true },
+    tunnelRoute: '/monitoring',
+    hideSourceMaps: true,
+    disableLogger: true,
+    automaticVercelMonitors: true,
+});
