@@ -3,6 +3,7 @@ Database configuration and session management.
 Uses SQLAlchemy 2.0 async engine with asyncpg for PostgreSQL.
 """
 
+import uuid
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import NullPool
@@ -17,16 +18,26 @@ is_supabase = "supabase.com" in settings.DATABASE_URL or "pooler.supabase.com" i
 # For Supabase with asyncpg: disable prepared statement caching for PgBouncer compatibility
 # For other PostgreSQL: use default settings
 if is_supabase:
-    # asyncpg connect_args for PgBouncer transaction pooling mode
-    # CRITICAL: Both parameters are needed for full compatibility
+    # asyncpg connect_args for PgBouncer transaction pooling mode.
+    #
+    # CRITICAL: statement_cache_size=0 alone is NOT enough. PgBouncer in
+    # transaction mode pools physical connections across requests, and
+    # asyncpg's default prepared-statement names (__asyncpg_stmt_cN__) are
+    # deterministic per connection. When the same pooled connection is
+    # reused for two different statements, the names collide:
+    #     DuplicatePreparedStatementError: __asyncpg_stmt_c5__ already exists
+    #
+    # The fix is to make EACH prepared statement get a unique name via
+    # prepared_statement_name_func. UUIDs guarantee no collision.
     async_connect_args = {
-        "prepared_statement_cache_size": 0,  # SQLAlchemy dialect parameter
-        "statement_cache_size": 0,            # asyncpg native parameter
+        "prepared_statement_cache_size": 0,
+        "statement_cache_size": 0,
+        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4().hex}__",
         "server_settings": {
-            "jit": "off"  # Disable JIT for better pgbouncer compatibility
+            "jit": "off",
         },
     }
-    print(f"[database.py] Supabase detected - disabling prepared statement cache", flush=True)
+    print(f"[database.py] Supabase detected - disabling prepared statement cache + randomising names", flush=True)
 else:
     async_connect_args = {}
 
