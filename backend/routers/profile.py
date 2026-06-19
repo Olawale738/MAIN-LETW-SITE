@@ -78,15 +78,14 @@ async def upload_avatar(
     ext = os.path.splitext(file.filename or "")[1].lower() or ".png"
     safe_ext = ext if ext in {".png", ".jpg", ".jpeg", ".webp", ".gif"} else ".png"
     fname = f"{current_user.id}-{uuid.uuid4().hex}{safe_ext}"
-    target = AVATAR_DIR / fname
 
     contents = await file.read()
     # 5 MB max
     if len(contents) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 5MB)")
-    target.write_bytes(contents)
 
-    current_user.avatar_url = f"/uploads/avatars/{fname}"
+    from utils.storage import save_bytes
+    current_user.avatar_url = save_bytes(contents, f"avatars/{fname}", file.content_type or "image/png")
     await db.commit()
     await db.refresh(current_user)
     return _serialize(current_user)

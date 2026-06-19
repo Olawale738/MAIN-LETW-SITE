@@ -545,16 +545,12 @@ async def upload_resource_file(
         )
     resource_type, ext = ALLOWED_RESOURCE_TYPES[content_type]
 
-    os.makedirs(RESOURCE_UPLOAD_DIR, exist_ok=True)
     filename = f"{uuid.uuid4().hex}{ext}"
-    filepath = os.path.join(RESOURCE_UPLOAD_DIR, filename)
-
     data = await file.read()
-    with open(filepath, "wb") as f:
-        f.write(data)
 
-    # Build public URL (served via /uploads static mount)
-    url = f"/uploads/bible-resources/{filename}"
+    # Route through storage abstraction — Supabase / S3 / local based on STORAGE_BACKEND.
+    from utils.storage import save_bytes
+    url = save_bytes(data, f"bible-resources/{filename}", content_type)
 
     return {
         "id": uuid.uuid4().hex,
