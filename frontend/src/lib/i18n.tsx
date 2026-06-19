@@ -50,8 +50,6 @@ const DICT: Record<Locale, Record<string, string>> = {
         'live.altarCall': 'Respond to altar call',
         'live.raiseHand': 'Raise your hand',
         'live.communion': 'Schedule online communion',
-        'pastor.ask': 'Ask the Pastor',
-        'pastor.placeholder': 'What would you like to ask?',
         'translate.label': 'Translate this',
     },
     yo: {
@@ -79,8 +77,6 @@ const DICT: Record<Locale, Record<string, string>> = {
         'live.altarCall': 'Dáhùn pípè Áltà',
         'live.raiseHand': 'Gbe ọwọ́ rẹ sókè',
         'live.communion': 'Pe ìpàdé Ìjẹ́ọ̀rọ̀ lórí Íńtánẹ́ẹ̀tì',
-        'pastor.ask': 'Béèrè lọ́wọ́ Aguntan',
-        'pastor.placeholder': 'Kí ni o fẹ́ béèrè?',
         'translate.label': 'Túmọ̀ èyí',
     },
     fr: {
@@ -108,8 +104,6 @@ const DICT: Record<Locale, Record<string, string>> = {
         'live.altarCall': "Répondre à l'appel d'autel",
         'live.raiseHand': 'Lever la main',
         'live.communion': 'Planifier une communion en ligne',
-        'pastor.ask': 'Demander au pasteur',
-        'pastor.placeholder': 'Que voulez-vous demander ?',
         'translate.label': 'Traduire ceci',
     },
     ig: {
@@ -137,8 +131,6 @@ const DICT: Record<Locale, Record<string, string>> = {
         'live.altarCall': 'Zaa oku ebe ịchụ àjà',
         'live.raiseHand': 'Welie aka gị',
         'live.communion': 'Hazie communion online',
-        'pastor.ask': 'Jụọ Pastor',
-        'pastor.placeholder': 'Gịnị ka ị ga-ajụ?',
         'translate.label': 'Tụgharịa nke a',
     },
     ha: {
@@ -166,8 +158,6 @@ const DICT: Record<Locale, Record<string, string>> = {
         'live.altarCall': 'Amsa kiran bagade',
         'live.raiseHand': 'Ɗaga hannunka',
         'live.communion': 'Tsara tarayya ta yanar gizo',
-        'pastor.ask': 'Tambayi Fasto',
-        'pastor.placeholder': 'Me kake so ka tambaya?',
         'translate.label': 'Fassara wannan',
     },
     es: {
@@ -195,8 +185,6 @@ const DICT: Record<Locale, Record<string, string>> = {
         'live.altarCall': 'Responder al llamado al altar',
         'live.raiseHand': 'Levantar la mano',
         'live.communion': 'Programar comunión en línea',
-        'pastor.ask': 'Pregunta al pastor',
-        'pastor.placeholder': '¿Qué te gustaría preguntar?',
         'translate.label': 'Traducir esto',
     },
 }

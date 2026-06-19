@@ -2,10 +2,9 @@
 AI features API. All endpoints are READY but return 503 with setup
 instructions until OPENAI_API_KEY or ANTHROPIC_API_KEY is set on Render.
 
-Features (#2, #3, #8 from the platform roadmap):
+Features (#2 + #8 from the platform roadmap):
 - POST /api/ai/transcribe      — sermon audio → text (Whisper)
 - POST /api/ai/translate       — text → another language
-- POST /api/ai/pastor-ask      — RAG chat against sermon corpus + statement of faith
 - POST /api/ai/sermon-pipeline — generate podcast notes, blog post, social clips,
                                  7-day devotional, study guide, memory verses
                                  from a single sermon (text or audio).
@@ -75,81 +74,6 @@ async def transcribe(
         return {"ok": True, "transcript": text}
     except Exception as e:
         raise HTTPException(502, f"Transcription failed: {e}")
-
-
-# ─── #3 — Pastor Ask (RAG over sermons + statement of faith) ─────────────────
-
-class PastorAskIn(BaseModel):
-    question: str
-    session_id: Optional[str] = None  # for future thread continuity
-
-
-@router.post("/pastor-ask")
-async def pastor_ask(body: PastorAskIn, db: AsyncSession = Depends(get_db)):
-    """Member asks a pastoral question. We retrieve the most relevant 5 sermons
-    + statement of faith + recent daily verses, and answer in LETW's voice."""
-    _require_ai()
-
-    # Lightweight retrieval: keyword search over sermon titles/descriptions + a few verses.
-    # Replace with proper embedding-based RAG once we have a vector store.
-    q = body.question.lower()
-    keywords = [w for w in q.split() if len(w) > 3]
-
-    matching_sermons: List[Sermon] = []
-    if keywords:
-        from sqlalchemy import or_, func
-        sq = select(Sermon)
-        clauses = [
-            func.lower(Sermon.title).like(f"%{w}%") for w in keywords[:5]
-        ] + [
-            func.lower(Sermon.description).like(f"%{w}%") for w in keywords[:5]
-        ]
-        sq = sq.where(or_(*clauses)).order_by(desc(Sermon.sermon_date)).limit(5)
-        res = await db.execute(sq)
-        matching_sermons = list(res.scalars().all())
-
-    # Try to pull statement of faith from ministry_content
-    sof_text = ""
-    try:
-        from models.ministry_content import MinistryContent
-        res2 = await db.execute(select(MinistryContent).where(MinistryContent.key == "statement-of-faith"))
-        sof = res2.scalar_one_or_none()
-        if sof and sof.content:
-            articles = sof.content.get("articles", [])
-            sof_text = "\n".join([f"{a.get('title')}: {a.get('body')}" for a in articles])
-    except Exception:
-        pass
-
-    sermon_context = "\n\n".join([
-        f"Sermon: \"{s.title}\" by {s.preacher} ({s.sermon_date}). {s.description or ''}"
-        for s in matching_sermons
-    ])
-
-    system = (
-        "You are the AI pastoral assistant for Light Encounter Tabernacle Worldwide (LETW). "
-        "Speak with the warmth and authority of a Bible-believing pastor. Reference Scripture when relevant. "
-        "If the question is in personal crisis territory (suicide, abuse), give immediate compassionate words AND "
-        "urge the person to contact a real pastor at office@letw.org or call emergency services. "
-        "Stay in LETW's theological lane (use the Statement of Faith below). "
-        "Keep responses warm, brief, and biblically grounded."
-    )
-    prompt = (
-        f"LETW's Statement of Faith excerpts:\n{sof_text or '(not provided)'}\n\n"
-        f"Relevant sermons from our archive:\n{sermon_context or '(no specific sermons matched)'}\n\n"
-        f"Member's question: {body.question}\n\n"
-        f"Answer the member with pastoral warmth and at least one Scripture reference. "
-        f"If you reference one of the sermons above, mention its title."
-    )
-    try:
-        answer = await ai_provider.chat_completion(prompt, system_prompt=system, max_tokens=800)
-        return {
-            "ok": True,
-            "answer": answer,
-            "referenced_sermons": [{"id": s.id, "title": s.title, "preacher": s.preacher, "date": str(s.sermon_date)} for s in matching_sermons],
-            "disclaimer": "AI-generated guidance — please reach out to a real pastor for major decisions.",
-        }
-    except Exception as e:
-        raise HTTPException(502, f"AI chat failed: {e}")
 
 
 # ─── #8 — Sermon-to-Everything Pipeline ──────────────────────────────────────

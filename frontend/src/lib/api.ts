@@ -3778,8 +3778,6 @@ export const aiApi = {
     status: () => fetchApi<AiStatus>('/ai/status'),
     translate: (text: string, target_language: string, source_language = 'en') =>
         fetchApi<{ ok: boolean; translated_text: string; target_language: string }>('/ai/translate', { method: 'POST', body: JSON.stringify({ text, target_language, source_language }) }),
-    pastorAsk: (question: string) =>
-        fetchApi<{ ok: boolean; answer: string; referenced_sermons: Array<{ id: string; title: string; preacher: string; date: string }>; disclaimer: string }>('/ai/pastor-ask', { method: 'POST', body: JSON.stringify({ question }) }),
     sermonPipeline: (b: { sermon_id?: string; transcript?: string; title?: string; preacher?: string; outputs?: string[] }) =>
         fetchApi<{ ok: boolean; title: string; preacher: string; outputs: Record<string, string> }>('/ai/sermon-pipeline', { method: 'POST', body: JSON.stringify(b) }),
     transcribeAudio: async (file: File, language?: string) => {

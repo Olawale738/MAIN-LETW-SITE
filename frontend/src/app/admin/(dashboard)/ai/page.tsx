@@ -1,22 +1,22 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Sparkles, Loader2, AlertTriangle, CheckCircle2, Brain, FileVideo, Languages, MessageSquare } from 'lucide-react'
+import { Sparkles, Loader2, AlertTriangle, CheckCircle2, FileVideo, Languages } from 'lucide-react'
 import { aiApi, type AiStatus } from '@/lib/api'
 
 export default function AdminAiPage() {
     const [status, setStatus] = useState<AiStatus | null>(null)
     const [loading, setLoading] = useState(true)
-    const [testQ, setTestQ] = useState('What does LETW believe about prayer?')
-    const [testA, setTestA] = useState<string | null>(null)
+    const [testInput, setTestInput] = useState('God so loved the world that he gave his only Son.')
+    const [testOutput, setTestOutput] = useState<string | null>(null)
     const [testing, setTesting] = useState(false)
 
     useEffect(() => { aiApi.status().then(setStatus).catch(() => {}).finally(() => setLoading(false)) }, [])
 
     const test = async () => {
         if (!status?.ai_configured) return
-        setTesting(true); setTestA(null)
-        try { const r = await aiApi.pastorAsk(testQ); setTestA(r.answer) }
-        catch (e) { setTestA(`Error: ${(e as Error).message}`) }
+        setTesting(true); setTestOutput(null)
+        try { const r = await aiApi.translate(testInput, 'yo'); setTestOutput(r.translated_text) }
+        catch (e) { setTestOutput(`Error: ${(e as Error).message}`) }
         finally { setTesting(false) }
     }
 
@@ -63,20 +63,19 @@ export default function AdminAiPage() {
                 </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4 mb-6">
-                <FeatureCard icon={<Brain className="w-5 h-5" />} title="AI Pastoral Assistant" url="/pastor" desc="Ask LETW's voice anytime — answers from sermons + Statement of Faith" />
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
                 <FeatureCard icon={<Languages className="w-5 h-5" />} title="Multi-language Translation" url="/sermons" desc="Translate any text into Yoruba, French, Spanish, Igbo, Hausa via /api/ai/translate" />
                 <FeatureCard icon={<FileVideo className="w-5 h-5" />} title="Sermon-to-Everything" url="/admin/sermon-pipeline" desc="One sermon → podcast notes, blog post, social clips, devotional, study guide" />
             </div>
 
             {status?.ai_configured && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                    <h2 className="font-bold text-[#140152] mb-3 flex items-center gap-2"><MessageSquare className="w-5 h-5" /> Test the Pastor AI</h2>
-                    <textarea value={testQ} onChange={e => setTestQ(e.target.value)} rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3" />
+                    <h2 className="font-bold text-[#140152] mb-3 flex items-center gap-2"><Languages className="w-5 h-5" /> Test translation (→ Yoruba)</h2>
+                    <textarea value={testInput} onChange={e => setTestInput(e.target.value)} rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3" />
                     <button onClick={test} disabled={testing} className="bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2 rounded-lg text-sm inline-flex items-center gap-2 disabled:opacity-50">
-                        {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Test
+                        {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Translate
                     </button>
-                    {testA && <div className="mt-4 bg-gray-50 rounded-xl p-4"><p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{testA}</p></div>}
+                    {testOutput && <div className="mt-4 bg-gray-50 rounded-xl p-4"><p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{testOutput}</p></div>}
                 </div>
             )}
         </div>
