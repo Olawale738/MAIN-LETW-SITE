@@ -3740,6 +3740,88 @@ export const backupsApi = {
     cleanup: () => fetchApi<{ deleted: number }>('/admin/backups/cleanup', { method: 'POST' }),
 };
 
+// ─── Kingdom Outcomes (#5) ─────────────────────────────────────────────────
+export type DecisionKind = 'salvation' | 'baptism' | 'healing' | 'marriage_restored' | 'prodigal_returned' | 'deliverance' | 'rededication' | 'dedication' | 'calling' | 'other'
+export interface DecisionEntry {
+    id: string; kind: DecisionKind; person_name: string; location: string | null;
+    testimony: string | null; decided_on: string; is_verified: boolean; is_public: boolean;
+    created_at: string;
+}
+export interface DecisionCounts {
+    year: number | string; total: number; by_kind: Record<DecisionKind, number>;
+}
+export const decisionsApi = {
+    counts: (year?: number) => fetchApi<DecisionCounts>(`/decisions/counts${year ? `?year=${year}` : ''}`),
+    recent: (limit = 12, kind?: DecisionKind) => {
+        const qs = new URLSearchParams({ limit: String(limit) })
+        if (kind) qs.set('kind', kind)
+        return fetchApi<DecisionEntry[]>(`/decisions/recent?${qs.toString()}`)
+    },
+    submit: (b: { kind: DecisionKind; person_name?: string; person_email?: string; location?: string; notes?: string; testimony?: string; decided_on?: string; is_public?: boolean }) =>
+        fetchApi<DecisionEntry>('/decisions/', { method: 'POST', body: JSON.stringify(b) }),
+    adminAll: (status?: string, kind?: string) => {
+        const qs = new URLSearchParams()
+        if (status) qs.set('status', status); if (kind) qs.set('kind', kind)
+        return fetchApi<DecisionEntry[]>(`/decisions/admin/all${qs.toString() ? `?${qs}` : ''}`)
+    },
+    adminBulk: (items: Array<{ kind: DecisionKind; person_name?: string; location?: string; decided_on?: string }>) =>
+        fetchApi<{ created: number }>('/decisions/admin/bulk', { method: 'POST', body: JSON.stringify(items) }),
+    adminDelete: (id: string) => fetchApi<{ deleted: number }>(`/decisions/admin/${id}`, { method: 'DELETE' }),
+};
+
+// ─── Missionary Sponsorship (#6) ───────────────────────────────────────────
+export interface Missionary {
+    id: string; slug: string; name: string; family_size: number;
+    country: string; region: string | null; organisation: string | null;
+    ministry_focus: string; bio: string | null; photo_url: string | null;
+    monthly_support_goal: number; currency: string;
+    is_featured: boolean; sent_date: string | null; prayer_points: string[] | null;
+}
+export interface MissionaryUpdate {
+    id: string; missionary_id: string; title: string; body_html: string;
+    hero_image_url: string | null; published_at: string;
+}
+export interface SupportStats {
+    supporter_count: number; monthly_raised: number; monthly_goal: number;
+    percent: number; currency: string;
+}
+export const missionariesApi = {
+    list: (featured?: boolean) => fetchApi<Missionary[]>(`/missionaries/${featured ? '?featured=true' : ''}`),
+    bySlug: (slug: string) => fetchApi<Missionary>(`/missionaries/by-slug/${encodeURIComponent(slug)}`),
+    updates: (slug: string, limit = 10) => fetchApi<MissionaryUpdate[]>(`/missionaries/${encodeURIComponent(slug)}/updates?limit=${limit}`),
+    supportStats: (slug: string) => fetchApi<SupportStats>(`/missionaries/${encodeURIComponent(slug)}/support-stats`),
+    sponsor: (slug: string, b: { supporter_name: string; supporter_email: string; monthly_amount: number; note?: string }) =>
+        fetchApi<{ ok: boolean; id: string; missionary: string; monthly_amount: number; currency: string }>(`/missionaries/${encodeURIComponent(slug)}/sponsor`, { method: 'POST', body: JSON.stringify(b) }),
+    adminCreate: (b: Omit<Missionary, 'id' | 'slug'> & { slug?: string }) =>
+        fetchApi<Missionary>('/missionaries/admin', { method: 'POST', body: JSON.stringify(b) }),
+    adminUpdate: (id: string, b: Partial<Missionary>) =>
+        fetchApi<Missionary>(`/missionaries/admin/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    adminDelete: (id: string) => fetchApi<{ deleted: number }>(`/missionaries/admin/${id}`, { method: 'DELETE' }),
+    adminPostUpdate: (id: string, b: { title: string; body_html: string; hero_image_url?: string }) =>
+        fetchApi<MissionaryUpdate>(`/missionaries/admin/${id}/updates`, { method: 'POST', body: JSON.stringify(b) }),
+};
+
+// ─── Live Prayer / Intercession (#9) ───────────────────────────────────────
+export interface IntercessorMe {
+    id: string; display_name: string; is_active: boolean;
+    is_available_now: boolean; total_prayed_for: number;
+}
+export const intercessionApi = {
+    submitRequest: (b: { text: string; display_name?: string; category?: string; is_anonymous?: boolean }) =>
+        fetchApi<{ ok: boolean; request_id: string; assigned_intercessor: string | null; status: string; message: string }>('/intercession/requests', { method: 'POST', body: JSON.stringify(b) }),
+    onlineCount: () => fetchApi<{ online: number }>('/intercession/online-count'),
+    me: () => fetchApi<IntercessorMe | null>('/intercession/me'),
+    toggleAvailable: () => fetchApi<{ is_available_now: boolean }>('/intercession/me/toggle-available', { method: 'POST' }),
+    myQueue: () => fetchApi<Array<{ id: string; display_name: string; text: string; category: string | null; status: string; created_at: string; assigned_at: string }>>('/intercession/me/queue'),
+    updateStatus: (rid: string, b: { status: 'praying' | 'answered' | 'closed'; answered_testimony?: string }) =>
+        fetchApi<{ ok: boolean; status: string }>(`/intercession/requests/${rid}/status`, { method: 'PUT', body: JSON.stringify(b) }),
+    adminListIntercessors: () => fetchApi<Array<{ id: string; user_id: string; display_name: string; bio: string | null; languages: string | null; is_active: boolean; is_available_now: boolean; total_prayed_for: number }>>('/intercession/admin/intercessors'),
+    adminAddIntercessor: (b: { user_id: string; display_name: string; bio?: string; languages?: string; is_active?: boolean }) =>
+        fetchApi<{ id: string }>('/intercession/admin/intercessors', { method: 'POST', body: JSON.stringify(b) }),
+    adminRemoveIntercessor: (id: string) => fetchApi<{ deleted: number }>(`/intercession/admin/intercessors/${id}`, { method: 'DELETE' }),
+    adminAllRequests: (status?: string) => fetchApi<Array<{ id: string; display_name: string; text: string; is_anonymous: boolean; category: string | null; status: string; intercessor_id: string | null; created_at: string; assigned_at: string | null; closed_at: string | null; answered_testimony: string | null }>>(`/intercession/admin/requests${status ? `?status=${status}` : ''}`),
+};
+
 export const twoFactorApi = {
     status: () => fetchApi<{ enabled: boolean; verified: boolean; last_used_at: string | null }>('/2fa/status'),
     setup: () => fetchApi<{ secret: string; otpauth_uri: string; qr_png_base64: string }>('/2fa/setup', { method: 'POST' }),

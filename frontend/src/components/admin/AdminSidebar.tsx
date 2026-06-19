@@ -124,6 +124,15 @@ const sidebarItems: SidebarItem[] = [
     { title: 'Statement of Faith', href: '/admin/statement-of-faith', icon: BookOpen },
     { title: 'Moderators', href: '/admin/moderators', icon: ShieldCheck },
     { title: 'Database Backups', href: '/admin/backups', icon: Database },
+    {
+        title: 'Tier 3 (Global)',
+        icon: Sparkles,
+        items: [
+            { title: 'Kingdom Outcomes',  href: '/admin/decisions',     icon: Sparkles },
+            { title: 'Missionaries',      href: '/admin/missionaries',  icon: Globe },
+            { title: 'Live Prayer Center', href: '/admin/intercessors', icon: Heart },
+        ]
+    },
     { title: 'Two-Factor Auth', href: '/admin/2fa', icon: ShieldCheck },
     { title: 'Legal Pages', href: '/admin/legal', icon: FileText },
     {

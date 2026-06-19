@@ -216,6 +216,18 @@ app.include_router(search_router.router)
 # Database backups → Supabase Storage (daily via external cron)
 from routers import backups as backups_router
 app.include_router(backups_router.router)
+
+# Tier 3: Kingdom Outcomes — salvations / baptisms / healings counter
+from routers import decisions as decisions_router
+app.include_router(decisions_router.router)
+
+# Tier 3: Missionary Sponsorship Network
+from routers import missionaries as missionaries_router
+app.include_router(missionaries_router.router)
+
+# Tier 3: Live Prayer Command Center
+from routers import intercession as intercession_router
+app.include_router(intercession_router.router)
 # Deploy nudge: ensures Render picks up youth_programs router and tables
 # (youth_programs, youth_program_messages, youth_program_activities,
 #  youth_program_rsvps, youth_program_attendances).

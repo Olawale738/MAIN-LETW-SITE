@@ -51,6 +51,9 @@ from models.social_post import SocialPostTarget, SocialPost
 from models.seo_meta import SeoMeta
 from models.blog import BlogPost
 from models.two_factor import TwoFactorSecret
+from models.decision import Decision
+from models.missionary import Missionary, MissionaryUpdate, MissionarySponsorship
+from models.intercession import Intercessor, IntercessionRequest
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
@@ -171,4 +174,10 @@ __all__ = [
     "SeoMeta",
     "BlogPost",
     "TwoFactorSecret",
+    "Decision",
+    "Missionary",
+    "MissionaryUpdate",
+    "MissionarySponsorship",
+    "Intercessor",
+    "IntercessionRequest",
 ]
