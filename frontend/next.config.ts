@@ -58,19 +58,30 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Wrap with Sentry to upload source maps + auto-instrument routes.
-// withSentryConfig is a no-op when SENTRY_DSN env vars aren't set.
-import { withSentryConfig } from '@sentry/nextjs';
+// Wrap with Sentry only when SENTRY_AUTH_TOKEN is set during build (for source
+// map upload). Without it, the wrapper would still try to authenticate and fail
+// the Vercel build. Runtime error capture works regardless via the
+// sentry.client.config.ts / sentry.server.config.ts files.
+let exportedConfig: NextConfig = nextConfig;
+if (process.env.SENTRY_AUTH_TOKEN) {
+    try {
+        // Lazy require so missing module never breaks the build.
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { withSentryConfig } = require('@sentry/nextjs');
+        exportedConfig = withSentryConfig(nextConfig, {
+            org: 'letworg',
+            project: 'letw-frontend',
+            silent: !process.env.CI,
+            widenClientFileUpload: true,
+            reactComponentAnnotation: { enabled: true },
+            tunnelRoute: '/monitoring',
+            sourcemaps: { disable: false },
+            disableLogger: true,
+            automaticVercelMonitors: true,
+        });
+    } catch {
+        // Sentry build-time wrap failed — fall back to vanilla config.
+    }
+}
 
-export default withSentryConfig(nextConfig, {
-    // Build-time options
-    org: 'letworg',
-    project: 'letw-frontend',
-    silent: !process.env.CI,
-    widenClientFileUpload: true,
-    reactComponentAnnotation: { enabled: true },
-    tunnelRoute: '/monitoring',
-    sourcemaps: { disable: false },
-    disableLogger: true,
-    automaticVercelMonitors: true,
-});
+export default exportedConfig;
