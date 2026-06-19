@@ -111,6 +111,7 @@ export default function Footer() {
             <ul className="space-y-2.5">
               {[
                 { name: "Pastor's Blog", href: '/blog' },
+                { name: 'Church Apps', href: '/apps' },
                 { name: 'Give', href: '/giving' },
                 { name: 'Volunteer', href: '/volunteer' },
                 { name: 'Contact', href: '/contact' },
