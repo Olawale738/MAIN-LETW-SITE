@@ -160,23 +160,34 @@ async def init_db():
             # names collide across them, causing DuplicatePreparedStatementError.
             # Inputs come from the trusted missing_columns list above, so there
             # is no SQL injection surface here.
+            #
+            # Each iteration is wrapped in its own try/except so a single failure
+            # never crashes startup. Worst case: a column doesn't get added on
+            # this restart, but the app still boots and serves requests.
             for table, column, col_def in missing_columns:
-                # Escape single quotes defensively even though our inputs are clean
-                t_lit = table.replace("'", "''")
-                c_lit = column.replace("'", "''")
-                check = await conn.execute(text(
-                    "SELECT 1 FROM information_schema.columns "
-                    "WHERE table_schema = 'public' "
-                    f"AND table_name = '{t_lit}' AND column_name = '{c_lit}'"
-                ))
-                if check.fetchone() is None:
-                    print(f"[init_db] Adding missing column {table}.{column}", flush=True)
-                    await conn.execute(text(
-                        f'ALTER TABLE public."{table}" ADD COLUMN IF NOT EXISTS {column} {col_def}'
+                try:
+                    t_lit = table.replace("'", "''")
+                    c_lit = column.replace("'", "''")
+                    check = await conn.execute(text(
+                        "SELECT 1 FROM information_schema.columns "
+                        "WHERE table_schema = 'public' "
+                        f"AND table_name = '{t_lit}' AND column_name = '{c_lit}'"
                     ))
-                    await conn.commit()
+                    if check.fetchone() is None:
+                        print(f"[init_db] Adding missing column {table}.{column}", flush=True)
+                        await conn.execute(text(
+                            f'ALTER TABLE public."{table}" ADD COLUMN IF NOT EXISTS {column} {col_def}'
+                        ))
+                        await conn.commit()
+                except Exception as col_err:
+                    # Log and continue — never let migration crash startup
+                    print(f"[init_db] WARN: column-check skipped for {table}.{column}: {type(col_err).__name__}", flush=True)
 
         print("[init_db] Database tables initialised successfully", flush=True)
     except Exception as e:
-        print(f"[init_db] ERROR: {type(e).__name__}: {e}", flush=True)
-        raise
+        # NEVER let a startup-time migration error crash the entire app.
+        # An app that runs with stale column definitions is far better than
+        # an app that's completely down. Optional columns can be patched
+        # on a later restart once the underlying pgbouncer/asyncpg issue
+        # cleans up its connection state.
+        print(f"[init_db] WARN: startup migration failed but app will continue: {type(e).__name__}: {e}", flush=True)
