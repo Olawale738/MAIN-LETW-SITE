@@ -5,6 +5,7 @@ import ConditionalLayout from "@/components/layout/ConditionalLayout";
 import BrandingApplier from "@/components/BrandingApplier";
 import CookieConsent from "@/components/CookieConsent";
 import PWARegister from "@/components/PWARegister";
+import { I18nProvider } from "@/lib/i18n";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -37,9 +38,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className="scroll-smooth">
       <body className={`${poppins.variable} font-sans antialiased animate-page-load`} suppressHydrationWarning>
         <BrandingApplier />
-        <ConditionalLayout>
-          {children}
-        </ConditionalLayout>
+        <I18nProvider>
+          <ConditionalLayout>
+            {children}
+          </ConditionalLayout>
+        </I18nProvider>
         {modal}
         <CookieConsent />
         <PWARegister />

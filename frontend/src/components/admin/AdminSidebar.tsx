@@ -128,6 +128,8 @@ const sidebarItems: SidebarItem[] = [
         title: 'Tier 3 (Global)',
         icon: Sparkles,
         items: [
+            { title: 'AI Features',       href: '/admin/ai',            icon: Sparkles },
+            { title: 'Online Campus',     href: '/admin/online-campus', icon: Radio },
             { title: 'Kingdom Outcomes',  href: '/admin/decisions',     icon: Sparkles },
             { title: 'Missionaries',      href: '/admin/missionaries',  icon: Globe },
             { title: 'Live Prayer Center', href: '/admin/intercessors', icon: Heart },

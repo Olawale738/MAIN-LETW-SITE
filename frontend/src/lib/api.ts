@@ -3740,6 +3740,59 @@ export const backupsApi = {
     cleanup: () => fetchApi<{ deleted: number }>('/admin/backups/cleanup', { method: 'POST' }),
 };
 
+// ─── Global Online Campus (#4) ─────────────────────────────────────────────
+export interface CurrentService {
+    status: 'live' | 'upcoming' | 'none' | 'scheduled';
+    id?: string; title?: string; description?: string | null;
+    scheduled_at?: string; is_live?: boolean; livestream_url?: string | null;
+    chat_enabled?: boolean; altar_call_open?: boolean; raise_hand_enabled?: boolean;
+    viewer_count?: number; started_at?: string | null;
+}
+export const onlineCampusApi = {
+    current: () => fetchApi<CurrentService>('/online-campus/current'),
+    listServices: () => fetchApi<CurrentService[]>('/online-campus/services'),
+    createService: (b: { title: string; scheduled_at: string; description?: string; livestream_url?: string; chat_enabled?: boolean; altar_call_open?: boolean; raise_hand_enabled?: boolean }) =>
+        fetchApi<CurrentService>('/online-campus/services', { method: 'POST', body: JSON.stringify(b) }),
+    updateService: (id: string, b: any) => fetchApi<CurrentService>(`/online-campus/services/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    setState: (id: string, b: { is_live?: boolean; altar_call_open?: boolean; raise_hand_enabled?: boolean; viewer_count?: number }) =>
+        fetchApi<CurrentService>(`/online-campus/services/${id}/state`, { method: 'POST', body: JSON.stringify(b) }),
+    altarCall: (b: { name: string; email?: string; phone?: string; location?: string; kind?: string; note?: string; service_id?: string }) =>
+        fetchApi<{ ok: boolean; id: string; message: string }>('/online-campus/altar-call', { method: 'POST', body: JSON.stringify(b) }),
+    altarResponses: (pending_only = false) => fetchApi<Array<{ id: string; name: string; email: string | null; phone: string | null; location: string | null; kind: string; note: string | null; followed_up: boolean; followed_up_at: string | null; created_at: string; service_id: string | null }>>(`/online-campus/altar-call/responses${pending_only ? '?pending_only=true' : ''}`),
+    markFollowedUp: (rid: string) => fetchApi<{ ok: boolean }>(`/online-campus/altar-call/${rid}/follow-up`, { method: 'PUT' }),
+    raiseHand: (b: { display_name?: string; message?: string; service_id?: string }) =>
+        fetchApi<{ ok: boolean; id: string; status: string }>('/online-campus/raise-hand', { method: 'POST', body: JSON.stringify(b) }),
+    raiseHandQueue: () => fetchApi<Array<{ id: string; display_name: string; message: string | null; status: string; created_at: string }>>('/online-campus/raise-hand/queue'),
+    updateRaiseHand: (rid: string, status: 'attending' | 'closed') =>
+        fetchApi<{ ok: boolean; status: string }>(`/online-campus/raise-hand/${rid}`, { method: 'PUT', body: JSON.stringify({ status }) }),
+    requestCommunion: (b: { name: string; email: string; requested_date: string; timezone?: string; note?: string }) =>
+        fetchApi<{ ok: boolean; id: string; message: string }>('/online-campus/communion', { method: 'POST', body: JSON.stringify(b) }),
+    listCommunion: (status?: string) => fetchApi<Array<{ id: string; name: string; email: string; requested_date: string; timezone: string | null; note: string | null; status: string; confirmed_datetime: string | null; created_at: string }>>(`/online-campus/communion${status ? `?status=${status}` : ''}`),
+    updateCommunion: (cid: string, b: { status: string; confirmed_datetime?: string }) =>
+        fetchApi<{ ok: boolean; status: string }>(`/online-campus/communion/${cid}`, { method: 'PUT', body: JSON.stringify(b) }),
+};
+
+// ─── AI Features (#2, #3, #8) ──────────────────────────────────────────────
+export interface AiStatus { ai_configured: boolean; has_openai: boolean; has_anthropic: boolean }
+export const aiApi = {
+    status: () => fetchApi<AiStatus>('/ai/status'),
+    translate: (text: string, target_language: string, source_language = 'en') =>
+        fetchApi<{ ok: boolean; translated_text: string; target_language: string }>('/ai/translate', { method: 'POST', body: JSON.stringify({ text, target_language, source_language }) }),
+    pastorAsk: (question: string) =>
+        fetchApi<{ ok: boolean; answer: string; referenced_sermons: Array<{ id: string; title: string; preacher: string; date: string }>; disclaimer: string }>('/ai/pastor-ask', { method: 'POST', body: JSON.stringify({ question }) }),
+    sermonPipeline: (b: { sermon_id?: string; transcript?: string; title?: string; preacher?: string; outputs?: string[] }) =>
+        fetchApi<{ ok: boolean; title: string; preacher: string; outputs: Record<string, string> }>('/ai/sermon-pipeline', { method: 'POST', body: JSON.stringify(b) }),
+    transcribeAudio: async (file: File, language?: string) => {
+        const fd = new FormData()
+        fd.append('file', file)
+        if (language) fd.append('language', language)
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+        const res = await fetch(`${API_BASE_URL}/ai/transcribe`, { method: 'POST', body: fd, headers: token ? { Authorization: `Bearer ${token}` } : {} })
+        if (!res.ok) throw new Error(`Transcribe failed (${res.status}): ${await res.text()}`)
+        return res.json() as Promise<{ ok: boolean; transcript: string }>
+    },
+};
+
 // ─── Kingdom Outcomes (#5) ─────────────────────────────────────────────────
 export type DecisionKind = 'salvation' | 'baptism' | 'healing' | 'marriage_restored' | 'prodigal_returned' | 'deliverance' | 'rededication' | 'dedication' | 'calling' | 'other'
 export interface DecisionEntry {

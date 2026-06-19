@@ -228,6 +228,14 @@ app.include_router(missionaries_router.router)
 # Tier 3: Live Prayer Command Center
 from routers import intercession as intercession_router
 app.include_router(intercession_router.router)
+
+# Tier 3 #4: Global Online Campus
+from routers import online_campus
+app.include_router(online_campus.router)
+
+# Tier 3 #2/#3/#8: AI Features (gated by OPENAI_API_KEY / ANTHROPIC_API_KEY)
+from routers import ai as ai_router
+app.include_router(ai_router.router)
 # Deploy nudge: ensures Render picks up youth_programs router and tables
 # (youth_programs, youth_program_messages, youth_program_activities,
 #  youth_program_rsvps, youth_program_attendances).
