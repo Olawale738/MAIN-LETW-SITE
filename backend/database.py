@@ -154,12 +154,21 @@ async def init_db():
                 ("prayer_page_settings", "wall_max_items",       "INTEGER DEFAULT 4"),
             ]
 
+            # NOTE: use literal SQL (not bind params) so asyncpg doesn't create
+            # prepared statements. PgBouncer in transaction-pool mode reuses
+            # connections across transactions, and asyncpg's prepared statement
+            # names collide across them, causing DuplicatePreparedStatementError.
+            # Inputs come from the trusted missing_columns list above, so there
+            # is no SQL injection surface here.
             for table, column, col_def in missing_columns:
+                # Escape single quotes defensively even though our inputs are clean
+                t_lit = table.replace("'", "''")
+                c_lit = column.replace("'", "''")
                 check = await conn.execute(text(
                     "SELECT 1 FROM information_schema.columns "
                     "WHERE table_schema = 'public' "
-                    "AND table_name = :tbl AND column_name = :col"
-                ), {"tbl": table, "col": column})
+                    f"AND table_name = '{t_lit}' AND column_name = '{c_lit}'"
+                ))
                 if check.fetchone() is None:
                     print(f"[init_db] Adding missing column {table}.{column}", flush=True)
                     await conn.execute(text(
