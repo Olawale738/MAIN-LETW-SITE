@@ -58,8 +58,10 @@ async def _get_or_create_row(db: AsyncSession) -> SiteBranding:
 def _public_url(path: str | None) -> str | None:
     if not path:
         return None
-    # path stored relative to uploads dir, e.g. "branding/logo-1718642820.png"
-    # cache-bust via mtime so browsers pick up new uploads immediately
+    # Absolute URL (Supabase Storage / S3) — return as-is, already cache-busted
+    if path.startswith("http://") or path.startswith("https://"):
+        return path
+    # Legacy local path — cache-bust via mtime
     abs_path = os.path.join("uploads", path)
     try:
         mtime = int(os.path.getmtime(abs_path))
@@ -99,10 +101,14 @@ async def _save_upload(file: UploadFile, kind: str, allowed_types: set[str]) -> 
     ext = _ext_for(file.content_type)
     fname = f"{kind}-{int(time.time())}{ext}"
     rel_path = f"branding/{fname}"
-    abs_path = os.path.join("uploads", rel_path)
-    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
-    with open(abs_path, "wb") as f:
-        f.write(data)
+
+    # Route through storage abstraction — Supabase / S3 / local based on STORAGE_BACKEND env.
+    from utils.storage import save_bytes, is_remote
+    url_or_rel = save_bytes(data, rel_path, file.content_type)
+    # If remote, store the absolute URL on the row so we don't need to reconstruct it.
+    # If local, save_bytes returns "/uploads/..." — strip to the rel path we already had.
+    if is_remote():
+        return url_or_rel
     return rel_path
 
 

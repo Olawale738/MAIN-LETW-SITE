@@ -437,15 +437,13 @@ async def upload_photo_file(
     safe_name = (file.filename or "photo").replace("..", "_").replace("/", "_").replace("\\", "_")
     ext = os.path.splitext(safe_name)[1].lower() or ".jpg"
     fname = f"{uuid.uuid4().hex}{ext}"
-    dest_dir = os.path.join("uploads", "event-photos", event_id)
-    os.makedirs(dest_dir, exist_ok=True)
-    dest_path = os.path.join(dest_dir, fname)
     data = await file.read()
     if len(data) > 10 * 1024 * 1024:
         raise HTTPException(413, "File too large (max 10 MB)")
-    with open(dest_path, "wb") as f:
-        f.write(data)
-    image_url = f"/uploads/event-photos/{event_id}/{fname}"
+
+    from utils.storage import save_bytes
+    rel_path = f"event-photos/{event_id}/{fname}"
+    image_url = save_bytes(data, rel_path, file.content_type or "image/jpeg")
     p = EventPhoto(
         event_id=event_id, image_url=image_url, caption=caption,
         phase=phase, is_cover=is_cover, sort_order=sort_order,
