@@ -70,7 +70,7 @@ export default withSentryConfig(nextConfig, {
     widenClientFileUpload: true,
     reactComponentAnnotation: { enabled: true },
     tunnelRoute: '/monitoring',
-    hideSourceMaps: true,
+    sourcemaps: { disable: false },
     disableLogger: true,
     automaticVercelMonitors: true,
 });

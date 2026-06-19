@@ -212,6 +212,10 @@ app.include_router(two_factor.router)
 # Global search
 from routers import search as search_router
 app.include_router(search_router.router)
+
+# Database backups → Supabase Storage (daily via external cron)
+from routers import backups as backups_router
+app.include_router(backups_router.router)
 # Deploy nudge: ensures Render picks up youth_programs router and tables
 # (youth_programs, youth_program_messages, youth_program_activities,
 #  youth_program_rsvps, youth_program_attendances).

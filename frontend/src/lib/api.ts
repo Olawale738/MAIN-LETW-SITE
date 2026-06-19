@@ -3730,6 +3730,16 @@ export const searchApi = {
 };
 
 // ─── 2FA ───────────────────────────────────────────────────────────────────
+export interface BackupEntry {
+    name: string; size_bytes: number; created_at: string | null; public_url: string;
+}
+export const backupsApi = {
+    run: () => fetchApi<{ ok: boolean; filename: string; size_bytes: number; size_mb: number; public_url: string; auto_cleaned_old: number; generated_at: string }>('/admin/backups/run', { method: 'POST' }),
+    list: () => fetchApi<{ retention_days: number; backups: BackupEntry[] }>('/admin/backups/'),
+    delete: (name: string) => fetchApi<{ deleted: boolean; filename: string }>(`/admin/backups/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+    cleanup: () => fetchApi<{ deleted: number }>('/admin/backups/cleanup', { method: 'POST' }),
+};
+
 export const twoFactorApi = {
     status: () => fetchApi<{ enabled: boolean; verified: boolean; last_used_at: string | null }>('/2fa/status'),
     setup: () => fetchApi<{ secret: string; otpauth_uri: string; qr_png_base64: string }>('/2fa/setup', { method: 'POST' }),
