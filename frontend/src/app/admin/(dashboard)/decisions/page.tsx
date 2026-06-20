@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Loader2, Sparkles, Plus, Trash2, AlertCircle, CheckCircle, Eye, EyeOff, MessageCircle, Heart } from 'lucide-react'
+import { Loader2, Sparkles, Plus, Trash2, AlertCircle, CheckCircle, Eye, EyeOff, MessageCircle, Heart, Inbox, ShieldCheck } from 'lucide-react'
 import { decisionsApi, type DecisionEntry, type DecisionKind, type DecisionCounts } from '@/lib/api'
 
 const KINDS: DecisionKind[] = ['salvation', 'baptism', 'healing', 'marriage_restored', 'prodigal_returned', 'deliverance', 'rededication', 'dedication', 'calling', 'other']
@@ -42,16 +42,32 @@ export default function AdminDecisionsPage() {
 
     const toggleTestimony = async (d: DecisionEntry) => {
         if (!d.testimony || !d.testimony.trim()) { setMsg({ kind: 'err', text: 'Add a testimony first before showing on /testimony.' }); return }
+        const turningOn = !d.show_in_testimony
         try {
             await decisionsApi.adminUpdate(d.id, {
                 kind: d.kind, person_name: d.person_name,
                 location: d.location || undefined, testimony: d.testimony || undefined,
-                decided_on: d.decided_on, is_public: d.is_public,
-                show_in_testimony: !d.show_in_testimony,
-            }, d.is_verified)
+                decided_on: d.decided_on,
+                is_public: turningOn ? true : d.is_public,
+                show_in_testimony: turningOn,
+            }, turningOn ? true : d.is_verified)
             await load()
         } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
     }
+
+    const approvePublish = async (d: DecisionEntry) => {
+        try {
+            await decisionsApi.adminUpdate(d.id, {
+                kind: d.kind, person_name: d.person_name,
+                location: d.location || undefined, testimony: d.testimony || undefined,
+                decided_on: d.decided_on, is_public: true, show_in_testimony: true,
+            }, true)
+            setMsg({ kind: 'ok', text: 'Approved and published on /testimony.' })
+            await load()
+        } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+    }
+
+    const pendingReview = decisions.filter(d => !d.is_verified && d.testimony && d.testimony.trim().length > 0)
 
     if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-[#140152]" /></div>
 
@@ -73,6 +89,41 @@ export default function AdminDecisionsPage() {
                     <p className="text-xs text-white/70 mt-2">{Object.entries(counts.by_kind).filter(([_, n]) => n > 0).map(([k, n]) => `${k}: ${n}`).join(' · ') || 'No decisions yet'}</p>
                 </div>
             )}
+
+            {/* Public submissions awaiting review */}
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl shadow-sm overflow-hidden mb-6">
+                <div className="px-5 py-3 border-b border-amber-200 flex items-center justify-between gap-2">
+                    <p className="font-black text-amber-900 inline-flex items-center gap-2"><Inbox className="w-5 h-5" /> Awaiting your review ({pendingReview.length})</p>
+                    <p className="text-xs text-amber-700">Testimonies submitted at <a href="/testimony" target="_blank" className="underline font-bold">/testimony</a> show up here for approval.</p>
+                </div>
+                <div className="divide-y divide-amber-200/70">
+                    {pendingReview.length === 0 && (
+                        <p className="px-5 py-8 text-center text-amber-700/70 text-sm">Nothing pending. New public submissions will appear here.</p>
+                    )}
+                    {pendingReview.map(d => (
+                        <div key={d.id} className="px-5 py-4">
+                            <div className="flex items-start gap-3 mb-3">
+                                <div className="w-10 h-10 rounded-full bg-amber-200 text-amber-900 font-black flex items-center justify-center flex-shrink-0">
+                                    {(d.person_name || 'A').slice(0, 1).toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-black text-[#140152]">{d.person_name}</p>
+                                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">{d.kind.replace('_', ' ')} · {new Date(d.created_at).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <p className="text-gray-800 bg-white rounded-xl border border-amber-100 p-3 italic leading-relaxed whitespace-pre-wrap">"{d.testimony}"</p>
+                            <div className="mt-3 flex flex-wrap gap-2 justify-end">
+                                <button onClick={() => remove(d.id)} className="text-xs font-bold px-4 py-2 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-lg inline-flex items-center gap-1.5">
+                                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                                </button>
+                                <button onClick={() => approvePublish(d)} className="text-xs font-black px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg inline-flex items-center gap-1.5 shadow-md">
+                                    <ShieldCheck className="w-3.5 h-3.5" /> Approve & publish
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
                 <h2 className="text-lg font-bold text-[#140152] mb-4 flex items-center gap-2"><Plus className="w-5 h-5" /> Record a decision</h2>
