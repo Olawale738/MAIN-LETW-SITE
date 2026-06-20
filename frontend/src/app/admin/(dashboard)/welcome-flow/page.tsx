@@ -31,7 +31,25 @@ export default function AdminWelcomeFlowPage() {
         try {
             const r = await welcomeFlowApi.runTick()
             setMsg({ kind: 'ok', text: `Sent ${r.sent} email${r.sent === 1 ? '' : 's'} just now.` })
-        } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+        } catch (e) {
+            // If the request never reached the server (cold start), wake it then retry once.
+            const msgText = (e as Error).message || ''
+            if (msgText.toLowerCase().includes("couldn't reach")) {
+                setMsg({ kind: 'err', text: 'Server was asleep. Waking it now…' })
+                const ok = await wakeBackend(60_000)
+                if (ok) {
+                    try {
+                        const r = await welcomeFlowApi.runTick()
+                        setMsg({ kind: 'ok', text: `Server awake. Sent ${r.sent} email${r.sent === 1 ? '' : 's'} just now.` })
+                        return
+                    } catch (e2) { setMsg({ kind: 'err', text: (e2 as Error).message }) }
+                } else {
+                    setMsg({ kind: 'err', text: 'Backend still not responding after 60s. Check Render dashboard.' })
+                }
+            } else {
+                setMsg({ kind: 'err', text: msgText })
+            }
+        }
         finally { setRunning(false) }
     }
 
