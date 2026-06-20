@@ -9,9 +9,6 @@ const KINDS = [
     { value: 'baptism', label: 'Baptism', desc: 'Believer\'s water baptism.' },
     { value: 'dedication', label: 'Child Dedication', desc: 'Dedicate a child / infant to the Lord.' },
 ]
-// Note: Funeral / memorial requests live on their own page at /services/funeral
-// — pastoral care for bereavement deserves a tone and intake distinct from
-// celebratory milestones.
 
 export default function LifeEventsPage() {
     const [kind, setKind] = useState('wedding')

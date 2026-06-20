@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react'
 import { Loader2, Heart, AlertCircle, CheckCircle, Trash2, Calendar, Save } from 'lucide-react'
 import { lifeEventApi, type LifeEventRequest } from '@/lib/api'
 
-const KIND_LABEL: Record<string, string> = { wedding: 'Wedding', baptism: 'Baptism', dedication: 'Dedication', funeral: 'Funeral' }
+const KIND_LABEL: Record<string, string> = { wedding: 'Wedding', baptism: 'Baptism', dedication: 'Dedication' }
 const KIND_COLOR: Record<string, string> = {
     wedding: 'bg-rose-50 text-rose-700', baptism: 'bg-sky-50 text-sky-700',
-    dedication: 'bg-amber-50 text-amber-700', funeral: 'bg-gray-100 text-gray-700',
+    dedication: 'bg-amber-50 text-amber-700',
 }
 
 export default function AdminLifeEventsPage() {
@@ -44,7 +44,7 @@ export default function AdminLifeEventsPage() {
             <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
                 <div>
                     <h1 className="text-3xl font-black text-[#140152] flex items-center gap-3"><Heart className="w-7 h-7 text-rose-500" /> Life Events</h1>
-                    <p className="text-gray-500 mt-1 text-sm">Wedding · Baptism · Dedication · Funeral requests from members.</p>
+                    <p className="text-gray-500 mt-1 text-sm">Wedding · Baptism · Dedication requests from members.</p>
                 </div>
                 <div className="flex gap-2">
                     {['', 'pending', 'approved', 'declined', 'completed'].map(s => (

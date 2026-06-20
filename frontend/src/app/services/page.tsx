@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { ArrowRight, Users, BookOpen, Heart, TrendingUp, Church, Briefcase, PlayCircle, Cross } from 'lucide-react'
+import { ArrowRight, Users, BookOpen, Heart, TrendingUp, Church, Briefcase, PlayCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import ServiceCard from '@/components/shared/ServiceCard'
 import SectionWrapper from '@/components/shared/SectionWrapper'
@@ -237,7 +237,7 @@ export default function ServicesPage() {
           <h2 className="text-4xl md:text-5xl font-black text-[#140152]">Specialized Ministry</h2>
           <div className="w-24 h-1.5 bg-[#f5bb00] mx-auto rounded-full" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <ServiceCard
             icon={<Heart className="w-8 h-8" />}
             title="Counselling Services"
@@ -251,13 +251,6 @@ export default function ServicesPage() {
             description="A consecrated space where worship and prophetic sound converge. Join the ministry."
             buttonText="Enter Alter Sound"
             buttonLink="/services/alter-sound"
-          />
-          <ServiceCard
-            icon={<Cross className="w-8 h-8" />}
-            title="Funeral &amp; Memorial"
-            description="Dignified bereavement care, burial and memorial services anchored in the hope of the resurrection."
-            buttonText="Request a Service"
-            buttonLink="/services/funeral"
           />
         </div>
       </SectionWrapper>

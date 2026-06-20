@@ -136,7 +136,6 @@ export default function Footer() {
                 { name: 'Bible Study', href: '/bible-study' },
                 { name: 'Prayer', href: '/prayer' },
                 { name: 'Weddings · Baptism · Dedication', href: '/life-events' },
-                { name: 'Funeral & Memorial', href: '/services/funeral' },
               ].map((link) => (
                 <li key={link.name}>
                   <Link href={link.href} className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-200 flex items-center gap-2 text-sm group">
