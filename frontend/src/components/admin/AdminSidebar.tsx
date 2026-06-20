@@ -122,6 +122,7 @@ const sidebarItems: SidebarItem[] = [
     { title: 'Social Auto-Poster', href: '/admin/social-posts', icon: Share2 },
     { title: 'SEO Meta', href: '/admin/seo-meta', icon: Globe },
     { title: 'Statement of Faith', href: '/admin/statement-of-faith', icon: BookOpen },
+    { title: 'Testimony Page', href: '/admin/testimony-page', icon: MessageCircle },
     { title: 'Moderators', href: '/admin/moderators', icon: ShieldCheck },
     { title: 'Database Backups', href: '/admin/backups', icon: Database },
     {
