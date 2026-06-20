@@ -8,17 +8,19 @@ interface Props { title?: string; subtitle?: string; features: FeatureItem[] }
 
 const ROTATE_MS = 9000
 
-// Per-slide gradient palette — each article gets a distinct cinematic mood
-const SCENES: Array<{ a: string; b: string; c: string }> = [
-    { a: '#1a0c66', b: '#2d1a8a', c: '#0a0428' },   // royal violet dawn
-    { a: '#5b1d8c', b: '#a02080', c: '#1a0228' },   // amethyst
-    { a: '#0e3a6b', b: '#1b6aa5', c: '#03142a' },   // sapphire
-    { a: '#7a3a0a', b: '#c47512', c: '#1a0a02' },   // amber gold
-    { a: '#4b0e5e', b: '#9421a0', c: '#170026' },   // wine
-    { a: '#0c4f4d', b: '#13877e', c: '#021a1d' },   // emerald deep
-    { a: '#6b1239', b: '#b73067', c: '#1e0612' },   // rose nebula
-    { a: '#0f2255', b: '#2b4eb6', c: '#02071e' },   // cobalt
-    { a: '#3a1c00', b: '#7a3a0a', c: '#0e0500' },   // sepia
+// All scenes live in the LETW navy → gold → black brand family.
+// Each only shifts the gradient focal point and warm/cool balance — same
+// palette, different time-of-day. No color riot.
+const SCENES: Array<{ a: string; b: string; c: string; pos: string }> = [
+    { a: '#1a0a52', b: '#0c0428', c: '#03010f', pos: '30% 30%' },   // pre-dawn
+    { a: '#1f0d6b', b: '#0e0532', c: '#020110', pos: '70% 35%' },   // dawn east
+    { a: '#22106b', b: '#0d0530', c: '#02010e', pos: '50% 50%' },   // midnight focus
+    { a: '#1c0c5e', b: '#0b0429', c: '#02010d', pos: '40% 65%' },   // dusk underglow
+    { a: '#1d0e62', b: '#0d0530', c: '#020110', pos: '65% 60%' },   // late dusk
+    { a: '#190a55', b: '#0a0326', c: '#02010c', pos: '35% 40%' },   // deep night
+    { a: '#1f0c66', b: '#0c0530', c: '#020110', pos: '60% 30%' },   // first light
+    { a: '#1b0a58', b: '#0a0328', c: '#02010e', pos: '50% 75%' },   // valley shadow
+    { a: '#21106c', b: '#0e0532', c: '#03010f', pos: '45% 25%' },   // high noon (still in dark)
 ]
 
 function Glyph({ name, className }: { name?: string; className?: string }) {
@@ -68,16 +70,18 @@ export default function FaithCinemaBlock({ title, subtitle, features }: Props) {
             style={{ minHeight: '92vh' }}
             aria-label={title || 'Statement of Faith'}>
 
-            {/* SCENE — per-slide gradient backdrop with slow Ken Burns zoom */}
-            <div key={`scene-${active}`} className="absolute inset-0 pointer-events-none animate-[kenBurns_18s_ease-in-out_infinite_alternate]"
-                style={{ background: `radial-gradient(120% 100% at 30% 30%, ${scene.a} 0%, ${scene.b} 35%, ${scene.c} 75%, #000 100%)` }} />
+            {/* SCENE — same brand-navy family, gradient focal point shifts per slide */}
+            <div key={`scene-${active}`} className="absolute inset-0 pointer-events-none transition-[background] duration-[1400ms] ease-out animate-[kenBurns_22s_ease-in-out_infinite_alternate]"
+                style={{ background: `radial-gradient(130% 110% at ${scene.pos}, ${scene.a} 0%, ${scene.b} 38%, ${scene.c} 78%, #000 100%)` }} />
 
-            {/* Light leak streaks — animate on slide change */}
+            {/* Soft warm gold overlay — gives the brand glow without changing the hue family */}
+            <div className="absolute inset-0 pointer-events-none"
+                style={{ background: 'radial-gradient(60% 50% at 50% 30%, rgba(245,187,0,0.10), transparent 70%)' }} />
+
+            {/* Light leak — single warm streak, tamer */}
             <div key={`leak-${active}`} className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-0 left-0 w-[60%] h-full opacity-50 animate-[leak1_2.5s_ease-out_both]"
-                    style={{ background: 'linear-gradient(115deg, transparent 30%, rgba(245,187,0,0.18) 50%, transparent 70%)' }} />
-                <div className="absolute top-0 right-0 w-[60%] h-full opacity-40 animate-[leak2_3s_ease-out_both]"
-                    style={{ background: 'linear-gradient(-115deg, transparent 30%, rgba(255,255,255,0.10) 50%, transparent 70%)' }} />
+                <div className="absolute top-0 left-0 w-[60%] h-full opacity-40 animate-[leak1_2.8s_ease-out_both]"
+                    style={{ background: 'linear-gradient(115deg, transparent 35%, rgba(245,187,0,0.14) 50%, transparent 65%)' }} />
             </div>
 
             {/* Mouse-tracked glow */}
