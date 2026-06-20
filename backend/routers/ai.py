@@ -24,6 +24,7 @@ from models.sermon import Sermon
 from models.daily_verse import DailyVerse
 from utils.dependencies import get_admin_user, get_current_active_user
 from utils import ai_provider
+import os
 
 
 router = APIRouter(prefix="/api/ai", tags=["AI Features"])
@@ -31,7 +32,79 @@ router = APIRouter(prefix="/api/ai", tags=["AI Features"])
 
 @router.get("/status")
 async def status():
+    await ai_provider.refresh_cache_async()
     return ai_provider.get_status()
+
+
+# ─── Admin key management ────────────────────────────────────────────────────
+
+class KeysIn(BaseModel):
+    openai_api_key: Optional[str] = None       # send a string to set, "" or null to clear
+    anthropic_api_key: Optional[str] = None
+
+
+def _mask(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    if len(value) <= 10:
+        return "•" * len(value)
+    return value[:6] + "•" * (len(value) - 10) + value[-4:]
+
+
+@router.get("/keys")
+async def get_keys(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+):
+    """Return masked keys for the admin UI. Real keys never leave the server."""
+    from models.ai_config import AiConfig
+    res = await db.execute(select(AiConfig).where(AiConfig.id == 1))
+    row = res.scalar_one_or_none()
+    env_openai = bool(os.getenv("OPENAI_API_KEY"))
+    env_anthropic = bool(os.getenv("ANTHROPIC_API_KEY"))
+    return {
+        "openai_api_key": _mask(row.openai_api_key) if row else None,
+        "anthropic_api_key": _mask(row.anthropic_api_key) if row else None,
+        "env_fallback_openai": env_openai and not (row and row.openai_api_key),
+        "env_fallback_anthropic": env_anthropic and not (row and row.anthropic_api_key),
+    }
+
+
+@router.put("/keys")
+async def set_keys(
+    body: KeysIn,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+):
+    """Set / clear API keys. Pass a key to update, empty string or null to clear.
+    If a masked value (contains •) comes back, the existing value is preserved."""
+    from models.ai_config import AiConfig
+    res = await db.execute(select(AiConfig).where(AiConfig.id == 1))
+    row = res.scalar_one_or_none()
+    if not row:
+        row = AiConfig(id=1)
+        db.add(row)
+
+    def _normalise(field: Optional[str], existing: Optional[str]) -> Optional[str]:
+        if field is None:
+            return existing
+        # Masked value means "don't change"
+        if "•" in field:
+            return existing
+        # Empty string means "clear"
+        if field.strip() == "":
+            return None
+        return field.strip()
+
+    row.openai_api_key = _normalise(body.openai_api_key, row.openai_api_key)
+    row.anthropic_api_key = _normalise(body.anthropic_api_key, row.anthropic_api_key)
+    await db.commit()
+    await ai_provider.refresh_cache_async()
+    return {
+        "ok": True,
+        "openai_api_key": _mask(row.openai_api_key),
+        "anthropic_api_key": _mask(row.anthropic_api_key),
+    }
 
 
 def _require_ai():

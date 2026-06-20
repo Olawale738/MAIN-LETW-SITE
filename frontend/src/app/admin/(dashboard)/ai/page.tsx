@@ -1,16 +1,53 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Sparkles, Loader2, AlertTriangle, CheckCircle2, FileVideo, Languages } from 'lucide-react'
-import { aiApi, type AiStatus } from '@/lib/api'
+import { Sparkles, Loader2, AlertTriangle, CheckCircle2, FileVideo, Languages, Save, Eye, EyeOff, Key } from 'lucide-react'
+import Link from 'next/link'
+import { aiApi, type AiStatus, type AiKeys } from '@/lib/api'
 
 export default function AdminAiPage() {
     const [status, setStatus] = useState<AiStatus | null>(null)
+    const [keys, setKeys] = useState<AiKeys | null>(null)
+    const [openaiInput, setOpenaiInput] = useState('')
+    const [anthropicInput, setAnthropicInput] = useState('')
+    const [showOpenai, setShowOpenai] = useState(false)
+    const [showAnthropic, setShowAnthropic] = useState(false)
+    const [savingKeys, setSavingKeys] = useState(false)
+    const [keysMsg, setKeysMsg] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [testInput, setTestInput] = useState('God so loved the world that he gave his only Son.')
     const [testOutput, setTestOutput] = useState<string | null>(null)
     const [testing, setTesting] = useState(false)
 
-    useEffect(() => { aiApi.status().then(setStatus).catch(() => {}).finally(() => setLoading(false)) }, [])
+    const refresh = async () => {
+        const [s, k] = await Promise.all([
+            aiApi.status().catch(() => null),
+            aiApi.getKeys().catch(() => null),
+        ])
+        setStatus(s); setKeys(k)
+    }
+    useEffect(() => { refresh().finally(() => setLoading(false)) }, [])
+
+    const saveKeys = async () => {
+        setSavingKeys(true); setKeysMsg(null)
+        try {
+            await aiApi.setKeys({
+                openai_api_key: openaiInput.trim() ? openaiInput.trim() : undefined,
+                anthropic_api_key: anthropicInput.trim() ? anthropicInput.trim() : undefined,
+            })
+            setKeysMsg('Keys saved. AI features active.')
+            setOpenaiInput(''); setAnthropicInput('')
+            await refresh()
+        } catch (e) { setKeysMsg(`Error: ${(e as Error).message}`) }
+        finally { setSavingKeys(false); setTimeout(() => setKeysMsg(null), 5000) }
+    }
+
+    const clearKey = async (which: 'openai' | 'anthropic') => {
+        if (!confirm(`Clear ${which === 'openai' ? 'OpenAI' : 'Anthropic'} API key? AI features using this provider will stop working.`)) return
+        try {
+            await aiApi.setKeys(which === 'openai' ? { openai_api_key: '' } : { anthropic_api_key: '' })
+            await refresh()
+        } catch (e) { alert((e as Error).message) }
+    }
 
     const test = async () => {
         if (!status?.ai_configured) return
@@ -44,28 +81,88 @@ export default function AdminAiPage() {
                         ) : (
                             <>
                                 <p className="font-bold text-amber-900">AI features are NOT YET CONFIGURED</p>
-                                <p className="text-sm text-amber-800 mt-2">Set one of these env vars on Render → backend → Environment, then redeploy:</p>
-                                <div className="mt-3 space-y-2">
-                                    <div className="bg-white rounded p-3 text-xs">
-                                        <p className="font-bold text-amber-900">Option A: OpenAI</p>
-                                        <code className="block mt-1 font-mono text-[11px]">OPENAI_API_KEY=sk-...</code>
-                                        <p className="text-amber-700 mt-1">Get one at <a href="https://platform.openai.com/api-keys" target="_blank" className="underline">platform.openai.com/api-keys</a> · enables all features including Whisper transcription. ~$10-50/mo at small scale.</p>
-                                    </div>
-                                    <div className="bg-white rounded p-3 text-xs">
-                                        <p className="font-bold text-amber-900">Option B: Anthropic Claude</p>
-                                        <code className="block mt-1 font-mono text-[11px]">ANTHROPIC_API_KEY=sk-ant-...</code>
-                                        <p className="text-amber-700 mt-1">Get one at <a href="https://console.anthropic.com/" target="_blank" className="underline">console.anthropic.com</a> · enables chat + translation + sermon pipeline. Transcription requires OpenAI.</p>
-                                    </div>
-                                </div>
+                                <p className="text-sm text-amber-800 mt-1">Paste an API key in the "Configure API Keys" section below to activate.</p>
                             </>
                         )}
                     </div>
                 </div>
             </div>
 
+            {/* API KEY CONFIGURATION — paste keys directly here, no Render restart needed */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-6 shadow-sm">
+                <h2 className="font-bold text-[#140152] mb-1 flex items-center gap-2"><Key className="w-5 h-5" /> Configure API Keys</h2>
+                <p className="text-xs text-gray-500 mb-4">Paste one or both. Saves instantly to the database — no Render restart needed. You can also set OPENAI_API_KEY / ANTHROPIC_API_KEY env vars on Render as a fallback.</p>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50/30">
+                        <p className="font-bold text-sm text-[#140152]">OpenAI</p>
+                        <p className="text-[10px] text-gray-500 mb-3">Translation · Sermon Pipeline · Whisper Transcription · <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-[#140152] underline">Get key</a></p>
+                        {keys?.openai_api_key && (
+                            <div className="bg-green-50 border border-green-200 rounded p-2 mb-2 text-[11px] flex items-center justify-between">
+                                <span className="font-mono text-green-800">{keys.openai_api_key}</span>
+                                <button onClick={() => clearKey('openai')} className="text-red-500 hover:underline ml-2 font-bold text-[10px]">Clear</button>
+                            </div>
+                        )}
+                        {!keys?.openai_api_key && keys?.env_fallback_openai && (
+                            <div className="bg-blue-50 border border-blue-200 rounded p-2 mb-2 text-[11px] text-blue-800">
+                                ℹ️ Using env var fallback on Render
+                            </div>
+                        )}
+                        <div className="relative">
+                            <input
+                                type={showOpenai ? 'text' : 'password'}
+                                value={openaiInput}
+                                onChange={e => setOpenaiInput(e.target.value)}
+                                placeholder="sk-..."
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2 pr-9 text-xs font-mono"
+                            />
+                            <button onClick={() => setShowOpenai(!showOpenai)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
+                                {showOpenai ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50/30">
+                        <p className="font-bold text-sm text-[#140152]">Anthropic Claude</p>
+                        <p className="text-[10px] text-gray-500 mb-3">Translation · Sermon Pipeline · <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" className="text-[#140152] underline">Get key</a></p>
+                        {keys?.anthropic_api_key && (
+                            <div className="bg-green-50 border border-green-200 rounded p-2 mb-2 text-[11px] flex items-center justify-between">
+                                <span className="font-mono text-green-800">{keys.anthropic_api_key}</span>
+                                <button onClick={() => clearKey('anthropic')} className="text-red-500 hover:underline ml-2 font-bold text-[10px]">Clear</button>
+                            </div>
+                        )}
+                        {!keys?.anthropic_api_key && keys?.env_fallback_anthropic && (
+                            <div className="bg-blue-50 border border-blue-200 rounded p-2 mb-2 text-[11px] text-blue-800">
+                                ℹ️ Using env var fallback on Render
+                            </div>
+                        )}
+                        <div className="relative">
+                            <input
+                                type={showAnthropic ? 'text' : 'password'}
+                                value={anthropicInput}
+                                onChange={e => setAnthropicInput(e.target.value)}
+                                placeholder="sk-ant-..."
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2 pr-9 text-xs font-mono"
+                            />
+                            <button onClick={() => setShowAnthropic(!showAnthropic)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
+                                {showAnthropic ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between gap-3">
+                    {keysMsg && <p className="text-sm text-green-700 font-bold">{keysMsg}</p>}
+                    <button onClick={saveKeys} disabled={savingKeys || (!openaiInput.trim() && !anthropicInput.trim())}
+                        className="ml-auto bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2 rounded-lg text-sm inline-flex items-center gap-2 disabled:opacity-50">
+                        {savingKeys ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save keys
+                    </button>
+                </div>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-4 mb-6">
-                <FeatureCard icon={<Languages className="w-5 h-5" />} title="Multi-language Translation" url="/sermons" desc="Translate any text into Yoruba, French, Spanish, Igbo, Hausa via /api/ai/translate" />
-                <FeatureCard icon={<FileVideo className="w-5 h-5" />} title="Sermon-to-Everything" url="/admin/sermon-pipeline" desc="One sermon → podcast notes, blog post, social clips, devotional, study guide" />
+                <FeatureCard icon={<Languages className="w-5 h-5" />} title="Multi-language Translation" url="/admin/ai" desc="Translate any text into Yoruba, French, Spanish, Igbo, Hausa via /api/ai/translate. Use the test playground below." />
+                <FeatureCard icon={<FileVideo className="w-5 h-5" />} title="Sermon-to-Everything" url="/admin/sermon-pipeline" desc="One sermon → podcast notes, blog post, social clips, devotional, study guide, memory verses (6 pieces auto-generated)" />
             </div>
 
             {status?.ai_configured && (

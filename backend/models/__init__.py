@@ -55,6 +55,7 @@ from models.decision import Decision
 from models.missionary import Missionary, MissionaryUpdate, MissionarySponsorship
 from models.intercession import Intercessor, IntercessionRequest
 from models.online_campus import OnlineService, AltarCallResponse, RaiseHand, OnlineCommunion
+from models.ai_config import AiConfig
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
@@ -185,4 +186,5 @@ __all__ = [
     "AltarCallResponse",
     "RaiseHand",
     "OnlineCommunion",
+    "AiConfig",
 ]

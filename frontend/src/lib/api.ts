@@ -3774,8 +3774,17 @@ export const onlineCampusApi = {
 
 // ─── AI Features (#2, #3, #8) ──────────────────────────────────────────────
 export interface AiStatus { ai_configured: boolean; has_openai: boolean; has_anthropic: boolean }
+export interface AiKeys {
+    openai_api_key: string | null
+    anthropic_api_key: string | null
+    env_fallback_openai: boolean
+    env_fallback_anthropic: boolean
+}
 export const aiApi = {
     status: () => fetchApi<AiStatus>('/ai/status'),
+    getKeys: () => fetchApi<AiKeys>('/ai/keys'),
+    setKeys: (b: { openai_api_key?: string | null; anthropic_api_key?: string | null }) =>
+        fetchApi<{ ok: boolean; openai_api_key: string | null; anthropic_api_key: string | null }>('/ai/keys', { method: 'PUT', body: JSON.stringify(b) }),
     translate: (text: string, target_language: string, source_language = 'en') =>
         fetchApi<{ ok: boolean; translated_text: string; target_language: string }>('/ai/translate', { method: 'POST', body: JSON.stringify({ text, target_language, source_language }) }),
     sermonPipeline: (b: { sermon_id?: string; transcript?: string; title?: string; preacher?: string; outputs?: string[] }) =>

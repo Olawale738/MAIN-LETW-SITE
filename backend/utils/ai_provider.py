@@ -1,11 +1,10 @@
 """
-AI provider abstraction. Returns a configured client (OpenAI or Anthropic),
-or None if no key is set. Endpoints check this first and return 503 with
-a friendly setup message if AI isn't configured.
+AI provider abstraction. Reads keys from admin DB row first, falls back
+to env vars. Endpoints check has_any() and return 503 if neither is set.
 
-Env vars (set on Render):
-    OPENAI_API_KEY=sk-...     (preferred for transcription / clip generation)
-    ANTHROPIC_API_KEY=sk-ant-... (preferred for pastoral assistant / RAG)
+Two ways to configure:
+- Admin pastes key at /admin/ai (saved to ai_config table) — preferred
+- OR set OPENAI_API_KEY / ANTHROPIC_API_KEY env vars on Render
 
 If both are set, OpenAI is default for transcription/translation/sermon-to-
 everything, Anthropic is default for chat/RAG.
@@ -14,13 +13,79 @@ everything, Anthropic is default for chat/RAG.
 import os
 from typing import Optional
 
+# In-process cache so we don't hit the DB on every request. Refreshed by
+# /admin/ai/keys PUT and at most every 60 seconds otherwise.
+_cache: dict = {"openai": None, "anthropic": None, "fetched_at": 0.0}
+
+
+def _refresh_cache_from_db() -> None:
+    """Best-effort DB read. If anything fails (no row, no table yet,
+    DB connection issue) we silently fall back to env vars."""
+    try:
+        import time
+        import asyncio
+        from sqlalchemy import select
+        from database import AsyncSessionLocal
+        from models.ai_config import AiConfig
+
+        async def _load():
+            async with AsyncSessionLocal() as s:
+                res = await s.execute(select(AiConfig).where(AiConfig.id == 1))
+                return res.scalar_one_or_none()
+
+        # If we're already in an event loop (FastAPI request), do it sync via run_until_complete elsewhere.
+        # Safest path: schedule via a fresh loop only when there's no running loop.
+        try:
+            loop = asyncio.get_running_loop()
+            # Inside running loop — caller should use _async_refresh instead.
+            return
+        except RuntimeError:
+            row = asyncio.run(_load())
+
+        _cache["openai"] = row.openai_api_key if row and row.openai_api_key else None
+        _cache["anthropic"] = row.anthropic_api_key if row and row.anthropic_api_key else None
+        _cache["fetched_at"] = time.monotonic()
+    except Exception:
+        pass
+
+
+async def refresh_cache_async() -> None:
+    """Call this from any async context (e.g. an endpoint) to refresh the
+    cache without blocking the event loop."""
+    import time
+    try:
+        from sqlalchemy import select
+        from database import AsyncSessionLocal
+        from models.ai_config import AiConfig
+        async with AsyncSessionLocal() as s:
+            res = await s.execute(select(AiConfig).where(AiConfig.id == 1))
+            row = res.scalar_one_or_none()
+        _cache["openai"] = row.openai_api_key if row and row.openai_api_key else None
+        _cache["anthropic"] = row.anthropic_api_key if row and row.anthropic_api_key else None
+        _cache["fetched_at"] = time.monotonic()
+    except Exception:
+        pass
+
+
+def get_openai_key() -> Optional[str]:
+    # DB cache wins
+    if _cache.get("openai"):
+        return _cache["openai"]
+    return os.getenv("OPENAI_API_KEY") or None
+
+
+def get_anthropic_key() -> Optional[str]:
+    if _cache.get("anthropic"):
+        return _cache["anthropic"]
+    return os.getenv("ANTHROPIC_API_KEY") or None
+
 
 def has_openai() -> bool:
-    return bool(os.getenv("OPENAI_API_KEY"))
+    return bool(get_openai_key())
 
 
 def has_anthropic() -> bool:
-    return bool(os.getenv("ANTHROPIC_API_KEY"))
+    return bool(get_anthropic_key())
 
 
 def has_any() -> bool:
@@ -89,7 +154,7 @@ async def chat_completion(prompt: str, system_prompt: Optional[str] = None, max_
             r = await cli.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={
-                    "x-api-key": os.environ["ANTHROPIC_API_KEY"],
+                    "x-api-key": (get_anthropic_key() or ""),
                     "anthropic-version": "2023-06-01",
                     "content-type": "application/json",
                 },
