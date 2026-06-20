@@ -199,17 +199,63 @@ async def admin_candidate_search(
     return [{"id": u.id, "name": u.name, "email": u.email} for u in res.scalars().all()]
 
 
-@router.get("/admin/intercessors", response_model=List[IntercessorOut])
+@router.get("/admin/intercessors")
 async def admin_list(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """List rota with the linked user's email so admins can verify who's been added."""
     res = await db.execute(select(Intercessor).order_by(Intercessor.display_name))
-    return res.scalars().all()
+    rows = res.scalars().all()
+    if not rows:
+        return []
+    user_ids = [r.user_id for r in rows if r.user_id]
+    user_emails: dict[str, str] = {}
+    if user_ids:
+        res2 = await db.execute(select(User).where(User.id.in_(user_ids)))
+        for u in res2.scalars().all():
+            user_emails[u.id] = u.email or ""
+    return [{
+        "id": r.id, "user_id": r.user_id, "display_name": r.display_name,
+        "bio": r.bio, "languages": r.languages, "is_active": r.is_active,
+        "is_available_now": r.is_available_now, "total_prayed_for": r.total_prayed_for,
+        "user_email": user_emails.get(r.user_id, ""),
+    } for r in rows]
+
+
+@router.post("/admin/intercessors/{iid}/resend-invite")
+async def resend_invite(iid: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Resend the welcome / instructions email to an intercessor."""
+    res = await db.execute(select(Intercessor).where(Intercessor.id == iid))
+    i = res.scalar_one_or_none()
+    if not i:
+        raise HTTPException(404, "Not found")
+    res2 = await db.execute(select(User).where(User.id == i.user_id))
+    u = res2.scalar_one_or_none()
+    if not u or not u.email:
+        raise HTTPException(400, "Linked user has no email on file.")
+    try:
+        from services.email_service import send_email
+        subject = "Reminder: your LETW Intercessor portal"
+        html = f"""
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#140152">
+            <p style="color:#f5bb00;font-weight:bold;letter-spacing:.2em;text-transform:uppercase;font-size:11px">Live Prayer · LETW</p>
+            <h1 style="margin:8px 0 16px;font-size:24px">Hi {i.display_name},</h1>
+            <p>Just a reminder — your intercessor portal is ready and waiting.</p>
+            <p>1. Sign in at <a href="https://letw.org/auth/login?redirect=/intercessor">letw.org/auth/login</a> with <strong>{u.email}</strong>.<br/>
+               2. Open <a href="https://letw.org/intercessor">letw.org/intercessor</a> and toggle <strong>Go online</strong>.</p>
+            <p style="color:#666;font-size:13px">If you're seeing "Not yet an intercessor", you're signed in with a different account than the one we registered.</p>
+        </div>
+        """
+        await send_email(u.email, subject, html)
+        return {"ok": True, "email": u.email}
+    except Exception as e:
+        raise HTTPException(500, f"Send failed: {type(e).__name__}: {e}")
 
 
 @router.post("/admin/intercessors", response_model=IntercessorOut, status_code=201)
 async def admin_add(body: IntercessorIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     # Ensure user exists
     res = await db.execute(select(User).where(User.id == body.user_id))
-    if not res.scalar_one_or_none():
+    target_user = res.scalar_one_or_none()
+    if not target_user:
         raise HTTPException(404, "User not found")
     # Ensure not duplicated
     res2 = await db.execute(select(Intercessor).where(Intercessor.user_id == body.user_id))
@@ -218,6 +264,28 @@ async def admin_add(body: IntercessorIn, db: AsyncSession = Depends(get_db), _: 
     i = Intercessor(**body.model_dump())
     db.add(i)
     await db.commit()
+    # Fire-and-forget invitation email so the intercessor knows to sign in & toggle ONLINE
+    try:
+        from services.email_service import send_email
+        subject = "You're on the LETW Intercessor team"
+        html = f"""
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#140152">
+            <p style="color:#f5bb00;font-weight:bold;letter-spacing:.2em;text-transform:uppercase;font-size:11px;margin:0">Live Prayer · LETW</p>
+            <h1 style="margin:8px 0 16px;font-size:24px">Welcome to the Intercessor team, {body.display_name}!</h1>
+            <p>You've been added to the Light Encounter Tabernacle Worldwide intercessor rota. When believers around the world need urgent prayer, we'll route their requests to whoever is online.</p>
+            <h3 style="margin-top:24px">Your next steps</h3>
+            <ol>
+                <li>Sign in at <a href="https://letw.org/auth/login?redirect=/intercessor">letw.org/auth/login</a> with the email this message was sent to.</li>
+                <li>Open your portal at <a href="https://letw.org/intercessor">letw.org/intercessor</a>.</li>
+                <li>Toggle <strong>Go online</strong> when you're available to pray. Toggle off when you're not.</li>
+                <li>When a request appears, click <strong>I'll pray</strong>, then <strong>Done</strong> when finished.</li>
+            </ol>
+            <p style="margin-top:24px;color:#666;font-size:13px">"And whatsoever ye shall ask in my name, that will I do, that the Father may be glorified in the Son." — John 14:13</p>
+        </div>
+        """
+        await send_email(target_user.email, subject, html)
+    except Exception as e:
+        print(f"[intercession] Welcome email skipped: {type(e).__name__}: {e}", flush=True)
     await db.refresh(i)
     return i
 

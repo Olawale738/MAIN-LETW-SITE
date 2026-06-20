@@ -3903,8 +3903,9 @@ export const intercessionApi = {
     myQueue: () => fetchApi<Array<{ id: string; display_name: string; text: string; category: string | null; status: string; created_at: string; assigned_at: string }>>('/intercession/me/queue'),
     updateStatus: (rid: string, b: { status: 'praying' | 'answered' | 'closed'; answered_testimony?: string }) =>
         fetchApi<{ ok: boolean; status: string }>(`/intercession/requests/${rid}/status`, { method: 'PUT', body: JSON.stringify(b) }),
-    adminListIntercessors: () => fetchApi<Array<{ id: string; user_id: string; display_name: string; bio: string | null; languages: string | null; is_active: boolean; is_available_now: boolean; total_prayed_for: number }>>('/intercession/admin/intercessors'),
+    adminListIntercessors: () => fetchApi<Array<{ id: string; user_id: string; display_name: string; bio: string | null; languages: string | null; is_active: boolean; is_available_now: boolean; total_prayed_for: number; user_email?: string }>>('/intercession/admin/intercessors'),
     adminSearchCandidates: (q: string) => fetchApi<Array<{ id: string; name: string; email: string }>>(`/intercession/admin/candidates${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+    adminResendInvite: (iid: string) => fetchApi<{ ok: boolean; email: string }>(`/intercession/admin/intercessors/${iid}/resend-invite`, { method: 'POST' }),
     adminAddIntercessor: (b: { user_id: string; display_name: string; bio?: string; languages?: string; is_active?: boolean }) =>
         fetchApi<{ id: string }>('/intercession/admin/intercessors', { method: 'POST', body: JSON.stringify(b) }),
     adminRemoveIntercessor: (id: string) => fetchApi<{ deleted: number }>(`/intercession/admin/intercessors/${id}`, { method: 'DELETE' }),

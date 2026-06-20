@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Loader2, Heart, Plus, Trash2, AlertCircle, CheckCircle, RefreshCw, Search, Info, Mail, X } from 'lucide-react'
 import { intercessionApi } from '@/lib/api'
 
-interface Intercessor { id: string; user_id: string; display_name: string; bio: string | null; languages: string | null; is_active: boolean; is_available_now: boolean; total_prayed_for: number }
+interface Intercessor { id: string; user_id: string; display_name: string; bio: string | null; languages: string | null; is_active: boolean; is_available_now: boolean; total_prayed_for: number; user_email?: string }
 
 export default function AdminIntercessorsPage() {
     const [items, setItems] = useState<Intercessor[]>([])
@@ -30,6 +30,12 @@ export default function AdminIntercessorsPage() {
         if (!confirm('Remove this intercessor from the rota?')) return
         try { await intercessionApi.adminRemoveIntercessor(id); await load() }
         catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+    }
+    const resendInvite = async (id: string) => {
+        try {
+            const r = await intercessionApi.adminResendInvite(id)
+            setMsg({ kind: 'ok', text: `Invitation email sent to ${r.email}.` })
+        } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
     }
 
     if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-[#140152]" /></div>
@@ -96,12 +102,19 @@ export default function AdminIntercessorsPage() {
                     {items.length === 0 && <p className="px-5 py-12 text-center text-gray-400">No intercessors on the rota yet.</p>}
                     {items.map(i => (
                         <div key={i.id} className="px-5 py-3 flex items-center gap-3 hover:bg-gray-50">
-                            <span className={`w-2 h-2 rounded-full ${i.is_available_now ? 'bg-green-500' : 'bg-gray-300'}`} />
+                            <span className={`w-2 h-2 rounded-full ${i.is_available_now ? 'bg-green-500' : 'bg-gray-300'}`} title={i.is_available_now ? 'Currently ONLINE' : 'Currently offline'} />
                             <div className="flex-1 min-w-0">
                                 <p className="font-bold text-sm text-[#140152] truncate">{i.display_name}</p>
-                                <p className="text-xs text-gray-500 truncate">{i.languages || 'No languages set'} · {i.total_prayed_for} prayers prayed</p>
+                                <p className="text-xs text-gray-500 truncate">
+                                    {i.user_email && <span className="text-[#140152]/70">{i.user_email} · </span>}
+                                    {i.languages || 'No languages set'} · {i.total_prayed_for} prayers prayed
+                                </p>
                             </div>
                             <span className={`text-xs font-bold px-2 py-1 rounded ${i.is_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{i.is_active ? 'Active' : 'Paused'}</span>
+                            <button onClick={() => resendInvite(i.id)} title="Resend the invitation / instructions email"
+                                className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-[#140152]/15 text-[#140152] hover:bg-[#140152] hover:text-white inline-flex items-center gap-1.5">
+                                <Mail className="w-3 h-3" /> Resend invite
+                            </button>
                             <button onClick={() => remove(i.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
                         </div>
                     ))}

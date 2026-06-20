@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Heart, Power, PowerOff, Clock, CheckCircle2, Loader2, AlertTriangle, RefreshCw, Sparkles } from 'lucide-react'
-import { intercessionApi, tokenManager, type IntercessorMe } from '@/lib/api'
+import { intercessionApi, tokenManager, authApi, type IntercessorMe } from '@/lib/api'
 import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 interface Req {
@@ -17,6 +17,7 @@ interface Req {
 
 export default function IntercessorPortal() {
     const [me, setMe] = useState<IntercessorMe | null>(null)
+    const [signedInEmail, setSignedInEmail] = useState<string | null>(null)
     const [queue, setQueue] = useState<Req[]>([])
     const [online, setOnline] = useState(0)
     const [loading, setLoading] = useState(true)
@@ -35,6 +36,10 @@ export default function IntercessorPortal() {
                 intercessionApi.onlineCount().catch(() => ({ online: 0 })),
             ])
             if (!meData) {
+                try {
+                    const u = await authApi.getCurrentUser()
+                    setSignedInEmail(u?.email || null)
+                } catch { /* noop */ }
                 setError('not-intercessor')
                 return
             }
@@ -88,8 +93,18 @@ export default function IntercessorPortal() {
                 <div className="bg-white rounded-3xl shadow-xl p-10 max-w-md text-center">
                     <Heart className="w-12 h-12 mx-auto text-[#f5bb00] mb-3" />
                     <h2 className="text-2xl font-black text-[#140152]">Not yet an intercessor</h2>
-                    <p className="text-gray-600 mt-3">Your heart for prayer is precious. To join the intercessor rota, please contact our prayer coordinator.</p>
-                    <a href="mailto:prayer@letw.org" className="inline-block mt-5 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-6 py-3 rounded-xl">Email prayer@letw.org</a>
+                    {signedInEmail && (
+                        <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-left">
+                            <p className="text-[10px] uppercase tracking-wider font-bold text-amber-700">You are signed in as</p>
+                            <p className="font-bold text-[#140152] text-sm break-all">{signedInEmail}</p>
+                            <p className="text-[11px] text-amber-700 mt-1">If your admin added a different email to the rota, please sign out and back in with that one.</p>
+                        </div>
+                    )}
+                    <p className="text-gray-600 mt-4 text-sm">If you should be on the rota, contact our prayer coordinator.</p>
+                    <div className="mt-5 flex gap-2 justify-center flex-wrap">
+                        <a href="mailto:prayer@letw.org" className="bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-3 rounded-xl text-sm">Email prayer@letw.org</a>
+                        <Link href="/auth/login?redirect=/intercessor" className="bg-white border border-gray-200 hover:border-[#140152] text-[#140152] font-bold px-5 py-3 rounded-xl text-sm">Sign in with another account</Link>
+                    </div>
                 </div>
             </main>
         )
