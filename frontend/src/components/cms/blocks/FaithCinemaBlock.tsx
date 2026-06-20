@@ -9,7 +9,7 @@ interface Props { title?: string; subtitle?: string; features: FeatureItem[] }
 const ROTATE_MS = 7000
 
 function Glyph({ name, className }: { name?: string; className?: string }) {
-    const Lib = LucideIcons as Record<string, React.ComponentType<{ className?: string }>>
+    const Lib = LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string }>>
     const Icon = name && Lib[name] ? Lib[name] : LucideIcons.Sparkles
     return <Icon className={className} />
 }
