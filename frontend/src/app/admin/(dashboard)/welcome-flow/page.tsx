@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Loader2, Plus, Save, Trash2, Send, Mail, AlertCircle, CheckCircle, Clock } from 'lucide-react'
-import { welcomeFlowApi, type WelcomeStep } from '@/lib/api'
+import { welcomeFlowApi, wakeBackend, type WelcomeStep } from '@/lib/api'
 import RichTextEditor from '@/components/ui/rich-text-editor'
 
 export default function AdminWelcomeFlowPage() {
@@ -64,8 +64,19 @@ export default function AdminWelcomeFlowPage() {
         <div className="max-w-md mx-auto mt-24 bg-white border border-red-100 rounded-2xl p-8 text-center shadow-sm">
             <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-3" />
             <h2 className="text-xl font-black text-[#140152]">Welcome Flow couldn't load</h2>
-            <p className="text-sm text-gray-600 mt-2">{loadError}</p>
-            <button onClick={() => { setLoading(true); load() }} className="mt-5 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2.5 rounded-xl">Try again</button>
+            <p className="text-sm text-gray-600 mt-2 break-words">{loadError}</p>
+            <p className="text-xs text-gray-400 mt-3">Render free-tier servers sleep after inactivity. The first request after idle can take 30–60 seconds to wake. Wake it manually, then retry:</p>
+            <div className="mt-5 flex gap-2 justify-center flex-wrap">
+                <button onClick={async () => {
+                    setLoadError(null)
+                    const ok = await wakeBackend(60_000)
+                    if (ok) { setLoading(true); load() }
+                    else setLoadError("Backend still not responding after 60 seconds. Check Render dashboard.")
+                }} className="bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-bold px-5 py-2.5 rounded-xl text-sm">
+                    Wake server &amp; retry
+                </button>
+                <button onClick={() => { setLoading(true); load() }} className="bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2.5 rounded-xl text-sm">Try again</button>
+            </div>
         </div>
     )
 

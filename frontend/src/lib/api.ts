@@ -5,6 +5,28 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
+/**
+ * Ping the backend /health endpoint patiently to wake a sleeping Render free-tier
+ * instance. Returns true once the server responds (or false after maxMs).
+ * Useful as a manual "Wake server" action from error screens.
+ */
+export async function wakeBackend(maxMs = 60_000): Promise<boolean> {
+    const start = Date.now()
+    // /health is on the root, not under /api. Strip /api suffix from the base.
+    const healthUrl = `${API_BASE_URL.replace(/\/api\/?$/, '')}/health`
+    while (Date.now() - start < maxMs) {
+        try {
+            const ctl = new AbortController()
+            const t = setTimeout(() => ctl.abort(), 6000)
+            const r = await fetch(healthUrl, { signal: ctl.signal, cache: 'no-store' })
+            clearTimeout(t)
+            if (r.ok) return true
+        } catch { /* keep trying */ }
+        await new Promise(r => setTimeout(r, 2000))
+    }
+    return false
+}
+
 // ============= Types =============
 
 export interface RegisterRequest {
@@ -155,10 +177,11 @@ async function fetchApi<T>(
         }
     }
 
-    // Cold-start safe fetch — Render free tier can sleep, so first request
-    // after idle can throw "Failed to fetch". Retry the same request up to 2
-    // times with backoff so admin/public pages don't surface that error.
-    async function fetchWithRetry(input: string, init: RequestInit, attempts = 3): Promise<Response> {
+    // Cold-start safe fetch — Render free tier can sleep ~30-60s, so first
+    // request after idle can throw "Failed to fetch". Retry with exponential
+    // backoff totalling ~30s before giving up.
+    async function fetchWithRetry(input: string, init: RequestInit, attempts = 6): Promise<Response> {
+        const delays = [1500, 3000, 5000, 7000, 9000]   // 5 waits between 6 attempts ≈ 25s
         let lastErr: unknown
         for (let i = 0; i < attempts; i++) {
             try {
@@ -168,12 +191,15 @@ async function fetchApi<T>(
                 // Only retry on the bare network error (TypeError: Failed to fetch).
                 // 4xx/5xx come back as a Response, not a thrown error.
                 if (i === attempts - 1) break
-                await new Promise(r => setTimeout(r, 1200 * (i + 1)))
+                await new Promise(r => setTimeout(r, delays[i] ?? 9000))
             }
         }
+        const hint = url.includes('localhost') || !url.startsWith('http')
+            ? ` (the frontend is configured to call ${API_BASE_URL || '(empty)'} — check NEXT_PUBLIC_API_URL in Vercel)`
+            : ` (target: ${url})`
         throw lastErr instanceof Error
-            ? new Error(`Couldn't reach the server. The backend may be waking up — please try again in a moment. (${lastErr.message})`)
-            : new Error("Couldn't reach the server. Please try again in a moment.")
+            ? new Error(`Couldn't reach the server.${hint}`)
+            : new Error(`Couldn't reach the server.${hint}`)
     }
     const response = await fetchWithRetry(url, { ...options, headers });
 
