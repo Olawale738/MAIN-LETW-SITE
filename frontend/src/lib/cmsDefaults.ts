@@ -80,7 +80,7 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
             title: "When We Gather",
             subtitle: "There's a seat saved for you. Join us in person or online.",
             bg: 'brand',
-            location: "Light Encounter Tabernacle, Visit /contact for full address",
+            location: "",
             map_link: "",
             services: [
                 { day: "Sunday", time: "9:00 AM", title: "Sunday Service", description: "Our main worship gathering - Spirit-filled praise and life-giving teaching for the whole family." },
