@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Heart, CreditCard, AlertCircle, CheckCircle, Wallet } from 'lucide-react'
 import { paymentsApi, type PaymentProvider } from '@/lib/api'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 const FUNDS = ['General', 'Tithe', 'Missions', 'Building', 'Youth', 'Charity']
 const PRESETS = [1000, 5000, 10000, 25000, 50000, 100000]
@@ -52,6 +53,7 @@ export default function GivePage() {
 
     return (
         <main className="min-h-screen bg-gradient-to-b from-[#140152] via-[#1a0270] to-[#140152] text-white">
+            <PageCmsOverlay slug="give" position="top" />
             <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-12 text-center">
                 <p className="text-[#f5bb00] font-bold tracking-[0.3em] text-xs uppercase mb-3">Sow into Eternity</p>
                 <h1 className="text-4xl md:text-5xl font-black leading-tight">Give cheerfully. Sow generously.</h1>
@@ -126,6 +128,7 @@ export default function GivePage() {
                     </div>
                 )}
             </section>
+            <PageCmsOverlay slug="give" position="bottom" />
         </main>
     )
 }

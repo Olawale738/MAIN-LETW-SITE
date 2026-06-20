@@ -18,6 +18,19 @@ router = APIRouter(
 
 # --- Pages ---
 
+@router.get("/pages")
+async def list_pages(db: AsyncSession = Depends(get_db)):
+    """List every CMS page slug (admin discovery surface)."""
+    result = await db.execute(select(CMSPage).order_by(CMSPage.slug))
+    rows = result.scalars().all()
+    return {
+        "pages": [
+            {"slug": r.slug, "title": r.title, "updated_at": r.updated_at}
+            for r in rows
+        ]
+    }
+
+
 @router.get("/pages/{slug}", response_model=PageResponse)
 async def get_page(slug: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(CMSPage).where(CMSPage.slug == slug))

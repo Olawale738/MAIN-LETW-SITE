@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { authApi } from '@/lib/api'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 export default function JoinPage() {
   const router = useRouter()
@@ -57,6 +58,7 @@ export default function JoinPage() {
 
   return (
     <>
+      <PageCmsOverlay slug="join" position="top" />
       {/* Hero */}
       <div className="w-full">
         <img
@@ -232,6 +234,7 @@ export default function JoinPage() {
           </Card>
         </div>
       </SectionWrapper>
+      <PageCmsOverlay slug="join" position="bottom" />
     </>
   )
 }

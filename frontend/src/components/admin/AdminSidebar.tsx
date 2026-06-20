@@ -84,18 +84,8 @@ const sidebarItems: SidebarItem[] = [
     },
     // Leadership
     { title: 'Leadership Training', href: '/admin/leadership', icon: Crown },
-    // CMS Pages expandable group
-    {
-        title: 'CMS Pages',
-        icon: FileText,
-        items: [
-            { title: 'Home Page',          href: '/admin/pages/home',           icon: Home },
-            { title: 'About Page',         href: '/admin/pages/about',          icon: Users },
-            { title: 'Impact Page',        href: '/admin/pages/impact',         icon: Globe },
-            { title: 'Sunday Service',     href: '/admin/pages/sunday-service', icon: Church },
-            { title: 'Evangelism Page',    href: '/admin/pages/evangelism',     icon: Globe },
-        ]
-    },
+    // Universal page editor (lists every public page)
+    { title: 'All Pages', href: '/admin/pages', icon: FileText },
     { title: 'Evangelism Sign-Ups', href: '/admin/evangelism-signups', icon: HandHeart },
     // Ministries group
     {

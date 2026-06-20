@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { ArrowRight } from 'lucide-react'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 export default function PrayerRequestPage() {
   const [formData, setFormData] = useState({
@@ -31,6 +32,7 @@ export default function PrayerRequestPage() {
 
   return (
     <>
+      <PageCmsOverlay slug="prayer-request" position="top" />
       <Hero
         title="Prayer Request"
         subtitle="Submit your prayer requests and let us join you in prayer"
@@ -137,6 +139,7 @@ export default function PrayerRequestPage() {
           </div>
         </div>
       </SectionWrapper>
+      <PageCmsOverlay slug="prayer-request" position="bottom" />
     </>
   )
 }

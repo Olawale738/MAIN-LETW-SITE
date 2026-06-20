@@ -2794,6 +2794,10 @@ export const cmsApi = {
         return fetchApi<CMSPageResponse>(`/cms/pages/${slug}`, { cache: 'no-store' });
     },
 
+    listPages: async (): Promise<{ pages: Array<{ slug: string; title: string; updated_at: string | null }> }> => {
+        return fetchApi<{ pages: Array<{ slug: string; title: string; updated_at: string | null }> }>('/cms/pages', { cache: 'no-store' });
+    },
+
     updatePage: async (slug: string, title: string, content: CMSPageContent): Promise<CMSPageResponse> => {
         return fetchApi<CMSPageResponse>(`/cms/pages/${slug}`, {
             method: 'POST',

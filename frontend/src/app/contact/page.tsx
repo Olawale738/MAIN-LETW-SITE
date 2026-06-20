@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
 import { MapPin, Phone, Mail, Clock, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -36,6 +37,7 @@ export default function ContactPage() {
 
   return (
     <>
+      <PageCmsOverlay slug="contact" position="top" />
       <Hero
         title="Contact Us"
         subtitle="We'd love to hear from you"
@@ -186,6 +188,7 @@ export default function ContactPage() {
           </div>
         </div>
       </SectionWrapper>
+      <PageCmsOverlay slug="contact" position="bottom" />
     </>
   )
 }
