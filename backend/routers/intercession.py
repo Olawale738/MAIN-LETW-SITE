@@ -180,6 +180,25 @@ async def update_request_status(
 
 # ─── Admin: rota management ──────────────────────────────────────────────────
 
+@router.get("/admin/candidates")
+async def admin_candidate_search(
+    q: str = "",
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+):
+    """Search members by name/email to add as intercessors — excludes already-rostered."""
+    from sqlalchemy import or_
+    # Subquery: users already on rota
+    rostered = select(Intercessor.user_id).subquery()
+    query = select(User).where(~User.id.in_(select(rostered.c.user_id)))
+    if q and q.strip():
+        like = f"%{q.strip()}%"
+        query = query.where(or_(User.name.ilike(like), User.email.ilike(like)))
+    query = query.order_by(User.name).limit(25)
+    res = await db.execute(query)
+    return [{"id": u.id, "name": u.name, "email": u.email} for u in res.scalars().all()]
+
+
 @router.get("/admin/intercessors", response_model=List[IntercessorOut])
 async def admin_list(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     res = await db.execute(select(Intercessor).order_by(Intercessor.display_name))

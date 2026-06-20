@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Loader2, Heart, Plus, Trash2, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react'
+import { Loader2, Heart, Plus, Trash2, AlertCircle, CheckCircle, RefreshCw, Search, Info, Mail, X } from 'lucide-react'
 import { intercessionApi } from '@/lib/api'
 
 interface Intercessor { id: string; user_id: string; display_name: string; bio: string | null; languages: string | null; is_active: boolean; is_available_now: boolean; total_prayed_for: number }
@@ -46,6 +46,23 @@ export default function AdminIntercessorsPage() {
                     <p className="text-gray-500 mt-1 text-sm">Manage the intercessor rota + see live prayer queue.</p>
                 </div>
                 <button onClick={load} className="text-sm text-gray-500 hover:text-[#140152] inline-flex items-center gap-1.5"><RefreshCw className="w-4 h-4" /> Refresh</button>
+            </div>
+
+            {/* How intercessors get connected — onboarding explainer */}
+            <div className="mb-6 rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 to-rose-50 p-5">
+                <div className="flex items-start gap-3">
+                    <Info className="w-5 h-5 text-purple-700 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-purple-900 leading-relaxed">
+                        <p className="font-black mb-1">How intercessors get connected</p>
+                        <ol className="list-decimal pl-5 space-y-1">
+                            <li>The person registers/logs in at <a href="/auth/login" className="underline font-bold">letw.org/auth</a>.</li>
+                            <li>You search for them below by name or email and add them to the rota.</li>
+                            <li>They sign in and visit <a href="/intercessor" className="underline font-bold">/intercessor</a> to toggle ONLINE.</li>
+                            <li>When someone submits a prayer request, the system auto-routes it to the next available intercessor.</li>
+                            <li>They mark "Praying" then "Done" — totals tracked on this page.</li>
+                        </ol>
+                    </div>
+                </div>
             </div>
 
             {msg && <div className={`mb-4 p-3 rounded-xl border flex items-start gap-2 ${msg.kind === 'ok' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
@@ -113,35 +130,90 @@ export default function AdminIntercessorsPage() {
 }
 
 function AddForm({ onCancel, onAdd }: { onCancel: () => void; onAdd: (d: { user_id: string; display_name: string; bio?: string; languages?: string }) => void }) {
-    const [userId, setUserId] = useState('')
+    const [query, setQuery] = useState('')
+    const [results, setResults] = useState<Array<{ id: string; name: string; email: string }>>([])
+    const [searching, setSearching] = useState(false)
+    const [picked, setPicked] = useState<{ id: string; name: string; email: string } | null>(null)
     const [displayName, setDisplayName] = useState('')
     const [bio, setBio] = useState('')
     const [languages, setLanguages] = useState('')
+
+    useEffect(() => {
+        if (picked) return
+        const t = setTimeout(async () => {
+            setSearching(true)
+            try { setResults(await intercessionApi.adminSearchCandidates(query)) }
+            catch { setResults([]) }
+            finally { setSearching(false) }
+        }, 250)
+        return () => clearTimeout(t)
+    }, [query, picked])
+
+    const choose = (u: { id: string; name: string; email: string }) => {
+        setPicked(u)
+        setDisplayName(u.name || u.email)
+    }
+
     return (
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-md mb-5">
             <h3 className="font-bold text-[#140152] mb-3">Add intercessor to rota</h3>
-            <div className="grid md:grid-cols-2 gap-3 mb-3">
-                <div>
-                    <label className="text-xs font-bold uppercase text-gray-500 block mb-1">User ID</label>
-                    <input value={userId} onChange={e => setUserId(e.target.value)} placeholder="UUID of member" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
-                </div>
-                <div>
-                    <label className="text-xs font-bold uppercase text-gray-500 block mb-1">Display name</label>
-                    <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="e.g. Mama Adaeze" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-                </div>
-            </div>
-            <div>
-                <label className="text-xs font-bold uppercase text-gray-500 block mb-1">Languages (comma-separated)</label>
-                <input value={languages} onChange={e => setLanguages(e.target.value)} placeholder="English, Yoruba, French" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-            </div>
-            <textarea value={bio} onChange={e => setBio(e.target.value)} rows={2} placeholder="Brief bio (optional)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-3" />
-            <div className="mt-4 flex justify-end gap-2">
-                <button onClick={onCancel} className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold">Cancel</button>
-                <button onClick={() => onAdd({ user_id: userId, display_name: displayName, bio: bio || undefined, languages: languages || undefined })}
-                    disabled={!userId || !displayName} className="bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2 rounded-lg text-sm disabled:opacity-50">
-                    Add to rota
-                </button>
-            </div>
+            {!picked ? (
+                <>
+                    <label className="text-xs font-bold uppercase text-gray-500 block mb-1">Search members by name or email</label>
+                    <div className="relative mb-3">
+                        <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                        <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Type to search…"
+                            className="w-full border border-gray-200 rounded-lg pl-10 pr-3 py-2 text-sm" />
+                    </div>
+                    <div className="max-h-64 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-100">
+                        {searching && <p className="px-4 py-6 text-center text-gray-400 text-sm">Searching…</p>}
+                        {!searching && results.length === 0 && <p className="px-4 py-6 text-center text-gray-400 text-sm">{query ? 'No matching members.' : 'Members available to add appear here.'}</p>}
+                        {!searching && results.map(r => (
+                            <button key={r.id} type="button" onClick={() => choose(r)}
+                                className="w-full text-left px-4 py-3 hover:bg-purple-50 flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center flex-shrink-0">
+                                    {(r.name || r.email || '?').slice(0, 1).toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-sm text-[#140152] truncate">{r.name || '(no name)'}</p>
+                                    <p className="text-xs text-gray-500 truncate inline-flex items-center gap-1"><Mail className="w-3 h-3" /> {r.email}</p>
+                                </div>
+                                <Plus className="w-4 h-4 text-purple-500" />
+                            </button>
+                        ))}
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                        <button onClick={onCancel} className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold">Cancel</button>
+                    </div>
+                </>
+            ) : (
+                <>
+                    <div className="mb-4 flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-lg p-3">
+                        <div className="w-10 h-10 rounded-full bg-purple-200 text-purple-800 font-bold flex items-center justify-center">{(picked.name || picked.email).slice(0, 1).toUpperCase()}</div>
+                        <div className="flex-1 min-w-0">
+                            <p className="font-bold text-[#140152] truncate">{picked.name || '(no name)'}</p>
+                            <p className="text-xs text-gray-500 truncate">{picked.email}</p>
+                        </div>
+                        <button onClick={() => setPicked(null)} className="text-gray-400 hover:text-gray-700 p-1"><X className="w-4 h-4" /></button>
+                    </div>
+                    <div>
+                        <label className="text-xs font-bold uppercase text-gray-500 block mb-1">Display name (shown to people requesting prayer)</label>
+                        <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="e.g. Mama Adaeze" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div className="mt-3">
+                        <label className="text-xs font-bold uppercase text-gray-500 block mb-1">Languages (comma-separated)</label>
+                        <input value={languages} onChange={e => setLanguages(e.target.value)} placeholder="English, Yoruba, French" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <textarea value={bio} onChange={e => setBio(e.target.value)} rows={2} placeholder="Brief bio (optional)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-3" />
+                    <div className="mt-4 flex justify-end gap-2">
+                        <button onClick={onCancel} className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold">Cancel</button>
+                        <button onClick={() => onAdd({ user_id: picked.id, display_name: displayName, bio: bio || undefined, languages: languages || undefined })}
+                            disabled={!displayName} className="bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2 rounded-lg text-sm disabled:opacity-50">
+                            Add to rota
+                        </button>
+                    </div>
+                </>
+            )}
         </div>
     )
 }

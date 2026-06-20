@@ -35,6 +35,7 @@ class DecisionIn(BaseModel):
     testimony: Optional[str] = None
     decided_on: Optional[date] = None
     is_public: bool = True
+    show_in_testimony: bool = False
 
 
 class DecisionOut(BaseModel):
@@ -46,6 +47,7 @@ class DecisionOut(BaseModel):
     decided_on: date
     is_verified: bool
     is_public: bool
+    show_in_testimony: bool = False
     created_at: datetime
 
 
@@ -102,11 +104,57 @@ async def submit_decision(
         decided_on=body.decided_on or date.today(),
         submitted_by_user_id=user.id,
         is_public=body.is_public,
+        show_in_testimony=body.show_in_testimony,
     )
     db.add(d)
     await db.commit()
     await db.refresh(d)
     return d
+
+
+# ─── Public testimony feed ──────────────────────────────────────────────────
+
+class PublicTestimonyIn(BaseModel):
+    name: str = "Anonymous"
+    email: Optional[str] = None
+    testimony: str
+
+
+@router.post("/testimonies/submit", status_code=201)
+async def public_submit_testimony(body: PublicTestimonyIn, db: AsyncSession = Depends(get_db)):
+    """Public, no-auth testimony submission. Lands unverified & hidden until admin approves on /admin/decisions."""
+    text = (body.testimony or "").strip()
+    if len(text) < 5:
+        raise HTTPException(400, "Testimony is too short.")
+    d = Decision(
+        kind="other",
+        person_name=body.name or "Anonymous",
+        person_email=body.email,
+        testimony=text,
+        decided_on=date.today(),
+        is_public=False,
+        is_verified=False,
+        show_in_testimony=False,
+    )
+    db.add(d)
+    await db.commit()
+    return {"ok": True, "message": "Thank you! An admin will review and publish your testimony."}
+
+
+@router.get("/testimonies", response_model=List[DecisionOut])
+async def public_testimonies(limit: int = 50, db: AsyncSession = Depends(get_db)):
+    """Decisions toggled to surface on /testimony page (admin-approved & non-empty)."""
+    q = (
+        select(Decision)
+        .where(Decision.show_in_testimony == True)
+        .where(Decision.is_public == True)
+        .where(Decision.testimony.isnot(None))
+        .where(Decision.testimony != "")
+        .order_by(desc(Decision.created_at))
+        .limit(min(max(limit, 1), 200))
+    )
+    res = await db.execute(q)
+    return res.scalars().all()
 
 
 # ─── Admin moderation ────────────────────────────────────────────────────────
@@ -181,6 +229,7 @@ async def admin_bulk_create(
             decided_on=body.decided_on or date.today(),
             submitted_by_user_id=admin.id,
             is_public=body.is_public,
+            show_in_testimony=body.show_in_testimony,
             is_verified=True,
         )
         db.add(d)

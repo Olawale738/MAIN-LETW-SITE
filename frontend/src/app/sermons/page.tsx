@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { sermonApi, Sermon } from '@/lib/api'
 import { Spotlight } from '@/components/ui/spotlight'
+import SermonsLiveBanner from '@/components/SermonsLiveBanner'
 
 export default function SermonsPage() {
     const [sermons, setSermons] = useState<Sermon[]>([])
@@ -100,6 +101,8 @@ export default function SermonsPage() {
             </div>
 
             <main className="py-16 px-4 md:px-12 space-y-24 max-w-7xl mx-auto">
+
+                <SermonsLiveBanner />
 
                 {/* 1. MESSAGES SECTION */}
                 <section>

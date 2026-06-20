@@ -163,6 +163,19 @@ async def init_db():
                 ("prayer_page_settings", "wall_link",            "VARCHAR(500)"),
                 ("prayer_page_settings", "wall_link_text",       "VARCHAR(120)"),
                 ("prayer_page_settings", "wall_max_items",       "INTEGER DEFAULT 4"),
+                # Decisions → testimony bridge
+                ("decisions", "show_in_testimony", "BOOLEAN DEFAULT FALSE"),
+                # Online services: cover image, social links, sermon/event linkage
+                ("online_services", "cover_image_url", "VARCHAR(500)"),
+                ("online_services", "youtube_url",     "VARCHAR(500)"),
+                ("online_services", "facebook_url",    "VARCHAR(500)"),
+                ("online_services", "instagram_url",   "VARCHAR(500)"),
+                ("online_services", "twitter_url",     "VARCHAR(500)"),
+                ("online_services", "tiktok_url",      "VARCHAR(500)"),
+                ("online_services", "sermon_id",       "VARCHAR(36)"),
+                ("online_services", "event_id",        "VARCHAR(36)"),
+                # Site settings: where to show the floating live banner
+                ("site_settings", "live_banner_mode",  "VARCHAR(20) DEFAULT 'floating'"),
             ]
 
             # NOTE: use literal SQL (not bind params) so asyncpg doesn't create

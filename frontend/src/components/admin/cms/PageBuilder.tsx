@@ -71,7 +71,7 @@ export default function PageBuilder({ blocks, onChange }: PageBuilderProps) {
             case 'hero-slider': return {
                 autoplay: true, interval: 6, height: 'tall',
                 slides: [
-                    { eyebrow: 'Welcome Home', title: 'Welcome to <span style="color:#f5bb00;">Our Church</span>', subtitle: 'Add a compelling subtitle here.', bg_image: '/9.png', cta_text: 'Plan to Become Our Member', cta_link: '/join', cta2_text: 'Watch Live', cta2_link: '/sermons', align: 'center' },
+                    { eyebrow: 'Welcome Home', title: 'Welcome to <span style="color:#f5bb00;">Our Church</span>', subtitle: 'Add a compelling subtitle here.', bg_image: '/9.png', cta_text: 'Plan to Become Our Member', cta_link: '/join', cta2_text: 'Watch Live', cta2_link: '/live', align: 'center' },
                 ],
             };
             case 'content': return { content: '<p>Enter content here...</p>', width: 'standard', padding: 'medium' };

@@ -5,6 +5,7 @@ import ConditionalLayout from "@/components/layout/ConditionalLayout";
 import BrandingApplier from "@/components/BrandingApplier";
 import CookieConsent from "@/components/CookieConsent";
 import PWARegister from "@/components/PWARegister";
+import FloatingLiveBanner from "@/components/FloatingLiveBanner";
 import { I18nProvider } from "@/lib/i18n";
 
 const poppins = Poppins({
@@ -46,6 +47,7 @@ export default function RootLayout({
         {modal}
         <CookieConsent />
         <PWARegister />
+        <FloatingLiveBanner />
         <Toaster richColors position="top-center" />
       </body>
     </html>

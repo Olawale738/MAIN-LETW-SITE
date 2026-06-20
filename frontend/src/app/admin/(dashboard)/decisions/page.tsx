@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Loader2, Sparkles, Plus, Trash2, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Sparkles, Plus, Trash2, AlertCircle, CheckCircle, Eye, EyeOff, MessageCircle, Heart } from 'lucide-react'
 import { decisionsApi, type DecisionEntry, type DecisionKind, type DecisionCounts } from '@/lib/api'
 
 const KINDS: DecisionKind[] = ['salvation', 'baptism', 'healing', 'marriage_restored', 'prodigal_returned', 'deliverance', 'rededication', 'dedication', 'calling', 'other']
@@ -38,6 +38,19 @@ export default function AdminDecisionsPage() {
         if (!confirm('Delete this decision?')) return
         try { await decisionsApi.adminDelete(id); await load() }
         catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+    }
+
+    const toggleTestimony = async (d: DecisionEntry) => {
+        if (!d.testimony || !d.testimony.trim()) { setMsg({ kind: 'err', text: 'Add a testimony first before showing on /testimony.' }); return }
+        try {
+            await decisionsApi.adminUpdate(d.id, {
+                kind: d.kind, person_name: d.person_name,
+                location: d.location || undefined, testimony: d.testimony || undefined,
+                decided_on: d.decided_on, is_public: d.is_public,
+                show_in_testimony: !d.show_in_testimony,
+            }, d.is_verified)
+            await load()
+        } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
     }
 
     if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-[#140152]" /></div>
@@ -108,6 +121,11 @@ export default function AdminDecisionsPage() {
                             </div>
                             <p className="text-xs text-gray-400">{new Date(d.decided_on).toLocaleDateString()}</p>
                             {d.is_public ? <Eye className="w-4 h-4 text-green-500" /> : <EyeOff className="w-4 h-4 text-gray-300" />}
+                            <button onClick={() => toggleTestimony(d)}
+                                title={d.show_in_testimony ? 'Hide from /testimony' : 'Show on /testimony'}
+                                className={`p-1.5 rounded ${d.show_in_testimony ? 'text-rose-600 bg-rose-50 hover:bg-rose-100' : 'text-gray-300 hover:text-rose-500 hover:bg-rose-50'}`}>
+                                <Heart className={`w-4 h-4 ${d.show_in_testimony ? 'fill-current' : ''}`} />
+                            </button>
                             <button onClick={() => remove(d.id)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
                         </div>
                     ))}

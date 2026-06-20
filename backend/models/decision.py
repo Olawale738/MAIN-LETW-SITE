@@ -27,4 +27,6 @@ class Decision(Base):
     submitted_by_user_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     is_public: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    # If True AND testimony is non-empty, this decision surfaces on /testimony page
+    show_in_testimony: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

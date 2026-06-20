@@ -32,6 +32,17 @@ class OnlineService(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    # Optional artwork + social links so a live becomes a richly presentable card
+    cover_image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    youtube_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    facebook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    instagram_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    twitter_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    tiktok_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    # ID of the sermon auto-created when the service ends (so we can link/jump)
+    sermon_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    # ID of the Event auto-created on /events page when this service is scheduled
+    event_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
 
 
 class AltarCallResponse(Base):

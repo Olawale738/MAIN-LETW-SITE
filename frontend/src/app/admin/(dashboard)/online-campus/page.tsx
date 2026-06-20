@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, Radio, Plus, Eye, Users, Hand, Cross, Heart, ExternalLink, Play, Pause, CheckCircle, RefreshCw } from 'lucide-react'
+import { Loader2, Radio, Plus, Eye, Users, Hand, Cross, Heart, ExternalLink, Play, Pause, CheckCircle, RefreshCw, Trash2, Youtube, Facebook, Instagram, Twitter, Image as ImageIcon } from 'lucide-react'
 import { onlineCampusApi, type CurrentService } from '@/lib/api'
 
 export default function AdminOnlineCampusPage() {
@@ -36,6 +36,12 @@ export default function AdminOnlineCampusPage() {
     }
     const markFollowed = async (rid: string) => { await onlineCampusApi.markFollowedUp(rid); await load() }
     const closeHand = async (rid: string) => { await onlineCampusApi.updateRaiseHand(rid, 'closed'); await load() }
+    const removeService = async (sid: string, isLive: boolean) => {
+        if (isLive) { alert('End the live service first.'); return }
+        if (!confirm('Delete this service permanently? The matching event will also be removed.')) return
+        try { await onlineCampusApi.deleteService(sid); await load() }
+        catch (e) { alert((e as Error).message) }
+    }
 
     if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-[#140152]" /></div>
 
@@ -77,6 +83,12 @@ export default function AdminOnlineCampusPage() {
                             </button>
                             <button onClick={() => toggleAltar(s.id!, s.altar_call_open || false)} className={`text-xs font-bold px-3 py-1.5 rounded-lg ${s.altar_call_open ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
                                 Altar: {s.altar_call_open ? 'OPEN' : 'closed'}
+                            </button>
+                            <button onClick={() => removeService(s.id!, s.is_live || false)}
+                                title={s.is_live ? 'End live first' : 'Delete service'}
+                                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-40"
+                                disabled={s.is_live}>
+                                <Trash2 className="w-4 h-4" />
                             </button>
                         </div>
                     ))}
@@ -153,28 +165,67 @@ function Panel({ title, icon, children }: { title: string; icon: React.ReactNode
 }
 function NewServiceForm({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
     const [title, setTitle] = useState('Sunday Service'); const [description, setDescription] = useState(''); const [scheduledAt, setScheduledAt] = useState('')
-    const [livestreamUrl, setLivestreamUrl] = useState(''); const [submitting, setSubmitting] = useState(false)
+    const [livestreamUrl, setLivestreamUrl] = useState('')
+    const [coverImageUrl, setCoverImageUrl] = useState('')
+    const [youtubeUrl, setYoutubeUrl] = useState(''); const [facebookUrl, setFacebookUrl] = useState('')
+    const [instagramUrl, setInstagramUrl] = useState(''); const [twitterUrl, setTwitterUrl] = useState('')
+    const [tiktokUrl, setTiktokUrl] = useState('')
+    const [submitting, setSubmitting] = useState(false)
     const submit = async () => {
         if (!title || !scheduledAt) return
         setSubmitting(true)
         try {
-            await onlineCampusApi.createService({ title, description, scheduled_at: scheduledAt, livestream_url: livestreamUrl || undefined, chat_enabled: true, altar_call_open: false, raise_hand_enabled: true })
+            await onlineCampusApi.createService({
+                title, description, scheduled_at: scheduledAt,
+                livestream_url: livestreamUrl || undefined,
+                cover_image_url: coverImageUrl || undefined,
+                youtube_url: youtubeUrl || undefined,
+                facebook_url: facebookUrl || undefined,
+                instagram_url: instagramUrl || undefined,
+                twitter_url: twitterUrl || undefined,
+                tiktok_url: tiktokUrl || undefined,
+                chat_enabled: true, altar_call_open: false, raise_hand_enabled: true,
+            })
             onDone()
         } catch (e) { alert((e as Error).message); setSubmitting(false) }
     }
     return (
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-md mb-5">
             <h3 className="font-bold text-[#140152] mb-3">Schedule online service</h3>
+            <p className="text-[11px] text-gray-500 mb-3">Scheduled services automatically appear on the public Events page. Linked social URLs show on /live for cross-platform sharing.</p>
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2" />
             <input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2" />
             <input value={livestreamUrl} onChange={e => setLivestreamUrl(e.target.value)} placeholder="Livestream embed URL (YouTube embed, Vimeo, etc.)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2" />
+            <div className="relative mb-2">
+                <ImageIcon className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                <input value={coverImageUrl} onChange={e => setCoverImageUrl(e.target.value)} placeholder="Cover image URL (shown on /live & event card)" className="w-full border border-gray-200 rounded-lg pl-10 pr-3 py-2 text-sm" />
+            </div>
             <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Optional description" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3" />
+
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 mt-2">Linked social media (optional)</p>
+            <div className="grid sm:grid-cols-2 gap-2 mb-3">
+                <SocialField icon={<Youtube className="w-4 h-4 text-red-500" />} value={youtubeUrl} onChange={setYoutubeUrl} placeholder="YouTube channel/stream URL" />
+                <SocialField icon={<Facebook className="w-4 h-4 text-blue-600" />} value={facebookUrl} onChange={setFacebookUrl} placeholder="Facebook page URL" />
+                <SocialField icon={<Instagram className="w-4 h-4 text-pink-500" />} value={instagramUrl} onChange={setInstagramUrl} placeholder="Instagram URL" />
+                <SocialField icon={<Twitter className="w-4 h-4 text-sky-500" />} value={twitterUrl} onChange={setTwitterUrl} placeholder="X / Twitter URL" />
+                <SocialField icon={<span className="text-xs font-black">TT</span>} value={tiktokUrl} onChange={setTiktokUrl} placeholder="TikTok URL" />
+            </div>
+
             <div className="flex justify-end gap-2">
                 <button onClick={onClose} className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold">Cancel</button>
                 <button onClick={submit} disabled={!title || !scheduledAt || submitting} className="bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2 rounded-lg text-sm disabled:opacity-50">
                     {submitting ? <Loader2 className="w-4 h-4 animate-spin inline" /> : 'Schedule'}
                 </button>
             </div>
+        </div>
+    )
+}
+
+function SocialField({ icon, value, onChange, placeholder }: { icon: React.ReactNode; value: string; onChange: (s: string) => void; placeholder: string }) {
+    return (
+        <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 w-5 flex justify-center">{icon}</span>
+            <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="w-full border border-gray-200 rounded-lg pl-10 pr-3 py-2 text-sm" />
         </div>
     )
 }

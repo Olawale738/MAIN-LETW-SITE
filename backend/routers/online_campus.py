@@ -30,6 +30,12 @@ class ServiceIn(BaseModel):
     chat_enabled: bool = True
     altar_call_open: bool = False
     raise_hand_enabled: bool = True
+    cover_image_url: Optional[str] = None
+    youtube_url: Optional[str] = None
+    facebook_url: Optional[str] = None
+    instagram_url: Optional[str] = None
+    twitter_url: Optional[str] = None
+    tiktok_url: Optional[str] = None
 
 
 @router.get("/current")
@@ -59,6 +65,15 @@ def _service_to_dict(s: OnlineService, status: str = "scheduled") -> dict:
         "raise_hand_enabled": s.raise_hand_enabled,
         "viewer_count": s.viewer_count,
         "started_at": s.started_at,
+        "ended_at": getattr(s, "ended_at", None),
+        "cover_image_url": getattr(s, "cover_image_url", None),
+        "youtube_url": getattr(s, "youtube_url", None),
+        "facebook_url": getattr(s, "facebook_url", None),
+        "instagram_url": getattr(s, "instagram_url", None),
+        "twitter_url": getattr(s, "twitter_url", None),
+        "tiktok_url": getattr(s, "tiktok_url", None),
+        "sermon_id": getattr(s, "sermon_id", None),
+        "event_id": getattr(s, "event_id", None),
     }
 
 
@@ -72,9 +87,54 @@ async def list_services(db: AsyncSession = Depends(get_db), _: User = Depends(ge
 async def create_service(body: ServiceIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     s = OnlineService(**body.model_dump())
     db.add(s)
+    await db.flush()  # get s.id
+    # Auto-create matching Event on /events page so the public sees it
+    try:
+        from models.event import Event
+        e = Event(
+            title=s.title,
+            description=(s.description or "") + "\n\nWatch live at letw.org/live",
+            event_date=s.scheduled_at.date(),
+            start_time=s.scheduled_at.strftime("%H:%M"),
+            location="Online · Light Encounter Tabernacle Worldwide",
+            event_type="Online Service",
+            is_published=True,
+            is_featured=False,
+            registration_required=False,
+            registration_link="/live",
+        )
+        db.add(e)
+        await db.flush()
+        s.event_id = e.id
+    except Exception:
+        pass
     await db.commit()
     await db.refresh(s)
     return _service_to_dict(s)
+
+
+@router.delete("/services/{sid}")
+async def delete_service(sid: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    res = await db.execute(select(OnlineService).where(OnlineService.id == sid))
+    s = res.scalar_one_or_none()
+    if not s:
+        return {"deleted": 0}
+    if s.is_live:
+        raise HTTPException(400, "End the live service before deleting it.")
+    # Also delete the linked Event if it exists
+    event_id = getattr(s, "event_id", None)
+    if event_id:
+        try:
+            from models.event import Event
+            res2 = await db.execute(select(Event).where(Event.id == event_id))
+            e = res2.scalar_one_or_none()
+            if e:
+                await db.delete(e)
+        except Exception:
+            pass
+    await db.delete(s)
+    await db.commit()
+    return {"deleted": 1}
 
 
 @router.put("/services/{sid}")
@@ -109,6 +169,25 @@ async def update_state(sid: str, body: StateIn, db: AsyncSession = Depends(get_d
             s.started_at = datetime.utcnow()
         elif not body.is_live and s.is_live:
             s.ended_at = datetime.utcnow()
+            # Auto-create a Sermon entry so the recording lands on /sermons
+            try:
+                if not getattr(s, "sermon_id", None) and s.livestream_url:
+                    from models.sermon import Sermon
+                    sermon = Sermon(
+                        title=s.title,
+                        description=(s.description or "") + "\n\nRecorded live at letw.org/live",
+                        preacher="Light Encounter Tabernacle Worldwide",
+                        sermon_date=(s.started_at or datetime.utcnow()).date(),
+                        series="Live Services",
+                        video_url=s.livestream_url,
+                        is_featured=True,
+                        is_published=True,
+                    )
+                    db.add(sermon)
+                    await db.flush()
+                    s.sermon_id = sermon.id
+            except Exception:
+                pass
         s.is_live = body.is_live
     if body.altar_call_open is not None:
         s.altar_call_open = body.altar_call_open
