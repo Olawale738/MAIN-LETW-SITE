@@ -17,6 +17,7 @@ import {
 import Link from 'next/link'
 import { bibleStudyApi, QuarterlyTheme, BibleStudyPageSettings, BibleStudyWeeklyTopic } from '@/lib/api'
 import MentoringSection from '@/components/bible/MentoringSection'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 // ── Static data ────────────────────────────────────────────────────────────────
 
@@ -380,6 +381,7 @@ export default function BibleStudyPage() {
 
     return (
         <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
+            <PageCmsOverlay slug="bible-study" position="top" />
             {/* ── Hero ── */}
             <div className="w-full relative">
                 <img src="/Bible-study.png" alt="Bible Study" className="w-full h-auto block" />
@@ -1217,6 +1219,7 @@ export default function BibleStudyPage() {
                     <Button className="w-full bg-[#140152] text-white font-bold py-4 rounded-xl">Join Bible Study — Free</Button>
                 </Link>
             </div>
+            <PageCmsOverlay slug="bible-study" position="bottom" />
         </div>
     )
 }

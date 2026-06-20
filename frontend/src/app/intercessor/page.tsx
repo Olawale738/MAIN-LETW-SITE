@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Heart, Power, PowerOff, Clock, CheckCircle2, Loader2, AlertTriangle, RefreshCw, Sparkles } from 'lucide-react'
 import { intercessionApi, tokenManager, type IntercessorMe } from '@/lib/api'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 interface Req {
     id: string
@@ -96,6 +97,7 @@ export default function IntercessorPortal() {
 
     return (
         <main className="min-h-screen bg-[#fbf5e6]">
+            <PageCmsOverlay slug="intercessor" position="top" />
             <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-24 pb-8">
                 <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
                     <div>
@@ -175,6 +177,7 @@ export default function IntercessorPortal() {
 
                 <p className="text-center text-xs text-gray-400 mt-10">"And whatsoever ye shall ask in my name, that will I do, that the Father may be glorified in the Son." — John 14:13</p>
             </section>
+            <PageCmsOverlay slug="intercessor" position="bottom" />
         </main>
     )
 }

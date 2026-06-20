@@ -10,6 +10,7 @@ import {
   Bell, BellRing, Sun
 } from 'lucide-react'
 import { bibleReadingApi, bibleStudyApi, QuarterlyTheme, WeekReflection } from '@/lib/api'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 import MentoringSection from '@/components/bible/MentoringSection'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -1041,6 +1042,7 @@ export default function BibleReadingPage() {
 
   return (
     <ServicePageLayout serviceName="Bible study" brandTitle="Bible Reading" brandColor="#f5bb00">
+      <PageCmsOverlay slug="bible-reading" position="top" />
       <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #fdfaf3 0%, #f9f6ee 100%)' }}>
         <main className="max-w-5xl mx-auto px-4 md:px-8 py-10 pt-24 md:pt-10 space-y-8">
 
@@ -1310,6 +1312,7 @@ export default function BibleReadingPage() {
           </div>
         </main>
       </div>
+      <PageCmsOverlay slug="bible-reading" position="bottom" />
     </ServicePageLayout>
   )
 }

@@ -10,6 +10,7 @@ import {
     MessageCircle, Shield, PenLine, Search, ChevronRight
 } from 'lucide-react'
 import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 import ServiceAnnouncementsList from '@/components/shared/ServiceAnnouncementsList'
 import { careerApi, UserCareerDashboard, CareerModule, CareerResource } from '@/lib/api'
 import { format } from 'date-fns'
@@ -465,6 +466,11 @@ export default function CareerGuidancePage() {
         </div>
     )
 
-    if (!isLoggedIn) return <CareerLanding />
-    return <CareerDashboard />
+    return (
+        <>
+            <PageCmsOverlay slug="career-guidance" position="top" />
+            {!isLoggedIn ? <CareerLanding /> : <CareerDashboard />}
+            <PageCmsOverlay slug="career-guidance" position="bottom" />
+        </>
+    )
 }
