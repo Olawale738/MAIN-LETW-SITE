@@ -52,7 +52,7 @@ const APPS: AppEntry[] = [
         name: 'MGM',
         tagline: 'Mission, growth, ministry',
         description: 'The hub for our mission programs, growth initiatives, and ministry leadership development.',
-        url: 'https://mgm.letw.org',
+        url: 'https://mgmt.letw.org',
         icon: Users,
         accent: 'from-blue-500 via-indigo-600 to-violet-700',
         glow: 'shadow-[0_0_80px_rgba(99,102,241,0.35)]',
