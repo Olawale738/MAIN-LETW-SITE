@@ -1,10 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Loader2, Plus, Save, Trash2, BookOpen, AlertCircle, CheckCircle, ArrowUp, ArrowDown } from 'lucide-react'
+import { Loader2, Plus, Save, Trash2, BookOpen, AlertCircle, CheckCircle, ArrowUp, ArrowDown, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { ministryContentApi } from '@/lib/api'
 
 const DEFAULTS = {
+    is_public: false,  // hidden by default — admin opts in
     eyebrow: 'What We Believe',
     title: 'Statement of Faith',
     subtitle: 'These are the core convictions on which Light Encounter Tabernacle stands. They are the foundation of how we worship, teach, and live.',
@@ -26,6 +27,7 @@ export default function AdminStatementOfFaithPage() {
         ministryContentApi.get('statement-of-faith').then((r) => {
             const x = r.content || {}
             setC({
+                is_public: x.is_public === true,
                 eyebrow: x.eyebrow || DEFAULTS.eyebrow,
                 title: x.title || DEFAULTS.title,
                 subtitle: x.subtitle || DEFAULTS.subtitle,
@@ -33,6 +35,18 @@ export default function AdminStatementOfFaithPage() {
             })
         }).catch(() => {}).finally(() => setLoading(false))
     }, [])
+
+    const togglePublic = async (next: boolean) => {
+        const updated = { ...c, is_public: next }
+        setC(updated)
+        try {
+            await ministryContentApi.update('statement-of-faith', updated)
+            setMsg({ kind: 'ok', text: next ? 'Now visible on /about ✨' : 'Hidden from public.' })
+        } catch (e) {
+            setC({ ...c, is_public: !next })  // revert
+            setMsg({ kind: 'err', text: (e as Error).message })
+        }
+    }
     useEffect(() => { if (msg) { const t = setTimeout(() => setMsg(null), 5000); return () => clearTimeout(t) } }, [msg])
 
     const save = async () => {
@@ -69,6 +83,32 @@ export default function AdminStatementOfFaithPage() {
             {msg && <div className={`mb-4 p-3 rounded-xl border flex items-start gap-2 ${msg.kind === 'ok' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
                 {msg.kind === 'ok' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}<span className="text-sm">{msg.text}</span>
             </div>}
+
+            {/* PUBLIC VISIBILITY TOGGLE — top of page so it's impossible to miss */}
+            <div className={`rounded-2xl border-2 shadow-sm p-5 mb-5 transition-colors ${c.is_public ? 'bg-green-50 border-green-300' : 'bg-amber-50 border-amber-300'}`}>
+                <div className="flex items-start gap-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${c.is_public ? 'bg-green-600 text-white' : 'bg-amber-500 text-white'}`}>
+                        {c.is_public ? <Eye className="w-6 h-6" /> : <EyeOff className="w-6 h-6" />}
+                    </div>
+                    <div className="flex-1">
+                        <p className={`font-black text-lg ${c.is_public ? 'text-green-900' : 'text-amber-900'}`}>
+                            {c.is_public ? 'Currently visible on public site' : 'Currently hidden from public site'}
+                        </p>
+                        <p className={`text-sm mt-1 ${c.is_public ? 'text-green-800' : 'text-amber-800'}`}>
+                            {c.is_public
+                                ? 'Visitors to /about can read the full Statement of Faith.'
+                                : 'Only admins can see this page. Visitors to /about see nothing.'}
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => togglePublic(!c.is_public)}
+                        aria-label="Toggle public visibility"
+                        className={`relative w-16 h-9 rounded-full transition-colors flex-shrink-0 ${c.is_public ? 'bg-green-600' : 'bg-gray-300'}`}
+                    >
+                        <span className={`absolute top-1 ${c.is_public ? 'left-8' : 'left-1'} w-7 h-7 rounded-full bg-white shadow-md transition-all`} />
+                    </button>
+                </div>
+            </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6 mb-5">
                 <h2 className="text-lg font-bold text-[#140152] mb-4">Section Heading</h2>

@@ -4,9 +4,10 @@ import { ChevronDown, BookOpen } from 'lucide-react'
 import { ministryContentApi } from '@/lib/api'
 
 interface Article { title: string; body: string }
-interface Content { eyebrow: string; title: string; subtitle: string; articles: Article[] }
+interface Content { is_public: boolean; eyebrow: string; title: string; subtitle: string; articles: Article[] }
 
 const DEFAULTS: Content = {
+    is_public: false,   // Admin must explicitly toggle this on at /admin/statement-of-faith
     eyebrow: 'What We Believe',
     title: 'Statement of Faith',
     subtitle: 'These are the core convictions on which Light Encounter Tabernacle stands. They are the foundation of how we worship, teach, and live.',
@@ -24,7 +25,7 @@ const DEFAULTS: Content = {
 }
 
 export default function StatementOfFaithSection() {
-    const [content, setContent] = useState<Content>(DEFAULTS)
+    const [content, setContent] = useState<Content | null>(null)  // null = still loading
     const [openIdx, setOpenIdx] = useState<number | null>(0)
     const [query, setQuery] = useState('')
 
@@ -33,14 +34,18 @@ export default function StatementOfFaithSection() {
             .then((r) => {
                 const c = r.content || {}
                 setContent({
+                    is_public: c.is_public === true,   // strict — undefined / null / false => HIDDEN
                     eyebrow: c.eyebrow || DEFAULTS.eyebrow,
                     title: c.title || DEFAULTS.title,
                     subtitle: c.subtitle || DEFAULTS.subtitle,
                     articles: Array.isArray(c.articles) && c.articles.length ? c.articles : DEFAULTS.articles,
                 })
             })
-            .catch(() => { /* defaults stay */ })
+            .catch(() => setContent({ ...DEFAULTS }))
     }, [])
+
+    // Render nothing while loading AND nothing if admin hasn't turned it on
+    if (!content || !content.is_public) return null
 
     const q = query.trim().toLowerCase()
     const filtered = q
