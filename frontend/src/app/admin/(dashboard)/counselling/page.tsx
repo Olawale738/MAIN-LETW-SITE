@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Loader2, Plus, Save, Trash2, Calendar, AlertCircle, CheckCircle, Clock, User as UserIcon } from 'lucide-react'
-import { counsellingApi, type CounsellingAvailability, type CounsellingBooking } from '@/lib/api'
+import { counsellingApi, wakeBackend, type CounsellingAvailability, type CounsellingBooking } from '@/lib/api'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -13,11 +13,13 @@ export default function AdminCounsellingPage() {
     const [showNewAvail, setShowNewAvail] = useState(false)
     const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
 
+    const [loadError, setLoadError] = useState<string | null>(null)
     const load = async () => {
+        setLoadError(null)
         try {
             const [bb, aa] = await Promise.all([counsellingApi.listBookings(), counsellingApi.listAvailability()])
             setBookings(bb); setAvails(aa)
-        } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+        } catch (e) { setLoadError((e as Error).message) }
         finally { setLoading(false) }
     }
     useEffect(() => { load() }, [])
@@ -47,6 +49,26 @@ export default function AdminCounsellingPage() {
     }
 
     if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-[#140152]" /></div>
+
+    if (loadError) return (
+        <div className="max-w-md mx-auto mt-24 bg-white border border-red-100 rounded-2xl p-8 text-center shadow-sm">
+            <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-3" />
+            <h2 className="text-xl font-black text-[#140152]">Counselling couldn't load</h2>
+            <p className="text-sm text-gray-600 mt-2 break-words">{loadError}</p>
+            <p className="text-xs text-gray-400 mt-3">Render free-tier servers sleep after inactivity. The first request after idle can take 30–60 seconds to wake.</p>
+            <div className="mt-5 flex gap-2 justify-center flex-wrap">
+                <button onClick={async () => {
+                    setLoadError(null)
+                    const ok = await wakeBackend(60_000)
+                    if (ok) { setLoading(true); load() }
+                    else setLoadError("Backend still not responding after 60 seconds. Check Render dashboard.")
+                }} className="bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-bold px-5 py-2.5 rounded-xl text-sm">
+                    Wake server &amp; retry
+                </button>
+                <button onClick={() => { setLoading(true); load() }} className="bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2.5 rounded-xl text-sm">Try again</button>
+            </div>
+        </div>
+    )
 
     return (
         <div className="p-4 sm:p-6 max-w-6xl mx-auto pb-20">
