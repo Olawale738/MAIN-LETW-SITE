@@ -4,6 +4,7 @@ import { Loader2, CheckCircle2, Circle, ArrowRight } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { discipleshipApi, type DiscipleshipStage } from '@/lib/api'
 import { tokenManager } from '@/lib/api'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 export default function PathwayPage() {
     const [stages, setStages] = useState<DiscipleshipStage[]>([])
@@ -42,6 +43,7 @@ export default function PathwayPage() {
 
     return (
         <main className="min-h-screen bg-gradient-to-b from-[#fbf5e6] via-white to-[#fbf5e6]">
+            <PageCmsOverlay slug="pathway" position="top" />
             <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-8 text-center">
                 <p className="text-[#f5bb00] font-bold tracking-[0.3em] text-xs uppercase mb-3">Discipleship Pathway</p>
                 <h1 className="text-4xl md:text-5xl font-black text-[#140152] leading-tight">Your journey of growing in Christ.</h1>
@@ -85,6 +87,7 @@ export default function PathwayPage() {
                     })}
                 </div>
             </section>
+            <PageCmsOverlay slug="pathway" position="bottom" />
         </main>
     )
 }

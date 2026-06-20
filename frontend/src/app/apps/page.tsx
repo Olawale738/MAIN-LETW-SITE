@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Radio, Headphones, Play, BookOpen, Sparkles, Users, ArrowUpRight, Search, ExternalLink, Globe2 } from 'lucide-react'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 type AppEntry = {
     name: string
@@ -111,6 +112,7 @@ export default function ChurchAppsPage() {
 
     return (
         <main className="min-h-screen bg-[#0a0030] text-white overflow-hidden relative">
+            <PageCmsOverlay slug="apps" position="top" />
             {/* Animated background — gradient orbs that follow cursor */}
             <div className="pointer-events-none fixed inset-0 z-0">
                 <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-[#f5bb00]/10 rounded-full blur-[120px] animate-pulse" />
@@ -203,6 +205,7 @@ export default function ChurchAppsPage() {
                     </div>
                 </section>
             </div>
+            <PageCmsOverlay slug="apps" position="bottom" />
         </main>
     )
 }

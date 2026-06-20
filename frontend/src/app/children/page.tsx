@@ -8,6 +8,7 @@ import {
   Sun, Sparkles, ArrowRight, CheckCircle, Baby, User,
   LogIn, UserPlus, Lock, Loader2,
 } from 'lucide-react'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 const ageGroups = [
   {
@@ -152,6 +153,7 @@ export default function ChildrenMinistryPage() {
 
   return (
     <div className="overflow-x-hidden">
+      <PageCmsOverlay slug="children" position="top" />
       {/* ── HERO ── */}
       <section className="relative min-h-[92vh] flex items-center bg-[#140152] overflow-hidden">
         {/* Animated blobs */}
@@ -660,6 +662,7 @@ export default function ChildrenMinistryPage() {
           </div>
         </div>
       </section>
+      <PageCmsOverlay slug="children" position="bottom" />
     </div>
   )
 }

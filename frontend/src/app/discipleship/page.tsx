@@ -8,6 +8,7 @@ import * as LucideIcons from 'lucide-react'
 import SectionWrapper from '@/components/shared/SectionWrapper'
 import { Card, CardContent } from '@/components/ui/card'
 import { discipleshipApi, tokenManager, type DiscipleshipStage } from '@/lib/api'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 export default function DiscipleshipPage() {
     const [enrolled, setEnrolled] = useState(false)
@@ -61,9 +62,10 @@ export default function DiscipleshipPage() {
 
     return (
         <>
+            <PageCmsOverlay slug="discipleship" position="top" />
             {/* Spotlight Hero Section */}
-            <div 
-                className="relative bg-[#140152] pt-32 pb-24 px-4 md:px-12 overflow-hidden min-h-screen flex flex-col justify-center bg-cover bg-center" 
+            <div
+                className="relative bg-[#140152] pt-32 pb-24 px-4 md:px-12 overflow-hidden min-h-screen flex flex-col justify-center bg-cover bg-center"
                 style={{ backgroundImage: 'url("/Discipleship.png")' }}
             >
                 <div className="absolute inset-0 bg-[#140152]/60 pointer-events-none" />
@@ -237,6 +239,7 @@ export default function DiscipleshipPage() {
                     </div>
                 </div>
             </SectionWrapper>
+            <PageCmsOverlay slug="discipleship" position="bottom" />
         </>
     )
 }

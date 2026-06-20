@@ -19,6 +19,7 @@ import {
 import SectionWrapper from '@/components/shared/SectionWrapper'
 import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
 import ServicePageLayout from '@/components/shared/ServicePageLayout'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 const CAROUSEL_IMAGES = [
     { src: '/theology1.png', alt: 'Theology Flyer 1' },
@@ -89,6 +90,7 @@ export default function TheologyDashboardPage() {
 
     return (
         <ServicePageLayout serviceName="Theology school" brandTitle="Theology School" brandColor="#f5bb00">
+        <PageCmsOverlay slug="theology-school" position="top" />
         <div className="bg-gray-50 pb-20">
             {/* Hero Carousel */}
             <div className="w-full relative">
@@ -244,6 +246,7 @@ export default function TheologyDashboardPage() {
                 </div>
             </SectionWrapper>
         </div>
+        <PageCmsOverlay slug="theology-school" position="bottom" />
         </ServicePageLayout>
     )
 }

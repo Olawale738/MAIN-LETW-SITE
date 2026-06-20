@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Metadata } from 'next'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 export const metadata: Metadata = {
     title: 'Charity Initiatives | Light Encounter Tabernacle',
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 export default function CharityPage() {
     return (
         <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
+            <PageCmsOverlay slug="charity" position="top" />
             {/* Hero */}
             <div className="w-full">
                 <img
@@ -96,6 +98,7 @@ export default function CharityPage() {
                     </div>
                 </div>
             </section>
+            <PageCmsOverlay slug="charity" position="bottom" />
         </div>
     )
 }

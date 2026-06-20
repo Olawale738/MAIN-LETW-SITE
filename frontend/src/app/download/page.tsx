@@ -4,10 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
 import { FileAudio, BookOpen, FileText, Music, Video, Newspaper, Download } from 'lucide-react'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 export default function DownloadsPage() {
   return (
     <>
+      <PageCmsOverlay slug="download" position="top" />
       <Hero
         title="Downloads"
         subtitle="Access Our Resources"
@@ -143,6 +145,7 @@ export default function DownloadsPage() {
           </div>
         </div>
       </SectionWrapper>
+      <PageCmsOverlay slug="download" position="bottom" />
     </>
   )
 }

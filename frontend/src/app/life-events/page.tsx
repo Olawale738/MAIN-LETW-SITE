@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Heart, Send, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { lifeEventApi } from '@/lib/api'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 const KINDS = [
     { value: 'wedding', label: 'Wedding', desc: 'Marriage ceremony or vow renewal.' },
@@ -50,6 +51,7 @@ export default function LifeEventsPage() {
 
     return (
         <main className="min-h-screen bg-gradient-to-b from-[#fbf5e6] via-white to-[#fbf5e6]">
+            <PageCmsOverlay slug="life-events" position="top" />
             <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-12 text-center">
                 <p className="text-[#f5bb00] font-bold tracking-[0.3em] text-xs uppercase mb-3">Sacred Milestones</p>
                 <h1 className="text-4xl md:text-5xl font-black text-[#140152] leading-tight">Mark the moments that matter.</h1>
@@ -96,6 +98,7 @@ export default function LifeEventsPage() {
                     </button>
                 </div>
             </section>
+            <PageCmsOverlay slug="life-events" position="bottom" />
         </main>
     )
 }

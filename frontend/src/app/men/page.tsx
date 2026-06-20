@@ -10,6 +10,7 @@ import {
     LogIn, UserPlus, Lock, CheckCircle, ChevronRight,
 } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 import { CustomSectionsAt, type CustomSection } from '@/components/ministry/MinistryCustomSection'
 
 const getIcon = (name?: string, fallback: any = Sparkles) => {
@@ -114,6 +115,7 @@ export default function MenMinistryPage() {
 
     return (
         <div className="min-h-screen bg-white">
+            <PageCmsOverlay slug="men" position="top" />
             {/* ─── HERO ──────────────────────────────────────────────────── */}
             <section className="relative overflow-hidden min-h-[88vh] flex items-center" style={{ background: `linear-gradient(135deg, ${STEEL_DARK} 0%, ${NAVY} 60%, ${STEEL} 100%)` }}>
                 <div className="absolute inset-0 pointer-events-none">
@@ -366,6 +368,7 @@ export default function MenMinistryPage() {
                     </Link>
                 </div>
             </section>
+            <PageCmsOverlay slug="men" position="bottom" />
         </div>
     )
 }

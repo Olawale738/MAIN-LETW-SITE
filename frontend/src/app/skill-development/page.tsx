@@ -6,6 +6,7 @@ import { PlayCircle, Award, BookOpen, Loader2, ArrowRight, BarChart, Bell } from
 import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
 import ServiceAnnouncementsList from '@/components/shared/ServiceAnnouncementsList'
 import { skillsApi, Course } from '@/lib/api'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 export default function SkillDevelopmentPage() {
     const router = useRouter()
@@ -57,6 +58,7 @@ export default function SkillDevelopmentPage() {
 
     return (
         <>
+        <PageCmsOverlay slug="skill-development" position="top" />
         <div className="min-h-screen bg-neutral-50 flex">
             {/* Sidebar */}
             <div className="w-64 bg-neutral-900 text-white hidden md:block p-6 fixed h-full z-10">
@@ -240,6 +242,7 @@ export default function SkillDevelopmentPage() {
                 </div>
             </div>
         </div>
+        <PageCmsOverlay slug="skill-development" position="bottom" />
         </>
     )
 }

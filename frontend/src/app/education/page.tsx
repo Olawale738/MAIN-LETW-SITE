@@ -7,10 +7,12 @@ import PremiumButton from '@/components/ui/PremiumButton'
 import Link from 'next/link'
 import { GraduationCap, Book, Users, Award } from 'lucide-react'
 import ServiceAnnouncements from '@/components/shared/ServiceAnnouncements'
+import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 export default function EducationPage() {
   return (
     <>
+      <PageCmsOverlay slug="education" position="top" />
       {/* Custom Hero for Mobile 100vh + Img Tag */}
       <div className="relative h-[100vh] md:h-[60vh] w-full overflow-hidden flex items-center justify-center bg-black">
         <img
@@ -159,6 +161,7 @@ export default function EducationPage() {
           </div>
         </div>
       </SectionWrapper>
+      <PageCmsOverlay slug="education" position="bottom" />
     </>
   )
 }
