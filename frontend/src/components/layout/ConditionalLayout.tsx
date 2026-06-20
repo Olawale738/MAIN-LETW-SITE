@@ -32,7 +32,6 @@ export default function ConditionalLayout({
     const excludedRoutes = [
         '/admin',
         '/auth',
-        '/believe',
         '/services/alter-sound/dashboard',
         '/dashboard/alter-sound',
         '/children/dashboard',

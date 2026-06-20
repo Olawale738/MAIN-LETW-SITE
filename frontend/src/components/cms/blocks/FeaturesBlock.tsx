@@ -6,7 +6,6 @@ import * as LucideIcons from 'lucide-react';
 import Image from 'next/image';
 import PremiumButton from '@/components/ui/PremiumButton';
 import { cmsApi } from '@/lib/api';
-import FaithCinemaBlock from './FaithCinemaBlock';
 
 interface FeatureItem {
     title: string;
@@ -22,7 +21,7 @@ interface FeaturesBlockProps {
         subtitle?: string;
         features: FeatureItem[];
         columns?: 2 | 3 | 4;
-        style?: 'cards' | 'icons' | 'minimal' | 'pillars' | 'cinema';
+        style?: 'cards' | 'icons' | 'minimal' | 'pillars';
     };
 }
 
@@ -47,13 +46,6 @@ export default function FeaturesBlock({ data }: FeaturesBlockProps) {
         3: 'md:grid-cols-3',
         4: 'md:grid-cols-2 lg:grid-cols-4',
     };
-
-    // ── Cinematic rendering — opt-in only by setting style: 'cinema'.
-    // No more auto-hijack of "What We Believe" / "Statement of Faith" blocks.
-    // The cinematic experience now lives on its own dedicated page (/believe).
-    if (style === 'cinema') {
-        return <FaithCinemaBlock title={title} subtitle={subtitle} features={features} />
-    }
 
     // ── Premium "pillars" style: animated, dynamic value cards ──────────────
     if (style === 'pillars') {
