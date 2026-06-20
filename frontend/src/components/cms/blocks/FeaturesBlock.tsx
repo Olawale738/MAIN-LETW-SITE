@@ -48,15 +48,10 @@ export default function FeaturesBlock({ data }: FeaturesBlockProps) {
         4: 'md:grid-cols-2 lg:grid-cols-4',
     };
 
-    // ── Cinematic rendering for the Statement of Faith block ────────────────
-    // Auto-triggers on the canonical "What We Believe" / "Statement of Faith"
-    // block, OR opt-in by setting style: 'cinema' in the CMS.
-    const lowerTitle = (title || '').trim().toLowerCase()
-    const lowerSub = (subtitle || '').trim().toLowerCase()
-    const isFaithBlock = lowerTitle.includes('what we believe') ||
-        lowerTitle.includes('statement of faith') ||
-        lowerSub.includes('statement of faith')
-    if (style === 'cinema' || isFaithBlock) {
+    // ── Cinematic rendering — opt-in only by setting style: 'cinema'.
+    // No more auto-hijack of "What We Believe" / "Statement of Faith" blocks.
+    // The cinematic experience now lives on its own dedicated page (/believe).
+    if (style === 'cinema') {
         return <FaithCinemaBlock title={title} subtitle={subtitle} features={features} />
     }
 
