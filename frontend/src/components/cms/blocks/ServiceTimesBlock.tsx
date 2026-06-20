@@ -119,7 +119,7 @@ export default function ServiceTimesBlock({ data }: Props) {
                     })}
                 </div>
 
-                {location && (
+                {location && !/Visit \/contact for full address/i.test(location) && (
                     <div className="mt-10 text-center">
                         <div className={`inline-flex items-center gap-3 px-6 py-3 rounded-full ${isBrand ? 'bg-white/10 backdrop-blur-md text-white border border-white/15' : 'bg-white text-[#140152] border border-gray-200 shadow-sm'}`}>
                             <MapPin className={`w-5 h-5 ${isBrand ? 'text-[#f5bb00]' : 'text-[#f5bb00]'}`} />
