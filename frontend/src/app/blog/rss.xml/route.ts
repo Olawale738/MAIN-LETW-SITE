@@ -1,5 +1,11 @@
-// RSS 2.0 feed for the Pastor's blog. Lives at /blog/rss.xml.
-// Re-validates every 10 min via the Next.js fetch cache.
+// RSS 2.0 feed for the Pastor's blog. Lives at /blog/rss.xml (and aliased
+// at /rss.xml). Re-validates every 10 min via the Next.js fetch cache.
+
+// `force-dynamic` ensures the route handler always runs at request time
+// instead of being treated as a static asset (the `.xml` segment can
+// confuse some build pipelines into 404'ing this).
+export const dynamic = 'force-dynamic'
+export const revalidate = 600
 
 const SITE = 'https://letw.org'
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'

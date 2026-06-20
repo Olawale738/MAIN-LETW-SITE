@@ -155,10 +155,27 @@ async function fetchApi<T>(
         }
     }
 
-    const response = await fetch(url, {
-        ...options,
-        headers,
-    });
+    // Cold-start safe fetch — Render free tier can sleep, so first request
+    // after idle can throw "Failed to fetch". Retry the same request up to 2
+    // times with backoff so admin/public pages don't surface that error.
+    async function fetchWithRetry(input: string, init: RequestInit, attempts = 3): Promise<Response> {
+        let lastErr: unknown
+        for (let i = 0; i < attempts; i++) {
+            try {
+                return await fetch(input, init)
+            } catch (e) {
+                lastErr = e
+                // Only retry on the bare network error (TypeError: Failed to fetch).
+                // 4xx/5xx come back as a Response, not a thrown error.
+                if (i === attempts - 1) break
+                await new Promise(r => setTimeout(r, 1200 * (i + 1)))
+            }
+        }
+        throw lastErr instanceof Error
+            ? new Error(`Couldn't reach the server. The backend may be waking up — please try again in a moment. (${lastErr.message})`)
+            : new Error("Couldn't reach the server. Please try again in a moment.")
+    }
+    const response = await fetchWithRetry(url, { ...options, headers });
 
     if (!response.ok) {
         // Handle 401 Unauthorized - token expired

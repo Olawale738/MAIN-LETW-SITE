@@ -12,11 +12,13 @@ export default function AdminWelcomeFlowPage() {
     const [showNew, setShowNew] = useState(false)
     const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
 
+    const [loadError, setLoadError] = useState<string | null>(null)
     const load = async () => {
+        setLoadError(null)
         try {
             setSteps(await welcomeFlowApi.listSteps())
         } catch (e) {
-            setMsg({ kind: 'err', text: (e as Error).message })
+            setLoadError((e as Error).message)
         } finally {
             setLoading(false)
         }
@@ -57,6 +59,15 @@ export default function AdminWelcomeFlowPage() {
     }
 
     if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-10 h-10 animate-spin text-[#140152]" /></div>
+
+    if (loadError) return (
+        <div className="max-w-md mx-auto mt-24 bg-white border border-red-100 rounded-2xl p-8 text-center shadow-sm">
+            <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-3" />
+            <h2 className="text-xl font-black text-[#140152]">Welcome Flow couldn't load</h2>
+            <p className="text-sm text-gray-600 mt-2">{loadError}</p>
+            <button onClick={() => { setLoading(true); load() }} className="mt-5 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2.5 rounded-xl">Try again</button>
+        </div>
+    )
 
     return (
         <div className="p-4 sm:p-6 max-w-5xl mx-auto pb-20">

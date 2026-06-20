@@ -16,9 +16,14 @@ export default function BookCounsellingPage() {
     const [submitted, setSubmitted] = useState(false)
     const [err, setErr] = useState<string | null>(null)
 
-    useEffect(() => {
-        counsellingApi.slots(21).then(setSlots).catch(e => setErr((e as Error).message)).finally(() => setLoading(false))
-    }, [])
+    const loadSlots = () => {
+        setLoading(true); setErr(null)
+        counsellingApi.slots(21)
+            .then(setSlots)
+            .catch(e => setErr((e as Error).message))
+            .finally(() => setLoading(false))
+    }
+    useEffect(() => { loadSlots() }, [])
 
     const submit = async () => {
         if (!picked || !name || !email) return
@@ -42,6 +47,17 @@ export default function BookCounsellingPage() {
     })
 
     if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="w-10 h-10 animate-spin text-[#140152]" /></div>
+
+    if (err && slots.length === 0) return (
+        <main className="min-h-screen bg-[#fbf5e6] flex items-center justify-center p-6">
+            <div className="bg-white rounded-3xl shadow-xl p-10 max-w-md text-center">
+                <AlertCircle className="w-14 h-14 mx-auto text-amber-500 mb-3" />
+                <h2 className="text-2xl font-black text-[#140152]">Couldn't load available slots</h2>
+                <p className="text-gray-600 mt-2">{err}</p>
+                <button onClick={loadSlots} className="mt-5 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2.5 rounded-xl">Try again</button>
+            </div>
+        </main>
+    )
 
     if (submitted) return (
         <main className="min-h-screen bg-[#fbf5e6] flex items-center justify-center p-6">
