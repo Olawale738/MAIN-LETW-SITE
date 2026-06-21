@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Play, Calendar } from 'lucide-react'
+import { ministryContentApi } from '@/lib/api'
 
 /**
  * Hillsong-style cinematic video hero.
@@ -27,19 +28,31 @@ export default function PremiumHero({
     videoUrl: videoUrlProp,
     posterUrl = '/9.png',
 }: Props) {
-    // Layered fallback so admins can wire a video without code changes
+    // Resolution chain:
     //   1. videoUrl prop
-    //   2. NEXT_PUBLIC_HERO_VIDEO_URL env var (recommended — set in Vercel)
-    //   3. /hero-bg.mp4 in /public (drop the file, no config)
-    //   4. The DEFAULT_FALLBACK_VIDEO below — a free Pexels worship clip
-    //
-    // The Pexels default is hardcoded so the hero is dynamic out of the
-    // box. Pexels videos are free for commercial use; the church should
-    // still replace with their own footage when ready. If the URL 404s
-    // (CDN change, network block), the onError handler falls through to
-    // the Ken Burns poster — no broken state.
+    //   2. Admin-managed setting from /admin/hero-video (live, no redeploy)
+    //   3. NEXT_PUBLIC_HERO_VIDEO_URL env var
+    //   4. /hero-bg.mp4 in /public
+    //   5. Hardcoded Pexels worship clip
     const DEFAULT_FALLBACK_VIDEO = 'https://videos.pexels.com/video-files/7515918/7515918-uhd_2560_1440_25fps.mp4'
+    const [adminVideoUrl, setAdminVideoUrl] = useState<string | null>(null)
+    const [adminEyebrow, setAdminEyebrow] = useState<string | null>(null)
+    const [adminTitleA, setAdminTitleA] = useState<string | null>(null)
+    const [adminTitleB, setAdminTitleB] = useState<string | null>(null)
+    const [adminSubtitle, setAdminSubtitle] = useState<string | null>(null)
+    useEffect(() => {
+        ministryContentApi.get('hero-settings')
+            .then(r => {
+                const c = (r.content || {}) as { video_url?: string; eyebrow?: string; title_line_1?: string; title_line_2?: string; subtitle?: string }
+                if (c.video_url) setAdminVideoUrl(c.video_url)
+                if (c.eyebrow) setAdminEyebrow(c.eyebrow)
+                if (c.title_line_1) setAdminTitleA(c.title_line_1)
+                if (c.title_line_2) setAdminTitleB(c.title_line_2)
+                if (c.subtitle) setAdminSubtitle(c.subtitle)
+            }).catch(() => { /* fall through to defaults */ })
+    }, [])
     const videoUrl = videoUrlProp
+        || adminVideoUrl
         || process.env.NEXT_PUBLIC_HERO_VIDEO_URL
         || DEFAULT_FALLBACK_VIDEO
     const [videoFailed, setVideoFailed] = useState(false)
@@ -131,25 +144,41 @@ export default function PremiumHero({
 
             {/* — Centerpiece — */}
             <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 min-h-screen pb-24 pt-28">
-                {/* Brand eyebrow */}
-                <p className="text-[#f5bb00] font-bold tracking-[0.5em] text-[10px] md:text-[11px] uppercase mb-6">
-                    Light Encounter Tabernacle Worldwide
+                {/* Brand eyebrow with shimmering gold */}
+                <p className="font-bold tracking-[0.5em] text-[10px] md:text-[11px] uppercase mb-6 animate-[fadeUpHero_900ms_cubic-bezier(.16,1,.3,1)_both]"
+                    style={{
+                        backgroundImage: 'linear-gradient(90deg, #ffd763 0%, #f5bb00 25%, #fff5d6 50%, #f5bb00 75%, #ffd763 100%)',
+                        backgroundSize: '200% auto',
+                        WebkitBackgroundClip: 'text',
+                        backgroundClip: 'text',
+                        color: 'transparent',
+                        animation: 'fadeUpHero 900ms cubic-bezier(.16,1,.3,1) both, eyebrowShimmer 5s linear infinite',
+                        textShadow: '0 0 20px rgba(245,187,0,0.4)',
+                    }}>
+                    {adminEyebrow || 'Light Encounter Tabernacle Worldwide'}
                 </p>
 
-                {/* Merged headline (identity + invitation) */}
+                {/* Headline — word-by-word entrance */}
                 <h1 className="font-serif font-black text-white leading-[0.95] tracking-tight"
-                    style={{ fontSize: 'clamp(2.75rem, 8vw, 7rem)' }}>
-                    <span className="block">Come &amp; Worship</span>
+                    style={{ fontSize: 'clamp(2.75rem, 8vw, 7rem)', textShadow: '0 6px 40px rgba(0,0,0,0.55)' }}>
                     <span className="block">
-                        <span className="bg-gradient-to-r from-[#f5bb00] via-amber-300 to-[#f5bb00] bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(245,187,0,0.3)]">
-                            With Us
+                        {(adminTitleA || 'Come & Worship').split(' ').map((w, i) => (
+                            <span key={i} className="inline-block mr-[0.18em] animate-[fadeUpHero_900ms_cubic-bezier(.16,1,.3,1)_both]"
+                                style={{ animationDelay: `${200 + i * 110}ms` }}>{w}</span>
+                        ))}
+                    </span>
+                    <span className="block">
+                        <span className="inline-block bg-gradient-to-r from-[#ffd763] via-[#fff5d6] to-[#f5bb00] bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(245,187,0,0.55)]"
+                            style={{ backgroundSize: '200% auto', animation: 'titleShimmer 6s linear infinite, fadeUpHero 1100ms cubic-bezier(.16,1,.3,1) 600ms both' }}>
+                            {adminTitleB || 'With Us'}
                         </span>
                     </span>
                 </h1>
 
-                {/* Merged subtitle */}
-                <p className="font-sans text-white/85 text-base md:text-xl mt-6 max-w-2xl leading-relaxed font-light">
-                    A worldwide family carrying the gospel into every nation — Spirit-filled worship, life-changing teaching, and the unmistakable presence of Jesus. Come as you are; leave forever changed.
+                {/* Subtitle — slides in from below */}
+                <p className="font-sans text-white text-base md:text-xl mt-6 max-w-2xl leading-relaxed font-light animate-[fadeUpHero_1000ms_cubic-bezier(.16,1,.3,1)_900ms_both]"
+                    style={{ textShadow: '0 2px 18px rgba(0,0,0,0.55)' }}>
+                    {adminSubtitle || 'A worldwide family carrying the gospel into every nation — Spirit-filled worship, life-changing teaching, and the unmistakable presence of Jesus. Come as you are; leave forever changed.'}
                 </p>
 
                 {/* Service times strip — Hillsong-style mini info row */}
@@ -206,6 +235,18 @@ export default function PremiumHero({
                     0%   { transform: scale(1.05) translate(0, 0); }
                     50%  { transform: scale(1.18) translate(-2%, -1.5%); }
                     100% { transform: scale(1.05) translate(2%, 1.5%); }
+                }
+                @keyframes fadeUpHero {
+                    from { opacity: 0; transform: translateY(28px); filter: blur(8px); }
+                    to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+                }
+                @keyframes titleShimmer {
+                    0%   { background-position: 0% center; }
+                    100% { background-position: 200% center; }
+                }
+                @keyframes eyebrowShimmer {
+                    0%   { background-position: 0% center; }
+                    100% { background-position: 200% center; }
                 }
             `}</style>
         </section>

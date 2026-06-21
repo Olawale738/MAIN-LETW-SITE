@@ -3714,7 +3714,7 @@ export interface MinistryContent {
     updated_at?: string | null;
 }
 
-export type MinistryContentKey = 'women' | 'men' | 'theology' | 'leadership' | 'giving' | 'statement-of-faith' | 'privacy-policy' | 'terms-of-service' | 'testimony-page';
+export type MinistryContentKey = 'women' | 'men' | 'theology' | 'leadership' | 'giving' | 'statement-of-faith' | 'privacy-policy' | 'terms-of-service' | 'testimony-page' | 'hero-settings';
 
 export const ministryContentApi = {
     get: (key: MinistryContentKey): Promise<MinistryContent> =>

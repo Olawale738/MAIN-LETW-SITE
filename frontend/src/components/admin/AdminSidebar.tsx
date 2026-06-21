@@ -113,6 +113,7 @@ const sidebarItems: SidebarItem[] = [
     { title: 'SEO Meta', href: '/admin/seo-meta', icon: Globe },
     { title: 'Statement of Faith', href: '/admin/statement-of-faith', icon: BookOpen },
     { title: 'Testimony Page', href: '/admin/testimony-page', icon: MessageCircle },
+    { title: 'Homepage Hero Video', href: '/admin/hero-video', icon: Video },
     { title: 'Moderators', href: '/admin/moderators', icon: ShieldCheck },
     { title: 'Database Backups', href: '/admin/backups', icon: Database },
     { title: 'Downloads', href: '/admin/downloads', icon: FileText },
