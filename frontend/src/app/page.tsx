@@ -9,7 +9,6 @@ import LiveStreamPlayer from '@/components/LiveStreamPlayer'
 import DailyVerseWidget from '@/components/widgets/DailyVerseWidget'
 import SeasonalBanner from '@/components/seasonal/SeasonalBanner'
 import PremiumHero from '@/components/home/PremiumHero'
-import WorldMapInteractive from '@/components/home/WorldMapInteractive'
 
 export default function HomePage() {
     const [blocks, setBlocks] = useState<Block[]>([])
@@ -76,7 +75,6 @@ export default function HomePage() {
                         <LiveStreamPlayer />
                         <SeasonalBanner />
                         <PremiumHero />
-                        <WorldMapInteractive />
                         <PageRenderer blocks={blocks} />
                         <DailyVerseWidget />
                     </motion.div>

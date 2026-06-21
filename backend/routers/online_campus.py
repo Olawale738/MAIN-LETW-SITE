@@ -241,6 +241,25 @@ async def respond_to_altar_call(
             db.add(d)
     except Exception:
         pass
+    # Open a Conversion Journey row so admin can shepherd this person from
+    # 'said yes' to fully integrated member.
+    try:
+        from models.conversion_journey import ConversionJourney
+        await db.flush()  # so r.id is populated for the source_ref link
+        j = ConversionJourney(
+            name=body.name,
+            email=body.email,
+            phone=body.phone,
+            location=body.location or "Online service",
+            source="altar_call",
+            source_ref=r.id,
+            stage="welcomed",
+            welcomed_at=datetime.utcnow(),
+            notes=body.note,
+        )
+        db.add(j)
+    except Exception:
+        pass
     await db.commit()
     await db.refresh(r)
     return {"ok": True, "id": r.id, "message": "Heaven is rejoicing. We'll reach out to walk this with you."}

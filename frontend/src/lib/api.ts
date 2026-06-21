@@ -2832,6 +2832,44 @@ export const chatApi = {
     },
 };
 
+// ─── Conversion Follow-up CRM ────────────────────────────────────────────────
+
+export type ConversionStage = 'welcomed' | 'called' | 'studying' | 'baptism' | 'small_group' | 'member' | 'dormant'
+
+export interface ConversionJourney {
+    id: string
+    name: string
+    email: string | null
+    phone: string | null
+    location: string | null
+    source: string
+    source_ref: string | null
+    stage: ConversionStage
+    assigned_to_user_id: string | null
+    notes: string | null
+    welcomed_at: string | null
+    called_at: string | null
+    studying_at: string | null
+    baptism_at: string | null
+    small_group_at: string | null
+    member_at: string | null
+    last_activity_at: string
+    is_active: boolean
+    created_at: string
+}
+
+export const conversionApi = {
+    stages: () => fetchApi<{ stages: ConversionStage[] }>('/conversion/stages'),
+    adminAll: (stage?: string) => fetchApi<ConversionJourney[]>(`/conversion/admin/all${stage ? `?stage=${stage}` : ''}`),
+    adminFunnel: () => fetchApi<{ counts: Record<ConversionStage, number>; total_active: number }>('/conversion/admin/funnel'),
+    adminCreate: (body: { name: string; email?: string; phone?: string; location?: string; notes?: string }) =>
+        fetchApi<ConversionJourney>('/conversion/admin', { method: 'POST', body: JSON.stringify(body) }),
+    adminUpdate: (id: string, patch: Partial<{ stage: ConversionStage; notes: string; assigned_to_user_id: string; is_active: boolean }>) =>
+        fetchApi<ConversionJourney>(`/conversion/admin/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
+    adminDelete: (id: string) => fetchApi<{ deleted: number }>(`/conversion/admin/${id}`, { method: 'DELETE' }),
+    adminSweepDormant: () => fetchApi<{ moved: number }>('/conversion/admin/sweep-dormant', { method: 'POST' }),
+}
+
 // ─── Downloads API ───────────────────────────────────────────────────────────
 
 export type DownloadCategory = 'Sermon' | 'E-book' | 'Bulletin' | 'Music' | 'Video' | 'Article' | 'Other'

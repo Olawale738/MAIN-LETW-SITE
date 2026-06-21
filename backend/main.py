@@ -256,6 +256,10 @@ app.include_router(messages.router)
 from routers import downloads as downloads_router
 app.include_router(downloads_router.router)
 
+# Conversion follow-up CRM (altar-call → member pipeline)
+from routers import conversion as conversion_router
+app.include_router(conversion_router.router)
+
 # User profile, activity, prayer wall
 try:
     from routers import profile as profile_router

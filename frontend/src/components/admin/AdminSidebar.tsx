@@ -124,6 +124,7 @@ const sidebarItems: SidebarItem[] = [
             { title: 'AI Features',       href: '/admin/ai',            icon: Sparkles },
             { title: 'Online Campus',     href: '/admin/online-campus', icon: Radio },
             { title: 'Kingdom Outcomes',  href: '/admin/decisions',     icon: Sparkles },
+            { title: 'Conversion CRM',    href: '/admin/conversion',    icon: Heart },
             { title: 'Missionaries',      href: '/admin/missionaries',  icon: Globe },
             { title: 'Live Prayer Center', href: '/admin/intercessors', icon: Heart },
         ]
