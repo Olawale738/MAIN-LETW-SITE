@@ -6,7 +6,7 @@ import { cmsApi, Block } from '@/lib/api'
 import { Loader2, Save, LayoutTemplate, Eye } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import PageBuilder from '@/components/admin/cms/PageBuilder'
-import { DEFAULT_HOME_BLOCKS, DEFAULT_ABOUT_BLOCKS, DEFAULT_IMPACT_BLOCKS, DEFAULT_SUNDAY_SERVICE_BLOCKS, DEFAULT_EVANGELISM_BLOCKS } from '@/lib/cmsDefaults'
+import { DEFAULT_HOME_BLOCKS, DEFAULT_ABOUT_BLOCKS, DEFAULT_IMPACT_BLOCKS, DEFAULT_SUNDAY_SERVICE_BLOCKS, DEFAULT_EVANGELISM_BLOCKS, DEFAULT_DOWNLOAD_BLOCKS, DEFAULT_ONBOARDING_BLOCKS, DEFAULT_LENT_BLOCKS } from '@/lib/cmsDefaults'
 
 export default function GenericPageEditor() {
     const params = useParams()
@@ -32,6 +32,9 @@ export default function GenericPageEditor() {
             case 'impact': return DEFAULT_IMPACT_BLOCKS;
             case 'sunday-service': return DEFAULT_SUNDAY_SERVICE_BLOCKS;
             case 'evangelism': return DEFAULT_EVANGELISM_BLOCKS;
+            case 'download': return DEFAULT_DOWNLOAD_BLOCKS;
+            case 'onboarding': return DEFAULT_ONBOARDING_BLOCKS;
+            case 'lent': return DEFAULT_LENT_BLOCKS;
             default: return [];
         }
     }
@@ -80,6 +83,9 @@ export default function GenericPageEditor() {
         impact: '/impact',
         'sunday-service': '/services/sunday-service',
         evangelism: '/services/evangelism',
+        download: '/download',
+        onboarding: '/onboarding',
+        lent: '/lent',
     }
     const previewPath = PREVIEW_PATHS[slug] || `/${slug}`
 

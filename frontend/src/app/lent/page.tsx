@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Cross, CheckCircle2, Flame } from 'lucide-react'
 import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
+import PageRenderer from '@/components/cms/PageRenderer'
+import { cmsApi, type Block } from '@/lib/api'
 
 const STORAGE_KEY = 'letw-lent-progress'
 
@@ -58,10 +60,19 @@ export default function LentTrackerPage() {
 
     const completedCount = useMemo(() => Object.values(completed).filter(Boolean).length, [completed])
 
+    // Optional CMS template saved by admin at /admin/pages/lent — renders ABOVE the tracker.
+    const [cmsBlocks, setCmsBlocks] = useState<Block[] | null>(null)
+    useEffect(() => {
+        cmsApi.getPage('lent')
+            .then(d => setCmsBlocks((d?.content?.blocks && d.content.blocks.length > 0) ? d.content.blocks : null))
+            .catch(() => setCmsBlocks(null))
+    }, [])
+
     return (
         <main className="min-h-screen bg-gradient-to-b from-[#3d2860] via-[#2b1a47] to-[#1c0f30] text-white">
             <PageCmsOverlay slug="lent" position="top" />
-            <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-12 text-center">
+            {cmsBlocks && <PageRenderer blocks={cmsBlocks} />}
+            <section id="tracker" className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-12 text-center">
                 <p className="text-[#f5bb00] font-bold tracking-[0.3em] text-xs uppercase mb-3 inline-flex items-center gap-2"><Cross className="w-3.5 h-3.5" /> Lent · 40 Days</p>
                 <h1 className="text-4xl md:text-5xl font-black leading-tight">Walk the road to Easter.</h1>
                 <p className="text-white/70 mt-4 max-w-xl mx-auto">A simple 40-day tracker for fasting, reflection, and turning your heart toward Christ.</p>

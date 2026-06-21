@@ -824,3 +824,199 @@ export const DEFAULT_EVANGELISM_BLOCKS: Block[] = [
         }
     }
 ];
+
+// ─── Download Page Defaults ───────────────────────────────────────────────────
+
+export const DEFAULT_DOWNLOAD_BLOCKS: Block[] = [
+    {
+        id: 'dl-hero',
+        type: 'hero',
+        data: {
+            title: "Free Resources",
+            subtitle: "Download sermons, devotionals, study guides, and worship resources for your spiritual journey.",
+            bg_image: "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=1600&q=80",
+            cta_text: "Browse Resources",
+            cta_link: "#resources",
+            align: 'center',
+            height: 'tall',
+        }
+    },
+    {
+        id: 'dl-features',
+        type: 'features',
+        data: {
+            title: "What You Can Download",
+            subtitle: "Curated content to grow your faith on your own time.",
+            columns: 3,
+            style: 'cards',
+            features: [
+                { title: "Sermon Audio", description: "MP3 recordings of every Sunday and midweek message — listen anywhere, anytime.", icon: "Mic", link: "/sermons" },
+                { title: "E-books & Study Guides", description: "Topical studies, devotionals, and discipleship guides authored by our pastoral team.", icon: "BookOpen" },
+                { title: "Weekly Bulletins", description: "This week's announcements, prayer points, and Bible reading plan — PDF format.", icon: "FileText" },
+                { title: "Worship Music", description: "Songs from our worship team — MP3 downloads + lyric sheets.", icon: "Music" },
+                { title: "Video Teachings", description: "Sermon videos, conference messages, and teaching series in MP4 format.", icon: "Video" },
+                { title: "Devotional Articles", description: "Short reads to start your day with the Word — fresh content every week.", icon: "Newspaper" },
+            ]
+        }
+    },
+    {
+        id: 'dl-cta',
+        type: 'cta',
+        data: {
+            title: "Get every new resource in your inbox",
+            text: "Subscribe to our newsletter and be the first to know when new sermons, devotionals, and bulletins drop.",
+            button_text: "Subscribe Free",
+            button_link: "/newsletter",
+            style: 'simple'
+        }
+    },
+];
+
+// ─── Onboarding Page Defaults ─────────────────────────────────────────────────
+
+export const DEFAULT_ONBOARDING_BLOCKS: Block[] = [
+    {
+        id: 'onb-hero',
+        type: 'hero',
+        data: {
+            title: "Welcome to the Family",
+            subtitle: "Five short steps to make LETW your home. Start where you are, finish closer to Jesus.",
+            bg_image: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=1600&q=80",
+            cta_text: "Begin Step 1",
+            cta_link: "#step-1",
+            align: 'center',
+            height: 'tall',
+        }
+    },
+    {
+        id: 'onb-stats',
+        type: 'stats',
+        data: {
+            title: "You're Joining Something Real",
+            subtitle: "A growing worldwide family rooted in the Word of God.",
+            stats: [
+                { value: "10K+", label: "Members worldwide" },
+                { value: "50+", label: "Countries reached" },
+                { value: "5K+", label: "Lives transformed" },
+                { value: "24/7", label: "Prayer coverage" },
+            ]
+        }
+    },
+    {
+        id: 'onb-steps',
+        type: 'features',
+        data: {
+            title: "Your First Five Steps",
+            subtitle: "Take them one at a time. No rush, no pressure.",
+            columns: 3,
+            style: 'pillars',
+            features: [
+                { title: "1 · Plan Your Visit", description: "Attend a Sunday service — in person or online. We'll save you a seat.", icon: "Calendar", link: "/services/sunday-service" },
+                { title: "2 · Connect with a Pastor", description: "Book a 30-min welcome call. We want to know your name, not just your face.", icon: "Phone", link: "/contact" },
+                { title: "3 · Discover What We Believe", description: "Read our Statement of Faith. Know what you're stepping into.", icon: "BookOpen", link: "/about" },
+                { title: "4 · Join a Small Group", description: "Faith grows in community. Find a midweek group near you.", icon: "Users", link: "/bible-study" },
+                { title: "5 · Get Baptized & Serve", description: "Make your faith public, then put it to work. Join a ministry team.", icon: "Heart", link: "/life-events" },
+                { title: "Need Prayer Right Now?", description: "Our live prayer team is online. Submit a request, get prayed for in minutes.", icon: "Sparkles", link: "/prayer-request" },
+            ]
+        }
+    },
+    {
+        id: 'onb-scripture',
+        type: 'scripture',
+        data: {
+            verse: "Therefore, as you have received Christ Jesus the Lord, so walk in him, rooted and built up in him and established in the faith.",
+            reference: "Colossians 2:6-7",
+        }
+    },
+    {
+        id: 'onb-cta',
+        type: 'cta',
+        data: {
+            title: "Become a Member Officially",
+            text: "Fill the membership form and a pastor will personally reach out within 48 hours.",
+            button_text: "Become a Member",
+            button_link: "/join",
+            style: 'primary'
+        }
+    },
+];
+
+// ─── Lent Page Defaults ───────────────────────────────────────────────────────
+
+export const DEFAULT_LENT_BLOCKS: Block[] = [
+    {
+        id: 'lent-hero',
+        type: 'hero',
+        data: {
+            title: "40 Days at the Foot of the Cross",
+            subtitle: "Lent is a sacred season of fasting, prayer, and reflection — the road that leads to Easter morning.",
+            bg_image: "https://images.unsplash.com/photo-1490127252417-7c393f993ee4?w=1600&q=80",
+            cta_text: "Open the Tracker",
+            cta_link: "#tracker",
+            align: 'center',
+            height: 'tall',
+        }
+    },
+    {
+        id: 'lent-scripture',
+        type: 'scripture',
+        data: {
+            verse: "Even now, declares the LORD, return to me with all your heart — with fasting, weeping and mourning.",
+            reference: "Joel 2:12",
+        }
+    },
+    {
+        id: 'lent-pillars',
+        type: 'features',
+        data: {
+            title: "Three Practices of Lent",
+            subtitle: "Anchors for the 40-day journey.",
+            columns: 3,
+            style: 'pillars',
+            features: [
+                { title: "Fasting", description: "Lay something down — a meal, a screen, a comfort — to make room for hunger after God.", icon: "Flame" },
+                { title: "Prayer", description: "Set a daily rhythm. Morning, midday, evening — short, honest, repeated.", icon: "Heart" },
+                { title: "Almsgiving", description: "What you save through fasting, give to the poor. Lent without compassion is just dieting.", icon: "HandHeart" },
+            ]
+        }
+    },
+    {
+        id: 'lent-image',
+        type: 'image',
+        data: {
+            image: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1600&q=80",
+            caption: "From dust to resurrection — the journey of every believer.",
+            width: 'wide',
+            aspect_ratio: '21:9',
+        }
+    },
+    {
+        id: 'lent-timeline',
+        type: 'features',
+        data: {
+            title: "The Path to Easter",
+            subtitle: "Six weeks. One destination.",
+            columns: 3,
+            style: 'icons',
+            features: [
+                { title: "Ash Wednesday", description: "The beginning. We remember: we are dust, and to dust we will return.", icon: "Cross" },
+                { title: "Weeks 1–4 · Fasting", description: "Daily disciplines settle in. Hunger sharpens prayer.", icon: "Flame" },
+                { title: "Week 5 · Passion Week begins", description: "We slow down. We meditate on the cross.", icon: "Heart" },
+                { title: "Palm Sunday", description: "The King enters Jerusalem. Crowds wave palms. The road narrows.", icon: "Sparkles" },
+                { title: "Good Friday", description: "The cross. Darkness at noon. The veil tears.", icon: "Cross" },
+                { title: "Easter Morning", description: "He is risen. The tomb is empty. The fast is over.", icon: "Sunrise" },
+            ]
+        }
+    },
+    {
+        id: 'lent-cta',
+        type: 'cta',
+        data: {
+            title: "Open the 40-Day Tracker",
+            text: "A simple daily checklist — mark each day's fast, prayer, and scripture. Held privately on your device.",
+            button_text: "Begin the Journey",
+            button_link: "#tracker",
+            style: 'primary'
+        }
+    },
+];

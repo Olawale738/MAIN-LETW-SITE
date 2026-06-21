@@ -114,6 +114,9 @@ export default function Footer() {
                 { name: 'Church Apps', href: '/apps' },
                 { name: 'Give', href: '/giving' },
                 { name: 'Volunteer', href: '/volunteer' },
+                { name: 'New here? Start here', href: '/onboarding' },
+                { name: 'Free Resources & Downloads', href: '/download' },
+                { name: 'Lent · 40 Days', href: '/lent' },
                 { name: 'Contact', href: '/contact' },
               ].map((link) => (
                 <li key={link.name}>

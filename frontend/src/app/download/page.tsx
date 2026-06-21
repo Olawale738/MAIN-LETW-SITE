@@ -3,10 +3,35 @@ import SectionWrapper from '@/components/shared/SectionWrapper'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
+'use client'
+import { useEffect, useState } from 'react'
 import { FileAudio, BookOpen, FileText, Music, Video, Newspaper, Download } from 'lucide-react'
 import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
+import PageRenderer from '@/components/cms/PageRenderer'
+import { cmsApi, type Block } from '@/lib/api'
 
 export default function DownloadsPage() {
+  // Optional CMS template loaded by admin at /admin/pages/download.
+  // When blocks exist, they render INSTEAD of the hardcoded layout below.
+  const [cmsBlocks, setCmsBlocks] = useState<Block[] | null>(null)
+  const [cmsLoaded, setCmsLoaded] = useState(false)
+  useEffect(() => {
+    cmsApi.getPage('download')
+      .then(d => setCmsBlocks((d?.content?.blocks && d.content.blocks.length > 0) ? d.content.blocks : null))
+      .catch(() => setCmsBlocks(null))
+      .finally(() => setCmsLoaded(true))
+  }, [])
+
+  if (cmsLoaded && cmsBlocks) {
+    return (
+      <>
+        <PageCmsOverlay slug="download" position="top" />
+        <PageRenderer blocks={cmsBlocks} />
+        <PageCmsOverlay slug="download" position="bottom" />
+      </>
+    )
+  }
+
   return (
     <>
       <PageCmsOverlay slug="download" position="top" />
