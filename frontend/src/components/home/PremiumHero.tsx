@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Play, Calendar, Volume2, VolumeX } from 'lucide-react'
+import { ArrowRight, Play, Calendar } from 'lucide-react'
 
 /**
  * Hillsong-style cinematic video hero.
@@ -43,7 +43,6 @@ export default function PremiumHero({
         || process.env.NEXT_PUBLIC_HERO_VIDEO_URL
         || DEFAULT_FALLBACK_VIDEO
     const [videoFailed, setVideoFailed] = useState(false)
-    const [muted, setMuted] = useState(true)
     const [canPlay, setCanPlay] = useState(false)
     const [scrolled, setScrolled] = useState(false)
     const videoRef = useRef<HTMLVideoElement>(null)
@@ -54,13 +53,6 @@ export default function PremiumHero({
         return () => window.removeEventListener('scroll', onScroll)
     }, [])
 
-    const toggleMute = () => {
-        setMuted(m => {
-            const next = !m
-            if (videoRef.current) videoRef.current.muted = next
-            return next
-        })
-    }
 
     return (
         <section className="relative w-full overflow-hidden bg-[#06002a]" style={{ minHeight: '100vh' }}>
@@ -180,14 +172,6 @@ export default function PremiumHero({
                         <Play className="w-4 h-4 text-[#f5bb00] fill-current" /> Watch live
                     </Link>
                 </div>
-
-                {/* Mute toggle (only when a video is actually playing) */}
-                {videoUrl && (
-                    <button onClick={toggleMute} aria-label={muted ? 'Unmute video' : 'Mute video'}
-                        className="absolute bottom-8 right-6 md:right-10 z-20 w-11 h-11 rounded-full bg-black/40 backdrop-blur border border-white/20 text-white/80 hover:bg-black/60 hover:text-white flex items-center justify-center">
-                        {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                    </button>
-                )}
 
                 {/* Scroll cue */}
                 <div className={`absolute bottom-10 left-1/2 -translate-x-1/2 transition-opacity duration-500 ${scrolled ? 'opacity-0' : 'opacity-60'}`}>
