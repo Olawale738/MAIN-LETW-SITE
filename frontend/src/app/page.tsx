@@ -8,7 +8,6 @@ import { DEFAULT_HOME_BLOCKS } from '@/lib/cmsDefaults'
 import LiveStreamPlayer from '@/components/LiveStreamPlayer'
 import DailyVerseWidget from '@/components/widgets/DailyVerseWidget'
 import SeasonalBanner from '@/components/seasonal/SeasonalBanner'
-import HomepageFloatingButtons from '@/components/HomepageFloatingButtons'
 
 export default function HomePage() {
     const [blocks, setBlocks] = useState<Block[]>([])
@@ -76,7 +75,6 @@ export default function HomePage() {
                         <SeasonalBanner />
                         <PageRenderer blocks={blocks} />
                         <DailyVerseWidget />
-                        <HomepageFloatingButtons />
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -199,8 +199,8 @@ export const DEFAULT_HOME_BLOCKS: Block[] = [
         data: {
             title: "Ready to Take Your Next Step?",
             text: "Whether it's your very first visit or your forever church home, there's a place for you. Join us this week and encounter the light of God.",
-            button_text: "Plan to Become Our Member",
-            button_link: "/join",
+            button_text: "New here? Start here",
+            button_link: "/onboarding",
             bg_image: "/9.png",
             style: 'banner'
         }
