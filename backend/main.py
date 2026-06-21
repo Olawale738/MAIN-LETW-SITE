@@ -280,6 +280,10 @@ app.include_router(live_chat_router.router)
 from routers import member_directory as directory_router
 app.include_router(directory_router.router)
 
+# Church locations (worldwide reach map)
+from routers import church_locations as church_locations_router
+app.include_router(church_locations_router.router)
+
 # User profile, activity, prayer wall
 try:
     from routers import profile as profile_router

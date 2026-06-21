@@ -2873,6 +2873,33 @@ export const conversionApi = {
     adminSweepDormant: () => fetchApi<{ moved: number }>('/conversion/admin/sweep-dormant', { method: 'POST' }),
 }
 
+// ─── Church Locations (worldwide reach map) ──────────────────────────────────
+
+export type ChurchKind = 'hq' | 'branch' | 'mission' | 'fellowship'
+
+export interface ChurchLocation {
+    id: string; name: string; kind: ChurchKind;
+    continent: string; country_code: string; country_name: string;
+    city: string | null; address: string | null; blurb: string | null;
+    contact_name: string | null; contact_email: string | null;
+    contact_phone: string | null; website: string | null;
+    map_x: number | null; map_y: number | null;
+    lat: number | null; lng: number | null;
+    photo_url: string | null; sort_order: number; is_active: boolean;
+    created_at: string;
+}
+
+export const churchLocationsApi = {
+    listPublic: () => fetchApi<ChurchLocation[]>('/church-locations'),
+    stats: () => fetchApi<{ counts: Record<ChurchKind, number>; total: number; countries: number; continents: number }>('/church-locations/stats'),
+    adminAll: () => fetchApi<ChurchLocation[]>('/church-locations/admin/all'),
+    adminCreate: (b: Omit<ChurchLocation, 'id' | 'created_at'>) =>
+        fetchApi<ChurchLocation>('/church-locations/admin', { method: 'POST', body: JSON.stringify(b) }),
+    adminUpdate: (id: string, b: Omit<ChurchLocation, 'id' | 'created_at'>) =>
+        fetchApi<ChurchLocation>(`/church-locations/admin/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    adminDelete: (id: string) => fetchApi<{ deleted: number }>(`/church-locations/admin/${id}`, { method: 'DELETE' }),
+}
+
 // ─── Member Directory + Messaging ────────────────────────────────────────────
 
 export interface DirectoryProfile {

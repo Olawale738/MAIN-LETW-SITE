@@ -128,6 +128,7 @@ const sidebarItems: SidebarItem[] = [
             { title: 'Pastoral Care',     href: '/admin/pastoral-care', icon: ShieldCheck },
             { title: 'Small Groups',      href: '/admin/small-groups',  icon: Users },
             { title: 'Children Check-In', href: '/admin/children-checkin', icon: Baby },
+            { title: 'Church Locations',  href: '/admin/locations',     icon: Globe },
             { title: 'Missionaries',      href: '/admin/missionaries',  icon: Globe },
             { title: 'Live Prayer Center', href: '/admin/intercessors', icon: Heart },
         ]
