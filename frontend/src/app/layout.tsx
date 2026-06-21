@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins } from "next/font/google";
+import { Poppins, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import ConditionalLayout from "@/components/layout/ConditionalLayout";
 import BrandingApplier from "@/components/BrandingApplier";
@@ -12,6 +12,13 @@ const poppins = Poppins({
   subsets: ["latin"],
   weight: ['300', '400', '500', '600', '700', '800', '900'],
   variable: '--font-poppins',
+  display: 'swap',
+});
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800', '900'],
+  variable: '--font-playfair',
   display: 'swap',
 });
 
@@ -37,7 +44,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="scroll-smooth">
-      <body className={`${poppins.variable} font-sans antialiased animate-page-load`} suppressHydrationWarning>
+      <body className={`${poppins.variable} ${playfair.variable} font-sans antialiased animate-page-load`} suppressHydrationWarning>
         <BrandingApplier />
         <I18nProvider>
           <ConditionalLayout>
