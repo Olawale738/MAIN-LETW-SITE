@@ -1,50 +1,11 @@
 import { Block } from './api';
 
 export const DEFAULT_HOME_BLOCKS: Block[] = [
-    {
-        id: 'home-slider',
-        type: 'hero-slider',
-        data: {
-            autoplay: true,
-            interval: 6,
-            height: 'tall',
-            slides: [
-                {
-                    eyebrow: "Welcome to LETW",
-                    title: "Encounter the <span style='color:#f5bb00;'>Light</span> of God",
-                    subtitle: "A worldwide family where the Word of God is taught with simplicity, clarity, and power. Come as you are - leave forever changed.",
-                    bg_image: "/9.png",
-                    cta_text: "Plan to Become Our Member",
-                    cta_link: "/join",
-                    cta2_text: "Watch Live",
-                    cta2_link: "/sermons",
-                    align: 'center'
-                },
-                {
-                    eyebrow: "Sunday Gatherings",
-                    title: "Come and <span style='color:#f5bb00;'>Worship</span> With Us",
-                    subtitle: "Experience Spirit-filled worship and life-changing teaching that meets you exactly where you are.",
-                    bg_image: "https://images.unsplash.com/photo-1493836512294-502baa1986e2?w=1600&q=80",
-                    cta_text: "Plan Your Sunday",
-                    cta_link: "/services/sunday-service",
-                    cta2_text: "Our Services",
-                    cta2_link: "/services",
-                    align: 'center'
-                },
-                {
-                    eyebrow: "Your Purpose",
-                    title: "Discover Your <span style='color:#f5bb00;'>Destiny</span>",
-                    subtitle: "From discipleship to outreach, find your place in a community committed to raising you into the fullness of God's purpose.",
-                    bg_image: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=1600&q=80",
-                    cta_text: "Explore Ministries",
-                    cta_link: "/services",
-                    cta2_text: "Give",
-                    cta2_link: "/giving",
-                    align: 'center'
-                }
-            ]
-        }
-    },
+    // NOTE: the hero slider that used to live here is replaced by the
+    // dedicated <PremiumHero /> video stage mounted directly in the homepage
+    // (see frontend/src/app/page.tsx). All eyebrow / title / CTA messaging
+    // is now expressed there. Removing this block also fixes a duplicate-
+    // hero issue admins reported.
     {
         id: 'home-actions',
         type: 'button-group',
