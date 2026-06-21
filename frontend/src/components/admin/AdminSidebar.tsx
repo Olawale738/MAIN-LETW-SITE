@@ -125,6 +125,9 @@ const sidebarItems: SidebarItem[] = [
             { title: 'Online Campus',     href: '/admin/online-campus', icon: Radio },
             { title: 'Kingdom Outcomes',  href: '/admin/decisions',     icon: Sparkles },
             { title: 'Conversion CRM',    href: '/admin/conversion',    icon: Heart },
+            { title: 'Pastoral Care',     href: '/admin/pastoral-care', icon: ShieldCheck },
+            { title: 'Small Groups',      href: '/admin/small-groups',  icon: Users },
+            { title: 'Children Check-In', href: '/admin/children-checkin', icon: Baby },
             { title: 'Missionaries',      href: '/admin/missionaries',  icon: Globe },
             { title: 'Live Prayer Center', href: '/admin/intercessors', icon: Heart },
         ]

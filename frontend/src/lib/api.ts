@@ -2870,6 +2870,105 @@ export const conversionApi = {
     adminSweepDormant: () => fetchApi<{ moved: number }>('/conversion/admin/sweep-dormant', { method: 'POST' }),
 }
 
+// ─── Pastoral Care ───────────────────────────────────────────────────────────
+
+export type PastoralKind = 'visitation' | 'call' | 'hospital' | 'bereavement' | 'counsel' | 'celebration' | 'prayer' | 'concern'
+
+export interface PastoralNote {
+    id: string; member_user_id: string | null; member_name: string; member_email: string | null;
+    kind: PastoralKind; title: string; body: string; follow_up_on: string | null;
+    written_by_user_id: string | null; is_confidential: boolean;
+    created_at: string; updated_at: string;
+}
+export interface LifeEventEntry {
+    id: string; member_user_id: string | null; member_name: string;
+    kind: string; summary: string; event_on: string; created_at: string;
+}
+
+export const pastoralApi = {
+    listNotes: (params?: { q?: string; kind?: string; member_user_id?: string }) => {
+        const qs = new URLSearchParams()
+        if (params?.q) qs.set('q', params.q)
+        if (params?.kind) qs.set('kind', params.kind)
+        if (params?.member_user_id) qs.set('member_user_id', params.member_user_id)
+        return fetchApi<PastoralNote[]>(`/pastoral-care/notes${qs.toString() ? '?' + qs : ''}`)
+    },
+    createNote: (b: { member_name: string; member_email?: string; member_user_id?: string; kind?: PastoralKind; title: string; body: string; follow_up_on?: string }) =>
+        fetchApi<PastoralNote>('/pastoral-care/notes', { method: 'POST', body: JSON.stringify(b) }),
+    updateNote: (id: string, b: Partial<{ title: string; body: string; kind: PastoralKind; follow_up_on: string }>) =>
+        fetchApi<PastoralNote>(`/pastoral-care/notes/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    deleteNote: (id: string) => fetchApi<{ deleted: number }>(`/pastoral-care/notes/${id}`, { method: 'DELETE' }),
+    listLifeEvents: (member_user_id?: string) => fetchApi<LifeEventEntry[]>(`/pastoral-care/life-events${member_user_id ? `?member_user_id=${member_user_id}` : ''}`),
+    createLifeEvent: (b: { member_name: string; member_user_id?: string; kind: string; summary: string; event_on: string }) =>
+        fetchApi<LifeEventEntry>('/pastoral-care/life-events', { method: 'POST', body: JSON.stringify(b) }),
+    deleteLifeEvent: (id: string) => fetchApi<{ deleted: number }>(`/pastoral-care/life-events/${id}`, { method: 'DELETE' }),
+}
+
+// ─── Small Groups / House Fellowships ────────────────────────────────────────
+
+export type SmallGroupAudience = 'any' | 'newcomers' | 'young_adults' | 'couples' | 'families' | 'seniors' | 'men' | 'women' | 'students'
+
+export interface SmallGroup {
+    id: string; name: string; description: string | null; topics: string | null;
+    audience: SmallGroupAudience; day_of_week: number; time_text: string; cadence: string;
+    location_label: string; city: string | null; country: string | null;
+    lat: number | null; lng: number | null;
+    leader_name: string; leader_contact: string | null;
+    capacity: number; current_size: number;
+    is_active: boolean; is_online: boolean; cover_image_url: string | null;
+    created_at: string;
+}
+export interface SmallGroupInterest {
+    id: string; group_id: string; requester_name: string; requester_email: string;
+    requester_phone: string | null; note: string | null; status: string; created_at: string;
+}
+
+export const smallGroupsApi = {
+    listPublic: (params?: { audience?: string; day?: number; city?: string; q?: string; online?: boolean }) => {
+        const qs = new URLSearchParams()
+        Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)) })
+        return fetchApi<SmallGroup[]>(`/small-groups${qs.toString() ? '?' + qs : ''}`)
+    },
+    cities: () => fetchApi<{ cities: { name: string; count: number }[] }>('/small-groups/cities'),
+    expressInterest: (gid: string, b: { name: string; email: string; phone?: string; note?: string }) =>
+        fetchApi<{ ok: boolean; message: string }>(`/small-groups/${gid}/interest`, { method: 'POST', body: JSON.stringify(b) }),
+    adminAll: () => fetchApi<SmallGroup[]>('/small-groups/admin/all'),
+    adminCreate: (b: Partial<SmallGroup> & { name: string }) =>
+        fetchApi<SmallGroup>('/small-groups/admin', { method: 'POST', body: JSON.stringify(b) }),
+    adminUpdate: (gid: string, b: Partial<SmallGroup> & { name: string }) =>
+        fetchApi<SmallGroup>(`/small-groups/admin/${gid}`, { method: 'PUT', body: JSON.stringify(b) }),
+    adminDelete: (gid: string) => fetchApi<{ deleted: number }>(`/small-groups/admin/${gid}`, { method: 'DELETE' }),
+    adminInterests: (status?: string) => fetchApi<SmallGroupInterest[]>(`/small-groups/admin/interests${status ? `?status=${status}` : ''}`),
+    adminUpdateInterest: (iid: string, status: string) =>
+        fetchApi<{ ok: boolean; status: string }>(`/small-groups/admin/interests/${iid}?status=${status}`, { method: 'PUT' }),
+}
+
+// ─── Children Check-in ───────────────────────────────────────────────────────
+
+export interface ChildProfile {
+    id: string; full_name: string; birthdate: string | null; age_group: string;
+    guardian_name: string; guardian_phone: string;
+    allergies: string | null; medical_notes: string | null;
+    is_active: boolean; created_at: string;
+}
+export interface ActiveCheckin {
+    checkin_id: string; child_id: string; child_name: string; age_group: string;
+    guardian_name: string; guardian_phone: string; allergies: string | null;
+    security_code: string; checked_in_at: string; location: string;
+}
+
+export const childrenCheckinApi = {
+    listChildren: (q?: string) => fetchApi<ChildProfile[]>(`/children-checkin/children${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+    addChild: (b: { full_name: string; age_group?: string; guardian_name: string; guardian_phone: string; allergies?: string; medical_notes?: string; birthdate?: string }) =>
+        fetchApi<ChildProfile>('/children-checkin/children', { method: 'POST', body: JSON.stringify(b) }),
+    removeChild: (cid: string) => fetchApi<{ deleted: number }>(`/children-checkin/children/${cid}`, { method: 'DELETE' }),
+    checkin: (cid: string, location = 'kids_wing') =>
+        fetchApi<{ ok: boolean; id: string; security_code: string; child_name?: string; already_open?: boolean }>(`/children-checkin/checkin/${cid}?location=${location}`, { method: 'POST' }),
+    checkout: (cid: string, security_code: string) =>
+        fetchApi<{ ok: boolean; checked_out_at: string }>(`/children-checkin/checkout/${cid}`, { method: 'POST', body: JSON.stringify({ security_code }) }),
+    active: () => fetchApi<ActiveCheckin[]>('/children-checkin/active'),
+}
+
 // ─── Downloads API ───────────────────────────────────────────────────────────
 
 export type DownloadCategory = 'Sermon' | 'E-book' | 'Bulletin' | 'Music' | 'Video' | 'Article' | 'Other'

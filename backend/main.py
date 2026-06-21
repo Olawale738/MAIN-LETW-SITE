@@ -260,6 +260,18 @@ app.include_router(downloads_router.router)
 from routers import conversion as conversion_router
 app.include_router(conversion_router.router)
 
+# Pastoral Care (shepherd notes + life-event timeline)
+from routers import pastoral_care as pastoral_router
+app.include_router(pastoral_router.router)
+
+# Small Groups / House Fellowships
+from routers import small_groups as small_groups_router
+app.include_router(small_groups_router.router)
+
+# Children's Ministry check-in / check-out
+from routers import children_checkin as children_router
+app.include_router(children_router.router)
+
 # User profile, activity, prayer wall
 try:
     from routers import profile as profile_router
