@@ -5,6 +5,7 @@ import {
     MapPin, Users, RefreshCw, AlertCircle, CheckCircle, Sparkles, Clock
 } from 'lucide-react'
 import { conversionApi, type ConversionJourney, type ConversionStage } from '@/lib/api'
+import BackendNotDeployedCard from '@/components/admin/BackendNotDeployedCard'
 
 const STAGES: { key: ConversionStage; label: string; tint: string; icon: React.ReactNode }[] = [
     { key: 'welcomed',    label: 'Welcomed',    tint: 'bg-rose-100 text-rose-700 border-rose-200',    icon: <Sparkles className="w-3.5 h-3.5" /> },
@@ -73,7 +74,9 @@ export default function AdminConversionPage() {
                 </div>
             </div>
 
-            {msg && (
+            {msg && /not found|404|method not allowed|405/i.test(msg.text) ? (
+                <BackendNotDeployedCard errorText={msg.text} onRetry={load} />
+            ) : msg && (
                 <div className={`mb-4 p-3 rounded-xl border flex items-start gap-2 ${msg.kind === 'ok' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
                     {msg.kind === 'ok' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}<span className="text-sm">{msg.text}</span>
                 </div>

@@ -5,6 +5,7 @@ import {
     LogIn, LogOut, RefreshCw, Heart
 } from 'lucide-react'
 import { childrenCheckinApi, type ChildProfile, type ActiveCheckin } from '@/lib/api'
+import BackendNotDeployedCard from '@/components/admin/BackendNotDeployedCard'
 
 const AGE_GROUPS = ['nursery', 'toddler', 'kids', 'preteen'] as const
 
@@ -36,7 +37,9 @@ export default function ChildrenCheckinPage() {
                 <button onClick={load} className="text-sm text-gray-500 hover:text-[#140152] inline-flex items-center gap-1.5"><RefreshCw className="w-4 h-4" /> Refresh</button>
             </div>
 
-            {msg && (
+            {msg && /not found|404|method not allowed|405/i.test(msg.text) ? (
+                <BackendNotDeployedCard errorText={msg.text} onRetry={load} />
+            ) : msg && (
                 <div className={`mb-4 p-3 rounded-xl border flex items-start gap-2 ${msg.kind === 'ok' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
                     {msg.kind === 'ok' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}<span className="text-sm">{msg.text}</span>
                 </div>

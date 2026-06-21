@@ -5,6 +5,7 @@ import {
     User, Calendar, Heart, Stethoscope, Cross, Phone
 } from 'lucide-react'
 import { pastoralApi, type PastoralNote, type PastoralKind } from '@/lib/api'
+import BackendNotDeployedCard from '@/components/admin/BackendNotDeployedCard'
 
 const KIND_META: Record<PastoralKind, { label: string; icon: React.ReactNode; tint: string }> = {
     visitation:   { label: 'Visitation',   icon: <User className="w-3.5 h-3.5" />,       tint: 'bg-blue-100 text-blue-700' },
@@ -51,7 +52,9 @@ export default function AdminPastoralCarePage() {
                 <button onClick={() => setAdding(true)} className="bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-4 py-2 rounded-xl text-sm inline-flex items-center gap-1.5"><Plus className="w-4 h-4" /> New note</button>
             </div>
 
-            {msg && (
+            {msg && /not found|404|method not allowed|405/i.test(msg.text) ? (
+                <BackendNotDeployedCard errorText={msg.text} onRetry={load} />
+            ) : msg && (
                 <div className={`mb-4 p-3 rounded-xl border flex items-start gap-2 ${msg.kind === 'ok' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
                     {msg.kind === 'ok' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}<span className="text-sm">{msg.text}</span>
                 </div>

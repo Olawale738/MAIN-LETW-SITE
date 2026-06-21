@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { churchLocationsApi, type ChurchLocation, type ChurchKind } from '@/lib/api'
+import BackendNotDeployedCard from '@/components/admin/BackendNotDeployedCard'
 import { CONTINENTS, countriesIn, type Continent } from '@/lib/countries'
 
 const KINDS: ChurchKind[] = ['hq', 'branch', 'mission', 'fellowship']
@@ -49,7 +50,9 @@ export default function AdminLocationsPage() {
                 </div>
             </div>
 
-            {msg && (
+            {msg && /not found|404|method not allowed|405/i.test(msg.text) ? (
+                <BackendNotDeployedCard errorText={msg.text} onRetry={load} />
+            ) : msg && (
                 <div className={`mb-4 p-3 rounded-xl border flex items-start gap-2 ${msg.kind === 'ok' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
                     {msg.kind === 'ok' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}<span className="text-sm">{msg.text}</span>
                 </div>
