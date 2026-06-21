@@ -1,11 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Facebook, Twitter, Instagram, Youtube, MapPin, Phone, Mail, ExternalLink, BookOpen, Radio } from 'lucide-react'
+import { Facebook, Twitter, Instagram, Youtube, MapPin, Phone, Mail, ExternalLink, BookOpen, Radio, ChevronDown } from 'lucide-react'
 
 export default function Footer() {
   const pathname = usePathname()
+  const [moreOpen, setMoreOpen] = useState(false)
 
   if (pathname?.startsWith('/admin')) return null
 
@@ -105,7 +107,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Connect — links NOT already in the navbar */}
+          {/* Connect — keep a short primary list, collapse the rest into a dropdown */}
           <div>
             <h4 className="font-black text-sm uppercase tracking-widest mb-6 text-[#f5bb00]">Connect</h4>
             <ul className="space-y-2.5">
@@ -114,15 +116,6 @@ export default function Footer() {
                 { name: 'Church Apps', href: '/apps' },
                 { name: 'Give', href: '/giving' },
                 { name: 'Volunteer', href: '/volunteer' },
-                { name: 'New here? Start here', href: '/onboarding' },
-                { name: 'Free Resources & Downloads', href: '/download' },
-                { name: 'Small Groups', href: '/groups' },
-                { name: 'Member Directory', href: '/family' },
-                { name: 'Grow — Verses & Habits', href: '/grow' },
-                { name: 'Virtual Church Tour', href: '/tour' },
-                { name: 'Voice & Smart Speakers', href: '/voice' },
-                { name: 'Sermon Podcast (RSS)', href: '/sermons/podcast.xml' },
-                { name: 'Lent · 40 Days', href: '/lent' },
                 { name: 'Contact', href: '/contact' },
               ].map((link) => (
                 <li key={link.name}>
@@ -133,6 +126,46 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
+
+            {/* Expandable 'More ways to engage' dropdown */}
+            <div className="mt-4 border-t border-white/5 pt-3">
+              <button
+                onClick={() => setMoreOpen(o => !o)}
+                aria-expanded={moreOpen}
+                className="w-full flex items-center justify-between text-[11px] uppercase tracking-[0.25em] font-bold text-[#f5bb00]/80 hover:text-[#f5bb00] transition-colors py-1">
+                More ways to engage
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${moreOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {moreOpen && (
+                <ul className="mt-3 space-y-2.5 animate-[footerMoreIn_300ms_ease-out]">
+                  {[
+                    { name: 'New here? Start here', href: '/onboarding' },
+                    { name: 'Free Resources & Downloads', href: '/download' },
+                    { name: 'Small Groups', href: '/groups' },
+                    { name: 'Member Directory', href: '/family' },
+                    { name: 'Grow — Verses & Habits', href: '/grow' },
+                    { name: 'Virtual Church Tour', href: '/tour' },
+                    { name: 'Voice & Smart Speakers', href: '/voice' },
+                    { name: 'Sermon Podcast (RSS)', href: '/sermons/podcast.xml' },
+                    { name: 'Lent · 40 Days', href: '/lent' },
+                  ].map((link) => (
+                    <li key={link.name}>
+                      <Link href={link.href} className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-200 flex items-center gap-2 text-sm group">
+                        <span className="w-1 h-1 rounded-full bg-[#f5bb00]/40 group-hover:bg-[#f5bb00] transition-colors" />
+                        {link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <style jsx>{`
+              @keyframes footerMoreIn {
+                from { opacity: 0; transform: translateY(-4px); }
+                to   { opacity: 1; transform: translateY(0); }
+              }
+            `}</style>
           </div>
 
           {/* Ministries */}
