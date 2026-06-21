@@ -4,54 +4,89 @@ import Link from 'next/link'
 import { Sparkles, Download, ArrowUpRight, X } from 'lucide-react'
 
 /**
- * Two cinematic floating CTAs that only render on the homepage.
+ * Cinematic floating CTA pair that ROAMS the homepage.
  *
- * - Blue gradient (sapphire → azure → cyan) with soft outer glow that breathes.
- * - Subtle film-grain texture overlay so the pills feel material, not flat.
- * - Slow up/down drift gives a "floating" feel without being distracting.
- * - Slide-in entrance after first paint; dismissable per-session via X.
- * - Bottom-right vertical stack on desktop; bottom-center horizontal on mobile.
+ * - Cycles through several positions (corners → mid-sides → bottom-center)
+ *   every ~22 seconds with smooth eased transitions.
+ * - Auto-disappears after 2 minutes (120s) total dwell, or sooner if user
+ *   clicks Hide.
+ * - Mounts only on the homepage.
+ * - Blue gradient (sapphire → azure → cyan) with breathing glow, film-grain,
+ *   gentle up/down drift, and a light-sweep on hover.
  */
+
+const POSITIONS = [
+    { x: 'right',  y: 'bottom', label: 'br' },
+    { x: 'right',  y: 'middle', label: 'mr' },
+    { x: 'center', y: 'bottom', label: 'bc' },
+    { x: 'left',   y: 'middle', label: 'ml' },
+    { x: 'left',   y: 'bottom', label: 'bl' },
+    { x: 'right',  y: 'top',    label: 'tr' },
+] as const
+
+const POSITION_MS = 22_000
+const TOTAL_MS = 120_000          // 2 minutes then disappear
+
+function positionToStyle(p: typeof POSITIONS[number]): React.CSSProperties {
+    const style: React.CSSProperties = {}
+    // Horizontal
+    if (p.x === 'right')       { style.right = '1.5rem' }
+    else if (p.x === 'left')   { style.left  = '1.5rem' }
+    else                       { style.left  = '50%'; style.transform = 'translateX(-50%)' }
+    // Vertical
+    if (p.y === 'bottom')      { style.bottom = '2rem' }
+    else if (p.y === 'top')    { style.top    = '6rem'   }   // below the navbar
+    else                       { style.top    = '50%'; style.transform = (style.transform || '') + ' translateY(-50%)' }
+    return style
+}
+
 export default function HomepageFloatingButtons() {
     const [mounted, setMounted] = useState(false)
     const [dismissed, setDismissed] = useState(false)
+    const [idx, setIdx] = useState(0)
+    const [done, setDone] = useState(false)
 
     useEffect(() => {
         try { if (sessionStorage.getItem('home-floats-dismissed') === '1') setDismissed(true) } catch { /* noop */ }
-        const t = setTimeout(() => setMounted(true), 600)
-        return () => clearTimeout(t)
+        const enter = setTimeout(() => setMounted(true), 500)
+        return () => clearTimeout(enter)
     }, [])
+
+    // Cycle through positions
+    useEffect(() => {
+        if (dismissed || done) return
+        const id = setInterval(() => setIdx(i => (i + 1) % POSITIONS.length), POSITION_MS)
+        return () => clearInterval(id)
+    }, [dismissed, done])
+
+    // Total dwell timer — disappear after 2 minutes
+    useEffect(() => {
+        if (dismissed || done) return
+        const t = setTimeout(() => setDone(true), TOTAL_MS)
+        return () => clearTimeout(t)
+    }, [dismissed, done])
 
     const dismiss = () => {
         setDismissed(true)
         try { sessionStorage.setItem('home-floats-dismissed', '1') } catch { /* noop */ }
     }
 
-    if (dismissed) return null
+    if (dismissed || done) return null
+
+    const pos = POSITIONS[idx]
+    const style = positionToStyle(pos)
 
     return (
         <div
             aria-label="Homepage quick links"
-            className={`fixed z-40 right-4 md:right-6 bottom-4 md:bottom-8 flex flex-col items-end gap-3 transition-all duration-700 ease-out ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            style={style}
+            className={`fixed z-40 flex flex-col items-stretch gap-3 transition-all duration-[1200ms] ease-[cubic-bezier(.16,1,.3,1)] ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
 
-            <FloatPill
-                href="/onboarding"
-                icon={<Sparkles className="w-4 h-4" />}
-                eyebrow="New here?"
-                title="Start here"
-                delay={0}
-            />
-
-            <FloatPill
-                href="/download"
-                icon={<Download className="w-4 h-4" />}
-                eyebrow="Free resources"
-                title="Sermons · E-books · Music"
-                delay={150}
-            />
+            <FloatPill href="/onboarding" icon={<Sparkles className="w-4 h-4" />} eyebrow="New here?" title="Start here" delay={0} />
+            <FloatPill href="/download"   icon={<Download className="w-4 h-4" />} eyebrow="Free resources" title="Sermons · E-books · Music" delay={150} />
 
             <button onClick={dismiss} aria-label="Hide quick links"
-                className="text-[10px] uppercase tracking-[0.25em] font-bold text-white/60 hover:text-white bg-black/30 backdrop-blur-md border border-white/15 rounded-full px-3 py-1.5 inline-flex items-center gap-1.5 transition-colors">
+                className="self-end text-[10px] uppercase tracking-[0.25em] font-bold text-white/60 hover:text-white bg-black/30 backdrop-blur-md border border-white/15 rounded-full px-3 py-1.5 inline-flex items-center gap-1.5 transition-colors">
                 <X className="w-3 h-3" /> Hide
             </button>
         </div>
@@ -81,7 +116,6 @@ function FloatPill({ href, icon, eyebrow, title, delay }: {
                 {/* Light sweep on hover */}
                 <span aria-hidden className="absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 -translate-x-full group-hover:translate-x-[600%] transition-transform duration-[1100ms] ease-out" />
 
-                {/* Icon disc */}
                 <span className="relative inline-flex w-9 h-9 rounded-full bg-white/15 border border-white/25 items-center justify-center flex-shrink-0 backdrop-blur-sm">
                     {icon}
                 </span>
