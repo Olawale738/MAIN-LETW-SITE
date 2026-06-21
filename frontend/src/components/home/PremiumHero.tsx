@@ -86,13 +86,15 @@ export default function PremiumHero({
 
     return (
         <section className="relative w-full overflow-hidden bg-[#06002a]" style={{ minHeight: '100vh' }}>
-            {/* — 1 · Background video — YouTube iframe OR direct MP4 — */}
+            {/* — 1 · Background video — YouTube iframe OR direct MP4 —
+                  key={videoUrl} forces a remount whenever the URL changes,
+                  so the admin-saved URL loaded after first paint actually
+                  replaces the default Pexels source instead of being ignored. */}
             {videoUrl && !videoFailed && (() => {
                 const id = ytId(videoUrl)
                 if (id) {
-                    // YouTube embed — scaled up to hide the controls/branding bands
                     return (
-                        <div className="absolute inset-0 overflow-hidden">
+                        <div key={videoUrl} className="absolute inset-0 overflow-hidden">
                             <iframe
                                 title="Hero background"
                                 src={ytEmbedUrl(id)}
@@ -106,6 +108,7 @@ export default function PremiumHero({
                 }
                 return (
                     <video
+                        key={videoUrl}
                         ref={videoRef}
                         autoPlay
                         muted
@@ -114,9 +117,9 @@ export default function PremiumHero({
                         poster={posterUrl}
                         onCanPlay={() => setCanPlay(true)}
                         onError={() => setVideoFailed(true)}
-                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${canPlay ? 'opacity-95' : 'opacity-0'}`}>
-                        <source src={videoUrl} type="video/mp4" />
-                    </video>
+                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${canPlay ? 'opacity-95' : 'opacity-0'}`}
+                        src={videoUrl}
+                    />
                 )
             })()}
 
