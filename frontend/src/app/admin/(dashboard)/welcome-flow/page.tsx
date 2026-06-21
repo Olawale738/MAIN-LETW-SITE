@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Loader2, Plus, Save, Trash2, Send, Mail, AlertCircle, CheckCircle, Clock } from 'lucide-react'
+import { Loader2, Plus, Save, Trash2, Send, Mail, AlertCircle, CheckCircle, Clock, Zap, Copy, ChevronDown, ExternalLink } from 'lucide-react'
 import { welcomeFlowApi, wakeBackend, type WelcomeStep } from '@/lib/api'
 import RichTextEditor from '@/components/ui/rich-text-editor'
 
@@ -115,6 +115,12 @@ export default function AdminWelcomeFlowPage() {
                 <span className="text-sm">{msg.text}</span>
             </div>}
 
+            {/* Alternative: external scheduler. Wire cron-job.org to fire the
+                tick on a schedule so admin never clicks 'Run now' again. */}
+            <CronAutoTriggerCard />
+
+
+
             <div className="flex justify-end mb-4">
                 <button onClick={() => setShowNew(true)} className="inline-flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-[#140152] font-bold px-4 py-2.5 rounded-lg text-sm">
                     <Plus className="w-4 h-4" /> New Step
@@ -186,6 +192,75 @@ function StepForm({ step, onSave, onCancel }: { step: WelcomeStep; onSave: (s: W
                     </button>
                 </div>
             </div>
+        </div>
+    )
+}
+
+/**
+ * Self-running auto-trigger card.
+ *
+ * The plain admin 'Run now' button hits an auth-gated POST endpoint that can
+ * fail for several reasons (cold start, expired token, CORS preflight, etc.).
+ * This card explains how to wire cron-job.org / GitHub Actions to the
+ * no-auth, token-gated `/run-tick-cron` endpoint so the welcome flow runs
+ * automatically without any admin click.
+ */
+function CronAutoTriggerCard() {
+    const [open, setOpen] = useState(false)
+    const [token, setToken] = useState('')
+
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')
+    const cronUrl = token
+        ? `${apiBase}/welcome-flow/run-tick-cron?token=${encodeURIComponent(token)}`
+        : `${apiBase}/welcome-flow/run-tick-cron?token=YOUR_SECRET`
+    const copy = () => { try { navigator.clipboard.writeText(cronUrl) } catch { /* noop */ } }
+
+    return (
+        <div className="mb-5 bg-gradient-to-br from-violet-50 to-blue-50 border-2 border-violet-200 rounded-2xl overflow-hidden">
+            <button onClick={() => setOpen(o => !o)} className="w-full px-5 py-4 flex items-center justify-between text-left">
+                <div className="flex items-center gap-3">
+                    <Zap className="w-5 h-5 text-violet-700" />
+                    <div>
+                        <p className="font-black text-violet-900 text-sm">Skip the button — auto-run on a schedule</p>
+                        <p className="text-[11px] text-violet-700/80">Use cron-job.org so the flow runs every hour without you.</p>
+                    </div>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-violet-700 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+
+            {open && (
+                <div className="px-5 pb-5 text-sm text-violet-900 space-y-3 border-t border-violet-200 pt-4">
+                    <ol className="list-decimal pl-5 space-y-2 leading-relaxed">
+                        <li>
+                            On Render → backend service → <strong>Environment</strong> → add
+                            <code className="bg-white border border-violet-200 rounded px-1.5 py-0.5 mx-1 text-[11px] font-mono">CRON_SECRET</code>
+                            set to any random string (e.g. <code className="bg-white border border-violet-200 rounded px-1 text-[11px] font-mono">letw-{Math.random().toString(36).slice(2, 10)}</code>).
+                            Redeploy.
+                        </li>
+                        <li>
+                            Paste that same secret here so we can generate your trigger URL:
+                            <input value={token} onChange={e => setToken(e.target.value)} placeholder="Your CRON_SECRET"
+                                className="w-full mt-1.5 border border-violet-300 rounded-lg px-3 py-2 text-sm bg-white" />
+                        </li>
+                        <li>
+                            Open <a href="https://cron-job.org/en/" target="_blank" rel="noopener noreferrer" className="text-violet-700 underline font-bold inline-flex items-center gap-1">cron-job.org <ExternalLink className="w-3 h-3" /></a>
+                            (sign in with the same account used for the DB backups). Click <strong>CREATE CRONJOB</strong>.
+                        </li>
+                        <li>
+                            Title <span className="font-mono text-[11px]">LETW Welcome Flow</span>, schedule <strong>every 6 hours</strong>,
+                            URL = paste this:
+                            <div className="mt-2 flex items-center gap-2 bg-white border border-violet-300 rounded-lg p-2">
+                                <code className="flex-1 text-[11px] font-mono truncate text-violet-900">{cronUrl}</code>
+                                <button onClick={copy} className="bg-violet-700 hover:bg-violet-800 text-white text-[10px] font-bold px-3 py-1.5 rounded inline-flex items-center gap-1">
+                                    <Copy className="w-3 h-3" /> Copy
+                                </button>
+                            </div>
+                        </li>
+                        <li>Save the cronjob. Done — the welcome flow now runs automatically on its own.</li>
+                    </ol>
+                    <p className="text-[11px] text-violet-700/70 italic">The endpoint is no-auth but token-gated, so only someone with your CRON_SECRET can trigger it. Both GET and POST work, which cron-job.org defaults to.</p>
+                </div>
+            )}
         </div>
     )
 }

@@ -87,8 +87,7 @@ def _render(template: str, user: User) -> str:
     )
 
 
-@router.post("/run-tick")
-async def run_tick(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+async def _do_run_tick(db: AsyncSession) -> dict:
     """Send any due welcome step that hasn't been sent yet. Idempotent."""
     res = await db.execute(select(WelcomeStep).where(WelcomeStep.is_active == True))
     steps = list(res.scalars().all())
@@ -124,6 +123,31 @@ async def run_tick(db: AsyncSession = Depends(get_db), _: User = Depends(get_adm
                 db.add(WelcomeStepSent(user_id=u.id, step_id=step.id, success=False, error=str(e)[:500]))
     await db.commit()
     return {"sent": sent_count}
+
+
+@router.post("/run-tick")
+async def run_tick(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    return await _do_run_tick(db)
+
+
+@router.api_route("/run-tick-cron", methods=["GET", "POST"])
+async def run_tick_cron(token: str = "", db: AsyncSession = Depends(get_db)):
+    """No-auth, token-gated trigger for external schedulers.
+
+    Wire this to cron-job.org / GitHub Actions / Render cron:
+
+        GET https://letw-backend.onrender.com/api/welcome-flow/run-tick-cron?token=YOUR_SECRET
+
+    Set the `CRON_SECRET` env var on Render to the same value. Both GET
+    and POST work so cron-job.org's default GET also fires the run.
+    """
+    import os
+    expected = os.environ.get("CRON_SECRET", "").strip()
+    if not expected:
+        raise HTTPException(503, "CRON_SECRET not configured on the server.")
+    if (token or "").strip() != expected:
+        raise HTTPException(403, "Invalid token.")
+    return await _do_run_tick(db)
 
 
 @router.get("/sent-log")
