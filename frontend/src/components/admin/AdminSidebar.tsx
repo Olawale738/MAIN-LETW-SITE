@@ -115,6 +115,7 @@ const sidebarItems: SidebarItem[] = [
     { title: 'Testimony Page', href: '/admin/testimony-page', icon: MessageCircle },
     { title: 'Moderators', href: '/admin/moderators', icon: ShieldCheck },
     { title: 'Database Backups', href: '/admin/backups', icon: Database },
+    { title: 'Backend Diagnostics', href: '/admin/diagnostics', icon: Zap },
     {
         title: 'Tier 3 (Global)',
         icon: Sparkles,
