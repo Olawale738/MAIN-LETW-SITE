@@ -5,6 +5,23 @@ import { ArrowRight, Play, Calendar } from 'lucide-react'
 import { ministryContentApi } from '@/lib/api'
 
 /**
+ * Extract a YouTube video ID from any common URL shape:
+ *   https://www.youtube.com/watch?v=ID
+ *   https://youtu.be/ID
+ *   https://www.youtube.com/shorts/ID
+ *   https://www.youtube.com/embed/ID
+ * Returns null for anything else (treated as a regular MP4).
+ */
+function ytId(url: string): string | null {
+    if (!url) return null
+    const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+    return m ? m[1] : null
+}
+function ytEmbedUrl(id: string): string {
+    return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&showinfo=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&disablekb=1`
+}
+
+/**
  * Hillsong-style cinematic video hero.
  *
  * Video resolution order (first non-empty wins):
@@ -69,21 +86,39 @@ export default function PremiumHero({
 
     return (
         <section className="relative w-full overflow-hidden bg-[#06002a]" style={{ minHeight: '100vh' }}>
-            {/* — 1 · Background video — opacity high so the footage is the star — */}
-            {videoUrl && !videoFailed ? (
-                <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    poster={posterUrl}
-                    onCanPlay={() => setCanPlay(true)}
-                    onError={() => setVideoFailed(true)}
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${canPlay ? 'opacity-95' : 'opacity-0'}`}>
-                    <source src={videoUrl} type="video/mp4" />
-                </video>
-            ) : null}
+            {/* — 1 · Background video — YouTube iframe OR direct MP4 — */}
+            {videoUrl && !videoFailed && (() => {
+                const id = ytId(videoUrl)
+                if (id) {
+                    // YouTube embed — scaled up to hide the controls/branding bands
+                    return (
+                        <div className="absolute inset-0 overflow-hidden">
+                            <iframe
+                                title="Hero background"
+                                src={ytEmbedUrl(id)}
+                                allow="autoplay; encrypted-media; picture-in-picture"
+                                onLoad={() => setCanPlay(true)}
+                                className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-1000 ${canPlay ? 'opacity-95' : 'opacity-0'}`}
+                                style={{ width: '177.78vh', height: '56.25vw', minWidth: '100%', minHeight: '100%', border: 0 }}
+                            />
+                        </div>
+                    )
+                }
+                return (
+                    <video
+                        ref={videoRef}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        poster={posterUrl}
+                        onCanPlay={() => setCanPlay(true)}
+                        onError={() => setVideoFailed(true)}
+                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${canPlay ? 'opacity-95' : 'opacity-0'}`}>
+                        <source src={videoUrl} type="video/mp4" />
+                    </video>
+                )
+            })()}
 
             {/* Fallback poster with Ken Burns zoom — visible only when no video plays */}
             <div className="absolute inset-0 pointer-events-none">

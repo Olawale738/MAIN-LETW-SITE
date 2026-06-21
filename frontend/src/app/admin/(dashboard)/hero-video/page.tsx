@@ -7,6 +7,15 @@ import {
 } from 'lucide-react'
 import { ministryContentApi, downloadsApi } from '@/lib/api'
 
+function ytId(url: string): string | null {
+    if (!url) return null
+    const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+    return m ? m[1] : null
+}
+function ytEmbedUrl(id: string): string {
+    return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&showinfo=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&disablekb=1`
+}
+
 /**
  * Admin-managed homepage hero video + copy.
  *
@@ -121,7 +130,7 @@ export default function AdminHeroVideoPage() {
                         <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-1.5">Paste a URL</label>
                         <input value={s.video_url} onChange={e => setS({ ...s, video_url: e.target.value })} placeholder="https://your-cdn.com/letw-hero.mp4"
                             className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-mono" />
-                        <p className="text-[11px] text-gray-400 mt-1">Supabase Storage, R2, S3, or any public MP4. Leave blank to use the built-in default.</p>
+                        <p className="text-[11px] text-gray-400 mt-1">Supabase Storage, R2, S3, public MP4 — <strong>OR a YouTube URL</strong>. Leave blank for the built-in default.</p>
                     </div>
 
                     <div>
@@ -141,9 +150,28 @@ export default function AdminHeroVideoPage() {
                     <div className="mt-5">
                         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">Preview</p>
                         <div className="aspect-video bg-black rounded-xl overflow-hidden border border-gray-200">
-                            <video src={s.video_url} muted autoPlay loop playsInline className="w-full h-full object-cover" />
+                            {(() => {
+                                const id = ytId(s.video_url)
+                                if (id) {
+                                    return (
+                                        <iframe
+                                            title="Hero preview"
+                                            src={ytEmbedUrl(id)}
+                                            allow="autoplay; encrypted-media; picture-in-picture"
+                                            className="w-full h-full"
+                                            style={{ border: 0 }}
+                                        />
+                                    )
+                                }
+                                return <video src={s.video_url} muted autoPlay loop playsInline className="w-full h-full object-cover" />
+                            })()}
                         </div>
-                        <button onClick={() => setS({ ...s, video_url: '' })} className="mt-2 text-xs font-bold text-red-500 hover:text-red-700 inline-flex items-center gap-1">
+                        {ytId(s.video_url) && (
+                            <p className="mt-2 text-[11px] text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 inline-flex items-center gap-1.5">
+                                <Sparkles className="w-3 h-3" /> YouTube URL detected — will play as a silent looping iframe background. For best quality use a direct MP4 instead.
+                            </p>
+                        )}
+                        <button onClick={() => setS({ ...s, video_url: '' })} className="mt-2 ml-2 text-xs font-bold text-red-500 hover:text-red-700 inline-flex items-center gap-1">
                             <Trash2 className="w-3.5 h-3.5" /> Clear video (fall back to default)
                         </button>
                     </div>
@@ -168,7 +196,19 @@ export default function AdminHeroVideoPage() {
                 <h2 className="font-black text-[#140152] mb-1">3 · Mini preview</h2>
                 <p className="text-xs text-gray-500 mb-4">A quick mock of the result. Open <Link href="/" target="_blank" className="font-bold text-[#140152] hover:underline">letw.org</Link> after saving to see the real hero.</p>
                 <div className="relative aspect-[16/7] bg-[#06002a] rounded-2xl overflow-hidden">
-                    {s.video_url && <video src={s.video_url} muted autoPlay loop playsInline className="absolute inset-0 w-full h-full object-cover opacity-95" />}
+                    {s.video_url && (() => {
+                        const id = ytId(s.video_url)
+                        if (id) {
+                            return (
+                                <div className="absolute inset-0 overflow-hidden">
+                                    <iframe title="Hero composite" src={ytEmbedUrl(id)} allow="autoplay; encrypted-media"
+                                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-95"
+                                        style={{ width: '177.78%', height: '177.78%', border: 0 }} />
+                                </div>
+                            )
+                        }
+                        return <video src={s.video_url} muted autoPlay loop playsInline className="absolute inset-0 w-full h-full object-cover opacity-95" />
+                    })()}
                     <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(6,0,42,0.30) 0%, rgba(6,0,42,0.05) 30%, rgba(6,0,42,0.45) 80%, rgba(6,0,42,0.92) 100%)' }} />
                     <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6">
                         <p className="text-[#f5bb00] font-bold tracking-[0.4em] text-[10px] uppercase mb-3" style={{ textShadow: '0 0 20px rgba(245,187,0,0.4)' }}>
