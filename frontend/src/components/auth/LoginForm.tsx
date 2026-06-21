@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -14,6 +14,23 @@ export default function LoginForm() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [waking, setWaking] = useState(false)
+    const [serverReady, setServerReady] = useState<boolean | null>(null)
+
+    // Pre-warm Render the moment the login page loads so the backend is
+    // awake by the time the user finishes typing their password.
+    // Cached per browser tab so we don't ping repeatedly.
+    useEffect(() => {
+        try {
+            if (sessionStorage.getItem('auth-prewarmed') === '1') { setServerReady(true); return }
+        } catch { /* noop */ }
+        let alive = true
+        wakeBackend(60_000).then(ok => {
+            if (!alive) return
+            setServerReady(ok)
+            if (ok) { try { sessionStorage.setItem('auth-prewarmed', '1') } catch { /* noop */ } }
+        })
+        return () => { alive = false }
+    }, [])
 
     const doLogin = async () => {
         const response = await authApi.login({ email: formData.email, password: formData.password })
@@ -76,6 +93,12 @@ export default function LoginForm() {
 
     return (
         <div className="w-full">
+            {/* Subtle status pill so the user knows what's happening before they submit */}
+            {serverReady === null && !error && (
+                <div className="bg-gray-50 border border-gray-200 text-gray-600 px-3 py-2 rounded-lg mb-3 text-xs inline-flex items-center gap-1.5">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Preparing the server (one-time wake-up)…
+                </div>
+            )}
             {waking && (
                 <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-xl mb-4 text-sm inline-flex items-start gap-2">
                     <Loader2 className="w-4 h-4 animate-spin mt-0.5 flex-shrink-0" />
