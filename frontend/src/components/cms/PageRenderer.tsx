@@ -76,11 +76,18 @@ export default function PageRenderer({ blocks }: PageRendererProps) {
                     if (matches >= 3) return null;
                 }
                 // Suppress the legacy 'Encounter the Light of God' hero-slider
-                // saved before PremiumHero replaced it. PremiumHero is now THE
-                // homepage hero — the slider would duplicate the message.
+                // saved before PremiumHero replaced it. Strip HTML tags first
+                // because admin titles often contain <span style="color:..."> wrappers.
+                const stripHtml = (s: string) => s.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').toLowerCase().trim();
                 if (block.type === 'hero-slider' && Array.isArray(d.slides)) {
-                    const heroTitles = d.slides.map(s => String(s?.title || s?.eyebrow || '').toLowerCase()).join(' ');
-                    if (heroTitles.includes('encounter the light') || heroTitles.includes('welcome to letw')) return null;
+                    const heroText = d.slides.map(s => stripHtml(s?.title || '') + ' ' + stripHtml(s?.eyebrow || '')).join(' ');
+                    if (heroText.includes('encounter the light') || heroText.includes('welcome to letw') ||
+                        heroText.includes('plan to become') || heroText.includes('worldwide family')) return null;
+                }
+                // Also suppress any standalone 'hero' block carrying the same legacy copy.
+                if (block.type === 'hero' || block.type === 'hero-slider') {
+                    const allText = stripHtml(String(d.title || '')) + ' ' + stripHtml(String(d.subtitle || ''));
+                    if (allText.includes('encounter the light') || allText.includes('plan to become our member')) return null;
                 }
 
                 return <Component key={block.id} data={block.data} />;

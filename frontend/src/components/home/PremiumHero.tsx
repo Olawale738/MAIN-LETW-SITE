@@ -64,7 +64,7 @@ export default function PremiumHero({
 
     return (
         <section className="relative w-full overflow-hidden bg-[#06002a]" style={{ minHeight: '100vh' }}>
-            {/* — 1 · Background video — falls through to Ken Burns poster if absent — */}
+            {/* — 1 · Background video — opacity high so the footage is the star — */}
             {videoUrl && !videoFailed ? (
                 <video
                     ref={videoRef}
@@ -75,41 +75,44 @@ export default function PremiumHero({
                     poster={posterUrl}
                     onCanPlay={() => setCanPlay(true)}
                     onError={() => setVideoFailed(true)}
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${canPlay ? 'opacity-60' : 'opacity-0'}`}>
+                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${canPlay ? 'opacity-95' : 'opacity-0'}`}>
                     <source src={videoUrl} type="video/mp4" />
                 </video>
             ) : null}
 
-            {/* Fallback poster with slow Ken Burns zoom — fakes the feel of a video */}
+            {/* Fallback poster with Ken Burns zoom — visible only when no video plays */}
             <div className="absolute inset-0 pointer-events-none">
                 {posterUrl && (
                     <img
                         src={posterUrl}
                         alt=""
-                        className={`w-full h-full object-cover transition-opacity duration-1000 ${(!videoUrl || videoFailed || !canPlay) ? 'opacity-50 animate-[kenBurns_28s_ease-in-out_infinite_alternate]' : 'opacity-0'}`}
+                        className={`w-full h-full object-cover transition-opacity duration-1000 ${(!videoUrl || videoFailed || !canPlay) ? 'opacity-80 animate-[kenBurns_28s_ease-in-out_infinite_alternate]' : 'opacity-0'}`}
                     />
                 )}
-                <div
-                    className="absolute inset-0"
-                    style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(29,1,117,0.55) 0%, rgba(10,0,40,0.85) 60%, rgba(2,0,15,1) 100%)' }}
-                />
+                {/* Only show the dark gradient field when neither video nor poster is up */}
+                {(!videoUrl || videoFailed) && (
+                    <div
+                        className="absolute inset-0"
+                        style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(29,1,117,0.55) 0%, rgba(10,0,40,0.85) 60%, rgba(2,0,15,1) 100%)' }}
+                    />
+                )}
             </div>
 
-            {/* Strong overlay for type legibility */}
+            {/* Lighter overlay — preserves type legibility without hiding the footage */}
             <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
                     background:
-                        'linear-gradient(180deg, rgba(6,0,42,0.5) 0%, rgba(6,0,42,0.25) 35%, rgba(6,0,42,0.6) 75%, rgba(6,0,42,0.95) 100%)',
+                        'linear-gradient(180deg, rgba(6,0,42,0.30) 0%, rgba(6,0,42,0.05) 30%, rgba(6,0,42,0.40) 80%, rgba(6,0,42,0.92) 100%)',
                 }}
             />
 
-            {/* Ambient brand orbs */}
+            {/* Ambient brand orbs — softer so they don't fight the video */}
             <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-1/4 -left-40 w-[34rem] h-[34rem] rounded-full blur-[140px] animate-[orb1_18s_ease-in-out_infinite_alternate]"
-                    style={{ background: 'rgba(245,187,0,0.15)' }} />
-                <div className="absolute bottom-1/4 -right-40 w-[36rem] h-[36rem] rounded-full blur-[140px] animate-[orb2_22s_ease-in-out_infinite_alternate]"
-                    style={{ background: 'rgba(124,58,237,0.18)' }} />
+                <div className="absolute top-1/4 -left-40 w-[34rem] h-[34rem] rounded-full blur-[160px] animate-[orb1_18s_ease-in-out_infinite_alternate]"
+                    style={{ background: 'rgba(245,187,0,0.08)' }} />
+                <div className="absolute bottom-1/4 -right-40 w-[36rem] h-[36rem] rounded-full blur-[160px] animate-[orb2_22s_ease-in-out_infinite_alternate]"
+                    style={{ background: 'rgba(124,58,237,0.10)' }} />
             </div>
 
             {/* Divine-light particles */}
