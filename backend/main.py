@@ -252,6 +252,10 @@ app.include_router(event_extensions.router)
 from routers import messages
 app.include_router(messages.router)
 
+# Downloadable resources
+from routers import downloads as downloads_router
+app.include_router(downloads_router.router)
+
 # User profile, activity, prayer wall
 try:
     from routers import profile as profile_router

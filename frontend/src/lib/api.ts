@@ -2832,6 +2832,69 @@ export const chatApi = {
     },
 };
 
+// ─── Downloads API ───────────────────────────────────────────────────────────
+
+export type DownloadCategory = 'Sermon' | 'E-book' | 'Bulletin' | 'Music' | 'Video' | 'Article' | 'Other'
+
+export interface DownloadResource {
+    id: string
+    title: string
+    description: string | null
+    category: DownloadCategory
+    kind: 'file' | 'url'
+    external_url: string | null
+    file_name: string | null
+    file_mime_type: string | null
+    file_size: number | null
+    is_published: boolean
+    download_count: number
+    created_at: string
+}
+
+export const downloadsApi = {
+    list: (category?: string) => fetchApi<DownloadResource[]>(`/downloads${category ? `?category=${encodeURIComponent(category)}` : ''}`),
+    fileUrl: (id: string) => `${API_BASE_URL}/downloads/${id}/file`,
+    adminAll: () => fetchApi<DownloadResource[]>('/downloads/admin/all'),
+    adminAddUrl: async (body: { title: string; category: string; external_url: string; description?: string; is_published?: boolean }) => {
+        const fd = new FormData()
+        Object.entries(body).forEach(([k, v]) => { if (v !== undefined) fd.append(k, String(v)) })
+        const token = localStorage.getItem('access_token')
+        const res = await fetch(`${API_BASE_URL}/downloads/admin/url`, {
+            method: 'POST', body: fd,
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        })
+        if (!res.ok) throw new Error((await res.json().catch(() => ({ detail: 'Failed' }))).detail || 'Failed')
+        return res.json() as Promise<DownloadResource>
+    },
+    adminAddFile: async (body: { title: string; category: string; description?: string; is_published?: boolean; file: File }) => {
+        const fd = new FormData()
+        fd.append('title', body.title)
+        fd.append('category', body.category)
+        if (body.description) fd.append('description', body.description)
+        if (body.is_published !== undefined) fd.append('is_published', String(body.is_published))
+        fd.append('file', body.file)
+        const token = localStorage.getItem('access_token')
+        const res = await fetch(`${API_BASE_URL}/downloads/admin/file`, {
+            method: 'POST', body: fd,
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        })
+        if (!res.ok) throw new Error((await res.json().catch(() => ({ detail: 'Failed' }))).detail || 'Failed')
+        return res.json() as Promise<DownloadResource>
+    },
+    adminUpdate: async (id: string, patch: Partial<{ title: string; category: string; description: string; external_url: string; is_published: boolean }>) => {
+        const fd = new FormData()
+        Object.entries(patch).forEach(([k, v]) => { if (v !== undefined) fd.append(k, String(v)) })
+        const token = localStorage.getItem('access_token')
+        const res = await fetch(`${API_BASE_URL}/downloads/admin/${id}`, {
+            method: 'PUT', body: fd,
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        })
+        if (!res.ok) throw new Error((await res.json().catch(() => ({ detail: 'Failed' }))).detail || 'Failed')
+        return res.json() as Promise<DownloadResource>
+    },
+    adminDelete: (id: string) => fetchApi<{ deleted: number }>(`/downloads/admin/${id}`, { method: 'DELETE' }),
+}
+
 export const cmsApi = {
     getPage: async (slug: string): Promise<CMSPageResponse> => {
         return fetchApi<CMSPageResponse>(`/cms/pages/${slug}`, { cache: 'no-store' });
