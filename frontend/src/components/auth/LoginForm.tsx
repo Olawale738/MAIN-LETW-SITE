@@ -2,8 +2,8 @@ import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { authApi, tokenManager } from '@/lib/api'
-import { Loader2 } from 'lucide-react'
+import { authApi, tokenManager, wakeBackend } from '@/lib/api'
+import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 
 export default function LoginForm() {
     const router = useRouter()
@@ -13,6 +13,21 @@ export default function LoginForm() {
     const [formData, setFormData] = useState({ email: '', password: '' })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [waking, setWaking] = useState(false)
+
+    const doLogin = async () => {
+        const response = await authApi.login({ email: formData.email, password: formData.password })
+        tokenManager.saveTokens(response)
+        let finalRedirect = redirectPath
+        try {
+            const user = await authApi.getCurrentUser()
+            localStorage.setItem('userName', user.name)
+            if (user.role === 'admin') finalRedirect = '/admin'
+        } catch (error) {
+            console.error('Failed to fetch user details', error)
+        }
+        window.location.href = finalRedirect
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -20,42 +35,70 @@ export default function LoginForm() {
         setError('')
 
         try {
-            const response = await authApi.login({
-                email: formData.email,
-                password: formData.password
-            })
-
-            // Save tokens
-            tokenManager.saveTokens(response)
-
-            // Fetch user details and determine redirect
-            let finalRedirect = redirectPath
-            try {
-                const user = await authApi.getCurrentUser()
-                localStorage.setItem('userName', user.name)
-
-                // Redirect admins to admin dashboard
-                if (user.role === 'admin') {
-                    finalRedirect = '/admin'
-                }
-            } catch (error) {
-                console.error('Failed to fetch user details', error)
-            }
-
-            window.location.href = finalRedirect
+            await doLogin()
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.'
+            // Cold-start case: backend was asleep and didn't wake in time
+            if (/couldn'?t reach the server|failed to fetch/i.test(errorMessage)) {
+                setLoading(false); setWaking(true)
+                const ok = await wakeBackend(75_000)
+                setWaking(false)
+                if (ok) {
+                    setLoading(true)
+                    try { await doLogin(); return }
+                    catch (e2) {
+                        setError((e2 instanceof Error ? e2.message : 'Login failed.'))
+                    } finally { setLoading(false) }
+                } else {
+                    setError("Backend still not responding after 75 seconds. Try again in a moment.")
+                }
+                return
+            }
             setError(errorMessage)
         } finally {
             setLoading(false)
         }
     }
 
+    const wakeRetry = async () => {
+        setError(''); setWaking(true)
+        const ok = await wakeBackend(75_000)
+        setWaking(false)
+        if (ok) {
+            setLoading(true)
+            try { await doLogin() }
+            catch (e) { setError((e instanceof Error ? e.message : 'Login failed.')) }
+            finally { setLoading(false) }
+        } else {
+            setError("Backend still not responding after 75 seconds.")
+        }
+    }
+
     return (
         <div className="w-full">
-            {error && (
+            {waking && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-xl mb-4 text-sm inline-flex items-start gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin mt-0.5 flex-shrink-0" />
+                    <div>
+                        <p className="font-bold">Waking the server…</p>
+                        <p className="text-xs mt-0.5">Render free-tier cold start — up to 60 seconds. We&apos;ll log you in automatically once it&apos;s awake.</p>
+                    </div>
+                </div>
+            )}
+            {error && !waking && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">
-                    {error}
+                    <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                            <p>{error}</p>
+                            {/couldn'?t reach|failed to fetch|not responding/i.test(error) && (
+                                <button onClick={wakeRetry} type="button"
+                                    className="mt-2 inline-flex items-center gap-1.5 bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
+                                    <RefreshCw className="w-3.5 h-3.5" /> Wake server &amp; try again
+                                </button>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 

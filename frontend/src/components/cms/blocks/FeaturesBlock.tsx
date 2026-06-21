@@ -169,8 +169,17 @@ export default function FeaturesBlock({ data }: FeaturesBlockProps) {
                         );
 
                         if (feature.link) {
+                            // Auto-rewrite legacy CMS links that point at routes
+                            // we never built. Saves admins from having to edit
+                            // every saved block by hand.
+                            const LEGACY_REDIRECTS: Record<string, string> = {
+                                '/download/bulletin': '/download',
+                                '/sermons/notes': '/sermons',
+                                '/connect': '/onboarding',
+                            };
+                            const href = LEGACY_REDIRECTS[feature.link] || feature.link;
                             return (
-                                <Link href={feature.link} key={idx} className="block group h-full">
+                                <Link href={href} key={idx} className="block group h-full">
                                     {content}
                                 </Link>
                             );
