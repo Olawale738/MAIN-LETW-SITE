@@ -182,10 +182,14 @@ async def init_db():
                 ("users", "continent", "VARCHAR(40)"),
             ]
 
-            # NOTE: use literal SQL (not bind params) so asyncpg doesn't create
-            # prepared statements. PgBouncer in transaction-pool mode reuses
-            # connections across transactions, and asyncpg's prepared statement
-            # names collide across them, causing DuplicatePreparedStatementError.
+            # NOTE: ALTER TABLE ... ADD COLUMN IF NOT EXISTS is idempotent in
+            # Postgres on its own — we used to run a SELECT against
+            # information_schema first, but the check-then-add pattern was
+            # tripping pgbouncer's transaction-pool mode (prepared statement
+            # name collisions). Dropping the check means one fewer prepared
+            # statement per column, and the IF NOT EXISTS guard still keeps
+            # the operation idempotent.
+            #
             # Inputs come from the trusted missing_columns list above, so there
             # is no SQL injection surface here.
             #
@@ -194,22 +198,14 @@ async def init_db():
             # this restart, but the app still boots and serves requests.
             for table, column, col_def in missing_columns:
                 try:
-                    t_lit = table.replace("'", "''")
-                    c_lit = column.replace("'", "''")
-                    check = await conn.execute(text(
-                        "SELECT 1 FROM information_schema.columns "
-                        "WHERE table_schema = 'public' "
-                        f"AND table_name = '{t_lit}' AND column_name = '{c_lit}'"
+                    await conn.execute(text(
+                        f'ALTER TABLE IF EXISTS public."{table}" ADD COLUMN IF NOT EXISTS {column} {col_def}'
                     ))
-                    if check.fetchone() is None:
-                        print(f"[init_db] Adding missing column {table}.{column}", flush=True)
-                        await conn.execute(text(
-                            f'ALTER TABLE public."{table}" ADD COLUMN IF NOT EXISTS {column} {col_def}'
-                        ))
-                        await conn.commit()
+                    await conn.commit()
+                    print(f"[init_db] ensured column {table}.{column}", flush=True)
                 except Exception as col_err:
                     # Log and continue — never let migration crash startup
-                    print(f"[init_db] WARN: column-check skipped for {table}.{column}: {type(col_err).__name__}", flush=True)
+                    print(f"[init_db] WARN: ALTER {table}.{column} skipped: {type(col_err).__name__}: {col_err}", flush=True)
 
         print("[init_db] Database tables initialised successfully", flush=True)
     except Exception as e:
