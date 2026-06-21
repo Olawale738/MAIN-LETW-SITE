@@ -176,6 +176,10 @@ async def init_db():
                 ("online_services", "event_id",        "VARCHAR(36)"),
                 # Site settings: where to show the floating live banner
                 ("site_settings", "live_banner_mode",  "VARCHAR(20) DEFAULT 'floating'"),
+                # Users — country segmentation captured at signup
+                ("users", "country_code", "VARCHAR(2)"),
+                ("users", "country_name", "VARCHAR(120)"),
+                ("users", "continent", "VARCHAR(40)"),
             ]
 
             # NOTE: use literal SQL (not bind params) so asyncpg doesn't create

@@ -1,26 +1,11 @@
 import { Block } from './api';
 
 export const DEFAULT_HOME_BLOCKS: Block[] = [
-    // NOTE: the hero slider that used to live here is replaced by the
-    // dedicated <PremiumHero /> video stage mounted directly in the homepage
-    // (see frontend/src/app/page.tsx). All eyebrow / title / CTA messaging
-    // is now expressed there. Removing this block also fixes a duplicate-
-    // hero issue admins reported.
-    {
-        id: 'home-actions',
-        type: 'button-group',
-        data: {
-            bg_color: 'dark',
-            title: "How Can We Help You Today?",
-            subtitle: "Take your next step with us.",
-            buttons: [
-                { text: "Become a Member", link: "/join", type: 'solid' },
-                { text: "Prayer Request", link: "/prayer-request", type: 'solid' },
-                { text: "Watch Sermons", link: "/sermons", type: 'solid' },
-                { text: "Give", link: "/giving", type: 'solid' }
-            ]
-        }
-    },
+    // NOTE: the hero slider AND the 'How Can We Help You Today?' button group
+    // that used to live here are both replaced by the dedicated <PremiumHero />
+    // video stage mounted directly in the homepage (see app/page.tsx).
+    // The 4 quick-action CTAs (Become a Member · Prayer Request · Watch Sermons
+    // · Give) now slide inside the hero as an animated marquee strip.
     {
         id: 'home-marquee',
         type: 'scripture-marquee',

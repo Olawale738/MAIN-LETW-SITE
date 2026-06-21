@@ -41,34 +41,44 @@ class AuthService:
         )
         return result.scalar_one_or_none()
     
-    async def register_user(self, name: str, email: str) -> tuple[bool, str, Optional[User]]:
+    async def register_user(
+        self,
+        name: str,
+        email: str,
+        country_code: Optional[str] = None,
+        country_name: Optional[str] = None,
+        continent: Optional[str] = None,
+    ) -> tuple[bool, str, Optional[User]]:
         """
         Register a new user and send verification email.
-        
+
         Returns: (success, message, user)
         """
         email = email.lower().strip()
         name = name.strip()
-        
+
         # Check if user already exists
         existing_user = await self.get_user_by_email(email)
         if existing_user:
             if existing_user.status == UserStatus.PENDING:
                 # Resend verification email
                 token = await self._create_verification_token(
-                    existing_user.id, 
+                    existing_user.id,
                     TokenType.EMAIL_VERIFICATION
                 )
                 await send_verification_email(email, name, token)
                 return True, "Verification email resent. Please check your inbox.", existing_user
             else:
                 return False, "An account with this email already exists.", None
-        
+
         # Create new user
         user = User(
             name=name,
             email=email,
-            status=UserStatus.PENDING
+            status=UserStatus.PENDING,
+            country_code=(country_code or "").upper() or None,
+            country_name=country_name or None,
+            continent=continent or None,
         )
         
         self.db.add(user)

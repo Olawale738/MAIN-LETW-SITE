@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { authApi } from '@/lib/api'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Globe2 } from 'lucide-react'
+import { COUNTRIES, CONTINENTS, countriesIn, findCountry, type Continent } from '@/lib/countries'
 
 export default function RegisterForm() {
     const router = useRouter()
@@ -12,21 +13,32 @@ export default function RegisterForm() {
     const redirectPath = searchParams.get('redirect') || '/dashboard'
 
     const [formData, setFormData] = useState({ name: '', email: '' })
+    const [continent, setContinent] = useState<Continent | ''>('')
+    const [countryCode, setCountryCode] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
+    const country = findCountry(countryCode)
+    const countries = continent ? countriesIn(continent as Continent) : []
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (!continent || !countryCode) {
+            setError('Please select your continent and country so our pastoral team can connect you with the nearest branch.')
+            return
+        }
         setLoading(true)
         setError('')
 
         try {
             await authApi.register({
                 name: formData.name,
-                email: formData.email
+                email: formData.email,
+                country_code: countryCode,
+                country_name: country?.name,
+                continent: continent,
             })
 
-            // Redirect to verify email page
             const params = new URLSearchParams()
             params.set('email', formData.email)
             params.set('name', formData.name)
@@ -70,6 +82,34 @@ export default function RegisterForm() {
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-700 inline-flex items-center gap-1.5">
+                        <Globe2 className="w-3.5 h-3.5 text-[#f5bb00]" /> Continent <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                        required
+                        value={continent}
+                        onChange={(e) => { setContinent(e.target.value as Continent | ''); setCountryCode('') }}
+                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white text-gray-900 focus:ring-2 focus:ring-[#140152] focus:border-transparent transition-all">
+                        <option value="">Select continent…</option>
+                        {CONTINENTS.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-700 inline-flex items-center gap-1.5">
+                        Country <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                        required
+                        disabled={!continent}
+                        value={countryCode}
+                        onChange={(e) => setCountryCode(e.target.value)}
+                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white text-gray-900 focus:ring-2 focus:ring-[#140152] focus:border-transparent transition-all disabled:opacity-50">
+                        <option value="">{continent ? 'Select country…' : 'Pick a continent first'}</option>
+                        {countries.map(c => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
+                    </select>
                 </div>
 
                 <Button

@@ -32,6 +32,9 @@ export async function wakeBackend(maxMs = 60_000): Promise<boolean> {
 export interface RegisterRequest {
     name: string;
     email: string;
+    country_code?: string;
+    country_name?: string;
+    continent?: string;
 }
 
 export interface RegisterResponse {

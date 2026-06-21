@@ -15,6 +15,9 @@ class RegisterRequest(BaseModel):
     """Request schema for user registration."""
     name: str = Field(..., min_length=2, max_length=255, description="User's full name")
     email: EmailStr = Field(..., description="User's email address")
+    country_code: str | None = Field(default=None, min_length=2, max_length=2, description="ISO 3166-1 alpha-2")
+    country_name: str | None = Field(default=None, max_length=120)
+    continent: str | None = Field(default=None, max_length=40)
 
 
 class VerifyTokenRequest(BaseModel):

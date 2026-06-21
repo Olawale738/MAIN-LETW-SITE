@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import PremiumButton from '@/components/ui/PremiumButton'
 import SearchButton from '@/components/SearchButton'
-import { Menu, X, ChevronDown, GraduationCap, ArrowRight } from 'lucide-react'
+import { Menu, X, ChevronDown, GraduationCap, ArrowRight, LayoutGrid } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -136,6 +136,18 @@ export default function Navbar() {
                 )}
               </Link>
             ))}
+
+            {/* CHURCH APPS — compact icon button (no text, tooltip on hover) */}
+            <Link
+              href="/apps"
+              title="Church Apps"
+              className={cn(
+                "ml-1 inline-flex items-center justify-center w-9 h-9 rounded-full transition-colors",
+                pathname === '/apps' ? 'bg-[#140152]/5 text-[#140152]' : 'text-gray-500 hover:text-[#140152] hover:bg-gray-100/50'
+              )}>
+              <LayoutGrid className="w-4 h-4" />
+              <span className="sr-only">Church Apps</span>
+            </Link>
 
             {/* MINISTRIES DROPDOWN */}
             <div

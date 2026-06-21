@@ -39,7 +39,12 @@ async def register(
     Sends a verification email with a link to set password.
     """
     auth_service = AuthService(db)
-    success, message, user = await auth_service.register_user(request.name, request.email)
+    success, message, user = await auth_service.register_user(
+        request.name, request.email,
+        country_code=request.country_code,
+        country_name=request.country_name,
+        continent=request.continent,
+    )
     
     if not success:
         raise HTTPException(

@@ -106,6 +106,22 @@ class User(Base):
         String(255),
         nullable=True,
     )
+    # ISO 3166-1 alpha-2 country code (e.g. NG, US, GB). Captured at signup so
+    # admins can segment members by country/continent.
+    country_code: Mapped[str | None] = mapped_column(
+        String(2),
+        nullable=True,
+        index=True,
+    )
+    country_name: Mapped[str | None] = mapped_column(
+        String(120),
+        nullable=True,
+    )
+    continent: Mapped[str | None] = mapped_column(
+        String(40),
+        nullable=True,
+        index=True,
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
