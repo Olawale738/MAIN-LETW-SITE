@@ -185,13 +185,24 @@ export default function ServicesPage() {
             Read powerful stories of how God is moving in the lives of our members. Share your own story to encourage others.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-
             <Card className="hover:shadow-lg transition-all border-none">
               <CardHeader>
                 <CardTitle className="text-[#140152]">Share Yours and read that of others</CardTitle>
               </CardHeader>
               <CardContent>
                 <PremiumButton href="/testimony">Submit and Read Testimonies</PremiumButton>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-all border-none">
+              <CardHeader>
+                <CardTitle className="text-[#140152]">Free Resources &amp; Downloads</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                  Sermons, devotionals, study guides, music, and bulletins — free for the journey.
+                </p>
+                <PremiumButton href="/download">Browse Free Resources</PremiumButton>
               </CardContent>
             </Card>
           </div>
