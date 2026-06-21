@@ -10,6 +10,7 @@ import DailyVerseWidget from '@/components/widgets/DailyVerseWidget'
 import SeasonalBanner from '@/components/seasonal/SeasonalBanner'
 import PremiumHero from '@/components/home/PremiumHero'
 import WorldwideReach from '@/components/home/WorldwideReach'
+import ConnectAndGrow from '@/components/home/ConnectAndGrow'
 
 export default function HomePage() {
     const [blocks, setBlocks] = useState<Block[]>([])
@@ -77,6 +78,7 @@ export default function HomePage() {
                         <SeasonalBanner />
                         <PremiumHero />
                         <PageRenderer blocks={blocks} />
+                        <ConnectAndGrow />
                         <WorldwideReach />
                         <DailyVerseWidget />
                     </motion.div>

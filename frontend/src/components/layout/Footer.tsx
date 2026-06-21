@@ -116,6 +116,12 @@ export default function Footer() {
                 { name: 'Volunteer', href: '/volunteer' },
                 { name: 'New here? Start here', href: '/onboarding' },
                 { name: 'Free Resources & Downloads', href: '/download' },
+                { name: 'Small Groups', href: '/groups' },
+                { name: 'Member Directory', href: '/family' },
+                { name: 'Grow — Verses & Habits', href: '/grow' },
+                { name: 'Virtual Church Tour', href: '/tour' },
+                { name: 'Voice & Smart Speakers', href: '/voice' },
+                { name: 'Sermon Podcast (RSS)', href: '/sermons/podcast.xml' },
                 { name: 'Lent · 40 Days', href: '/lent' },
                 { name: 'Contact', href: '/contact' },
               ].map((link) => (

@@ -34,11 +34,22 @@ const educationLinks = [
   { name: 'Theology School', href: '/education/theology-school' },
 ]
 
+const connectLinks = [
+  { name: 'Small Groups',         href: '/groups',     hint: 'Find your people' },
+  { name: 'Member Directory',     href: '/family',     hint: 'Meet the family' },
+  { name: 'Grow — Verses + Habits', href: '/grow',     hint: 'Personal growth' },
+  { name: 'Virtual Church Tour',  href: '/tour',       hint: 'Walk the campus' },
+  { name: 'Voice & Smart Speakers', href: '/voice',    hint: 'Hear the Word' },
+  { name: 'Free Resources & Downloads', href: '/download', hint: 'PDFs · audio · video' },
+  { name: 'Church Apps',          href: '/apps',       hint: 'All our apps' },
+]
+
 export default function Navbar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [isEducationHovered, setIsEducationHovered] = useState(false)
   const [isMinistriesHovered, setIsMinistriesHovered] = useState(false)
+  const [isConnectHovered, setIsConnectHovered] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
@@ -188,6 +199,48 @@ export default function Navbar() {
               </AnimatePresence>
             </div>
 
+            {/* CONNECT DROPDOWN — surfaces all new community + growth features */}
+            <div
+              className="relative px-2"
+              onMouseEnter={() => setIsConnectHovered(true)}
+              onMouseLeave={() => setIsConnectHovered(false)}
+            >
+              <button className={cn(
+                "flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-full transition-colors outline-none",
+                isConnectHovered || ['/groups','/family','/grow','/tour','/voice','/download','/apps'].some(p => pathname?.startsWith(p))
+                  ? "text-[#140152] bg-[#140152]/5" : "text-gray-600 hover:bg-gray-100/50"
+              )}>
+                Connect <ChevronDown className={cn("w-4 h-4 transition-transform duration-300", isConnectHovered && "rotate-180")} />
+              </button>
+
+              <AnimatePresence>
+                {isConnectHovered && (
+                  <motion.div
+                    initial="closed"
+                    animate="open"
+                    exit="closed"
+                    variants={dropdownVariants}
+                    className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden p-2"
+                    style={{ transformOrigin: "top right" }}
+                  >
+                    {connectLinks.map((item) => (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className="flex items-start gap-3 px-4 py-3 text-sm text-gray-600 hover:text-[#140152] hover:bg-gray-50 rounded-xl transition-colors group"
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#f5bb00] mt-2 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-bold text-[#140152] leading-tight">{item.name}</p>
+                          <p className="text-[11px] text-gray-400 leading-tight">{item.hint}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {/* EDUCATION DROPDOWN */}
             <div
               className="relative px-2"
@@ -302,8 +355,25 @@ export default function Navbar() {
                 </div>
               </motion.div>
 
-              {/* Mobile Education Section */}
+              {/* Mobile Connect Section */}
               <motion.div custom={navLinks.length + 1} variants={linkVariants} className="pt-4">
+                <p className="text-sm font-bold text-[#f5bb00] uppercase tracking-widest mb-4">Connect</p>
+                <div className="grid grid-cols-1 gap-3 pl-4 border-l-2 border-gray-100">
+                  {connectLinks.map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setIsOpen(false)}
+                      className="text-lg font-medium text-gray-600 hover:text-[#140152]"
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Mobile Education Section */}
+              <motion.div custom={navLinks.length + 2} variants={linkVariants} className="pt-4">
                 <p className="text-sm font-bold text-[#f5bb00] uppercase tracking-widest mb-4">Education</p>
                 <div className="grid grid-cols-1 gap-3 pl-4 border-l-2 border-gray-100">
                   {educationLinks.map((item) => (

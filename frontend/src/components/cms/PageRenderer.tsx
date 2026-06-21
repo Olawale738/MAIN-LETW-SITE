@@ -63,12 +63,20 @@ export default function PageRenderer({ blocks }: PageRendererProps) {
                     return null;
                 }
 
-                // Suppress the deprecated 'How Can We Help You Today?' button group
-                // even if it's still saved in admin's CMS DB. The four CTAs are
-                // surfaced inside PremiumHero on the homepage now.
-                if (block.type === 'button-group') {
-                    const title = String((block.data as { title?: string })?.title || '').toLowerCase();
-                    if (title.includes('how can we help')) return null;
+                // Suppress the deprecated 'How Can We Help You Today?' block
+                // regardless of how it was saved. Match by title OR by the
+                // signature 4-button payload (Become a Member / Prayer Request
+                // / Watch Sermons / Give) so re-rendered legacy variants are
+                // caught too.
+                const d = (block.data || {}) as { title?: string; subtitle?: string; buttons?: { text?: string }[] };
+                const title = String(d.title || '').toLowerCase();
+                const subtitle = String(d.subtitle || '').toLowerCase();
+                if (title.includes('how can we help') || subtitle.includes('take your next step with us')) return null;
+                if (Array.isArray(d.buttons)) {
+                    const labels = d.buttons.map(b => String(b?.text || '').toLowerCase().trim());
+                    const signature = ['become a member', 'prayer request', 'watch sermons', 'give'];
+                    const matches = signature.filter(s => labels.includes(s)).length;
+                    if (matches >= 3) return null;
                 }
 
                 return <Component key={block.id} data={block.data} />;
