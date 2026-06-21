@@ -64,11 +64,8 @@ export default function PageRenderer({ blocks }: PageRendererProps) {
                 }
 
                 // Suppress the deprecated 'How Can We Help You Today?' block
-                // regardless of how it was saved. Match by title OR by the
-                // signature 4-button payload (Become a Member / Prayer Request
-                // / Watch Sermons / Give) so re-rendered legacy variants are
-                // caught too.
-                const d = (block.data || {}) as { title?: string; subtitle?: string; buttons?: { text?: string }[] };
+                // regardless of how it was saved.
+                const d = (block.data || {}) as { title?: string; subtitle?: string; buttons?: { text?: string }[]; slides?: { title?: string; eyebrow?: string }[] };
                 const title = String(d.title || '').toLowerCase();
                 const subtitle = String(d.subtitle || '').toLowerCase();
                 if (title.includes('how can we help') || subtitle.includes('take your next step with us')) return null;
@@ -77,6 +74,13 @@ export default function PageRenderer({ blocks }: PageRendererProps) {
                     const signature = ['become a member', 'prayer request', 'watch sermons', 'give'];
                     const matches = signature.filter(s => labels.includes(s)).length;
                     if (matches >= 3) return null;
+                }
+                // Suppress the legacy 'Encounter the Light of God' hero-slider
+                // saved before PremiumHero replaced it. PremiumHero is now THE
+                // homepage hero — the slider would duplicate the message.
+                if (block.type === 'hero-slider' && Array.isArray(d.slides)) {
+                    const heroTitles = d.slides.map(s => String(s?.title || s?.eyebrow || '').toLowerCase()).join(' ');
+                    if (heroTitles.includes('encounter the light') || heroTitles.includes('welcome to letw')) return null;
                 }
 
                 return <Component key={block.id} data={block.data} />;

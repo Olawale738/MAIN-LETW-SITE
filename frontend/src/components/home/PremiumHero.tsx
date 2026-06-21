@@ -6,27 +6,32 @@ import { ArrowRight, Play, Calendar, Volume2, VolumeX } from 'lucide-react'
 /**
  * Hillsong-style cinematic video hero.
  *
- * - Full-screen autoplaying silent background video with poster fallback
- * - Strong gradient overlay so type stays legible against any frame
- * - Centered serif headline + sans subtitle
- * - Merged messaging: identity (LETW) + invitation (Sundays + welcome + watch)
- * - Mute toggle + scroll cue + light particles for depth
+ * Video resolution order (first non-empty wins):
+ *   1. videoUrl prop
+ *   2. NEXT_PUBLIC_HERO_VIDEO_URL env var (set in Vercel → no code edit needed)
+ *   3. /hero-bg.mp4 in /public if the file exists (graceful 404 falls through)
+ *   4. The poster image with a slow Ken Burns zoom for cinematic motion
  *
- * Pass `videoUrl` to wire up a custom hero video. Defaults to a beautiful
- * gradient field with cinematic motion if no video is supplied.
+ * Strong overlay + ambient orbs + drifting light particles guarantee the
+ * hero feels like a film stage even without a video file.
  */
 
 interface Props {
-    /** mp4 / webm URL. If omitted, a poster + gradient stage renders. */
+    /** mp4 / webm URL. If omitted, NEXT_PUBLIC_HERO_VIDEO_URL is tried, then poster. */
     videoUrl?: string
     /** Poster shown until the video can play. */
     posterUrl?: string
 }
 
 export default function PremiumHero({
-    videoUrl,
+    videoUrl: videoUrlProp,
     posterUrl = '/9.png',
 }: Props) {
+    // Layered fallback so admins can wire a video without code changes
+    const videoUrl = videoUrlProp
+        || process.env.NEXT_PUBLIC_HERO_VIDEO_URL
+        || '/hero-bg.mp4'    // drop a file at /public/hero-bg.mp4 to enable
+    const [videoFailed, setVideoFailed] = useState(false)
     const [muted, setMuted] = useState(true)
     const [canPlay, setCanPlay] = useState(false)
     const [scrolled, setScrolled] = useState(false)
@@ -48,8 +53,8 @@ export default function PremiumHero({
 
     return (
         <section className="relative w-full overflow-hidden bg-[#06002a]" style={{ minHeight: '100vh' }}>
-            {/* — 1 · Background video with poster fallback — */}
-            {videoUrl ? (
+            {/* — 1 · Background video — falls through to Ken Burns poster if absent — */}
+            {videoUrl && !videoFailed ? (
                 <video
                     ref={videoRef}
                     autoPlay
@@ -58,15 +63,20 @@ export default function PremiumHero({
                     playsInline
                     poster={posterUrl}
                     onCanPlay={() => setCanPlay(true)}
+                    onError={() => setVideoFailed(true)}
                     className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${canPlay ? 'opacity-60' : 'opacity-0'}`}>
                     <source src={videoUrl} type="video/mp4" />
                 </video>
             ) : null}
 
-            {/* Fallback poster + gradient (always rendered behind the video) */}
+            {/* Fallback poster with slow Ken Burns zoom — fakes the feel of a video */}
             <div className="absolute inset-0 pointer-events-none">
                 {posterUrl && (
-                    <img src={posterUrl} alt="" className="w-full h-full object-cover opacity-40" />
+                    <img
+                        src={posterUrl}
+                        alt=""
+                        className={`w-full h-full object-cover transition-opacity duration-1000 ${(!videoUrl || videoFailed || !canPlay) ? 'opacity-50 animate-[kenBurns_28s_ease-in-out_infinite_alternate]' : 'opacity-0'}`}
+                    />
                 )}
                 <div
                     className="absolute inset-0"
@@ -193,6 +203,11 @@ export default function PremiumHero({
                     8%   { opacity: 0.6; }
                     90%  { opacity: 0.6; }
                     100% { transform: translateY(-110vh) translateX(40px); opacity: 0; }
+                }
+                @keyframes kenBurns {
+                    0%   { transform: scale(1.05) translate(0, 0); }
+                    50%  { transform: scale(1.18) translate(-2%, -1.5%); }
+                    100% { transform: scale(1.05) translate(2%, 1.5%); }
                 }
             `}</style>
         </section>
