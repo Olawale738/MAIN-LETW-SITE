@@ -66,6 +66,149 @@ export default function DiagnosticsPage() {
     }
 
     return (
+        <DiagnosticsView
+            status={status} latency={latency} body={body} errMsg={errMsg}
+            history={history} onPing={() => ping()} onCopy={copyUrl}
+        />
+    )
+}
+
+interface DiagnosticsViewProps {
+    status: Status
+    latency: number | null
+    body: string
+    errMsg: string
+    history: Array<{ at: string; ok: boolean; ms: number | null; msg?: string }>
+    onPing: () => void
+    onCopy: () => void
+}
+
+function DiagnosticsView({ status, latency, body, errMsg, history, onPing, onCopy }: DiagnosticsViewProps) {
+    // ─── Endpoint probe ──────────────────────────────────────────────────
+    // Lets admin test a specific failing endpoint (defaults to run-tick) so
+    // they can see exactly what the server returns: status code, body, CORS
+    // headers, and whether the auth token was actually attached.
+    const [probePath, setProbePath] = useState('/api/welcome-flow/run-tick')
+    const [probeMethod, setProbeMethod] = useState<'GET' | 'POST'>('POST')
+    const [probing, setProbing] = useState(false)
+    const [probeResult, setProbeResult] = useState<null | {
+        url: string; method: string;
+        status: number | null; statusText: string;
+        elapsedMs: number; bodyText: string; corsOrigin: string | null;
+        authAttached: boolean; error?: string;
+    }>(null)
+
+    const runProbe = async () => {
+        setProbing(true); setProbeResult(null)
+        const url = `${API_BASE.replace(/\/api\/?$/, '')}${probePath.startsWith('/') ? '' : '/'}${probePath}`
+        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null
+        const start = performance.now()
+        try {
+            const res = await fetch(url, {
+                method: probeMethod,
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                cache: 'no-store',
+            })
+            const text = await res.text().catch(() => '')
+            setProbeResult({
+                url, method: probeMethod,
+                status: res.status, statusText: res.statusText,
+                elapsedMs: Math.round(performance.now() - start),
+                bodyText: text.slice(0, 2000),
+                corsOrigin: res.headers.get('access-control-allow-origin'),
+                authAttached: !!token,
+            })
+        } catch (e) {
+            setProbeResult({
+                url, method: probeMethod,
+                status: null, statusText: 'fetch threw',
+                elapsedMs: Math.round(performance.now() - start),
+                bodyText: '', corsOrigin: null,
+                authAttached: !!token,
+                error: (e as Error).message,
+            })
+        } finally {
+            setProbing(false)
+        }
+    }
+
+    const verdict = (() => {
+        if (!probeResult) return null
+        if (probeResult.error) {
+            return { kind: 'cors-or-network', msg: "Browser blocked the request before any response — likely a CORS preflight failure or the server isn't reachable." }
+        }
+        if (probeResult.status === 401) return { kind: 'auth', msg: 'Backend rejected the request (401). Your admin token is missing or expired — sign out and back in.' }
+        if (probeResult.status === 403) return { kind: 'auth', msg: 'Signed in but not authorized (403). Make sure your user has the admin role.' }
+        if (probeResult.status === 404) return { kind: 'route', msg: 'Backend says the route does not exist (404). Render may be running an older deploy — trigger a manual redeploy.' }
+        if (probeResult.status === 405) return { kind: 'method', msg: `Backend rejected the HTTP method (405). Tried ${probeResult.method}; try the other method.` }
+        if (probeResult.status === 500) return { kind: 'crash', msg: 'Backend exception (500). Check Render logs for the traceback.' }
+        if (probeResult.status === 503) return { kind: 'down', msg: 'Service unavailable (503) — Render is starting up. Try once more in 30s.' }
+        if (probeResult.status && probeResult.status >= 200 && probeResult.status < 300) return { kind: 'ok', msg: 'Endpoint is healthy — the original error has been resolved or was transient.' }
+        return { kind: 'other', msg: `Non-success response (${probeResult.status})` }
+    })()
+
+    return (
+        <DiagnosticsLayout
+            status={status} latency={latency} body={body} errMsg={errMsg}
+            history={history} onPing={onPing} onCopy={onCopy}
+        >
+            <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-5">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-3">Probe a specific endpoint</p>
+                <p className="text-xs text-gray-500 mb-3">Replays the request that&apos;s failing with whatever auth token you currently have, and shows the raw server response.</p>
+                <div className="flex gap-2 flex-wrap items-end">
+                    <div className="flex-1 min-w-[260px]">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block mb-1">Path</label>
+                        <input value={probePath} onChange={e => setProbePath(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block mb-1">Method</label>
+                        <select value={probeMethod} onChange={e => setProbeMethod(e.target.value as 'GET' | 'POST')}
+                            className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
+                            <option>POST</option>
+                            <option>GET</option>
+                        </select>
+                    </div>
+                    <button onClick={runProbe} disabled={probing} className="bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-4 py-2 rounded-lg text-sm disabled:opacity-50">
+                        {probing ? <Loader2 className="w-4 h-4 animate-spin inline" /> : 'Run probe'}
+                    </button>
+                </div>
+
+                {probeResult && (
+                    <div className="mt-4 space-y-3">
+                        {verdict && (
+                            <div className={`p-3 rounded-xl border flex items-start gap-2 text-sm ${verdict.kind === 'ok' ? 'bg-green-50 border-green-200 text-green-900' : verdict.kind === 'auth' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-red-50 border-red-200 text-red-900'}`}>
+                                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="font-black">Verdict: {verdict.kind}</p>
+                                    <p className="text-xs mt-1">{verdict.msg}</p>
+                                </div>
+                            </div>
+                        )}
+                        <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-mono space-y-1">
+                            <p><span className="text-gray-400">URL</span> {probeResult.url}</p>
+                            <p><span className="text-gray-400">Method</span> {probeResult.method}</p>
+                            <p><span className="text-gray-400">Status</span> {probeResult.status ?? '(no response)'} {probeResult.statusText}</p>
+                            <p><span className="text-gray-400">Elapsed</span> {probeResult.elapsedMs}ms</p>
+                            <p><span className="text-gray-400">Auth attached</span> {probeResult.authAttached ? 'yes — Bearer token from localStorage' : 'NO — no access_token in localStorage'}</p>
+                            <p><span className="text-gray-400">CORS allow-origin</span> {probeResult.corsOrigin || '(missing)'}</p>
+                            {probeResult.error && <p className="text-red-600"><span className="text-gray-400">Fetch error</span> {probeResult.error}</p>}
+                        </div>
+                        {probeResult.bodyText && (
+                            <div>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Response body</p>
+                                <pre className="text-[11px] bg-gray-50 border border-gray-100 rounded-lg p-3 overflow-x-auto font-mono text-gray-700 max-h-60">{probeResult.bodyText}</pre>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </DiagnosticsLayout>
+    )
+}
+
+function DiagnosticsLayout({ status, latency, body, errMsg, history, onPing, onCopy, children }: DiagnosticsViewProps & { children?: React.ReactNode }) {
+
+    return (
         <div className="p-4 sm:p-6 max-w-5xl mx-auto pb-20">
             <div className="mb-6">
                 <h1 className="text-3xl font-black text-[#140152] flex items-center gap-3"><Activity className="w-7 h-7 text-[#f5bb00]" /> Backend Diagnostics</h1>
@@ -98,12 +241,14 @@ export default function DiagnosticsPage() {
                         </p>
                         {errMsg && <p className="text-xs text-red-700 mt-2 font-mono break-all">{errMsg}</p>}
                     </div>
-                    <button onClick={() => ping()} disabled={status === 'pinging'}
+                    <button onClick={onPing} disabled={status === 'pinging'}
                         className="bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-3 rounded-xl text-sm disabled:opacity-50">
                         {status === 'pinging' ? <Loader2 className="w-4 h-4 inline animate-spin" /> : 'Ping again'}
                     </button>
                 </div>
             </div>
+
+            {children}
 
             {/* What the frontend is configured with */}
             <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-5">
