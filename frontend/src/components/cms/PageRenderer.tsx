@@ -63,6 +63,14 @@ export default function PageRenderer({ blocks }: PageRendererProps) {
                     return null;
                 }
 
+                // Suppress the deprecated 'How Can We Help You Today?' button group
+                // even if it's still saved in admin's CMS DB. The four CTAs are
+                // surfaced inside PremiumHero on the homepage now.
+                if (block.type === 'button-group') {
+                    const title = String((block.data as { title?: string })?.title || '').toLowerCase();
+                    if (title.includes('how can we help')) return null;
+                }
+
                 return <Component key={block.id} data={block.data} />;
             })}
         </div>

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Play, Calendar, Volume2, VolumeX, UserPlus, Heart, Mic2, Coins } from 'lucide-react'
+import { ArrowRight, Play, Calendar, Volume2, VolumeX } from 'lucide-react'
 
 /**
  * Hillsong-style cinematic video hero.
@@ -157,25 +157,6 @@ export default function PremiumHero({
                     </Link>
                 </div>
 
-                {/* Sliding quick-action CTA strip (replaces the old 'How Can We Help' section) */}
-                <div className="relative w-full max-w-3xl mx-auto mt-12 overflow-hidden">
-                    {/* Edge fades for cinematic marquee feel */}
-                    <div className="absolute left-0 top-0 bottom-0 w-12 z-10 bg-gradient-to-r from-[#06002a] to-transparent pointer-events-none" />
-                    <div className="absolute right-0 top-0 bottom-0 w-12 z-10 bg-gradient-to-l from-[#06002a] to-transparent pointer-events-none" />
-
-                    <div className="flex gap-3 animate-[heroMarquee_24s_linear_infinite] w-max">
-                        {/* Render the CTA set twice so the loop is seamless */}
-                        {[0, 1].map(loop => (
-                            <div key={loop} className="flex gap-3 shrink-0">
-                                <QuickCta href="/join" icon={<UserPlus className="w-3.5 h-3.5" />} label="Become a Member" />
-                                <QuickCta href="/prayer-request" icon={<Heart className="w-3.5 h-3.5" />} label="Prayer Request" />
-                                <QuickCta href="/sermons" icon={<Mic2 className="w-3.5 h-3.5" />} label="Watch Sermons" />
-                                <QuickCta href="/giving" icon={<Coins className="w-3.5 h-3.5" />} label="Give" />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
                 {/* Mute toggle (only when a video is actually playing) */}
                 {videoUrl && (
                     <button onClick={toggleMute} aria-label={muted ? 'Unmute video' : 'Mute video'}
@@ -213,20 +194,7 @@ export default function PremiumHero({
                     90%  { opacity: 0.6; }
                     100% { transform: translateY(-110vh) translateX(40px); opacity: 0; }
                 }
-                @keyframes heroMarquee {
-                    from { transform: translateX(0); }
-                    to   { transform: translateX(-50%); }
-                }
             `}</style>
         </section>
-    )
-}
-
-function QuickCta({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
-    return (
-        <Link href={href}
-            className="inline-flex items-center gap-2 bg-white/10 hover:bg-[#f5bb00] hover:text-[#140152] text-white/90 font-bold px-5 py-2.5 rounded-full text-xs uppercase tracking-[0.2em] border border-white/15 backdrop-blur-md transition-all whitespace-nowrap">
-            {icon} {label}
-        </Link>
     )
 }
