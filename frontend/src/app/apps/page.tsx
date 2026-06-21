@@ -16,6 +16,17 @@ type AppEntry = {
     pulse?: boolean        // for "live" apps
 }
 
+/** Render a 'host/path' style label that works for both absolute and relative URLs. */
+function appLabel(url: string): string {
+    try {
+        const u = new URL(url)
+        return `${u.hostname}${u.pathname !== '/' ? u.pathname : ''}`
+    } catch {
+        // Relative URL (e.g. /groups) — show it as-is with the site host
+        return `letw.org${url}`
+    }
+}
+
 const APPS: AppEntry[] = [
     {
         name: 'LETW Radio',
@@ -346,7 +357,7 @@ function AppCard({ app, delay }: { app: AppEntry; delay: number }) {
 
                     {/* CTA */}
                     <div className="mt-6 flex items-center justify-between">
-                        <span className="text-xs font-mono text-white/40 truncate max-w-[180px]">{new URL(app.url).hostname}{new URL(app.url).pathname !== '/' ? new URL(app.url).pathname : ''}</span>
+                        <span className="text-xs font-mono text-white/40 truncate max-w-[180px]">{appLabel(app.url)}</span>
                         <span className={`w-9 h-9 rounded-full bg-white/10 group-hover:bg-gradient-to-br ${app.accent} flex items-center justify-center transition-all group-hover:rotate-45`}>
                             <ArrowUpRight className="w-4 h-4 text-white" />
                         </span>
