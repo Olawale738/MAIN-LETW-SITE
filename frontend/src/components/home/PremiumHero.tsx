@@ -28,9 +28,20 @@ export default function PremiumHero({
     posterUrl = '/9.png',
 }: Props) {
     // Layered fallback so admins can wire a video without code changes
+    //   1. videoUrl prop
+    //   2. NEXT_PUBLIC_HERO_VIDEO_URL env var (recommended — set in Vercel)
+    //   3. /hero-bg.mp4 in /public (drop the file, no config)
+    //   4. The DEFAULT_FALLBACK_VIDEO below — a free Pexels worship clip
+    //
+    // The Pexels default is hardcoded so the hero is dynamic out of the
+    // box. Pexels videos are free for commercial use; the church should
+    // still replace with their own footage when ready. If the URL 404s
+    // (CDN change, network block), the onError handler falls through to
+    // the Ken Burns poster — no broken state.
+    const DEFAULT_FALLBACK_VIDEO = 'https://videos.pexels.com/video-files/7515918/7515918-uhd_2560_1440_25fps.mp4'
     const videoUrl = videoUrlProp
         || process.env.NEXT_PUBLIC_HERO_VIDEO_URL
-        || '/hero-bg.mp4'    // drop a file at /public/hero-bg.mp4 to enable
+        || DEFAULT_FALLBACK_VIDEO
     const [videoFailed, setVideoFailed] = useState(false)
     const [muted, setMuted] = useState(true)
     const [canPlay, setCanPlay] = useState(false)
