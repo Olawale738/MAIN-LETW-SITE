@@ -68,7 +68,7 @@ export const PUBLIC_PAGES: PublicPage[] = [
     { slug: 'bible-reading', title: 'Bible Reading Plans', path: '/bible-reading',     category: 'Resources',  editorKind: 'overlay-only' },
     { slug: 'career-guidance', title: 'Career Guidance',   path: '/career-guidance',   category: 'Resources',  editorKind: 'overlay-only' },
     { slug: 'skill-development', title: 'Skill Development', path: '/skill-development', category: 'Resources', editorKind: 'overlay-only' },
-    { slug: 'download',      title: 'Download',            path: '/download',          category: 'Resources',  editorKind: 'overlay-only' },
+    { slug: 'download',      title: 'Downloads',           path: '/download',          category: 'Resources',  editorKind: 'dedicated', editorHref: '/admin/downloads', notes: 'Upload PDFs / docs / audio / video / paste external links.' },
     { slug: 'privacy',       title: 'Privacy Policy',      path: '/privacy',           category: 'Account',    editorKind: 'dedicated', editorHref: '/admin/legal', notes: 'Edit at Legal Pages.' },
     { slug: 'intercessor',   title: 'Intercessor Portal',  path: '/intercessor',       category: 'Account',    editorKind: 'overlay-only' },
 ]

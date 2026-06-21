@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { cmsApi, Block } from '@/lib/api'
-import { Loader2, Save, LayoutTemplate, Eye } from 'lucide-react'
+import { Loader2, Save, LayoutTemplate, Eye, Upload, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 import { useToast } from '@/components/ui/toast'
 import PageBuilder from '@/components/admin/cms/PageBuilder'
 import { DEFAULT_HOME_BLOCKS, DEFAULT_ABOUT_BLOCKS, DEFAULT_IMPACT_BLOCKS, DEFAULT_SUNDAY_SERVICE_BLOCKS, DEFAULT_EVANGELISM_BLOCKS, DEFAULT_DOWNLOAD_BLOCKS, DEFAULT_ONBOARDING_BLOCKS, DEFAULT_LENT_BLOCKS } from '@/lib/cmsDefaults'
@@ -108,9 +109,33 @@ export default function GenericPageEditor() {
 
     if (loading) return <div className="text-center py-20"><Loader2 className="w-10 h-10 animate-spin mx-auto text-blue-900" /></div>
 
+    // If the slug has a separate dedicated editor for content of a different
+    // kind (files, sermons, events, etc.), surface a banner pointing there so
+    // admins don't get stuck on the wrong page.
+    const COMPANION_EDITOR: Record<string, { href: string; label: string; hint: string }> = {
+        download: { href: '/admin/downloads', label: 'Upload files & links', hint: 'This is the layout/section editor. To upload PDFs, audio, video, or paste external links, use the dedicated Downloads admin.' },
+        sermons: { href: '/admin/sermons', label: 'Manage sermons', hint: 'Add/edit individual sermons here.' },
+        events: { href: '/admin/events', label: 'Manage events', hint: 'Add/edit calendar events here.' },
+        blog: { href: '/admin/blog', label: 'Manage posts', hint: 'Add/edit individual blog posts here.' },
+    }
+    const companion = COMPANION_EDITOR[slug]
+
     return (
         <div className="space-y-8 max-w-5xl mx-auto pb-20">
             <ToastComponent />
+
+            {companion && (
+                <div className="rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-4 flex items-start gap-3 mt-2">
+                    <Upload className="w-5 h-5 text-blue-700 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                        <p className="font-black text-blue-900 text-sm">Looking to upload? You&apos;re on the wrong page.</p>
+                        <p className="text-xs text-blue-800/80 leading-relaxed mt-1">{companion.hint}</p>
+                    </div>
+                    <Link href={companion.href} className="bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs px-4 py-2 rounded-lg inline-flex items-center gap-1.5 flex-shrink-0">
+                        {companion.label} <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                </div>
+            )}
             <div className="flex items-center justify-between sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10 py-4 border-b border-gray-200">
                 <div>
                     <h1 className="text-3xl font-bold text-[#140152]">Edit Page: {title || slug}</h1>
