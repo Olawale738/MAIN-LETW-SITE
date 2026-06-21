@@ -255,7 +255,7 @@ function DiagnosticsLayout({ status, latency, body, errMsg, history, onPing, onC
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-3">What the frontend calls</p>
                 <div className="space-y-2 text-sm">
                     <Row label="NEXT_PUBLIC_API_URL" value={API_BASE || '(empty — defaulting to localhost!)'} mono />
-                    <Row label="Health endpoint" value={HEALTH_URL} mono onCopy={copyUrl} />
+                    <Row label="Health endpoint" value={HEALTH_URL} mono onCopy={onCopy} />
                     <Row label="Frontend origin" value={typeof window !== 'undefined' ? window.location.origin : '(server-rendered)'} mono />
                 </div>
                 {!API_BASE && (
