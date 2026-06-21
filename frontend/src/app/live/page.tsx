@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Radio, Heart, Hand, Cross, CheckCircle2, Loader2, Calendar, Users, Send } from 'lucide-react'
 import { onlineCampusApi, type CurrentService } from '@/lib/api'
+import LiveCoExperience from '@/components/live/LiveCoExperience'
 import { useT } from '@/lib/i18n'
 
 const ALTAR_KINDS = [
@@ -91,6 +92,12 @@ export default function LivePage() {
                     </div>
                 ) : null}
             </section>
+
+            {service?.id && (
+                <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-20">
+                    <LiveCoExperience serviceId={service.id} />
+                </section>
+            )}
 
             {showAltar && <AltarCallModal serviceId={service?.id} onClose={() => setShowAltar(false)} />}
             {showRaiseHand && <RaiseHandModal serviceId={service?.id} onClose={() => setShowRaiseHand(false)} />}

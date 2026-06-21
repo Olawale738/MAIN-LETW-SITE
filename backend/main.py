@@ -272,6 +272,14 @@ app.include_router(small_groups_router.router)
 from routers import children_checkin as children_router
 app.include_router(children_router.router)
 
+# Live worship co-experience (chat + AI translated captions)
+from routers import live_chat as live_chat_router
+app.include_router(live_chat_router.router)
+
+# Member directory + safe messaging
+from routers import member_directory as directory_router
+app.include_router(directory_router.router)
+
 # User profile, activity, prayer wall
 try:
     from routers import profile as profile_router

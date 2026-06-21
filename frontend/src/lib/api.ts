@@ -2870,6 +2870,67 @@ export const conversionApi = {
     adminSweepDormant: () => fetchApi<{ moved: number }>('/conversion/admin/sweep-dormant', { method: 'POST' }),
 }
 
+// ─── Member Directory + Messaging ────────────────────────────────────────────
+
+export interface DirectoryProfile {
+    id: string; user_id: string; display_name: string;
+    city: string | null; country: string | null; bio: string | null;
+    gifts: string | null; languages: string | null; photo_url: string | null;
+    is_public: boolean; allow_messages: boolean; is_prayer_partner: boolean;
+    created_at: string; updated_at: string;
+}
+export interface DirectoryMessage {
+    id: string; sender_user_id: string; body: string;
+    is_read: boolean; is_reported: boolean; created_at: string;
+}
+
+export const directoryApi = {
+    me: () => fetchApi<DirectoryProfile | null>('/directory/me'),
+    upsertMe: (b: Partial<DirectoryProfile> & { display_name: string }) =>
+        fetchApi<DirectoryProfile>('/directory/me', { method: 'PUT', body: JSON.stringify(b) }),
+    deleteMe: () => fetchApi<{ ok: boolean }>('/directory/me', { method: 'DELETE' }),
+    search: (params?: { q?: string; city?: string; prayer_partner?: boolean }) => {
+        const qs = new URLSearchParams()
+        Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined && v !== '' && v !== false) qs.set(k, String(v)) })
+        return fetchApi<DirectoryProfile[]>(`/directory/search${qs.toString() ? '?' + qs : ''}`)
+    },
+    send: (recipient_user_id: string, body: string) =>
+        fetchApi<{ ok: boolean; id: string }>('/directory/messages', { method: 'POST', body: JSON.stringify({ recipient_user_id, body }) }),
+    inbox: () => fetchApi<DirectoryMessage[]>('/directory/inbox'),
+    markRead: (mid: string) => fetchApi<{ ok: boolean }>(`/directory/messages/${mid}/read`, { method: 'PUT' }),
+    report: (mid: string) => fetchApi<{ ok: boolean }>(`/directory/messages/${mid}/report`, { method: 'PUT' }),
+    adminReports: () => fetchApi<Array<{ id: string; sender_user_id: string; recipient_user_id: string; body: string; created_at: string }>>('/directory/admin/reports'),
+    adminHide: (mid: string) => fetchApi<{ ok: boolean }>(`/directory/admin/messages/${mid}`, { method: 'DELETE' }),
+}
+
+// ─── Live worship co-experience (chat + captions) ───────────────────────────
+
+export interface LiveChatMessage {
+    id: string; service_id: string | null; user_id: string | null;
+    display_name: string; body: string; is_pinned: boolean; created_at: string;
+}
+export interface LiveCaption { id: string; text: string; spoken_at: string }
+
+export const liveExpApi = {
+    listChat: (params?: { service_id?: string; since?: string; limit?: number }) => {
+        const qs = new URLSearchParams()
+        Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined) qs.set(k, String(v)) })
+        return fetchApi<LiveChatMessage[]>(`/live/chat${qs.toString() ? '?' + qs : ''}`)
+    },
+    post: (b: { service_id?: string; body: string; display_name?: string }) =>
+        fetchApi<{ ok: boolean; id: string }>('/live/chat', { method: 'POST', body: JSON.stringify(b) }),
+    pin: (mid: string) => fetchApi<{ ok: boolean; is_pinned: boolean }>(`/live/chat/${mid}/pin`, { method: 'PUT' }),
+    hide: (mid: string) => fetchApi<{ ok: boolean }>(`/live/chat/${mid}`, { method: 'DELETE' }),
+    ingestCaption: (b: { service_id: string; text: string; language?: string }) =>
+        fetchApi<{ ok: boolean; stored: number }>('/live/captions', { method: 'POST', body: JSON.stringify(b) }),
+    listCaptions: (params: { service_id: string; language?: string; since?: string }) => {
+        const qs = new URLSearchParams()
+        Object.entries(params).forEach(([k, v]) => { if (v !== undefined) qs.set(k, String(v)) })
+        return fetchApi<LiveCaption[]>(`/live/captions?${qs}`)
+    },
+    captionLanguages: () => fetchApi<{ languages: string[] }>('/live/captions/languages'),
+}
+
 // ─── Pastoral Care ───────────────────────────────────────────────────────────
 
 export type PastoralKind = 'visitation' | 'call' | 'hospital' | 'bereavement' | 'counsel' | 'celebration' | 'prayer' | 'concern'
