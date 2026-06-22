@@ -168,9 +168,35 @@ function ProviderForm({ provider, onSave, onCancel }: { provider: PaymentProvide
                 </div>
             )}
 
-            <div>
-                <label className="text-xs font-bold uppercase text-gray-500 block mb-1">Redirect After (URL)</label>
-                <input value={p.config?.redirect_after || ''} onChange={e => setCfg('redirect_after', e.target.value)} placeholder="https://letw.org/giving/thank-you" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+            {/* Where the gateway sends the donor after they finish paying.
+                  Critical: must be a fully-qualified https:// URL or the gateway
+                  will reject the checkout-session create. Common choices:
+                    - https://letw.org/giving/thank-you (default — branded)
+                    - https://letw.org/events/<id>      (return to the event)
+                    - your own confirmation page                                  */}
+            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                    <label className="text-xs font-black uppercase tracking-wider text-amber-900">Redirect After Payment (URL)</label>
+                    {!p.config?.redirect_after && (
+                        <button type="button"
+                            onClick={() => setCfg('redirect_after', 'https://letw.org/giving/thank-you')}
+                            className="text-[11px] font-bold text-amber-700 hover:text-amber-900 underline">
+                            Use default thank-you page
+                        </button>
+                    )}
+                </div>
+                <p className="text-[11px] text-amber-800/80 mb-2">
+                    Where the donor lands once they finish paying on Paystack / Stripe / Flutterwave. Must be a full <code className="bg-amber-100 px-1 rounded">https://</code> URL — the gateway rejects relative paths.
+                </p>
+                <input
+                    value={p.config?.redirect_after || ''}
+                    onChange={e => setCfg('redirect_after', e.target.value)}
+                    placeholder="https://letw.org/giving/thank-you"
+                    className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2.5 text-sm font-mono"
+                />
+                {p.config?.redirect_after && !/^https?:\/\//i.test(p.config.redirect_after) && (
+                    <p className="text-[11px] text-red-700 mt-1.5 font-bold">⚠ Missing https:// — most gateways will reject this.</p>
+                )}
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
