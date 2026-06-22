@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
-    Mic, MicOff, Loader2, AlertCircle, CheckCircle, Radio, Globe2, Trash2, Sparkles,
+    Mic, MicOff, Loader2, AlertCircle, CheckCircle, Radio, Globe2, Trash2, Sparkles, Play, Activity,
 } from 'lucide-react'
 import { liveExpApi, onlineCampusApi, type CurrentService } from '@/lib/api'
 
@@ -55,7 +55,31 @@ export default function LiveCaptionsAdmin() {
     const [micStatus, setMicStatus] = useState<'unknown' | 'granted' | 'denied' | 'prompt'>('unknown')
     const [diag, setDiag] = useState<{ label: string; ok: boolean; detail: string }[] | null>(null)
     const [running, setRunning] = useState(false)
+    const [quickStarting, setQuickStarting] = useState(false)
     const recogRef = useRef<RecognitionLike | null>(null)
+
+    // One-click: create a service for captions and immediately set it Live.
+    // Removes the "go to /admin/online-campus first" friction entirely.
+    const quickStartService = async () => {
+        setQuickStarting(true)
+        setError(null)
+        try {
+            const created = await onlineCampusApi.createService({
+                title: `Captions Session — ${new Date().toLocaleString()}`,
+                scheduled_at: new Date().toISOString(),
+                description: 'Started from the Live Captions admin to enable multilingual captions for this service.',
+                chat_enabled: true,
+            })
+            await onlineCampusApi.setState(created.id, { is_live: true })
+            // Refresh the current pointer so the Start button activates.
+            const cur = await onlineCampusApi.current()
+            setService(cur)
+        } catch (e) {
+            setError(`Could not start a service: ${(e as Error).message}`)
+        } finally {
+            setQuickStarting(false)
+        }
+    }
 
     // Probe mic permission state (non-prompting; just reads the saved state).
     useEffect(() => {
@@ -220,25 +244,39 @@ export default function LiveCaptionsAdmin() {
                 <StatusCard label="Captions sent" value={String(history.filter(h => h.ok).length)} sub={history.length ? `${history.filter(h => !h.ok).length} failed` : ''} ok={history.every(h => h.ok)} />
             </div>
 
-            {/* No-service helper */}
+            {/* No-service helper — now offers a 1-click quick start */}
             {!service?.id && (
-                <div className="mb-4 p-4 rounded-xl border bg-amber-50 border-amber-200 text-amber-900 flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
-                    <div className="text-sm">
-                        <p className="font-bold mb-1">No live service is running.</p>
-                        <p>Captions are tied to a service so viewers can be matched to the right service. Go to <Link href="/admin/online-campus" className="underline font-bold">Online Campus admin</Link>, set a service to <strong>Live</strong>, then come back here and the Start button will activate.</p>
+                <div className="mb-4 p-4 rounded-xl border bg-amber-50 border-amber-200 text-amber-900">
+                    <div className="flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
+                        <div className="text-sm flex-1">
+                            <p className="font-bold mb-1">No live service is running.</p>
+                            <p className="mb-3">Captions are scoped to a service so viewers see them in the right place. Click the button below to spin one up automatically — or use <Link href="/admin/online-campus" className="underline font-bold">Online Campus admin</Link> to configure one with a real title and stream URL.</p>
+                            <button onClick={quickStartService} disabled={quickStarting}
+                                className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-4 py-2.5 rounded-lg disabled:opacity-50">
+                                {quickStarting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                                {quickStarting ? 'Starting…' : 'Start a captions service now'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* Diagnostics drawer */}
-            <div className="mb-4">
-                <button onClick={runDiagnostics} disabled={running}
-                    className="text-xs underline text-gray-600 hover:text-[#140152] disabled:opacity-50">
-                    {running ? 'Running diagnostics…' : 'Run end-to-end diagnostics'}
-                </button>
+            {/* Diagnostics — prominent button, always available */}
+            <div className="mb-4 bg-white border border-gray-200 rounded-2xl p-4">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                        <p className="font-black text-[#140152] text-sm flex items-center gap-2"><Activity className="w-4 h-4" /> Diagnostics</p>
+                        <p className="text-xs text-gray-500">Run if anything seems off. Each check shows PASS or the exact reason it failed.</p>
+                    </div>
+                    <button onClick={runDiagnostics} disabled={running}
+                        className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-bold px-5 py-2.5 rounded-xl text-sm disabled:opacity-50">
+                        {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
+                        {running ? 'Running…' : 'Run diagnostics'}
+                    </button>
+                </div>
                 {diag && (
-                    <ul className="mt-2 bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-1.5 text-xs">
+                    <ul className="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-1.5 text-xs">
                         {diag.map((d, i) => (
                             <li key={i} className="flex items-start gap-2">
                                 {d.ok ? <CheckCircle className="w-3.5 h-3.5 mt-0.5 text-emerald-600 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 mt-0.5 text-red-600 shrink-0" />}
