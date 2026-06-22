@@ -175,6 +175,18 @@ async def create_prayer_request(
     await db.commit()
     await db.refresh(prayer_request)
 
+    # Confirmation email to the submitter — uses the admin 'prayer_received'
+    # template when present, otherwise falls back to a built-in default.
+    # Best-effort: a mail-provider hiccup must not poison the request.
+    try:
+        from services.email_service import send_prayer_received_email
+        await send_prayer_received_email(
+            to_email=current_user.email,
+            name=current_user.name or "Friend",
+        )
+    except Exception as e:
+        print(f"[prayer] confirmation email failed: {type(e).__name__}: {e}", flush=True)
+
     return prayer_request
 
 

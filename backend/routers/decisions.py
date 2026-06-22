@@ -109,6 +109,20 @@ async def submit_decision(
     db.add(d)
     await db.commit()
     await db.refresh(d)
+
+    # Pastoral follow-up email — only for the meaningful conversion-style
+    # decisions, not for every routine record. Best-effort send.
+    if d.kind in {"salvation", "rededication", "baptism_request", "prayer_for_healing"} and d.person_email:
+        try:
+            from services.email_service import send_decision_followup_email
+            await send_decision_followup_email(
+                to_email=d.person_email,
+                name=d.person_name or "Friend",
+                decision_kind=d.kind,
+            )
+        except Exception as e:
+            print(f"[decisions] follow-up email failed: {type(e).__name__}: {e}", flush=True)
+
     return d
 
 

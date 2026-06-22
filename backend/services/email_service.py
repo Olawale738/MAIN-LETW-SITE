@@ -549,5 +549,70 @@ async def send_new_request_notification_email(
     </body>
     </html>
     """
-    
+
     return await send_email(to_email, subject, html_content)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Prayer received + decision follow-up — both are 100% admin-template driven.
+# If the admin hasn't saved a template yet, we send a minimal but acceptable
+# default so we never silently drop the email.
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def send_prayer_received_email(to_email: str, name: str) -> bool:
+    """
+    Confirmation sent to the submitter when a prayer request is received.
+    Uses the admin-managed 'prayer_received' template from /admin/site-content
+    -> Email Templates, falling back to a built-in default.
+    """
+    if not to_email:
+        return False
+    admin_tpl = await _get_admin_email_template("prayer_received")
+    if admin_tpl:
+        subject = admin_tpl["subject"].replace("{name}", name or "Friend")
+        html_body = _render_admin_template_body(admin_tpl["body"], name=name or "Friend")
+        return await send_email(to_email, subject, html_body)
+
+    subject = "Your prayer request has been received"
+    body = (
+        f"Hi {name or 'Friend'},\n\n"
+        f"Thank you for sharing your request. Our intercessors are praying for you.\n\n"
+        f"Grace and peace,\n"
+        f"Light Encounter Tabernacle Worldwide"
+    )
+    html_body = _render_admin_template_body(body, name=name or "Friend")
+    return await send_email(to_email, subject, html_body)
+
+
+async def send_decision_followup_email(to_email: str, name: str, decision_kind: str = "decision") -> bool:
+    """
+    Follow-up sent when a person records a salvation / rededication / baptism
+    decision (e.g. via /live altar call or /admin/decisions).
+    Uses the admin-managed 'decision_followup' template, falling back to a
+    built-in default.
+    """
+    if not to_email:
+        return False
+    admin_tpl = await _get_admin_email_template("decision_followup")
+    if admin_tpl:
+        subject = (
+            admin_tpl["subject"]
+            .replace("{name}", name or "Friend")
+            .replace("{decision_kind}", decision_kind)
+        )
+        body_with_tokens = admin_tpl["body"].replace("{decision_kind}", decision_kind)
+        html_body = _render_admin_template_body(body_with_tokens, name=name or "Friend")
+        return await send_email(to_email, subject, html_body)
+
+    subject = "A next step in your walk with Christ"
+    body = (
+        f"Hi {name or 'Friend'},\n\n"
+        f"Heaven rejoices over you. Here are some next steps in your new journey:\n\n"
+        f"- Read John 3:16 today.\n"
+        f"- Join a small group at {settings.FRONTEND_URL}/groups.\n"
+        f"- Reach out — we are here.\n\n"
+        f"Grace and peace,\n"
+        f"Light Encounter Tabernacle Worldwide"
+    )
+    html_body = _render_admin_template_body(body, name=name or "Friend")
+    return await send_email(to_email, subject, html_body)

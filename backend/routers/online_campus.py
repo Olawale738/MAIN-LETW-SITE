@@ -262,6 +262,20 @@ async def respond_to_altar_call(
         pass
     await db.commit()
     await db.refresh(r)
+
+    # Pastoral follow-up email — admin can edit the wording at
+    # /admin/site-content -> Email Templates -> Decision follow-up.
+    if body.email:
+        try:
+            from services.email_service import send_decision_followup_email
+            await send_decision_followup_email(
+                to_email=body.email,
+                name=body.name or "Friend",
+                decision_kind=body.kind,
+            )
+        except Exception as e:
+            print(f"[altar-call] follow-up email failed: {type(e).__name__}: {e}", flush=True)
+
     return {"ok": True, "id": r.id, "message": "Heaven is rejoicing. We'll reach out to walk this with you."}
 
 
