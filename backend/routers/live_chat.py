@@ -118,7 +118,7 @@ async def ingest_caption(body: CaptionIn, db: AsyncSession = Depends(get_db), _:
     text = (body.text or "").strip()
     if not text:
         raise HTTPException(400, "text required")
-    src = LiveCaptionLine(service_id=body.service_id, language=body.language, text=text)
+    src = LiveCaptionLine(service_id=body.service_id, language=body.language, text=text, is_source=True)
     db.add(src)
     targets = body.translate_into if body.translate_into is not None else [l for l in CAPTION_LANGUAGES if l != body.language]
 
@@ -159,3 +159,33 @@ async def list_captions(
 @router.get("/captions/languages")
 async def supported_languages():
     return {"languages": CAPTION_LANGUAGES}
+
+
+@router.get("/captions/state")
+async def caption_state(service_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Realtime sync signal for viewers on /live.
+    Returns the language the operator is currently broadcasting in, plus the
+    timestamp of the most recent source-language line. Viewer panels poll this
+    every few seconds so they can show "Pastor is speaking in {source}" and
+    detect when the operator pauses or switches languages.
+    """
+    res = await db.execute(
+        select(LiveCaptionLine)
+        .where(LiveCaptionLine.service_id == service_id)
+        .where(LiveCaptionLine.is_source == True)  # noqa: E712 — SQL boolean
+        .order_by(desc(LiveCaptionLine.spoken_at))
+        .limit(1)
+    )
+    latest = res.scalar_one_or_none()
+    if not latest:
+        return {"service_id": service_id, "source_language": None, "last_spoken_at": None, "is_active": False}
+    # "Active" = source line in the last 90 seconds. Long enough to survive a
+    # quiet moment in the sermon; short enough to register a pause as idle.
+    age_seconds = (datetime.utcnow() - latest.spoken_at).total_seconds()
+    return {
+        "service_id": service_id,
+        "source_language": latest.language,
+        "last_spoken_at": latest.spoken_at,
+        "is_active": age_seconds < 90,
+    }

@@ -180,6 +180,8 @@ async def init_db():
                 ("users", "country_code", "VARCHAR(2)"),
                 ("users", "country_name", "VARCHAR(120)"),
                 ("users", "continent", "VARCHAR(40)"),
+                # Live caption source-language marker for operator↔viewer sync.
+                ("live_captions", "is_source", "BOOLEAN DEFAULT FALSE NOT NULL"),
             ]
 
             # NOTE: ALTER TABLE ... ADD COLUMN IF NOT EXISTS is idempotent in

@@ -36,7 +36,29 @@ export default function LiveCoExperience({ serviceId, defaultTab = 'chat' }: { s
     const scrollerRef = useRef<HTMLDivElement>(null)
 
     const [captions, setCaptions] = useState<LiveCaption[]>([])
-    const [language, setLanguage] = useState('en')
+    const [sourceLang, setSourceLang] = useState<string | null>(null)
+    const [isActive, setIsActive] = useState(false)
+    // Auto-detect the viewer's preferred language from the browser. If their
+    // locale matches one of our supported codes we default to it; otherwise
+    // they get English and can change from the dropdown.
+    const detectBrowserLang = (): string => {
+        if (typeof navigator === 'undefined') return 'en'
+        const candidates = [navigator.language, ...(navigator.languages || [])]
+        const supported = new Set([
+            'en','es','pt','fr','de','it','nl','ru','pl','uk','ro','el','tr',
+            'ar','he','fa','ur','hi','bn','ta','te','ml','mr','pa',
+            'zh','zh-TW','ja','ko','vi','th','id','ms','tl',
+            'yo','ig','ha','sw','am','zu','xh','af','so','om','ti',
+        ])
+        for (const c of candidates) {
+            if (!c) continue
+            if (supported.has(c)) return c
+            const short = c.split('-')[0]
+            if (supported.has(short)) return short
+        }
+        return 'en'
+    }
+    const [language, setLanguage] = useState(detectBrowserLang)
     // Frontend fallback so the dropdown shows every language even before the
     // backend redeploys with its expanded CAPTION_LANGUAGES list. Once the API
     // returns its own list (which may be wider or narrower), it overrides this.
@@ -95,6 +117,24 @@ export default function LiveCoExperience({ serviceId, defaultTab = 'chat' }: { s
         const id = setInterval(load, 4000)
         return () => { mounted = false; clearInterval(id) }
     }, [serviceId, language])
+
+    // Poll the "what is the operator broadcasting in" state so we can show
+    // "Speaker is in {X}" instead of a hardcoded English label.
+    useEffect(() => {
+        if (!serviceId) { setSourceLang(null); setIsActive(false); return }
+        let mounted = true
+        const load = async () => {
+            try {
+                const s = await liveExpApi.captionState(serviceId)
+                if (!mounted) return
+                setSourceLang(s.source_language)
+                setIsActive(!!s.is_active)
+            } catch { /* keep last known */ }
+        }
+        load()
+        const id = setInterval(load, 5000)
+        return () => { mounted = false; clearInterval(id) }
+    }, [serviceId])
 
     const submit = async () => {
         if (!body.trim()) return
@@ -158,9 +198,20 @@ export default function LiveCoExperience({ serviceId, defaultTab = 'chat' }: { s
             ) : (
                 <div className="flex flex-col h-[500px] bg-[#06002a] text-white">
                     <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-3 flex-wrap">
-                        <p className="text-[10px] uppercase tracking-widest font-black text-[#f5bb00] inline-flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5" /> Live AI translation
-                        </p>
+                        <div className="inline-flex items-center gap-2 flex-wrap">
+                            <p className="text-[10px] uppercase tracking-widest font-black text-[#f5bb00] inline-flex items-center gap-1.5">
+                                <Sparkles className="w-3.5 h-3.5" /> Live AI translation
+                            </p>
+                            {isActive && (
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 text-[10px] font-bold uppercase tracking-widest">
+                                    <span className="relative flex h-1.5 w-1.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-300" />
+                                    </span>
+                                    In sync
+                                </span>
+                            )}
+                        </div>
                         <select value={language} onChange={e => setLanguage(e.target.value)}
                             className="bg-white/10 border border-white/20 rounded-full px-3 py-1.5 text-xs text-white">
                             {languages.map(l => <option key={l} value={l} className="text-black">{LANG_LABELS[l] || l.toUpperCase()}</option>)}
@@ -192,8 +243,11 @@ export default function LiveCoExperience({ serviceId, defaultTab = 'chat' }: { s
                             )
                         })}
                     </div>
-                    <p className="px-4 py-2 text-[10px] text-white/40 text-center border-t border-white/10">
-                        Captions translated in real time. Spoken language → {LANG_LABELS['en']}; you're hearing → {LANG_LABELS[language] || language}.
+                    <p className="px-4 py-2 text-[10px] text-white/50 text-center border-t border-white/10">
+                        {sourceLang
+                            ? <>Speaker is in <strong className="text-white/80">{LANG_LABELS[sourceLang] || sourceLang.toUpperCase()}</strong> · You&apos;re reading in <strong className="text-white/80">{LANG_LABELS[language] || language.toUpperCase()}</strong></>
+                            : <>You&apos;re set to read in <strong className="text-white/80">{LANG_LABELS[language] || language.toUpperCase()}</strong>. The speaker&apos;s language will appear here once they begin.</>
+                        }
                     </p>
                 </div>
             )}

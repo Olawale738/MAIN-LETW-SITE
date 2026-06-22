@@ -2964,6 +2964,8 @@ export const liveExpApi = {
         return fetchApi<LiveCaption[]>(`/live/captions?${qs}`)
     },
     captionLanguages: () => fetchApi<{ languages: string[] }>('/live/captions/languages'),
+    captionState: (service_id: string) =>
+        fetchApi<{ service_id: string; source_language: string | null; last_spoken_at: string | null; is_active: boolean }>(`/live/captions/state?service_id=${encodeURIComponent(service_id)}`),
 }
 
 // ─── Pastoral Care ───────────────────────────────────────────────────────────
