@@ -352,12 +352,38 @@ async def delete_sermon(
         select(Sermon).where(Sermon.id == sermon_id)
     )
     sermon = result.scalar_one_or_none()
-    
+
     if not sermon:
         raise HTTPException(status_code=404, detail="Sermon not found")
-    
+
     await db.delete(sermon)
     await db.commit()
+
+
+@router.post("/admin/dedupe", status_code=status.HTTP_200_OK)
+async def dedupe_sermons(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+):
+    """One-shot cleanup: collapses sermons that share the same (title, video_url),
+    keeping the oldest row and deleting the rest. Useful after live → sermon
+    auto-save fired more than once for the same stream URL."""
+    result = await db.execute(select(Sermon).order_by(Sermon.created_at.asc() if hasattr(Sermon, "created_at") else Sermon.id.asc()))
+    sermons = list(result.scalars().all())
+    seen: dict[tuple, str] = {}
+    removed = 0
+    for s in sermons:
+        key = ((s.title or "").strip().lower(), (s.video_url or "").strip())
+        if not key[1]:
+            continue  # ignore sermons without a video_url
+        if key in seen:
+            await db.delete(s)
+            removed += 1
+        else:
+            seen[key] = s.id
+    if removed:
+        await db.commit()
+    return {"ok": True, "removed": removed, "kept": len(seen)}
 
 
 # ============= Media Download Endpoints =============

@@ -74,8 +74,17 @@ export default function SermonsPage() {
         }
     }
 
-    // Filter sermons
-    const videoSermons = sermons.filter(s => s.video_url)
+    // Filter sermons + dedupe defensively. The backend has its own guards now,
+    // but we also dedupe here by lower-cased (title, video_url) so any
+    // historic duplicates stop showing twice until they're cleaned up.
+    const seen = new Set<string>()
+    const videoSermons = sermons.filter(s => {
+        if (!s.video_url) return false
+        const key = `${(s.title || '').trim().toLowerCase()}|${s.video_url.trim()}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+    })
     const bookContent = sermons.filter(s => s.has_document || s.document_url)
 
     const featuredSermon = videoSermons.find(s => s.is_featured) || videoSermons[0]

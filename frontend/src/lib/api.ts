@@ -964,6 +964,11 @@ export const sermonApi = {
         await fetchApi(`/sermons/${sermonId}`, { method: 'DELETE' });
     },
 
+    // Admin: collapse rows that share the same (title, video_url). Returns
+    // {removed, kept} so the admin sees how many duplicates were cleaned.
+    dedupe: async (): Promise<{ ok: boolean; removed: number; kept: number }> =>
+        fetchApi('/sermons/admin/dedupe', { method: 'POST' }),
+
     // Media URLs
     getAudioUrl: (sermonId: string): string => `${API_BASE_URL}/sermons/${sermonId}/audio`,
     getDocumentUrl: (sermonId: string): string => `${API_BASE_URL}/sermons/${sermonId}/document`,

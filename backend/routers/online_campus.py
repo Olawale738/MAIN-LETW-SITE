@@ -169,25 +169,36 @@ async def update_state(sid: str, body: StateIn, db: AsyncSession = Depends(get_d
             s.started_at = datetime.utcnow()
         elif not body.is_live and s.is_live:
             s.ended_at = datetime.utcnow()
-            # Auto-create a Sermon entry so the recording lands on /sermons
+            # Auto-create a Sermon entry so the recording lands on /sermons.
+            # Two guards to avoid duplicates:
+            #   1. Don't create one if THIS service already linked a sermon.
+            #   2. Don't create one if a sermon with the same video_url already
+            #      exists from a previous service that used the same stream.
             try:
                 if not getattr(s, "sermon_id", None) and s.livestream_url:
                     from models.sermon import Sermon
-                    sermon = Sermon(
-                        title=s.title,
-                        description=(s.description or "") + "\n\nRecorded live at letw.org/live",
-                        preacher="Light Encounter Tabernacle Worldwide",
-                        sermon_date=(s.started_at or datetime.utcnow()).date(),
-                        series="Live Services",
-                        video_url=s.livestream_url,
-                        is_featured=True,
-                        is_published=True,
-                    )
-                    db.add(sermon)
-                    await db.flush()
-                    s.sermon_id = sermon.id
-            except Exception:
-                pass
+                    existing = (await db.execute(
+                        select(Sermon).where(Sermon.video_url == s.livestream_url).limit(1)
+                    )).scalar_one_or_none()
+                    if existing:
+                        # Re-link without spawning a second row.
+                        s.sermon_id = existing.id
+                    else:
+                        sermon = Sermon(
+                            title=s.title,
+                            description=(s.description or "") + "\n\nRecorded live at letw.org/live",
+                            preacher="Light Encounter Tabernacle Worldwide",
+                            sermon_date=(s.started_at or datetime.utcnow()).date(),
+                            series="Live Services",
+                            video_url=s.livestream_url,
+                            is_featured=True,
+                            is_published=True,
+                        )
+                        db.add(sermon)
+                        await db.flush()
+                        s.sermon_id = sermon.id
+            except Exception as e:
+                print(f"[online-campus] auto-save sermon failed: {type(e).__name__}: {e}", flush=True)
         s.is_live = body.is_live
     if body.altar_call_open is not None:
         s.altar_call_open = body.altar_call_open

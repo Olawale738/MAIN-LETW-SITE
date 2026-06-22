@@ -177,12 +177,30 @@ export default function AdminSermonsPage() {
                     <h1 className="text-2xl font-bold text-[#140152]">Sermons & Books</h1>
                     <p className="text-gray-500 text-sm">Manage your video library and books (PDF)</p>
                 </div>
-                <Button
-                    onClick={() => { resetForm(); setShowForm(true) }}
-                    className="bg-[#f5bb00] text-[#140152] hover:bg-[#d9a600] font-bold"
-                >
-                    <Plus className="w-4 h-4 mr-2" /> Add Content
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                        onClick={async () => {
+                            if (!confirm('Remove duplicate sermons (same title + video URL)? The oldest copy of each is kept.')) return
+                            try {
+                                const r = await sermonApi.dedupe()
+                                setSuccess(`Cleaned up — removed ${r.removed} duplicates, kept ${r.kept} unique sermons.`)
+                                loadSermons()
+                            } catch (e) {
+                                setError((e as Error).message)
+                            }
+                        }}
+                        variant="outline"
+                        className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold"
+                    >
+                        Remove duplicates
+                    </Button>
+                    <Button
+                        onClick={() => { resetForm(); setShowForm(true) }}
+                        className="bg-[#f5bb00] text-[#140152] hover:bg-[#d9a600] font-bold"
+                    >
+                        <Plus className="w-4 h-4 mr-2" /> Add Content
+                    </Button>
+                </div>
             </div>
 
             {error && <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
