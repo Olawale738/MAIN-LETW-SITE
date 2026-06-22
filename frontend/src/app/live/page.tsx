@@ -4,6 +4,7 @@ import { Radio, Heart, Hand, Cross, CheckCircle2, Loader2, Calendar, Users, Send
 import { onlineCampusApi, type CurrentService } from '@/lib/api'
 import LiveCoExperience from '@/components/live/LiveCoExperience'
 import { useT } from '@/lib/i18n'
+import { toEmbedUrl } from '@/lib/youtube'
 
 const ALTAR_KINDS = [
     { key: 'salvation',         label: 'I want to give my life to Jesus' },
@@ -57,7 +58,12 @@ export default function LivePage() {
 
                 {isLive && service?.livestream_url && (
                     <div className="aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl mb-8">
-                        <iframe src={service.livestream_url} className="w-full h-full" allowFullScreen allow="autoplay; encrypted-media" />
+                        <iframe
+                            src={toEmbedUrl(service.livestream_url, { autoplay: true })}
+                            className="w-full h-full"
+                            allowFullScreen
+                            allow="autoplay; encrypted-media; picture-in-picture"
+                        />
                     </div>
                 )}
 
