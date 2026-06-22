@@ -70,6 +70,9 @@ export default function LiveCaptionsAdmin() {
                 description: 'Started from the Live Captions admin to enable multilingual captions for this service.',
                 chat_enabled: true,
             })
+            if (!created.id) {
+                throw new Error('Service was created but the backend did not return an id. Try the Online Campus admin manually.')
+            }
             await onlineCampusApi.setState(created.id, { is_live: true })
             // Refresh the current pointer so the Start button activates.
             const cur = await onlineCampusApi.current()
