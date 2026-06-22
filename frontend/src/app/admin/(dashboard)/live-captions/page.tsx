@@ -121,6 +121,10 @@ export default function LiveCaptionsAdmin() {
     // One-click: create a service for captions and immediately set it Live.
     // Removes the "go to /admin/online-campus first" friction entirely.
     const quickStartService = async () => {
+        if (service?.id) {
+            setError(`A service is already running ("${service.title}"). You don't need to start another one.`)
+            return
+        }
         setQuickStarting(true)
         setError(null)
         try {
@@ -307,8 +311,10 @@ export default function LiveCaptionsAdmin() {
                 <StatusCard label="Captions sent" value={String(history.filter(h => h.ok).length)} sub={history.length ? `${history.filter(h => !h.ok).length} failed` : ''} ok={history.every(h => h.ok)} />
             </div>
 
-            {/* No-service helper — now offers a 1-click quick start */}
-            {!service?.id && (
+            {/* No-service helper — hidden once a service is already running so
+                  the "Could not start" error doesn't haunt admins who already
+                  have a live service. */}
+            {!service?.id && service?.status !== 'live' && (
                 <div className="mb-4 p-4 rounded-xl border bg-amber-50 border-amber-200 text-amber-900">
                     <div className="flex items-start gap-3">
                         <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
