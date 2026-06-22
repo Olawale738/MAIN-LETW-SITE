@@ -168,14 +168,29 @@ export default function LiveCoExperience({ serviceId, defaultTab = 'chat' }: { s
                     </div>
                     <div className="flex-1 overflow-y-auto p-5 space-y-3 flex flex-col-reverse">
                         {captions.length === 0 ? (
-                            <p className="text-center text-white/40 text-sm m-auto">Captions appear here while the service is live.</p>
-                        ) : captions.slice().reverse().map((c, i) => (
-                            <p key={c.id}
-                                className={`leading-relaxed transition-opacity ${i === 0 ? 'text-white text-xl font-serif font-black' : 'text-white/60 text-base'}`}
-                                style={{ opacity: i === 0 ? 1 : Math.max(0.25, 1 - i * 0.18) }}>
-                                {c.text}
-                            </p>
-                        ))}
+                            <div className="m-auto text-center max-w-sm">
+                                <div className="w-14 h-14 rounded-full bg-white/5 mx-auto mb-4 flex items-center justify-center animate-pulse">
+                                    <Globe2 className="w-6 h-6 text-[#f5bb00]" />
+                                </div>
+                                <p className="text-white/70 text-sm leading-relaxed">
+                                    Waiting for the speaker to begin…
+                                </p>
+                                <p className="text-white/40 text-xs mt-2">
+                                    Captions in <strong className="text-white/70">{LANG_LABELS[language] || language}</strong> will stream here in real time once they start.
+                                </p>
+                            </div>
+                        ) : captions.slice().reverse().map((c, i) => {
+                            // RTL languages get auto-direction for proper rendering.
+                            const isRtl = ['ar', 'he', 'fa', 'ur'].includes(language)
+                            return (
+                                <p key={c.id}
+                                    dir={isRtl ? 'rtl' : 'ltr'}
+                                    className={`leading-relaxed transition-opacity ${i === 0 ? 'text-white text-xl font-serif font-black' : 'text-white/60 text-base'}`}
+                                    style={{ opacity: i === 0 ? 1 : Math.max(0.25, 1 - i * 0.18) }}>
+                                    {c.text}
+                                </p>
+                            )
+                        })}
                     </div>
                     <p className="px-4 py-2 text-[10px] text-white/40 text-center border-t border-white/10">
                         Captions translated in real time. Spoken language → {LANG_LABELS['en']}; you're hearing → {LANG_LABELS[language] || language}.
