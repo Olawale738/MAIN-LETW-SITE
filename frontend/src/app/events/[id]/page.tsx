@@ -12,7 +12,7 @@ import {
     Mic, Ticket, Image as ImageIcon, Award, HelpCircle,
     BarChart3, Heart, Megaphone
 } from 'lucide-react'
-import { eventApi, Event } from '@/lib/api'
+import { eventApi, paymentsApi, Event } from '@/lib/api'
 import {
     eventExtensionsApi,
     EventSpeaker, EventSession, EventPhoto, EventComment,
@@ -217,6 +217,12 @@ export default function EventDetailsPage() {
     }
 
     // ── Donations ─────────────────────────────────────────────────────────────
+    // Previously this just logged the amount into the DB without taking money,
+    // which is why donors saw "Thank you" but the total never moved. Now we
+    // route them through the real /api/payments/checkout flow — the same one
+    // /give and /giving use — which initialises a transaction with Paystack /
+    // Flutterwave / Stripe (whichever the admin has wired up at /admin/payments)
+    // and redirects to the gateway's hosted checkout page.
     const handleDonate = async (amount: number) => {
         if (!event || !amount || amount <= 0) {
             toast.error('Please enter a valid amount.')
@@ -224,13 +230,37 @@ export default function EventDetailsPage() {
         }
         setDonating(true)
         try {
-            await eventExtensionsApi.donate(event.id, amount, {})
-            const total = await eventExtensionsApi.donationTotal(event.id)
-            setDonation(total)
-            setCustomAmount('')
-            toast.success(`Thank you for your $${amount} gift!`)
+            const providers = await paymentsApi.publicProviders()
+            const active = providers.filter(p => p.is_active !== false)
+            if (active.length === 0) {
+                toast.error('No payment provider is set up yet. Ask an admin to configure one at /admin/payments, then try again.')
+                return
+            }
+            // Pick the first active provider. For the future we could let the
+            // donor choose; for now this matches what /give does on its first load.
+            const provider = active[0]
+            const r = await paymentsApi.checkout({
+                provider_id: provider.id,
+                amount,
+                currency: provider.currency || 'USD',
+                fund: `Event: ${event.title}`,
+                payer_name: 'Anonymous',
+            })
+            if (r.checkout_url) {
+                // Redirect to the gateway. After payment, the webhook updates the
+                // donation row to status=successful and we can show updated totals.
+                window.location.href = r.checkout_url
+                return
+            }
+            if (r.instructions_md) {
+                // Manual provider (bank transfer / Wise) — show the instructions.
+                toast.success('Check your screen for transfer instructions.')
+                alert(r.instructions_md + (r.reference ? `\n\nReference: ${r.reference}` : ''))
+                return
+            }
+            toast.error('Payment provider did not return a checkout URL. Please try /give instead.')
         } catch (e) {
-            toast.error((e as Error).message || 'Could not process your donation.')
+            toast.error((e as Error).message || 'Could not start checkout.')
         } finally {
             setDonating(false)
         }
