@@ -27,8 +27,8 @@ const LANG_LABELS: Record<string, string> = {
  * - Polls captions every 4s and shows the last ~6 lines in the chosen language.
  * - Requires sign-in to post (server enforces).
  */
-export default function LiveCoExperience({ serviceId }: { serviceId?: string | null }) {
-    const [tab, setTab] = useState<'chat' | 'captions'>('chat')
+export default function LiveCoExperience({ serviceId, defaultTab = 'chat' }: { serviceId?: string | null; defaultTab?: 'chat' | 'captions' }) {
+    const [tab, setTab] = useState<'chat' | 'captions'>(defaultTab)
     const [messages, setMessages] = useState<LiveChatMessage[]>([])
     const [body, setBody] = useState('')
     const [posting, setPosting] = useState(false)
@@ -37,7 +37,17 @@ export default function LiveCoExperience({ serviceId }: { serviceId?: string | n
 
     const [captions, setCaptions] = useState<LiveCaption[]>([])
     const [language, setLanguage] = useState('en')
-    const [languages, setLanguages] = useState<string[]>(['en'])
+    // Frontend fallback so the dropdown shows every language even before the
+    // backend redeploys with its expanded CAPTION_LANGUAGES list. Once the API
+    // returns its own list (which may be wider or narrower), it overrides this.
+    const FALLBACK_LANGS = [
+        'en', 'es', 'pt', 'fr', 'de', 'it', 'nl', 'ru', 'pl', 'uk', 'ro', 'el', 'tr',
+        'ar', 'he', 'fa', 'ur',
+        'hi', 'bn', 'ta', 'te', 'ml', 'mr', 'pa',
+        'zh', 'zh-TW', 'ja', 'ko', 'vi', 'th', 'id', 'ms', 'tl',
+        'yo', 'ig', 'ha', 'sw', 'am', 'zu', 'xh', 'af', 'so', 'om', 'ti',
+    ]
+    const [languages, setLanguages] = useState<string[]>(FALLBACK_LANGS)
 
     // Load chat
     useEffect(() => {
@@ -58,9 +68,17 @@ export default function LiveCoExperience({ serviceId }: { serviceId?: string | n
         scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: 'smooth' })
     }, [messages.length])
 
-    // Load caption languages once
+    // Load caption languages once. Backend list overrides our fallback when
+    // it returns a larger set; if it returns fewer we keep the fallback so
+    // users on the public site never see a shrunken dropdown during a deploy.
     useEffect(() => {
-        liveExpApi.captionLanguages().then(r => setLanguages(r.languages)).catch(() => { /* noop */ })
+        liveExpApi.captionLanguages()
+            .then(r => {
+                if (Array.isArray(r.languages) && r.languages.length >= FALLBACK_LANGS.length) {
+                    setLanguages(r.languages)
+                }
+            })
+            .catch(() => { /* keep fallback */ })
     }, [])
 
     // Load captions per chosen language

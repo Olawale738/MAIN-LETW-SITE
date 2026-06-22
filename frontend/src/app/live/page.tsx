@@ -99,11 +99,13 @@ export default function LivePage() {
                 ) : null}
             </section>
 
-            {service?.id && (
-                <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-20">
-                    <LiveCoExperience serviceId={service.id} />
-                </section>
-            )}
+            {/* Watch-party chat + multi-lingual AI captions.
+                  Rendered always so visitors can browse the language picker even
+                  outside service hours; chat/captions just stay empty until a
+                  service is live. */}
+            <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-20">
+                <LiveCoExperience serviceId={service?.id || null} defaultTab={isLive ? 'captions' : 'chat'} />
+            </section>
 
             {showAltar && <AltarCallModal serviceId={service?.id} onClose={() => setShowAltar(false)} />}
             {showRaiseHand && <RaiseHandModal serviceId={service?.id} onClose={() => setShowRaiseHand(false)} />}
