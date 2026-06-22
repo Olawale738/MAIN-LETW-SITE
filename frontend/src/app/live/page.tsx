@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import { Radio, Heart, Hand, Cross, CheckCircle2, Loader2, Calendar, Users, Send } from 'lucide-react'
 import { onlineCampusApi, type CurrentService } from '@/lib/api'
-import LiveCoExperience from '@/components/live/LiveCoExperience'
 import { useT } from '@/lib/i18n'
 import { toEmbedUrl } from '@/lib/youtube'
 
@@ -68,14 +67,13 @@ export default function LivePage() {
                 )}
                 {isLive && !service?.livestream_url && (
                     // Service is marked live but no stream URL is wired up — show a
-                    // soft placeholder instead of an empty page. Captions / altar
-                    // call still work below.
+                    // soft placeholder pointing an admin to the right page.
                     <div className="aspect-video bg-gradient-to-br from-[#1a0270] via-[#140152] to-[#0a0028] rounded-3xl overflow-hidden shadow-2xl mb-8 flex flex-col items-center justify-center text-center p-8">
                         <Radio className="w-12 h-12 text-[#f5bb00] mb-4 animate-pulse" />
-                        <p className="text-[#f5bb00] text-xs font-black uppercase tracking-[0.3em] mb-2">Audio service</p>
-                        <h3 className="text-white text-2xl font-black mb-2">Live now — without video</h3>
+                        <p className="text-[#f5bb00] text-xs font-black uppercase tracking-[0.3em] mb-2">Stream URL missing</p>
+                        <h3 className="text-white text-2xl font-black mb-2">Live now — video coming soon</h3>
                         <p className="text-white/60 max-w-md text-sm leading-relaxed">
-                            This service is broadcasting in audio only. Live captions and the watch-party chat below are active. To add a video stream, an admin can paste a YouTube URL at /admin/online-campus or /admin/live-captions.
+                            An admin can paste the YouTube live URL at <span className="font-mono text-white/80">/admin/online-campus</span> and it&apos;ll appear here within seconds.
                         </p>
                     </div>
                 )}
@@ -112,13 +110,6 @@ export default function LivePage() {
                 ) : null}
             </section>
 
-            {/* Watch-party chat + multi-lingual AI captions.
-                  Rendered always so visitors can browse the language picker even
-                  outside service hours; chat/captions just stay empty until a
-                  service is live. */}
-            <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-20">
-                <LiveCoExperience serviceId={service?.id || null} defaultTab={isLive ? 'captions' : 'chat'} />
-            </section>
 
             {showAltar && <AltarCallModal serviceId={service?.id} onClose={() => setShowAltar(false)} />}
             {showRaiseHand && <RaiseHandModal serviceId={service?.id} onClose={() => setShowRaiseHand(false)} />}
