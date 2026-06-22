@@ -85,8 +85,16 @@ async def stream_file(rid: str, db: AsyncSession = Depends(get_db)):
     except Exception:
         pass
     safe_name = (r.file_name or f"{r.id}.bin").replace("\"", "")
-    headers = {"Content-Disposition": f'attachment; filename="{safe_name}"'}
-    return StreamingResponse(io.BytesIO(r.file_data), media_type=r.file_mime_type or "application/octet-stream", headers=headers)
+    mime = r.file_mime_type or "application/octet-stream"
+    # Media files (video/audio/image) must be served inline so <video>/<audio>/<img>
+    # tags can render them; only true documents get the download-attachment treatment.
+    disposition = "inline" if mime.split("/")[0] in {"video", "audio", "image"} else "attachment"
+    headers = {
+        "Content-Disposition": f'{disposition}; filename="{safe_name}"',
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "public, max-age=86400",
+    }
+    return StreamingResponse(io.BytesIO(r.file_data), media_type=mime, headers=headers)
 
 
 # ─── Admin ───────────────────────────────────────────────────────────────────
