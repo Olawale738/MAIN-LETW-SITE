@@ -14,9 +14,10 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
-    Mic, MicOff, Loader2, AlertCircle, CheckCircle, Radio, Globe2, Trash2, Sparkles, Play, Activity,
+    Mic, MicOff, Loader2, AlertCircle, CheckCircle, Radio, Globe2, Trash2, Sparkles, Play, Activity, Youtube, Headphones,
 } from 'lucide-react'
-import { liveExpApi, onlineCampusApi, type CurrentService } from '@/lib/api'
+import { liveExpApi, onlineCampusApi, aiApi, type CurrentService } from '@/lib/api'
+import { toEmbedUrl } from '@/lib/youtube'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
 
@@ -117,6 +118,20 @@ export default function LiveCaptionsAdmin() {
     const [running, setRunning] = useState(false)
     const [quickStarting, setQuickStarting] = useState(false)
     const recogRef = useRef<RecognitionLike | null>(null)
+
+    // ── YouTube-capture mode ──────────────────────────────────────────────
+    // Instead of the operator's voice, we can capture audio from a live YouTube
+    // stream playing in another tab, chunk it every 5s, send to OpenAI Whisper,
+    // and forward the transcript to the same /captions pipeline. The operator
+    // never has to speak — useful when the speaker is a guest preacher being
+    // streamed from elsewhere.
+    const [mode, setMode] = useState<'mic' | 'youtube'>('mic')
+    const [ytUrl, setYtUrl] = useState('')
+    const [ytCapturing, setYtCapturing] = useState(false)
+    const [ytChunks, setYtChunks] = useState(0)
+    const ytStreamRef = useRef<MediaStream | null>(null)
+    const ytRecorderRef = useRef<MediaRecorder | null>(null)
+    const chunkLockRef = useRef(false)
 
     // One-click: create a service for captions and immediately set it Live.
     // Removes the "go to /admin/online-campus first" friction entirely.
@@ -285,6 +300,84 @@ export default function LiveCaptionsAdmin() {
         setInterim('')
     }
 
+    // ── YouTube tab-audio capture ─────────────────────────────────────────
+    // We use getDisplayMedia({ audio: true }) so the operator picks "Chrome
+    // tab" and shares its audio. The MediaRecorder slices into ~5s WebM
+    // chunks; each chunk is uploaded to /api/ai/transcribe (Whisper) and the
+    // resulting text is sent to /api/live/captions exactly like the speech
+    // recognition path. Translation then fans out as usual.
+    const startYouTubeCapture = async () => {
+        if (!service?.id) { setError('No live service is running. Start one first.'); return }
+        if (!ytUrl.trim()) { setError('Paste a YouTube URL first.'); return }
+        if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getDisplayMedia) {
+            setError('Tab-audio capture needs Chrome/Edge on desktop. getDisplayMedia is not available in this browser.')
+            return
+        }
+        setError(null)
+        try {
+            // User picks which tab to share; we only need its audio track.
+            const stream = await (navigator.mediaDevices as any).getDisplayMedia({
+                video: true,   // some browsers reject audio-only requests; we ignore the video track
+                audio: true,
+            })
+            const audioTracks = stream.getAudioTracks()
+            if (audioTracks.length === 0) {
+                stream.getTracks().forEach((t: MediaStreamTrack) => t.stop())
+                setError('You did not share the tab audio. In the picker, tick the "Share tab audio" checkbox at the bottom.')
+                return
+            }
+            // Build an audio-only stream so MediaRecorder ignores the video track.
+            const audioOnly = new MediaStream(audioTracks)
+            stream.getVideoTracks().forEach((t: MediaStreamTrack) => t.stop())   // we don't need the video frames
+
+            const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm'
+            const rec = new MediaRecorder(audioOnly, { mimeType: mime })
+            const lang = sourceLang.split('-')[0]
+
+            rec.ondataavailable = async (e: BlobEvent) => {
+                if (chunkLockRef.current) return      // skip overlapping uploads
+                if (!e.data || e.data.size < 4_000) return   // <4KB usually = silence
+                chunkLockRef.current = true
+                try {
+                    const file = new File([e.data], `chunk-${Date.now()}.webm`, { type: mime })
+                    const r = await aiApi.transcribeAudio(file, lang)
+                    const txt = (r.transcript || '').trim()
+                    if (txt && service?.id) {
+                        setYtChunks(c => c + 1)
+                        await liveExpApi.ingestCaption({ service_id: service.id, text: txt, language: lang })
+                        setHistory(h => [{ text: txt, sentAt: new Date().toISOString(), ok: true }, ...h].slice(0, 50))
+                    }
+                } catch (err) {
+                    setHistory(h => [{ text: '[chunk failed]', sentAt: new Date().toISOString(), ok: false, error: (err as Error).message }, ...h].slice(0, 50))
+                } finally {
+                    chunkLockRef.current = false
+                }
+            }
+            rec.onstop = () => {
+                audioOnly.getTracks().forEach(t => t.stop())
+                ytStreamRef.current = null
+                ytRecorderRef.current = null
+            }
+            // Slice into 5-second chunks. Whisper handles short audio well; longer
+            // would mean slower lag-to-caption.
+            rec.start(5000)
+            ytStreamRef.current = audioOnly
+            ytRecorderRef.current = rec
+            setYtCapturing(true)
+            setYtChunks(0)
+        } catch (e) {
+            setError(`Could not start capture: ${(e as Error).message}`)
+        }
+    }
+
+    const stopYouTubeCapture = () => {
+        try { ytRecorderRef.current?.stop() } catch { /* noop */ }
+        ytStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop())
+        ytStreamRef.current = null
+        ytRecorderRef.current = null
+        setYtCapturing(false)
+    }
+
     const sendManual = async () => {
         const txt = manualText.trim()
         if (!txt) return
@@ -363,41 +456,122 @@ export default function LiveCaptionsAdmin() {
                 </div>
             )}
 
+            {/* Mode toggle */}
+            <div className="mb-4 inline-flex bg-white border border-gray-200 rounded-2xl p-1 shadow-sm">
+                <button onClick={() => setMode('mic')} disabled={listening || ytCapturing}
+                    className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl disabled:opacity-40 ${mode === 'mic' ? 'bg-[#140152] text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+                    <Mic className="w-4 h-4" /> Microphone
+                </button>
+                <button onClick={() => setMode('youtube')} disabled={listening || ytCapturing}
+                    className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl disabled:opacity-40 ${mode === 'youtube' ? 'bg-[#140152] text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+                    <Youtube className="w-4 h-4" /> YouTube live audio
+                </button>
+            </div>
+
             {/* Controls */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
-                <h2 className="font-black text-[#140152] mb-3">1 · Speech-to-caption</h2>
-                <p className="text-xs text-gray-500 mb-4">Speak into your mic (or point a mic at the audio source). Each completed sentence is sent to the backend, where it&apos;s translated into all 6 supported languages.</p>
+                <h2 className="font-black text-[#140152] mb-3">1 · {mode === 'mic' ? 'Speech-to-caption' : 'YouTube → Whisper → caption'}</h2>
+                <p className="text-xs text-gray-500 mb-4">
+                    {mode === 'mic'
+                        ? 'Speak into your mic (or point a mic at the audio source). Each completed sentence is sent to the backend, where it\'s translated into all supported languages.'
+                        : 'Paste the URL of a YouTube live stream. The page embeds it so you can hear it, then captures the tab audio in 5-second chunks. Each chunk goes to Whisper for transcription and then through the same translation pipeline. Needs OPENAI_API_KEY configured on Render.'}
+                </p>
 
-                <div className="flex flex-wrap items-center gap-3">
-                    <select value={sourceLang} onChange={e => setSourceLang(e.target.value)} disabled={listening}
-                        className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm">
-                        {SOURCE_LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
-                    </select>
+                {mode === 'mic' && (
+                    <>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <select value={sourceLang} onChange={e => setSourceLang(e.target.value)} disabled={listening}
+                                className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm">
+                                {SOURCE_LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+                            </select>
 
-                    {!listening ? (
-                        <button onClick={start} disabled={!service?.id || !supported}
-                            className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] disabled:opacity-40 text-white font-bold px-6 py-3 rounded-xl">
-                            <Mic className="w-5 h-5" /> Start listening
-                        </button>
-                    ) : (
-                        <button onClick={stop}
-                            className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl animate-pulse">
-                            <MicOff className="w-5 h-5" /> Stop
-                        </button>
-                    )}
+                            {!listening ? (
+                                <button onClick={start} disabled={!service?.id || !supported}
+                                    className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] disabled:opacity-40 text-white font-bold px-6 py-3 rounded-xl">
+                                    <Mic className="w-5 h-5" /> Start listening
+                                </button>
+                            ) : (
+                                <button onClick={stop}
+                                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl animate-pulse">
+                                    <MicOff className="w-5 h-5" /> Stop
+                                </button>
+                            )}
 
-                    {listening && (
-                        <span className="text-xs text-emerald-700 inline-flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Listening …
-                        </span>
-                    )}
-                </div>
+                            {listening && (
+                                <span className="text-xs text-emerald-700 inline-flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Listening …
+                                </span>
+                            )}
+                        </div>
 
-                {/* Interim transcript */}
-                {interim && (
-                    <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-600 italic">
-                        <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400 block mb-1">Hearing</span>
-                        {interim}
+                        {/* Interim transcript */}
+                        {interim && (
+                            <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-600 italic">
+                                <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400 block mb-1">Hearing</span>
+                                {interim}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {mode === 'youtube' && (
+                    <div className="space-y-4">
+                        <div className="grid md:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-1.5">YouTube live URL</label>
+                                <input value={ytUrl} onChange={e => setYtUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..."
+                                    disabled={ytCapturing}
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-mono" />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-1.5">Spoken language (for Whisper)</label>
+                                <select value={sourceLang} onChange={e => setSourceLang(e.target.value)} disabled={ytCapturing}
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm">
+                                    {SOURCE_LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        {ytUrl && (
+                            <div className="aspect-video bg-black rounded-xl overflow-hidden border border-gray-200">
+                                <iframe
+                                    src={toEmbedUrl(ytUrl, { autoplay: true })}
+                                    allow="autoplay; encrypted-media; picture-in-picture"
+                                    className="w-full h-full"
+                                    style={{ border: 0 }}
+                                />
+                            </div>
+                        )}
+
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 flex items-start gap-2">
+                            <Headphones className="w-4 h-4 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="font-bold mb-1">Two steps to capture:</p>
+                                <ol className="list-decimal ml-4 space-y-0.5">
+                                    <li>Make sure the YouTube player above is <strong>playing</strong> (un-mute it).</li>
+                                    <li>Click <strong>Start YouTube capture</strong>, then in the browser prompt choose the <strong>Chrome tab</strong> tab and <strong>tick &quot;Share tab audio&quot;</strong> at the bottom of the picker.</li>
+                                </ol>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 flex-wrap">
+                            {!ytCapturing ? (
+                                <button onClick={startYouTubeCapture} disabled={!service?.id || !ytUrl.trim()}
+                                    className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] disabled:opacity-40 text-white font-bold px-6 py-3 rounded-xl">
+                                    <Youtube className="w-5 h-5" /> Start YouTube capture
+                                </button>
+                            ) : (
+                                <button onClick={stopYouTubeCapture}
+                                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl animate-pulse">
+                                    <MicOff className="w-5 h-5" /> Stop capture
+                                </button>
+                            )}
+                            {ytCapturing && (
+                                <span className="text-xs text-emerald-700 inline-flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Capturing tab audio · {ytChunks} chunks transcribed
+                                </span>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
