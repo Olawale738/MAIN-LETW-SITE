@@ -77,6 +77,15 @@ export default function PremiumHero({
     const [scrolled, setScrolled] = useState(false)
     const videoRef = useRef<HTMLVideoElement>(null)
 
+    // Reset failure + canPlay flags whenever the source URL changes. Without this,
+    // a one-time onError from the initial Pexels default (autoplay-block, CORS, ad
+    // blocker) would permanently hide every subsequent video — including the
+    // admin-saved URL that arrives async from the API.
+    useEffect(() => {
+        setVideoFailed(false)
+        setCanPlay(false)
+    }, [videoUrl])
+
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 50)
         window.addEventListener('scroll', onScroll, { passive: true })
