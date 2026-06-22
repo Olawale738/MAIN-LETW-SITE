@@ -4,6 +4,8 @@ Uses SQLAlchemy 2.0 async engine with asyncpg for PostgreSQL.
 """
 
 import uuid
+from datetime import datetime
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import NullPool
@@ -210,6 +212,46 @@ async def init_db():
                     print(f"[init_db] WARN: ALTER {table}.{column} skipped: {type(col_err).__name__}: {col_err}", flush=True)
 
         print("[init_db] Database tables initialised successfully", flush=True)
+
+        # Idempotent seed — if the blog has zero published posts, drop one in so
+        # /blog and /blog/rss.xml don't render empty. Admin can edit or delete
+        # it from /admin/blog any time. Re-running this is a no-op once any
+        # published post exists.
+        try:
+            from models.blog import BlogPost
+            async with AsyncSessionLocal() as db:
+                existing = (await db.execute(
+                    select(BlogPost).where(BlogPost.status == "published").limit(1)
+                )).scalar_one_or_none()
+                if not existing:
+                    welcome = BlogPost(
+                        slug="welcome-to-the-pastors-column",
+                        title="Welcome to the Pastor's Column",
+                        excerpt="A weekly note from the heart of Light Encounter Tabernacle Worldwide — short reflections, devotionals, and pastoral updates.",
+                        body_html=(
+                            "<p>Grace and peace to you, dear reader.</p>"
+                            "<p>This is the first of many weekly notes from the pastoral team of "
+                            "<strong>Light Encounter Tabernacle Worldwide</strong>. We will use this "
+                            "column to share Sunday recaps, devotionals, prayer focuses for the season, "
+                            "and quiet moments of encouragement between services.</p>"
+                            "<blockquote><em>&ldquo;The grass withers and the flowers fall, but the word "
+                            "of our God endures forever.&rdquo;</em> &mdash; Isaiah 40:8</blockquote>"
+                            "<p>If you would like new posts in your reader, the RSS feed is at "
+                            "<a href=\"https://letw.org/blog/rss.xml\">letw.org/blog/rss.xml</a>. "
+                            "You can also follow along on Sunday at letw.org/live or in the LETW Radio app.</p>"
+                            "<p>See you next week.</p>"
+                        ),
+                        author_name="Pastoral Team",
+                        tags="welcome,announcement",
+                        status="published",
+                        published_at=datetime.utcnow(),
+                        is_featured=True,
+                    )
+                    db.add(welcome)
+                    await db.commit()
+                    print("[init_db] seeded welcome blog post", flush=True)
+        except Exception as seed_err:
+            print(f"[init_db] WARN: blog seed skipped: {type(seed_err).__name__}: {seed_err}", flush=True)
     except Exception as e:
         # NEVER let a startup-time migration error crash the entire app.
         # An app that runs with stale column definitions is far better than
