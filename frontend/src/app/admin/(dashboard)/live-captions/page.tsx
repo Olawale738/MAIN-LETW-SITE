@@ -20,14 +20,74 @@ import { liveExpApi, onlineCampusApi, type CurrentService } from '@/lib/api'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
 
+/**
+ * Source languages the operator can speak / capture in. The code is the BCP-47
+ * locale handed to SpeechRecognition.lang; the backend strips it to a short
+ * ISO code ('ko-KR' -> 'ko') and fans translations out to every language in
+ * the backend's CAPTION_LANGUAGES list.
+ *
+ * Wide coverage (50+ entries) — actual recognition quality varies per browser
+ * and per language; English / Spanish / French / German / Portuguese / Chinese
+ * / Japanese / Korean / Arabic / Russian are usually best.
+ */
 const SOURCE_LANGS = [
+    // English variants
     { code: 'en-US', label: 'English (US)' },
     { code: 'en-GB', label: 'English (UK)' },
-    { code: 'fr-FR', label: 'Français' },
-    { code: 'es-ES', label: 'Español' },
+    { code: 'en-AU', label: 'English (Australia)' },
+    { code: 'en-IN', label: 'English (India)' },
+    { code: 'en-NG', label: 'English (Nigeria)' },
+    { code: 'en-ZA', label: 'English (South Africa)' },
+    // Europe + global lingua francas
+    { code: 'es-ES', label: 'Español (Spain)' },
+    { code: 'es-MX', label: 'Español (Mexico)' },
+    { code: 'es-US', label: 'Español (US)' },
+    { code: 'pt-BR', label: 'Português (Brasil)' },
+    { code: 'pt-PT', label: 'Português (Portugal)' },
+    { code: 'fr-FR', label: 'Français (France)' },
+    { code: 'fr-CA', label: 'Français (Canada)' },
+    { code: 'de-DE', label: 'Deutsch' },
+    { code: 'it-IT', label: 'Italiano' },
+    { code: 'nl-NL', label: 'Nederlands' },
+    { code: 'ru-RU', label: 'Русский (Russian)' },
+    { code: 'pl-PL', label: 'Polski' },
+    { code: 'uk-UA', label: 'Українська (Ukrainian)' },
+    { code: 'ro-RO', label: 'Română' },
+    { code: 'el-GR', label: 'Ελληνικά (Greek)' },
+    { code: 'tr-TR', label: 'Türkçe' },
+    // Middle East
+    { code: 'ar-SA', label: 'العربية (Arabic)' },
+    { code: 'he-IL', label: 'עברית (Hebrew)' },
+    { code: 'fa-IR', label: 'فارسی (Persian/Farsi)' },
+    { code: 'ur-PK', label: 'اردو (Urdu)' },
+    // South Asia
+    { code: 'hi-IN', label: 'हिन्दी (Hindi)' },
+    { code: 'bn-IN', label: 'বাংলা (Bengali)' },
+    { code: 'ta-IN', label: 'தமிழ் (Tamil)' },
+    { code: 'te-IN', label: 'తెలుగు (Telugu)' },
+    { code: 'ml-IN', label: 'മലയാളം (Malayalam)' },
+    { code: 'mr-IN', label: 'मराठी (Marathi)' },
+    { code: 'pa-IN', label: 'ਪੰਜਾਬੀ (Punjabi)' },
+    // East / Southeast Asia
+    { code: 'zh-CN', label: '中文 (简体 — Mandarin / Simplified)' },
+    { code: 'zh-TW', label: '中文 (繁體 — Mandarin / Traditional)' },
+    { code: 'zh-HK', label: '中文 (Cantonese — Hong Kong)' },
+    { code: 'ja-JP', label: '日本語 (Japanese)' },
+    { code: 'ko-KR', label: '한국어 (Korean)' },
+    { code: 'vi-VN', label: 'Tiếng Việt (Vietnamese)' },
+    { code: 'th-TH', label: 'ภาษาไทย (Thai)' },
+    { code: 'id-ID', label: 'Bahasa Indonesia' },
+    { code: 'ms-MY', label: 'Bahasa Melayu' },
+    { code: 'fil-PH', label: 'Filipino / Tagalog' },
+    // Africa
     { code: 'yo-NG', label: 'Yorùbá' },
     { code: 'ig-NG', label: 'Igbo' },
     { code: 'ha-NG', label: 'Hausa' },
+    { code: 'sw-KE', label: 'Kiswahili' },
+    { code: 'am-ET', label: 'አማርኛ (Amharic)' },
+    { code: 'zu-ZA', label: 'isiZulu' },
+    { code: 'xh-ZA', label: 'isiXhosa' },
+    { code: 'af-ZA', label: 'Afrikaans' },
 ]
 
 type RecognitionLike = {

@@ -4,7 +4,21 @@ import { MessageCircle, Send, Loader2, Globe2, Pin, Sparkles } from 'lucide-reac
 import { liveExpApi, tokenManager, type LiveChatMessage, type LiveCaption } from '@/lib/api'
 
 const LANG_LABELS: Record<string, string> = {
-    en: 'English', yo: 'Yorùbá', ig: 'Igbo', ha: 'Hausa', fr: 'Français', es: 'Español',
+    // Africa
+    yo: 'Yorùbá', ig: 'Igbo', ha: 'Hausa', sw: 'Kiswahili', am: 'አማርኛ (Amharic)',
+    zu: 'isiZulu', xh: 'isiXhosa', af: 'Afrikaans', so: 'Soomaali', om: 'Oromoo', ti: 'ትግርኛ (Tigrinya)',
+    // Europe + global
+    en: 'English', es: 'Español', pt: 'Português', fr: 'Français', de: 'Deutsch',
+    it: 'Italiano', nl: 'Nederlands', ru: 'Русский', pl: 'Polski', uk: 'Українська',
+    ro: 'Română', el: 'Ελληνικά', tr: 'Türkçe',
+    // Middle East
+    ar: 'العربية', he: 'עברית', fa: 'فارسی', ur: 'اردو',
+    // South Asia
+    hi: 'हिन्दी', bn: 'বাংলা', ta: 'தமிழ்', te: 'తెలుగు', ml: 'മലയാളം',
+    mr: 'मराठी', pa: 'ਪੰਜਾਬੀ',
+    // East / Southeast Asia
+    zh: '中文 (简体)', 'zh-TW': '中文 (繁體)', ja: '日本語', ko: '한국어',
+    vi: 'Tiếng Việt', th: 'ภาษาไทย', id: 'Bahasa Indonesia', ms: 'Bahasa Melayu', tl: 'Filipino',
 }
 
 /**

@@ -23,7 +23,18 @@ from utils.rate_limit import rate_limit
 
 router = APIRouter(prefix="/api/live", tags=["Live Worship"])
 
-CAPTION_LANGUAGES = ["en", "yo", "ig", "ha", "fr", "es"]
+CAPTION_LANGUAGES = [
+    # Africa
+    "yo", "ig", "ha", "sw", "am", "zu", "xh", "af", "so", "om", "ti",
+    # Europe + global lingua francas
+    "en", "es", "pt", "fr", "de", "it", "nl", "ru", "pl", "uk", "ro", "el", "tr",
+    # Middle East
+    "ar", "he", "fa", "ur",
+    # South Asia
+    "hi", "bn", "ta", "te", "ml", "mr", "pa",
+    # East / Southeast Asia
+    "zh", "zh-TW", "ja", "ko", "vi", "th", "id", "ms", "tl",
+]
 
 
 # ─── Chat ────────────────────────────────────────────────────────────────────
