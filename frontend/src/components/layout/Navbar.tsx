@@ -8,8 +8,11 @@ import SearchButton from '@/components/SearchButton'
 import { Menu, X, ChevronDown, GraduationCap, ArrowRight, LayoutGrid } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ministryContentApi } from '@/lib/api'
 
-const navLinks = [
+type NavLink = { name: string; href: string }
+
+const DEFAULT_NAV: NavLink[] = [
   { name: 'Home', href: '/' },
   { name: 'About', href: '/about' },
   { name: 'Services', href: '/services' },
@@ -19,14 +22,14 @@ const navLinks = [
   { name: 'Give', href: '/giving' },
 ]
 
-const ministriesLinks = [
+const DEFAULT_MINISTRIES: NavLink[] = [
   { name: 'Youth Ministry',     href: '/youth' },
   { name: "Children's Ministry", href: '/children' },
   { name: "Men's Ministry",      href: '/men' },
   { name: "Women's Ministry",    href: '/women' },
 ]
 
-const educationLinks = [
+const DEFAULT_EDUCATION: NavLink[] = [
   { name: 'Overview', href: '/education' },
   { name: 'Primary School', href: '/education/primary-school' },
   { name: 'Secondary School', href: '/education/secondary-school' },
@@ -46,13 +49,30 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
+  // Admin-managed nav config. Falls through to defaults if nothing saved.
+  const [navLinks, setNavLinks]               = useState<NavLink[]>(DEFAULT_NAV)
+  const [ministriesLinks, setMinistriesLinks] = useState<NavLink[]>(DEFAULT_MINISTRIES)
+  const [educationLinks, setEducationLinks]   = useState<NavLink[]>(DEFAULT_EDUCATION)
+  const [ctaLabel, setCtaLabel] = useState('Join Us')
+  const [ctaHref, setCtaHref]   = useState('/join')
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handleScroll)
 
-    // Check login status
     const loggedIn = localStorage.getItem('isLoggedIn') === 'true'
     setIsLoggedIn(loggedIn)
+
+    ministryContentApi.get('navbar')
+      .then(r => {
+        const c = (r.content || {}) as { main?: NavLink[]; ministries?: NavLink[]; education?: NavLink[]; cta_label?: string; cta_href?: string }
+        if (Array.isArray(c.main)       && c.main.length)       setNavLinks(c.main)
+        if (Array.isArray(c.ministries) && c.ministries.length) setMinistriesLinks(c.ministries)
+        if (Array.isArray(c.education)  && c.education.length)  setEducationLinks(c.education)
+        if (c.cta_label) setCtaLabel(c.cta_label)
+        if (c.cta_href)  setCtaHref(c.cta_href)
+      })
+      .catch(() => { /* keep defaults */ })
 
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
@@ -240,7 +260,7 @@ export default function Navbar() {
                   My Dashboard
                 </PremiumButton>
               ) : (
-                <PremiumButton href="/join" className="text-sm">Join Us</PremiumButton>
+                <PremiumButton href={ctaHref} className="text-sm">{ctaLabel}</PremiumButton>
               )}
             </div>
 
@@ -330,8 +350,8 @@ export default function Navbar() {
                   </PremiumButton>
                 ) : (
                   <>
-                    <PremiumButton href="/join" className="text-center justify-center text-lg">
-                      Join The Family
+                    <PremiumButton href={ctaHref} className="text-center justify-center text-lg">
+                      {ctaLabel}
                     </PremiumButton>
                     <div className="mt-4 text-center">
                       <p className="text-gray-500 text-sm">

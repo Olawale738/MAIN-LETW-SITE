@@ -114,6 +114,7 @@ const sidebarItems: SidebarItem[] = [
     { title: 'Statement of Faith', href: '/admin/statement-of-faith', icon: BookOpen },
     { title: 'Testimony Page', href: '/admin/testimony-page', icon: MessageCircle },
     { title: 'Homepage Hero Video', href: '/admin/hero-video', icon: Video },
+    { title: 'Site Chrome (nav · footer · apps · pages · emails)', href: '/admin/site-content', icon: LayoutDashboard },
     { title: 'Moderators', href: '/admin/moderators', icon: ShieldCheck },
     { title: 'Database Backups', href: '/admin/backups', icon: Database },
     { title: 'Downloads', href: '/admin/downloads', icon: FileText },

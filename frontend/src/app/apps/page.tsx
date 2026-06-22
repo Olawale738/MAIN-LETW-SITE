@@ -1,8 +1,20 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Radio, Headphones, Play, BookOpen, Sparkles, Users, ArrowUpRight, Search, Globe2 } from 'lucide-react'
+import { Radio, Headphones, Play, BookOpen, Sparkles, Users, ArrowUpRight, Search, Globe2, LayoutGrid } from 'lucide-react'
 import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
+import { ministryContentApi } from '@/lib/api'
+
+// Map category -> default icon + colors so admin-added apps still look polished.
+const CATEGORY_STYLE: Record<string, { icon: any; accent: string; glow: string }> = {
+    'Worship':    { icon: Radio,      accent: 'from-[#f5bb00] via-orange-500 to-rose-600',     glow: 'shadow-[0_0_80px_rgba(245,187,0,0.35)]' },
+    'Ministry':   { icon: Users,      accent: 'from-blue-500 via-indigo-600 to-violet-700',     glow: 'shadow-[0_0_80px_rgba(99,102,241,0.35)]' },
+    'Learning':   { icon: BookOpen,   accent: 'from-amber-400 via-yellow-500 to-orange-500',    glow: 'shadow-[0_0_80px_rgba(251,191,36,0.35)]' },
+    'Devotional': { icon: Sparkles,   accent: 'from-pink-500 via-rose-500 to-red-500',          glow: 'shadow-[0_0_80px_rgba(236,72,153,0.35)]' },
+    'Family Hub': { icon: Headphones, accent: 'from-emerald-500 via-teal-500 to-cyan-600',      glow: 'shadow-[0_0_80px_rgba(20,184,166,0.35)]' },
+    'Default':    { icon: LayoutGrid, accent: 'from-violet-500 via-purple-600 to-fuchsia-600',  glow: 'shadow-[0_0_80px_rgba(139,92,246,0.35)]' },
+}
+const styleFor = (category: string) => CATEGORY_STYLE[category] || CATEGORY_STYLE['Default']
 
 type AppEntry = {
     name: string
@@ -101,12 +113,13 @@ const APPS: AppEntry[] = [
     },
 ]
 
-const CATEGORIES = ['All', 'Worship', 'Ministry', 'Learning', 'Devotional']
+const CATEGORIES = ['All', 'Worship', 'Ministry', 'Learning', 'Devotional', 'Family Hub']
 
 export default function ChurchAppsPage() {
     const [query, setQuery] = useState('')
     const [activeCategory, setActiveCategory] = useState('All')
     const [mouse, setMouse] = useState({ x: 0, y: 0 })
+    const [adminApps, setAdminApps] = useState<AppEntry[] | null>(null)
 
     useEffect(() => {
         const handler = (e: MouseEvent) => setMouse({ x: e.clientX, y: e.clientY })
@@ -114,8 +127,34 @@ export default function ChurchAppsPage() {
         return () => window.removeEventListener('mousemove', handler)
     }, [])
 
+    // Pull admin-managed app cards from ministry-content. Falls through to the
+    // built-in list above if nothing has been saved yet.
+    useEffect(() => {
+        ministryContentApi.get('apps-list')
+            .then(r => {
+                const c = (r.content || {}) as { apps?: Array<Partial<AppEntry> & { category?: string }> }
+                if (Array.isArray(c.apps) && c.apps.length > 0) {
+                    setAdminApps(c.apps.map(a => {
+                        const style = styleFor(a.category || 'Ministry')
+                        return {
+                            name: a.name || 'Untitled',
+                            tagline: a.tagline || '',
+                            description: a.description || '',
+                            url: a.url || '#',
+                            icon: a.icon || style.icon,
+                            accent: a.accent || style.accent,
+                            glow: a.glow || style.glow,
+                            category: a.category || 'Ministry',
+                            pulse: (a as any).pulse,
+                        }
+                    }))
+                }
+            }).catch(() => { /* keep defaults */ })
+    }, [])
+
+    const allApps = adminApps ?? APPS
     const q = query.toLowerCase().trim()
-    const filtered = APPS.filter(a => {
+    const filtered = allApps.filter(a => {
         if (activeCategory !== 'All' && a.category !== activeCategory) return false
         if (!q) return true
         return (a.name + ' ' + a.tagline + ' ' + a.description + ' ' + a.category).toLowerCase().includes(q)
@@ -160,7 +199,7 @@ export default function ChurchAppsPage() {
                         in <span className="italic font-light">one</span> place.
                     </h1>
                     <p className="text-white/60 mt-6 max-w-2xl mx-auto text-lg leading-relaxed">
-                        The complete LETW digital ecosystem. Worship, learn, give, grow — across {APPS.length} powerful apps, all part of one Kingdom.
+                        The complete LETW digital ecosystem. Worship, learn, give, grow — across {allApps.length} powerful apps, all part of one Kingdom.
                     </p>
 
                     {/* Search + filter */}

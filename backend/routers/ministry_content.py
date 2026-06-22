@@ -22,7 +22,19 @@ from utils.dependencies import get_admin_user
 
 router = APIRouter(prefix="/api/ministry-content", tags=["ministry-content"])
 
-ALLOWED_KEYS = {"women", "men", "theology", "leadership", "giving", "statement-of-faith", "privacy-policy", "terms-of-service", "testimony-page", "hero-settings"}
+ALLOWED_KEYS = {
+    "women", "men", "theology", "leadership", "giving",
+    "statement-of-faith", "privacy-policy", "terms-of-service",
+    "testimony-page", "hero-settings",
+    # Site chrome + secondary pages — admin can now edit these too:
+    "apps-list",        # Cards on /apps
+    "navbar",           # Main nav links + dropdowns
+    "footer",           # Footer columns + bottom row
+    "tour-page",        # /tour copy + stops
+    "voice-page",       # /voice copy + commands
+    "grow-page",        # /grow copy + habit presets
+    "email-templates",  # Welcome / reset / prayer / decision confirmations
+}
 
 
 class MinistryContentOut(BaseModel):
