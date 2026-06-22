@@ -35,6 +35,13 @@ interface HeroSettings {
     title_line_1: string
     title_line_2: string
     subtitle: string
+    service_time: string
+    cta1_label: string
+    cta1_href: string
+    cta2_label: string
+    cta2_href: string
+    cta3_label: string
+    cta3_href: string
 }
 
 const DEFAULTS: HeroSettings = {
@@ -43,6 +50,13 @@ const DEFAULTS: HeroSettings = {
     title_line_1: 'Come & Worship',
     title_line_2: 'With Us',
     subtitle: 'A worldwide family carrying the gospel into every nation — Spirit-filled worship, life-changing teaching, and the unmistakable presence of Jesus. Come as you are; leave forever changed.',
+    service_time: 'Sunday · 9 AM · Worldwide · In-person & online',
+    cta1_label: 'Plan your Sunday',
+    cta1_href: '/services/sunday-service',
+    cta2_label: 'New here? Start here',
+    cta2_href: '/onboarding',
+    cta3_label: 'Watch live',
+    cta3_href: '/live',
 }
 
 export default function AdminHeroVideoPage() {
@@ -191,9 +205,43 @@ export default function AdminHeroVideoPage() {
                 </div>
             </div>
 
+            {/* Section: Service time + CTA buttons */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6 mb-5">
+                <h2 className="font-black text-[#140152] mb-1">3 · Service time &amp; CTA buttons</h2>
+                <p className="text-xs text-gray-500 mb-4">The little info line beneath the subtitle, plus the three action buttons. Leave a button's label blank to hide it. URLs can be a path like <code className="bg-gray-100 px-1 rounded">/live</code> or a full <code className="bg-gray-100 px-1 rounded">https://</code> link.</p>
+
+                <div className="grid gap-3">
+                    <Field label="Service time strip (above the buttons)" value={s.service_time} onChange={v => setS({ ...s, service_time: v })} />
+
+                    <div className="border-t border-gray-100 pt-3 mt-1">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#f5bb00] mb-2">Primary button (gold)</p>
+                        <div className="grid md:grid-cols-2 gap-3">
+                            <Field label="Label" value={s.cta1_label} onChange={v => setS({ ...s, cta1_label: v })} />
+                            <Field label="Link / URL" value={s.cta1_href} onChange={v => setS({ ...s, cta1_href: v })} />
+                        </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-3 mt-1">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">Secondary button (white/glass)</p>
+                        <div className="grid md:grid-cols-2 gap-3">
+                            <Field label="Label" value={s.cta2_label} onChange={v => setS({ ...s, cta2_label: v })} />
+                            <Field label="Link / URL" value={s.cta2_href} onChange={v => setS({ ...s, cta2_href: v })} />
+                        </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-3 mt-1">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">Tertiary button (ghost, with play icon)</p>
+                        <div className="grid md:grid-cols-2 gap-3">
+                            <Field label="Label" value={s.cta3_label} onChange={v => setS({ ...s, cta3_label: v })} />
+                            <Field label="Link / URL" value={s.cta3_href} onChange={v => setS({ ...s, cta3_href: v })} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Section: Live preview composite */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6 mb-5">
-                <h2 className="font-black text-[#140152] mb-1">3 · Mini preview</h2>
+                <h2 className="font-black text-[#140152] mb-1">4 · Mini preview</h2>
                 <p className="text-xs text-gray-500 mb-4">A quick mock of the result. Open <Link href="/" target="_blank" className="font-bold text-[#140152] hover:underline">letw.org</Link> after saving to see the real hero.</p>
                 <div className="relative aspect-[16/7] bg-[#06002a] rounded-2xl overflow-hidden">
                     {s.video_url && (() => {

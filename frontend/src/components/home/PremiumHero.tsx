@@ -57,17 +57,41 @@ export default function PremiumHero({
     const [adminTitleA, setAdminTitleA] = useState<string | null>(null)
     const [adminTitleB, setAdminTitleB] = useState<string | null>(null)
     const [adminSubtitle, setAdminSubtitle] = useState<string | null>(null)
+    const [adminServiceTime, setAdminServiceTime] = useState<string | null>(null)
+    const [adminCtas, setAdminCtas] = useState<{label: string; href: string}[] | null>(null)
     useEffect(() => {
         ministryContentApi.get('hero-settings')
             .then(r => {
-                const c = (r.content || {}) as { video_url?: string; eyebrow?: string; title_line_1?: string; title_line_2?: string; subtitle?: string }
+                const c = (r.content || {}) as {
+                    video_url?: string; eyebrow?: string; title_line_1?: string; title_line_2?: string; subtitle?: string;
+                    service_time?: string;
+                    cta1_label?: string; cta1_href?: string;
+                    cta2_label?: string; cta2_href?: string;
+                    cta3_label?: string; cta3_href?: string;
+                }
                 if (c.video_url) setAdminVideoUrl(c.video_url)
                 if (c.eyebrow) setAdminEyebrow(c.eyebrow)
                 if (c.title_line_1) setAdminTitleA(c.title_line_1)
                 if (c.title_line_2) setAdminTitleB(c.title_line_2)
                 if (c.subtitle) setAdminSubtitle(c.subtitle)
+                if (c.service_time !== undefined) setAdminServiceTime(c.service_time)
+                // Only honour the admin CTA list once we know one of the fields was saved.
+                // An empty label means "hide that button".
+                if (c.cta1_label !== undefined || c.cta2_label !== undefined || c.cta3_label !== undefined) {
+                    setAdminCtas([
+                        { label: c.cta1_label ?? '', href: c.cta1_href ?? '' },
+                        { label: c.cta2_label ?? '', href: c.cta2_href ?? '' },
+                        { label: c.cta3_label ?? '', href: c.cta3_href ?? '' },
+                    ])
+                }
             }).catch(() => { /* fall through to defaults */ })
     }, [])
+    const DEFAULT_CTAS = [
+        { label: 'Plan your Sunday', href: '/services/sunday-service' },
+        { label: 'New here? Start here', href: '/onboarding' },
+        { label: 'Watch live', href: '/live' },
+    ]
+    const ctas = adminCtas ?? DEFAULT_CTAS
     const videoUrl = videoUrlProp
         || adminVideoUrl
         || process.env.NEXT_PUBLIC_HERO_VIDEO_URL
@@ -228,25 +252,33 @@ export default function PremiumHero({
                     {adminSubtitle || 'A worldwide family carrying the gospel into every nation — Spirit-filled worship, life-changing teaching, and the unmistakable presence of Jesus. Come as you are; leave forever changed.'}
                 </p>
 
-                {/* Service times strip — Hillsong-style mini info row */}
-                <p className="font-sans text-white/60 text-xs md:text-sm mt-5 uppercase tracking-[0.25em] inline-flex items-center gap-3">
-                    <Calendar className="w-4 h-4 text-[#f5bb00]" /> Sunday · 9 AM · Worldwide · In-person &amp; online
-                </p>
+                {/* Service times strip — admin editable; blank = hidden */}
+                {(adminServiceTime ?? 'Sunday · 9 AM · Worldwide · In-person & online').trim() && (
+                    <p className="font-sans text-white/60 text-xs md:text-sm mt-5 uppercase tracking-[0.25em] inline-flex items-center gap-3">
+                        <Calendar className="w-4 h-4 text-[#f5bb00]" /> {adminServiceTime ?? 'Sunday · 9 AM · Worldwide · In-person & online'}
+                    </p>
+                )}
 
-                {/* CTAs — merged from both blocks */}
+                {/* CTAs — three admin-editable slots, each renders with its slot's style. Blank label = hidden. */}
                 <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-                    <Link href="/services/sunday-service"
-                        className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-black px-7 py-4 rounded-full text-sm uppercase tracking-widest shadow-2xl shadow-[#f5bb00]/30 hover:scale-105 transition-transform">
-                        Plan your Sunday <ArrowRight className="w-4 h-4" />
-                    </Link>
-                    <Link href="/onboarding"
-                        className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold px-7 py-4 rounded-full text-sm uppercase tracking-widest border border-white/25 backdrop-blur-md transition-colors">
-                        New here? Start here
-                    </Link>
-                    <Link href="/live"
-                        className="inline-flex items-center gap-2 bg-transparent hover:bg-white/10 text-white/80 hover:text-white font-bold px-5 py-4 rounded-full text-sm uppercase tracking-widest transition-colors">
-                        <Play className="w-4 h-4 text-[#f5bb00] fill-current" /> Watch live
-                    </Link>
+                    {ctas[0]?.label && (
+                        <Link href={ctas[0].href || '#'}
+                            className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-black px-7 py-4 rounded-full text-sm uppercase tracking-widest shadow-2xl shadow-[#f5bb00]/30 hover:scale-105 transition-transform">
+                            {ctas[0].label} <ArrowRight className="w-4 h-4" />
+                        </Link>
+                    )}
+                    {ctas[1]?.label && (
+                        <Link href={ctas[1].href || '#'}
+                            className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold px-7 py-4 rounded-full text-sm uppercase tracking-widest border border-white/25 backdrop-blur-md transition-colors">
+                            {ctas[1].label}
+                        </Link>
+                    )}
+                    {ctas[2]?.label && (
+                        <Link href={ctas[2].href || '#'}
+                            className="inline-flex items-center gap-2 bg-transparent hover:bg-white/10 text-white/80 hover:text-white font-bold px-5 py-4 rounded-full text-sm uppercase tracking-widest transition-colors">
+                            <Play className="w-4 h-4 text-[#f5bb00] fill-current" /> {ctas[2].label}
+                        </Link>
+                    )}
                 </div>
 
                 {/* Scroll cue */}
