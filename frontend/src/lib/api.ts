@@ -4109,7 +4109,7 @@ export const onlineCampusApi = {
         fetchApi<CurrentService>('/online-campus/services', { method: 'POST', body: JSON.stringify(b) }),
     updateService: (id: string, b: any) => fetchApi<CurrentService>(`/online-campus/services/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
     deleteService: (id: string) => fetchApi<{ deleted: number }>(`/online-campus/services/${id}`, { method: 'DELETE' }),
-    setState: (id: string, b: { is_live?: boolean; altar_call_open?: boolean; raise_hand_enabled?: boolean; viewer_count?: number }) =>
+    setState: (id: string, b: { is_live?: boolean; altar_call_open?: boolean; raise_hand_enabled?: boolean; viewer_count?: number; livestream_url?: string }) =>
         fetchApi<CurrentService>(`/online-campus/services/${id}/state`, { method: 'POST', body: JSON.stringify(b) }),
     altarCall: (b: { name: string; email?: string; phone?: string; location?: string; kind?: string; note?: string; service_id?: string }) =>
         fetchApi<{ ok: boolean; id: string; message: string }>('/online-campus/altar-call', { method: 'POST', body: JSON.stringify(b) }),

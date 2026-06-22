@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, Radio, Plus, Eye, Users, Hand, Cross, Heart, ExternalLink, Play, Pause, CheckCircle, RefreshCw, Trash2, Youtube, Facebook, Instagram, Twitter, Image as ImageIcon } from 'lucide-react'
+import { Loader2, Radio, Plus, Eye, Users, Hand, Cross, Heart, ExternalLink, Play, Pause, CheckCircle, RefreshCw, Trash2, Youtube, Facebook, Instagram, Twitter, Image as ImageIcon, Save, Link2 } from 'lucide-react'
 import { onlineCampusApi, type CurrentService } from '@/lib/api'
 
 export default function AdminOnlineCampusPage() {
@@ -72,25 +72,12 @@ export default function AdminOnlineCampusPage() {
                 <div className="divide-y divide-gray-100">
                     {services.length === 0 && <p className="px-5 py-12 text-center text-gray-400">No services scheduled.</p>}
                     {services.map(s => (
-                        <div key={s.id} className="px-5 py-3 flex items-center gap-3">
-                            <span className={`w-2 h-2 rounded-full ${s.is_live ? 'bg-red-500 animate-pulse' : 'bg-gray-300'}`} />
-                            <div className="flex-1 min-w-0">
-                                <p className="font-bold text-sm text-[#140152] truncate">{s.title}</p>
-                                <p className="text-xs text-gray-500">{s.scheduled_at ? new Date(s.scheduled_at).toLocaleString() : '—'}</p>
-                            </div>
-                            <button onClick={() => toggleLive(s.id!, s.is_live || false)} className={`text-xs font-bold px-3 py-1.5 rounded-lg inline-flex items-center gap-1 ${s.is_live ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
-                                {s.is_live ? <><Pause className="w-3 h-3" /> End live</> : <><Play className="w-3 h-3" /> Go live</>}
-                            </button>
-                            <button onClick={() => toggleAltar(s.id!, s.altar_call_open || false)} className={`text-xs font-bold px-3 py-1.5 rounded-lg ${s.altar_call_open ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
-                                Altar: {s.altar_call_open ? 'OPEN' : 'closed'}
-                            </button>
-                            <button onClick={() => removeService(s.id!, s.is_live || false)}
-                                title={s.is_live ? 'End live first' : 'Delete service'}
-                                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-40"
-                                disabled={s.is_live}>
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        </div>
+                        <ServiceRow key={s.id} s={s}
+                            onToggleLive={() => toggleLive(s.id!, s.is_live || false)}
+                            onToggleAltar={() => toggleAltar(s.id!, s.altar_call_open || false)}
+                            onRemove={() => removeService(s.id!, s.is_live || false)}
+                            onSaved={load}
+                        />
                     ))}
                 </div>
             </div>
@@ -226,6 +213,79 @@ function SocialField({ icon, value, onChange, placeholder }: { icon: React.React
         <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 w-5 flex justify-center">{icon}</span>
             <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="w-full border border-gray-200 rounded-lg pl-10 pr-3 py-2 text-sm" />
+        </div>
+    )
+}
+
+function ServiceRow({ s, onToggleLive, onToggleAltar, onRemove, onSaved }: {
+    s: CurrentService
+    onToggleLive: () => void
+    onToggleAltar: () => void
+    onRemove: () => void
+    onSaved: () => void | Promise<void>
+}) {
+    const [url, setUrl] = useState(s.livestream_url || '')
+    const [saving, setSaving] = useState(false)
+    const dirty = (url.trim() || '') !== (s.livestream_url || '')
+    const saveUrl = async () => {
+        if (!s.id) return
+        setSaving(true)
+        try {
+            await onlineCampusApi.setState(s.id, { livestream_url: url.trim() })
+            await onSaved()
+        } catch (e) {
+            alert((e as Error).message)
+        } finally {
+            setSaving(false)
+        }
+    }
+    return (
+        <div className="px-5 py-3">
+            <div className="flex items-center gap-3">
+                <span className={`w-2 h-2 rounded-full ${s.is_live ? 'bg-red-500 animate-pulse' : 'bg-gray-300'}`} />
+                <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm text-[#140152] truncate">{s.title}</p>
+                    <p className="text-xs text-gray-500">{s.scheduled_at ? new Date(s.scheduled_at).toLocaleString() : '—'}</p>
+                </div>
+                <button onClick={onToggleLive} className={`text-xs font-bold px-3 py-1.5 rounded-lg inline-flex items-center gap-1 ${s.is_live ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
+                    {s.is_live ? <><Pause className="w-3 h-3" /> End live</> : <><Play className="w-3 h-3" /> Go live</>}
+                </button>
+                <button onClick={onToggleAltar} className={`text-xs font-bold px-3 py-1.5 rounded-lg ${s.altar_call_open ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+                    Altar: {s.altar_call_open ? 'OPEN' : 'closed'}
+                </button>
+                <button onClick={onRemove}
+                    title={s.is_live ? 'End live first' : 'Delete service'}
+                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-40"
+                    disabled={s.is_live}>
+                    <Trash2 className="w-4 h-4" />
+                </button>
+            </div>
+
+            {/* Inline livestream URL editor — the most-requested fix. Lets the
+                  operator paste a YouTube live URL right on the service row and
+                  hit save; /live picks it up within ~15s. */}
+            <div className="mt-2 ml-5 flex items-center gap-2">
+                <Link2 className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <input
+                    value={url}
+                    onChange={e => setUrl(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && dirty) saveUrl() }}
+                    placeholder="Paste YouTube live URL — e.g. https://www.youtube.com/watch?v=…"
+                    className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 font-mono"
+                />
+                <button
+                    onClick={saveUrl}
+                    disabled={!dirty || saving}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg inline-flex items-center gap-1 ${dirty ? 'bg-[#140152] text-white hover:bg-[#1d0175]' : 'bg-gray-100 text-gray-400'} disabled:opacity-50`}>
+                    {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                    {s.livestream_url ? 'Update' : 'Set URL'}
+                </button>
+                {s.livestream_url && (
+                    <a href={s.livestream_url} target="_blank" rel="noreferrer" className="text-xs text-gray-400 hover:text-[#140152]" title="Open in new tab">
+                        <ExternalLink className="w-3 h-3" />
+                    </a>
+                )}
+            </div>
         </div>
     )
 }

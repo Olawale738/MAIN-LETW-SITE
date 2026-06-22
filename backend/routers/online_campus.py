@@ -155,6 +155,9 @@ class StateIn(BaseModel):
     altar_call_open: Optional[bool] = None
     raise_hand_enabled: Optional[bool] = None
     viewer_count: Optional[int] = None
+    # Allow inline livestream-URL edits from /admin/online-campus without
+    # having to re-submit the whole ServiceIn body.
+    livestream_url: Optional[str] = None
 
 
 @router.post("/services/{sid}/state")
@@ -206,6 +209,8 @@ async def update_state(sid: str, body: StateIn, db: AsyncSession = Depends(get_d
         s.raise_hand_enabled = body.raise_hand_enabled
     if body.viewer_count is not None:
         s.viewer_count = body.viewer_count
+    if body.livestream_url is not None:
+        s.livestream_url = body.livestream_url.strip() or None
     await db.commit()
     await db.refresh(s)
     return _service_to_dict(s)
