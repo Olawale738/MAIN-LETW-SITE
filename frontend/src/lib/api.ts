@@ -2966,6 +2966,15 @@ export const liveExpApi = {
     captionLanguages: () => fetchApi<{ languages: string[] }>('/live/captions/languages'),
     captionState: (service_id: string) =>
         fetchApi<{ service_id: string; source_language: string | null; last_spoken_at: string | null; is_active: boolean }>(`/live/captions/state?service_id=${encodeURIComponent(service_id)}`),
+
+    // Server-side YouTube → caption capture. Admin paste a URL, click Start,
+    // backend does the rest (yt-dlp → ffmpeg → Whisper → translate).
+    youtubeStart: (b: { service_id: string; youtube_url: string; source_language?: string }) =>
+        fetchApi<{ status: 'started' | 'already_running'; service_id: string }>('/live/captions/youtube/start', { method: 'POST', body: JSON.stringify(b) }),
+    youtubeStop: (service_id: string) =>
+        fetchApi<{ status: 'stopped' | 'not_running'; service_id: string }>(`/live/captions/youtube/stop?service_id=${encodeURIComponent(service_id)}`, { method: 'POST' }),
+    youtubeStatus: (service_id: string) =>
+        fetchApi<{ status: 'idle' | 'running' | 'done'; service_id: string; error?: string | null }>(`/live/captions/youtube/status?service_id=${encodeURIComponent(service_id)}`),
 }
 
 // ─── Pastoral Care ───────────────────────────────────────────────────────────

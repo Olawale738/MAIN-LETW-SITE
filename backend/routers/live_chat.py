@@ -161,6 +161,40 @@ async def supported_languages():
     return {"languages": CAPTION_LANGUAGES}
 
 
+class YouTubeCaptureIn(BaseModel):
+    service_id: str
+    youtube_url: str
+    source_language: str = "en"
+
+
+@router.post("/captions/youtube/start", status_code=202)
+async def start_youtube_captions(body: YouTubeCaptureIn, _: User = Depends(get_admin_user)):
+    """
+    Begin server-side caption capture from a YouTube live stream. The backend
+    pulls audio via yt-dlp + ffmpeg, transcribes with Whisper, and fans the
+    result out through the existing /captions translation pipeline. No
+    operator screen share required.
+    """
+    from services.yt_captioner import start_capture
+    if not body.youtube_url.strip():
+        raise HTTPException(400, "youtube_url required")
+    return start_capture(body.service_id, body.youtube_url.strip(), body.source_language)
+
+
+@router.post("/captions/youtube/stop")
+async def stop_youtube_captions(service_id: str, _: User = Depends(get_admin_user)):
+    """Cancel a running YouTube capture task for a given service."""
+    from services.yt_captioner import stop_capture
+    return stop_capture(service_id)
+
+
+@router.get("/captions/youtube/status")
+async def youtube_capture_status(service_id: str):
+    """Inspect whether a server-side YouTube capture is active."""
+    from services.yt_captioner import capture_status
+    return capture_status(service_id)
+
+
 @router.get("/captions/state")
 async def caption_state(service_id: str, db: AsyncSession = Depends(get_db)):
     """

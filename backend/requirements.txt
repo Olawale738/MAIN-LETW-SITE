@@ -46,3 +46,8 @@ qrcode[pil]==7.4.2
 boto3==1.35.36
 sentry-sdk[fastapi]==2.18.0
 slowapi==0.1.9
+# Server-side YouTube → caption pipeline. yt-dlp resolves the live audio
+# manifest URL; imageio-ffmpeg ships a portable ffmpeg binary so we do not
+# depend on system ffmpeg being apt-installed on Render.
+yt-dlp>=2025.1.15
+imageio-ffmpeg>=0.5.1
