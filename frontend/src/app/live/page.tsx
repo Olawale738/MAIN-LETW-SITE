@@ -66,6 +66,19 @@ export default function LivePage() {
                         />
                     </div>
                 )}
+                {isLive && !service?.livestream_url && (
+                    // Service is marked live but no stream URL is wired up — show a
+                    // soft placeholder instead of an empty page. Captions / altar
+                    // call still work below.
+                    <div className="aspect-video bg-gradient-to-br from-[#1a0270] via-[#140152] to-[#0a0028] rounded-3xl overflow-hidden shadow-2xl mb-8 flex flex-col items-center justify-center text-center p-8">
+                        <Radio className="w-12 h-12 text-[#f5bb00] mb-4 animate-pulse" />
+                        <p className="text-[#f5bb00] text-xs font-black uppercase tracking-[0.3em] mb-2">Audio service</p>
+                        <h3 className="text-white text-2xl font-black mb-2">Live now — without video</h3>
+                        <p className="text-white/60 max-w-md text-sm leading-relaxed">
+                            This service is broadcasting in audio only. Live captions and the watch-party chat below are active. To add a video stream, an admin can paste a YouTube URL at /admin/online-campus or /admin/live-captions.
+                        </p>
+                    </div>
+                )}
 
                 {(isLive || upcoming) && (
                     <div className="grid sm:grid-cols-3 gap-4">

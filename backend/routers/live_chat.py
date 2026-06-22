@@ -168,17 +168,39 @@ class YouTubeCaptureIn(BaseModel):
 
 
 @router.post("/captions/youtube/start", status_code=202)
-async def start_youtube_captions(body: YouTubeCaptureIn, _: User = Depends(get_admin_user)):
+async def start_youtube_captions(
+    body: YouTubeCaptureIn,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+):
     """
     Begin server-side caption capture from a YouTube live stream. The backend
     pulls audio via yt-dlp + ffmpeg, transcribes with Whisper, and fans the
     result out through the existing /captions translation pipeline. No
     operator screen share required.
+
+    Side-effect: also writes the YouTube URL onto the service's
+    livestream_url so the /live video iframe automatically embeds the
+    same stream without a second admin step.
     """
     from services.yt_captioner import start_capture
-    if not body.youtube_url.strip():
+    from models.online_service import OnlineService
+    url = body.youtube_url.strip()
+    if not url:
         raise HTTPException(400, "youtube_url required")
-    return start_capture(body.service_id, body.youtube_url.strip(), body.source_language)
+
+    # Auto-link the URL onto the service so /live's iframe shows the video.
+    try:
+        res = await db.execute(select(OnlineService).where(OnlineService.id == body.service_id))
+        svc = res.scalar_one_or_none()
+        if svc and (svc.livestream_url != url):
+            svc.livestream_url = url
+            await db.commit()
+    except Exception as e:
+        # Linking is convenience, not correctness — don't block the capture if it fails.
+        print(f"[yt-captions] could not link livestream_url to service: {e}", flush=True)
+
+    return start_capture(body.service_id, url, body.source_language)
 
 
 @router.post("/captions/youtube/stop")
