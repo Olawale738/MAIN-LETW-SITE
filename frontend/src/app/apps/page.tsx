@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Radio, Headphones, Play, BookOpen, Sparkles, Users, ArrowUpRight, Search, ExternalLink, Globe2, MessageCircle, Brain, Mic, Download, Heart } from 'lucide-react'
+import { Radio, Headphones, Play, BookOpen, Sparkles, Users, ArrowUpRight, Search, Globe2 } from 'lucide-react'
 import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
 type AppEntry = {
@@ -98,78 +98,6 @@ const APPS: AppEntry[] = [
         accent: 'from-pink-500 via-rose-500 to-red-500',
         glow: 'shadow-[0_0_80px_rgba(236,72,153,0.35)]',
         category: 'Devotional',
-    },
-
-    // ── Family Hub — on-site community + growth surfaces ──────────────────
-    {
-        name: 'Small Groups',
-        tagline: 'Find your people',
-        description: 'Search by city, day, audience. Every group has a real leader you can meet.',
-        url: '/groups',
-        icon: Users,
-        accent: 'from-rose-500 via-pink-500 to-orange-500',
-        glow: 'shadow-[0_0_80px_rgba(244,63,94,0.35)]',
-        category: 'Family Hub',
-    },
-    {
-        name: 'Member Directory',
-        tagline: 'Meet the family',
-        description: 'Connect with believers across LETW — gifts, languages, prayer partners, safe in-app messaging.',
-        url: '/family',
-        icon: MessageCircle,
-        accent: 'from-emerald-500 via-teal-500 to-cyan-600',
-        glow: 'shadow-[0_0_80px_rgba(20,184,166,0.35)]',
-        category: 'Family Hub',
-    },
-    {
-        name: 'Grow',
-        tagline: 'Verses + habits',
-        description: 'Memorise scripture with spaced repetition. Track prayer, fasting, scripture habits with streaks.',
-        url: '/grow',
-        icon: Brain,
-        accent: 'from-violet-500 via-purple-500 to-fuchsia-500',
-        glow: 'shadow-[0_0_80px_rgba(168,85,247,0.35)]',
-        category: 'Family Hub',
-    },
-    {
-        name: 'Virtual Tour',
-        tagline: 'Walk the campus',
-        description: '8 cinematic stops from Welcome Plaza to Mission Hub — before you visit in person.',
-        url: '/tour',
-        icon: Globe2,
-        accent: 'from-amber-400 via-yellow-500 to-orange-500',
-        glow: 'shadow-[0_0_80px_rgba(245,187,0,0.35)]',
-        category: 'Family Hub',
-    },
-    {
-        name: 'Voice',
-        tagline: 'Hear the Word, anywhere',
-        description: 'Alexa, Google, Siri, or your browser — today’s verse, a prayer, a sermon snippet on demand.',
-        url: '/voice',
-        icon: Mic,
-        accent: 'from-blue-500 via-indigo-500 to-violet-600',
-        glow: 'shadow-[0_0_80px_rgba(59,130,246,0.35)]',
-        category: 'Family Hub',
-    },
-    {
-        name: 'Free Resources',
-        tagline: 'PDFs · audio · video',
-        description: 'Sermons, e-books, music, study guides, devotionals — free for the journey.',
-        url: '/download',
-        icon: Download,
-        accent: 'from-pink-500 via-rose-500 to-red-500',
-        glow: 'shadow-[0_0_80px_rgba(236,72,153,0.35)]',
-        category: 'Family Hub',
-    },
-    {
-        name: 'Prayer Wall',
-        tagline: 'Live prayer center',
-        description: 'Submit a request and get prayed for in real time by intercessors around the world.',
-        url: '/prayer',
-        icon: Heart,
-        accent: 'from-rose-500 via-red-500 to-orange-500',
-        glow: 'shadow-[0_0_80px_rgba(244,63,94,0.35)]',
-        category: 'Family Hub',
     },
 ]
 
