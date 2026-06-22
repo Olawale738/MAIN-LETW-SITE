@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import { liveExpApi, onlineCampusApi, type CurrentService } from '@/lib/api'
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+
 const SOURCE_LANGS = [
     { code: 'en-US', label: 'English (US)' },
     { code: 'en-GB', label: 'English (UK)' },
@@ -50,7 +52,66 @@ export default function LiveCaptionsAdmin() {
     const [manualText, setManualText] = useState('')
     const [sendingManual, setSendingManual] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [micStatus, setMicStatus] = useState<'unknown' | 'granted' | 'denied' | 'prompt'>('unknown')
+    const [diag, setDiag] = useState<{ label: string; ok: boolean; detail: string }[] | null>(null)
+    const [running, setRunning] = useState(false)
     const recogRef = useRef<RecognitionLike | null>(null)
+
+    // Probe mic permission state (non-prompting; just reads the saved state).
+    useEffect(() => {
+        if (typeof navigator === 'undefined' || !navigator.permissions) return
+        try {
+            (navigator.permissions as any).query({ name: 'microphone' as any })
+                .then((res: any) => {
+                    setMicStatus(res.state)
+                    res.onchange = () => setMicStatus(res.state)
+                })
+                .catch(() => { /* not supported */ })
+        } catch { /* not supported */ }
+    }, [])
+
+    const runDiagnostics = async () => {
+        setRunning(true)
+        const results: { label: string; ok: boolean; detail: string }[] = []
+
+        // 1. Browser support
+        const SR: any = (typeof window !== 'undefined') && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+        results.push({ label: 'Browser Speech API', ok: !!SR, detail: SR ? 'available' : 'Use Chrome or Edge — Firefox/Safari do not ship this API reliably.' })
+
+        // 2. HTTPS
+        const secure = typeof window !== 'undefined' && (window.isSecureContext || location.hostname === 'localhost')
+        results.push({ label: 'Secure context (HTTPS)', ok: secure, detail: secure ? location.origin : 'Speech API requires HTTPS — confirm letw.org loads over https://' })
+
+        // 3. Auth token
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+        results.push({ label: 'Admin auth token', ok: !!token, detail: token ? `present (${token.length} chars)` : 'No access_token in localStorage — log in again.' })
+
+        // 4. Live service
+        results.push({ label: 'Live service', ok: !!service?.id, detail: service?.id ? `${service.title} (${service.status})` : 'No service. Start one at /admin/online-campus first.' })
+
+        // 5. Try a smoke-test POST to the captions endpoint
+        if (service?.id && token) {
+            try {
+                const r = await fetch(`${API_BASE}/live/captions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ service_id: service.id, text: '[caption operator smoke test]', language: 'en' }),
+                })
+                const body = await r.text()
+                results.push({ label: 'POST /api/live/captions', ok: r.ok, detail: `HTTP ${r.status} ${r.statusText}${body && body.length < 200 ? ' — ' + body : ''}` })
+            } catch (e) {
+                results.push({ label: 'POST /api/live/captions', ok: false, detail: (e as Error).message })
+            }
+        } else {
+            results.push({ label: 'POST /api/live/captions', ok: false, detail: 'skipped — needs both a live service and an auth token first' })
+        }
+
+        // 6. Mic permission
+        results.push({ label: 'Microphone permission', ok: micStatus === 'granted' || micStatus === 'unknown' || micStatus === 'prompt', detail: micStatus })
+
+        setDiag(results)
+        setRunning(false)
+    }
 
     // 1. Detect current live service so we have a service_id to push captions to.
     useEffect(() => {
@@ -80,10 +141,19 @@ export default function LiveCaptionsAdmin() {
     }
 
     // 4. Wire Web Speech API.
-    const start = () => {
+    const start = async () => {
         if (!service?.id) { setError('No live service is running. Start a service from /admin/online-campus first.'); return }
         const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
         if (!SR) { setError('This browser does not support Speech Recognition. Use Chrome or Edge.'); return }
+        // Explicitly request microphone first — on some browsers SpeechRecognition
+        // silently fails when the mic hasn't been granted, instead of prompting.
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+            stream.getTracks().forEach(t => t.stop())   // we only needed the prompt; the API holds its own stream
+        } catch (e) {
+            setError(`Microphone access denied: ${(e as Error).message}. Click the lock icon in your address bar to grant it.`)
+            return
+        }
         const r: RecognitionLike = new SR()
         r.continuous = true
         r.interimResults = true
@@ -143,10 +213,40 @@ export default function LiveCaptionsAdmin() {
             </div>
 
             {/* Status bar */}
-            <div className="grid sm:grid-cols-3 gap-3 mb-5">
+            <div className="grid sm:grid-cols-4 gap-3 mb-5">
                 <StatusCard label="Live service" value={service?.title || '— no active service —'} sub={service?.status === 'live' ? 'LIVE' : (service?.status || 'idle')} ok={service?.status === 'live'} />
                 <StatusCard label="Browser" value={supported === null ? '…' : supported ? 'Speech API ready' : 'Not supported'} ok={!!supported} />
+                <StatusCard label="Microphone" value={micStatus === 'unknown' ? '— will prompt —' : micStatus} ok={micStatus !== 'denied'} />
                 <StatusCard label="Captions sent" value={String(history.filter(h => h.ok).length)} sub={history.length ? `${history.filter(h => !h.ok).length} failed` : ''} ok={history.every(h => h.ok)} />
+            </div>
+
+            {/* No-service helper */}
+            {!service?.id && (
+                <div className="mb-4 p-4 rounded-xl border bg-amber-50 border-amber-200 text-amber-900 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
+                    <div className="text-sm">
+                        <p className="font-bold mb-1">No live service is running.</p>
+                        <p>Captions are tied to a service so viewers can be matched to the right service. Go to <Link href="/admin/online-campus" className="underline font-bold">Online Campus admin</Link>, set a service to <strong>Live</strong>, then come back here and the Start button will activate.</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Diagnostics drawer */}
+            <div className="mb-4">
+                <button onClick={runDiagnostics} disabled={running}
+                    className="text-xs underline text-gray-600 hover:text-[#140152] disabled:opacity-50">
+                    {running ? 'Running diagnostics…' : 'Run end-to-end diagnostics'}
+                </button>
+                {diag && (
+                    <ul className="mt-2 bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-1.5 text-xs">
+                        {diag.map((d, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                                {d.ok ? <CheckCircle className="w-3.5 h-3.5 mt-0.5 text-emerald-600 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 mt-0.5 text-red-600 shrink-0" />}
+                                <span className="font-mono"><strong>{d.label}:</strong> {d.detail}</span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </div>
 
             {error && (
