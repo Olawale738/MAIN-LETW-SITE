@@ -8,6 +8,7 @@ const SLUGS = [
     { value: 'paystack', label: 'Paystack', help: 'Set secret_key. Webhook: POST /api/payments/webhook/paystack' },
     { value: 'flutterwave', label: 'Flutterwave', help: 'Set secret_key + webhook_secret (Verif-Hash header). Webhook: POST /api/payments/webhook/flutterwave' },
     { value: 'stripe', label: 'Stripe', help: 'Set secret_key (sk_...). Webhook: POST /api/payments/webhook/stripe' },
+    { value: 'paypal', label: 'PayPal', help: 'Set config.paypal_me_handle (e.g. "letw") for PayPal.me redirect, OR config.business_email for hosted donate button. No secret keys needed.' },
     { value: 'manual', label: 'Manual / Bank Transfer', help: 'Put instructions in config.instructions_md (markdown). No API calls.' },
     { value: 'custom', label: 'Custom (any other provider)', help: 'Put config.checkout_url_template with {amount}, {ref}, {currency}, {email}, {name}.' },
 ]
@@ -165,6 +166,22 @@ function ProviderForm({ provider, onSave, onCancel }: { provider: PaymentProvide
                     <label className="text-xs font-bold uppercase text-gray-500 block mb-1">Checkout URL Template</label>
                     <input value={p.config?.checkout_url_template || ''} onChange={e => setCfg('checkout_url_template', e.target.value)} placeholder="https://pay.example.com/checkout?amount={amount}&ref={ref}&email={email}" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono text-xs" />
                     <p className="text-[10px] text-gray-400 mt-1">Placeholders: {`{amount} {ref} {currency} {email} {name}`}</p>
+                </div>
+            )}
+
+            {p.slug === 'paypal' && (
+                <div className="mb-3 space-y-3">
+                    <div>
+                        <label className="text-xs font-bold uppercase text-gray-500 block mb-1">PayPal.me handle <span className="text-gray-400 normal-case font-normal">(preferred — simplest)</span></label>
+                        <input value={p.config?.paypal_me_handle || ''} onChange={e => setCfg('paypal_me_handle', e.target.value)} placeholder="letw" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
+                        <p className="text-[10px] text-gray-400 mt-1">Just the username — donors redirect to <span className="font-mono">paypal.me/&lt;handle&gt;/&lt;amount&gt;&lt;currency&gt;</span></p>
+                    </div>
+                    <div className="text-center text-[10px] uppercase tracking-widest text-gray-300">— or —</div>
+                    <div>
+                        <label className="text-xs font-bold uppercase text-gray-500 block mb-1">PayPal business email <span className="text-gray-400 normal-case font-normal">(uses hosted donate button)</span></label>
+                        <input type="email" value={p.config?.business_email || ''} onChange={e => setCfg('business_email', e.target.value)} placeholder="giving@letw.org" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
+                    </div>
+                    <p className="text-[11px] text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">PayPal doesn&apos;t need a secret key in this mode. Set <strong>one</strong> of the two fields above.</p>
                 </div>
             )}
 

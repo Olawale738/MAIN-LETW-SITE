@@ -62,6 +62,8 @@ export default function GivingPage() {
   const [intlProviderId, setIntlProviderId] = useState('')
   const [intlAmount, setIntlAmount] = useState('25')
   const [submitting, setSubmitting] = useState(false)
+  const [giveError, setGiveError] = useState<string | null>(null)
+  const [manualInstructions, setManualInstructions] = useState<string | null>(null)
   const [cms, setCms] = useState<typeof DEFAULTS>(DEFAULTS)
 
   // Load admin CMS content (every visible word is editable).
@@ -103,6 +105,8 @@ export default function GivingPage() {
   const handleIntlGive = async () => {
     if (!isValidIntl || !intlProviderId) return
     setSubmitting(true)
+    setGiveError(null)
+    setManualInstructions(null)
     try {
       const r = await paymentsApi.checkout({
         provider_id: intlProviderId,
@@ -110,11 +114,19 @@ export default function GivingPage() {
         currency: intlCurrency,
         fund: funds.find(f => f.id === fund)?.name || 'Donation',
         payer_name: 'Anonymous',
-        payer_email: email,
+        payer_email: email || undefined,
       })
-      if (r.checkout_url) window.location.href = r.checkout_url
+      if (r.checkout_url) {
+        window.location.href = r.checkout_url
+        return
+      }
+      if (r.instructions_md) {
+        setManualInstructions(r.instructions_md + (r.reference ? `\n\nReference: ${r.reference}` : ''))
+        return
+      }
+      setGiveError('Payment provider did not return a checkout URL.')
     } catch (err) {
-      toast.error((err as Error).message || 'Failed to start checkout. Please try again.')
+      setGiveError((err as Error).message || 'Failed to start checkout. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -152,21 +164,32 @@ export default function GivingPage() {
   const handleGive = async () => {
     if (!isValid || !selectedProviderId) return
     setSubmitting(true)
+    setGiveError(null)
+    setManualInstructions(null)
     try {
       const r = await paymentsApi.checkout({
         provider_id: selectedProviderId,
         amount: parseInt(amount),
         fund: getFundName(fund),
         payer_name: 'Anonymous',
-        payer_email: email,
+        payer_email: email || undefined,
       })
       if (r.checkout_url) {
         window.location.href = r.checkout_url
-      } else if (r.instructions_md) {
-        toast.success('Payment instructions sent — check the new page.')
+        return
       }
+      if (r.instructions_md) {
+        setManualInstructions(r.instructions_md + (r.reference ? `\n\nReference: ${r.reference}` : ''))
+        return
+      }
+      // Provider returned neither URL nor instructions — surface this loudly
+      // so the donor doesn't think nothing happened.
+      setGiveError(
+        'Payment provider did not return a checkout URL. Ask an admin to check ' +
+        'the provider key + redirect-after settings at /admin/payments.'
+      )
     } catch (err) {
-      toast.error((err as Error).message || 'Failed to start checkout. Please try again.')
+      setGiveError((err as Error).message || 'Failed to start checkout. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -351,6 +374,23 @@ export default function GivingPage() {
                               </button>
                             ))}
                           </div>
+                        </div>
+                      )}
+
+                      {/* Errors / manual-payment instructions surface here so
+                            the donor never has to wonder if the click did anything. */}
+                      {giveError && (
+                        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-900 text-sm flex items-start gap-2">
+                          <span className="font-bold">Could not start checkout:</span>
+                          <span className="flex-1">{giveError}</span>
+                          <button onClick={() => setGiveError(null)} className="text-xs underline text-red-700">Dismiss</button>
+                        </div>
+                      )}
+                      {manualInstructions && (
+                        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
+                          <p className="font-black mb-2">Payment Instructions</p>
+                          <pre className="text-left bg-white/60 rounded-lg p-3 text-sm whitespace-pre-wrap font-sans">{manualInstructions}</pre>
+                          <button onClick={() => setManualInstructions(null)} className="mt-3 text-xs underline text-amber-700">Close</button>
                         </div>
                       )}
 

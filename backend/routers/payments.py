@@ -271,6 +271,42 @@ async def checkout(body: CheckoutIn, db: AsyncSession = Depends(get_db)):
             raise HTTPException(502, f"Stripe init failed: {r.text}")
         return {"checkout_url": r.json().get("url"), "reference": ref}
 
+    if p.slug == "paypal":
+        # Native PayPal handling — keep it simple and robust by supporting the
+        # PayPal.me redirect, which works for any PayPal personal/business
+        # account without OAuth integration:
+        #     https://www.paypal.me/<handle>/<amount><currency_code>
+        # Admin sets config.paypal_me_handle (preferred) OR config.business_email
+        # as a fallback to a hosted-button URL. Either way we never hit a
+        # secret_key — no API auth required.
+        handle = (cfg.get("paypal_me_handle") or "").strip().lstrip("@")
+        if handle:
+            curr = (p.currency or "USD").upper()
+            # PayPal.me amounts use "<value><currency>" — e.g. 50USD, 25EUR.
+            link = f"https://www.paypal.me/{urllib.parse.quote(handle)}/{body.amount}{curr}"
+            return {"checkout_url": link, "reference": ref}
+        biz = (cfg.get("business_email") or "").strip()
+        if biz:
+            # PayPal's classic hosted donate button. amount + currency_code are
+            # respected by PayPal's checkout flow.
+            qs = urllib.parse.urlencode({
+                "cmd": "_donations",
+                "business": biz,
+                "currency_code": (p.currency or "USD").upper(),
+                "amount": body.amount,
+                "item_name": f"Donation — {body.fund}",
+                "return": redirect_after,
+                "no_shipping": "1",
+                "no_note": "0",
+                "custom": ref,
+            })
+            return {"checkout_url": f"https://www.paypal.com/donate?{qs}", "reference": ref}
+        raise HTTPException(
+            400,
+            "PayPal provider needs either config.paypal_me_handle (e.g. 'letw') "
+            "or config.business_email set at /admin/payments.",
+        )
+
     if p.slug == "manual":
         return {
             "checkout_url": None,
