@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Mic, Volume2, Pause, Play, Sparkles, Smartphone, Watch, Mail, Copy } from 'lucide-react'
 import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
+import { ministryContentApi } from '@/lib/api'
 
 /**
  * Voice & smart speaker hub.
@@ -28,6 +29,23 @@ const ASSISTANT_COMMANDS = [
 
 export default function VoicePage() {
     const [playingId, setPlayingId] = useState<string | null>(null)
+    // Admin-editable hero copy + commands (key 'voice-page'). Falls back to defaults.
+    const [cmsTitle, setCmsTitle] = useState<string | null>(null)
+    const [cmsIntro, setCmsIntro] = useState<string | null>(null)
+    const [cmsOutro, setCmsOutro] = useState<string | null>(null)
+    const [cmsCommands, setCmsCommands] = useState<string[] | null>(null)
+    useEffect(() => {
+        ministryContentApi.get('voice-page')
+            .then(r => {
+                const c = (r.content || {}) as { title?: string; intro?: string; outro?: string; commands?: string[] }
+                if (c.title) setCmsTitle(c.title)
+                if (c.intro) setCmsIntro(c.intro)
+                if (c.outro) setCmsOutro(c.outro)
+                if (Array.isArray(c.commands) && c.commands.length) setCmsCommands(c.commands)
+            })
+            .catch(() => { /* keep defaults */ })
+    }, [])
+    const commands = cmsCommands ? cmsCommands.map((phrase, i) => ({ ass: ASSISTANT_COMMANDS[i]?.ass || `Assistant ${i+1}`, phrase })) : ASSISTANT_COMMANDS
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
     const [voiceURI, setVoiceURI] = useState<string>('')
     const utterRef = useRef<SpeechSynthesisUtterance | null>(null)
@@ -75,10 +93,10 @@ export default function VoicePage() {
                     <Sparkles className="w-3.5 h-3.5" /> Voice & Smart Speakers
                 </p>
                 <h1 className="font-serif text-4xl md:text-6xl font-black text-[#140152] leading-tight">
-                    Hear the Word, <span className="bg-gradient-to-r from-[#f5bb00] via-amber-500 to-[#f5bb00] bg-clip-text text-transparent">anywhere</span>
+                    {cmsTitle || (<>Hear the Word, <span className="bg-gradient-to-r from-[#f5bb00] via-amber-500 to-[#f5bb00] bg-clip-text text-transparent">anywhere</span></>)}
                 </h1>
                 <p className="font-sans text-[#140152]/70 mt-4 max-w-xl mx-auto leading-relaxed">
-                    From your kitchen speaker to your morning commute — bring scripture, prayer, and sermon snippets to every room of your life.
+                    {cmsIntro || 'From your kitchen speaker to your morning commute — bring scripture, prayer, and sermon snippets to every room of your life.'}
                 </p>
             </section>
 
@@ -135,7 +153,7 @@ export default function VoicePage() {
                     <p className="text-[#140152]/70 mt-2 text-sm">Skills/Actions are rolling out region by region. Tap to copy any phrase.</p>
                 </div>
                 <div className="space-y-3">
-                    {ASSISTANT_COMMANDS.map(c => (
+                    {commands.map(c => (
                         <div key={c.ass} className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center gap-3 hover:shadow-md transition-shadow">
                             <div className="w-12 h-12 bg-[#140152] text-[#f5bb00] rounded-xl flex items-center justify-center flex-shrink-0">
                                 <Mic className="w-5 h-5" />

@@ -6,6 +6,7 @@ import {
     Sparkles, Trophy, Star, Heart, TrendingUp, RefreshCw, ChevronRight, ChevronLeft
 } from 'lucide-react'
 import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
+import { ministryContentApi } from '@/lib/api'
 
 /**
  * Personal spiritual growth dashboard.
@@ -74,6 +75,18 @@ export default function GrowPage() {
     const [verses, setVerses] = useState<Verse[]>([])
     const [habits, setHabits] = useState<Habit[]>([])
     const [habitLog, setHabitLog] = useState<Record<string, string[]>>({})  // habitId → [dates]
+    // Admin-editable hero copy (key 'grow-page').
+    const [cmsTitle, setCmsTitle] = useState<string | null>(null)
+    const [cmsIntro, setCmsIntro] = useState<string | null>(null)
+    useEffect(() => {
+        ministryContentApi.get('grow-page')
+            .then(r => {
+                const c = (r.content || {}) as { title?: string; intro?: string }
+                if (c.title) setCmsTitle(c.title)
+                if (c.intro) setCmsIntro(c.intro)
+            })
+            .catch(() => { /* keep defaults */ })
+    }, [])
 
     // Load on mount
     useEffect(() => {
@@ -104,10 +117,10 @@ export default function GrowPage() {
                     <Sparkles className="w-3.5 h-3.5" /> Spiritual Growth
                 </p>
                 <h1 className="font-serif text-4xl md:text-6xl font-black text-[#140152] leading-tight">
-                    Grow in <span className="bg-gradient-to-r from-[#f5bb00] via-amber-500 to-[#f5bb00] bg-clip-text text-transparent">grace and truth</span>
+                    {cmsTitle || (<>Grow in <span className="bg-gradient-to-r from-[#f5bb00] via-amber-500 to-[#f5bb00] bg-clip-text text-transparent">grace and truth</span></>)}
                 </h1>
                 <p className="font-sans text-[#140152]/70 mt-4 max-w-xl mx-auto leading-relaxed">
-                    Memorise scripture with spaced repetition. Track the spiritual habits that shape who you're becoming. Your progress is saved on this device — fully private.
+                    {cmsIntro || "Memorise scripture with spaced repetition. Track the spiritual habits that shape who you're becoming. Your progress is saved on this device — fully private."}
                 </p>
             </section>
 

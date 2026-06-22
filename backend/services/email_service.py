@@ -4,10 +4,17 @@ Supports console logging for development, SMTP, and Resend API for production.
 """
 
 import aiosmtplib
+import html
+import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from typing import Optional
+
+from sqlalchemy import select
 
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 # Try to import resend, but don't fail if not installed
 try:
@@ -15,6 +22,73 @@ try:
     RESEND_AVAILABLE = True
 except ImportError:
     RESEND_AVAILABLE = False
+
+
+async def _get_admin_email_template(slot: str) -> Optional[dict]:
+    """
+    Fetch an admin-saved email template from the ministry-content table.
+
+    `slot` is one of: welcome, password_reset, prayer_received, decision_followup
+    (these match the keys in the /admin/site-content Email Templates tab).
+
+    Returns None if nothing has been saved yet OR on any DB/lookup error — the
+    callers fall back to the hardcoded HTML in that case so emails always send.
+    """
+    try:
+        # Local imports to avoid a circular dependency at module load time.
+        from database import AsyncSessionLocal
+        from models.ministry_content import MinistryContent
+
+        async with AsyncSessionLocal() as db:
+            row = (await db.execute(
+                select(MinistryContent).where(MinistryContent.key == "email-templates")
+            )).scalar_one_or_none()
+            if not row or not row.content:
+                return None
+            t = row.content.get(slot)
+            if not isinstance(t, dict):
+                return None
+            subject = (t.get("subject") or "").strip()
+            body = (t.get("body") or "").strip()
+            if not subject or not body:
+                return None
+            return {"subject": subject, "body": body}
+    except Exception as e:
+        logger.warning("Failed to read admin email template '%s': %s", slot, e)
+        return None
+
+
+def _render_admin_template_body(body: str, **tokens) -> str:
+    """
+    Render an admin-managed plain-text template:
+      - replace {placeholders} with provided tokens
+      - HTML-escape user values to prevent injection
+      - wrap in a minimal-but-branded HTML shell so the email still looks
+        polished without requiring the admin to write HTML themselves.
+    """
+    rendered = body
+    for k, v in tokens.items():
+        rendered = rendered.replace("{" + k + "}", html.escape(str(v)))
+
+    # Preserve line breaks; very lightweight conversion to HTML.
+    paragraphs = "".join(
+        f'<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px;">{line}</p>'
+        for line in rendered.split("\n") if line.strip()
+    )
+
+    return f"""
+    <!DOCTYPE html><html><head><meta charset="utf-8"></head>
+    <body style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0;background-color:#f5f5f5;">
+      <div style="max-width:600px;margin:0 auto;padding:40px 20px;">
+        <div style="background:linear-gradient(135deg,#140152 0%,#1d0175 100%);padding:32px;border-radius:20px 20px 0 0;text-align:center;">
+          <h1 style="color:#f5bb00;margin:0;font-size:24px;">Light Encounter Tabernacle</h1>
+        </div>
+        <div style="background:white;padding:36px;border-radius:0 0 20px 20px;box-shadow:0 10px 40px rgba(0,0,0,0.1);">
+          {paragraphs}
+        </div>
+      </div>
+    </body></html>
+    """
 
 
 async def send_email(to_email: str, subject: str, html_content: str) -> bool:
@@ -126,9 +200,20 @@ async def send_email_smtp(to_email: str, subject: str, html_content: str) -> boo
 async def send_verification_email(to_email: str, name: str, token: str) -> bool:
     """
     Send email verification link to new user.
+    Honours admin-managed override from ministry-content 'email-templates' key
+    when present; otherwise sends the rich hardcoded template below.
     """
     verification_url = f"{settings.FRONTEND_URL}/auth/setup-password?token={token}"
-    
+
+    admin_tpl = await _get_admin_email_template("welcome")
+    if admin_tpl:
+        admin_subject = admin_tpl["subject"].replace("{name}", name)
+        admin_html = _render_admin_template_body(
+            admin_tpl["body"] + f"\n\nComplete your registration: {verification_url}",
+            name=name,
+        )
+        return await send_email(to_email, admin_subject, admin_html)
+
     subject = f"Welcome to Light Encounter Tabernacle, {name}! 🌟"
     
     html_content = f"""
@@ -199,9 +284,22 @@ async def send_verification_email(to_email: str, name: str, token: str) -> bool:
 async def send_password_reset_email(to_email: str, name: str, token: str) -> bool:
     """
     Send password reset link to user.
+    Honours admin-managed override from ministry-content 'email-templates' key
+    when present; otherwise sends the rich hardcoded template below.
     """
     reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={token}"
-    
+
+    admin_tpl = await _get_admin_email_template("password_reset")
+    if admin_tpl:
+        admin_subject = admin_tpl["subject"].replace("{name}", name)
+        admin_body = admin_tpl["body"]
+        # If admin used {reset_link} placeholder, render the actual URL inline;
+        # otherwise append a fallback action line so the email is still usable.
+        if "{reset_link}" not in admin_body:
+            admin_body += f"\n\nReset link: {reset_url}"
+        admin_html = _render_admin_template_body(admin_body, name=name, reset_link=reset_url)
+        return await send_email(to_email, admin_subject, admin_html)
+
     subject = "Reset Your Password - Light Encounter Tabernacle"
     
     html_content = f"""

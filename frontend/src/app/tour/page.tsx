@@ -6,6 +6,7 @@ import {
     Music, Heart, BookOpen, Users, Coffee, Cross, Globe2, ArrowRight
 } from 'lucide-react'
 import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
+import { ministryContentApi } from '@/lib/api'
 
 /**
  * Cinematic virtual campus walkthrough — SVG-rendered "rooms" with parallax
@@ -251,6 +252,17 @@ export default function VirtualTourPage() {
     const [playing, setPlaying] = useState(true)
     const [mouseX, setMouseX] = useState(50)
     const stageRef = useRef<HTMLDivElement>(null)
+    // Admin can override stop name + description per index (key 'tour-page').
+    // Visual layout (SVG paint, gradients, icons) remains hardcoded.
+    const [cmsStops, setCmsStops] = useState<Array<{ name?: string; description?: string }> | null>(null)
+    useEffect(() => {
+        ministryContentApi.get('tour-page')
+            .then(r => {
+                const c = (r.content || {}) as { stops?: Array<{ name?: string; description?: string }> }
+                if (Array.isArray(c.stops) && c.stops.length) setCmsStops(c.stops)
+            })
+            .catch(() => { /* keep defaults */ })
+    }, [])
 
     useEffect(() => {
         if (!playing) return
@@ -258,7 +270,13 @@ export default function VirtualTourPage() {
         return () => clearInterval(t)
     }, [playing])
 
-    const stop = STOPS[idx]
+    const baseStop = STOPS[idx]
+    const cmsOverride = cmsStops?.[idx]
+    const stop = {
+        ...baseStop,
+        name: cmsOverride?.name || baseStop.name,
+        blurb: cmsOverride?.description || baseStop.blurb,
+    }
     const next = () => setIdx(i => (i + 1) % STOPS.length)
     const prev = () => setIdx(i => (i - 1 + STOPS.length) % STOPS.length)
 
