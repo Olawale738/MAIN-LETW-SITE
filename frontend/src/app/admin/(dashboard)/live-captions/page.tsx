@@ -1,0 +1,594 @@
+'use client'
+/**
+ * Live Caption Operator — admin page.
+ *
+ * Captures the operator's speech (or a relay mic pointed at the service
+ * audio) using the browser's Web Speech API, then streams each finalized
+ * line to /api/live/captions where the backend translates it into all
+ * supported languages and stores them for /live to display.
+ *
+ * Use Chrome / Edge — Safari's webkitSpeechRecognition is unreliable, and
+ * Firefox doesn't ship the API at all. A clear notice tells the operator
+ * if the browser is unsupported.
+ */
+import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import {
+    Mic, MicOff, Loader2, AlertCircle, CheckCircle, Radio, Globe2, Trash2, Sparkles, Play, Activity, Youtube, Headphones,
+} from 'lucide-react'
+import { liveExpApi, onlineCampusApi, aiApi, type CurrentService } from '@/lib/api'
+import { toEmbedUrl } from '@/lib/youtube'
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+
+/**
+ * Source languages the operator can speak / capture in. The code is the BCP-47
+ * locale handed to SpeechRecognition.lang; the backend strips it to a short
+ * ISO code ('ko-KR' -> 'ko') and fans translations out to every language in
+ * the backend's CAPTION_LANGUAGES list.
+ *
+ * Wide coverage (50+ entries) — actual recognition quality varies per browser
+ * and per language; English / Spanish / French / German / Portuguese / Chinese
+ * / Japanese / Korean / Arabic / Russian are usually best.
+ */
+const SOURCE_LANGS = [
+    // English variants
+    { code: 'en-US', label: 'English (US)' },
+    { code: 'en-GB', label: 'English (UK)' },
+    { code: 'en-AU', label: 'English (Australia)' },
+    { code: 'en-IN', label: 'English (India)' },
+    { code: 'en-NG', label: 'English (Nigeria)' },
+    { code: 'en-ZA', label: 'English (South Africa)' },
+    // Europe + global lingua francas
+    { code: 'es-ES', label: 'Español (Spain)' },
+    { code: 'es-MX', label: 'Español (Mexico)' },
+    { code: 'es-US', label: 'Español (US)' },
+    { code: 'pt-BR', label: 'Português (Brasil)' },
+    { code: 'pt-PT', label: 'Português (Portugal)' },
+    { code: 'fr-FR', label: 'Français (France)' },
+    { code: 'fr-CA', label: 'Français (Canada)' },
+    { code: 'de-DE', label: 'Deutsch' },
+    { code: 'it-IT', label: 'Italiano' },
+    { code: 'nl-NL', label: 'Nederlands' },
+    { code: 'ru-RU', label: 'Русский (Russian)' },
+    { code: 'pl-PL', label: 'Polski' },
+    { code: 'uk-UA', label: 'Українська (Ukrainian)' },
+    { code: 'ro-RO', label: 'Română' },
+    { code: 'el-GR', label: 'Ελληνικά (Greek)' },
+    { code: 'tr-TR', label: 'Türkçe' },
+    // Middle East
+    { code: 'ar-SA', label: 'العربية (Arabic)' },
+    { code: 'he-IL', label: 'עברית (Hebrew)' },
+    { code: 'fa-IR', label: 'فارسی (Persian/Farsi)' },
+    { code: 'ur-PK', label: 'اردو (Urdu)' },
+    // South Asia
+    { code: 'hi-IN', label: 'हिन्दी (Hindi)' },
+    { code: 'bn-IN', label: 'বাংলা (Bengali)' },
+    { code: 'ta-IN', label: 'தமிழ் (Tamil)' },
+    { code: 'te-IN', label: 'తెలుగు (Telugu)' },
+    { code: 'ml-IN', label: 'മലയാളം (Malayalam)' },
+    { code: 'mr-IN', label: 'मराठी (Marathi)' },
+    { code: 'pa-IN', label: 'ਪੰਜਾਬੀ (Punjabi)' },
+    // East / Southeast Asia
+    { code: 'zh-CN', label: '中文 (简体 — Mandarin / Simplified)' },
+    { code: 'zh-TW', label: '中文 (繁體 — Mandarin / Traditional)' },
+    { code: 'zh-HK', label: '中文 (Cantonese — Hong Kong)' },
+    { code: 'ja-JP', label: '日本語 (Japanese)' },
+    { code: 'ko-KR', label: '한국어 (Korean)' },
+    { code: 'vi-VN', label: 'Tiếng Việt (Vietnamese)' },
+    { code: 'th-TH', label: 'ภาษาไทย (Thai)' },
+    { code: 'id-ID', label: 'Bahasa Indonesia' },
+    { code: 'ms-MY', label: 'Bahasa Melayu' },
+    { code: 'fil-PH', label: 'Filipino / Tagalog' },
+    // Africa
+    { code: 'yo-NG', label: 'Yorùbá' },
+    { code: 'ig-NG', label: 'Igbo' },
+    { code: 'ha-NG', label: 'Hausa' },
+    { code: 'sw-KE', label: 'Kiswahili' },
+    { code: 'am-ET', label: 'አማርኛ (Amharic)' },
+    { code: 'zu-ZA', label: 'isiZulu' },
+    { code: 'xh-ZA', label: 'isiXhosa' },
+    { code: 'af-ZA', label: 'Afrikaans' },
+]
+
+type RecognitionLike = {
+    start: () => void
+    stop: () => void
+    abort: () => void
+    onresult: ((e: any) => void) | null
+    onerror: ((e: any) => void) | null
+    onend: (() => void) | null
+    continuous: boolean
+    interimResults: boolean
+    lang: string
+}
+
+export default function LiveCaptionsAdmin() {
+    const [service, setService] = useState<CurrentService | null>(null)
+    const [supported, setSupported] = useState<boolean | null>(null)
+    const [listening, setListening] = useState(false)
+    const [sourceLang, setSourceLang] = useState('en-US')
+    const [interim, setInterim] = useState('')
+    const [history, setHistory] = useState<{ text: string; sentAt: string; ok: boolean; error?: string }[]>([])
+    const [manualText, setManualText] = useState('')
+    const [sendingManual, setSendingManual] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [micStatus, setMicStatus] = useState<'unknown' | 'granted' | 'denied' | 'prompt'>('unknown')
+    const [diag, setDiag] = useState<{ label: string; ok: boolean; detail: string }[] | null>(null)
+    const [running, setRunning] = useState(false)
+    const [quickStarting, setQuickStarting] = useState(false)
+    const recogRef = useRef<RecognitionLike | null>(null)
+
+    // ── YouTube server-side capture ───────────────────────────────────────
+    // The backend pulls the YouTube live audio with yt-dlp + ffmpeg and runs
+    // every 8-second chunk through Whisper, then through the existing
+    // translation pipeline. Operator just pastes the URL and clicks Start —
+    // no screen share, no microphone, no browser permissions.
+    const [mode, setMode] = useState<'mic' | 'youtube'>('mic')
+    const [ytUrl, setYtUrl] = useState('')
+    const [ytCapturing, setYtCapturing] = useState(false)
+    const [ytPolling, setYtPolling] = useState(false)
+
+    // One-click: create a service for captions and immediately set it Live.
+    // Removes the "go to /admin/online-campus first" friction entirely.
+    const quickStartService = async () => {
+        if (service?.id) {
+            setError(`A service is already running ("${service.title}"). You don't need to start another one.`)
+            return
+        }
+        setQuickStarting(true)
+        setError(null)
+        try {
+            const created = await onlineCampusApi.createService({
+                title: `Captions Session — ${new Date().toLocaleString()}`,
+                scheduled_at: new Date().toISOString(),
+                description: 'Started from the Live Captions admin to enable multilingual captions for this service.',
+                chat_enabled: true,
+            })
+            if (!created.id) {
+                throw new Error('Service was created but the backend did not return an id. Try the Online Campus admin manually.')
+            }
+            await onlineCampusApi.setState(created.id, { is_live: true })
+            // Refresh the current pointer so the Start button activates.
+            const cur = await onlineCampusApi.current()
+            setService(cur)
+        } catch (e) {
+            setError(`Could not start a service: ${(e as Error).message}`)
+        } finally {
+            setQuickStarting(false)
+        }
+    }
+
+    // Probe mic permission state (non-prompting; just reads the saved state).
+    useEffect(() => {
+        if (typeof navigator === 'undefined' || !navigator.permissions) return
+        try {
+            (navigator.permissions as any).query({ name: 'microphone' as any })
+                .then((res: any) => {
+                    setMicStatus(res.state)
+                    res.onchange = () => setMicStatus(res.state)
+                })
+                .catch(() => { /* not supported */ })
+        } catch { /* not supported */ }
+    }, [])
+
+    const runDiagnostics = async () => {
+        setRunning(true)
+        const results: { label: string; ok: boolean; detail: string }[] = []
+
+        // 1. Browser support
+        const SR: any = (typeof window !== 'undefined') && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+        results.push({ label: 'Browser Speech API', ok: !!SR, detail: SR ? 'available' : 'Use Chrome or Edge — Firefox/Safari do not ship this API reliably.' })
+
+        // 2. HTTPS
+        const secure = typeof window !== 'undefined' && (window.isSecureContext || location.hostname === 'localhost')
+        results.push({ label: 'Secure context (HTTPS)', ok: secure, detail: secure ? location.origin : 'Speech API requires HTTPS — confirm letw.org loads over https://' })
+
+        // 3. Auth token
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+        results.push({ label: 'Admin auth token', ok: !!token, detail: token ? `present (${token.length} chars)` : 'No access_token in localStorage — log in again.' })
+
+        // 4. Live service
+        results.push({ label: 'Live service', ok: !!service?.id, detail: service?.id ? `${service.title} (${service.status})` : 'No service. Start one at /admin/online-campus first.' })
+
+        // 5. Try a smoke-test POST to the captions endpoint
+        if (service?.id && token) {
+            try {
+                const r = await fetch(`${API_BASE}/live/captions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ service_id: service.id, text: '[caption operator smoke test]', language: 'en' }),
+                })
+                const body = await r.text()
+                results.push({ label: 'POST /api/live/captions', ok: r.ok, detail: `HTTP ${r.status} ${r.statusText}${body && body.length < 200 ? ' — ' + body : ''}` })
+            } catch (e) {
+                results.push({ label: 'POST /api/live/captions', ok: false, detail: (e as Error).message })
+            }
+        } else {
+            results.push({ label: 'POST /api/live/captions', ok: false, detail: 'skipped — needs both a live service and an auth token first' })
+        }
+
+        // 6. Mic permission
+        results.push({ label: 'Microphone permission', ok: micStatus === 'granted' || micStatus === 'unknown' || micStatus === 'prompt', detail: micStatus })
+
+        setDiag(results)
+        setRunning(false)
+    }
+
+    // 1. Detect current live service so we have a service_id to push captions to.
+    useEffect(() => {
+        const load = () => onlineCampusApi.current().then(setService).catch(() => { /* noop */ })
+        load()
+        const id = setInterval(load, 10_000)
+        return () => clearInterval(id)
+    }, [])
+
+    // 2. Check Speech Recognition support.
+    useEffect(() => {
+        const SR = (typeof window !== 'undefined') && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+        setSupported(!!SR)
+    }, [])
+
+    // 3. Send a finalized caption line to the backend.
+    const send = async (text: string) => {
+        if (!text.trim() || !service?.id) return
+        const lang = sourceLang.split('-')[0]   // 'en-US' -> 'en'
+        const startedAt = new Date().toISOString()
+        try {
+            await liveExpApi.ingestCaption({ service_id: service.id, text: text.trim(), language: lang })
+            setHistory(h => [{ text, sentAt: startedAt, ok: true }, ...h].slice(0, 50))
+        } catch (e) {
+            setHistory(h => [{ text, sentAt: startedAt, ok: false, error: (e as Error).message }, ...h].slice(0, 50))
+        }
+    }
+
+    // 4. Wire Web Speech API.
+    const start = async () => {
+        if (!service?.id) { setError('No live service is running. Start a service from /admin/online-campus first.'); return }
+        const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        if (!SR) { setError('This browser does not support Speech Recognition. Use Chrome or Edge.'); return }
+        // Explicitly request microphone first — on some browsers SpeechRecognition
+        // silently fails when the mic hasn't been granted, instead of prompting.
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+            stream.getTracks().forEach(t => t.stop())   // we only needed the prompt; the API holds its own stream
+        } catch (e) {
+            setError(`Microphone access denied: ${(e as Error).message}. Click the lock icon in your address bar to grant it.`)
+            return
+        }
+        const r: RecognitionLike = new SR()
+        r.continuous = true
+        r.interimResults = true
+        r.lang = sourceLang
+        r.onresult = (e: any) => {
+            let interimAcc = ''
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+                const res = e.results[i]
+                const txt = res[0]?.transcript || ''
+                if (res.isFinal) {
+                    send(txt)
+                    setInterim('')
+                } else {
+                    interimAcc += txt
+                }
+            }
+            if (interimAcc) setInterim(interimAcc)
+        }
+        r.onerror = (e: any) => {
+            const msg = e?.error || 'unknown'
+            // 'no-speech' fires often during silence; ignore.
+            if (msg !== 'no-speech') setError(`Recognition error: ${msg}`)
+        }
+        r.onend = () => {
+            // Auto-restart so a single tap covers an entire service.
+            if (listening) {
+                try { r.start() } catch { /* noop */ }
+            }
+        }
+        try { r.start(); recogRef.current = r; setListening(true); setError(null) }
+        catch (e) { setError((e as Error).message) }
+    }
+
+    const stop = () => {
+        setListening(false)
+        try { recogRef.current?.stop() } catch { /* noop */ }
+        recogRef.current = null
+        setInterim('')
+    }
+
+    // ── Server-side YouTube capture ───────────────────────────────────────
+    // The browser only fires the start/stop commands. The backend does all
+    // the work via yt-dlp + ffmpeg + Whisper, so no operator screen share.
+    const startYouTubeCapture = async () => {
+        if (!service?.id) { setError('No live service is running. Start one first.'); return }
+        if (!ytUrl.trim()) { setError('Paste a YouTube URL first.'); return }
+        setError(null)
+        try {
+            const r = await liveExpApi.youtubeStart({
+                service_id: service.id,
+                youtube_url: ytUrl.trim(),
+                source_language: sourceLang.split('-')[0],
+            })
+            setYtCapturing(true)
+            setHistory(h => [{ text: `[server started capturing — status: ${r.status}]`, sentAt: new Date().toISOString(), ok: true }, ...h])
+            // Poll status every 5s so we notice if the backend job dies.
+            if (!ytPolling) setYtPolling(true)
+        } catch (e) {
+            setError(`Could not start server capture: ${(e as Error).message}`)
+        }
+    }
+
+    const stopYouTubeCapture = async () => {
+        if (!service?.id) return
+        try { await liveExpApi.youtubeStop(service.id) } catch { /* noop */ }
+        setYtCapturing(false)
+        setYtPolling(false)
+    }
+
+    // Status poller — surfaces silent backend job deaths to the operator.
+    useEffect(() => {
+        if (!ytPolling || !service?.id) return
+        const id = setInterval(async () => {
+            try {
+                const s = await liveExpApi.youtubeStatus(service.id!)
+                if (s.status !== 'running') {
+                    setYtCapturing(false)
+                    setYtPolling(false)
+                    if (s.error) setError(`Backend capture stopped: ${s.error}`)
+                }
+            } catch { /* keep trying */ }
+        }, 5000)
+        return () => clearInterval(id)
+    }, [ytPolling, service?.id])
+
+    const sendManual = async () => {
+        const txt = manualText.trim()
+        if (!txt) return
+        setSendingManual(true)
+        await send(txt)
+        setManualText('')
+        setSendingManual(false)
+    }
+
+    return (
+        <div className="p-4 sm:p-6 max-w-4xl mx-auto pb-32">
+            <div className="flex items-start justify-between flex-wrap gap-4 mb-5">
+                <div>
+                    <h1 className="text-3xl font-black text-[#140152] flex items-center gap-3"><Mic className="w-7 h-7 text-[#f5bb00]" /> Live Caption Operator</h1>
+                    <p className="text-gray-500 mt-1 text-sm">Capture sermon speech and stream multi-lingual captions to <Link href="/live" target="_blank" className="text-[#140152] font-bold hover:underline">letw.org/live</Link>.</p>
+                </div>
+            </div>
+
+            {/* Status bar */}
+            <div className="grid sm:grid-cols-4 gap-3 mb-5">
+                <StatusCard label="Live service" value={service?.title || '— no active service —'} sub={service?.status === 'live' ? 'LIVE' : (service?.status || 'idle')} ok={service?.status === 'live'} />
+                <StatusCard label="Browser" value={supported === null ? '…' : supported ? 'Speech API ready' : 'Not supported'} ok={!!supported} />
+                <StatusCard label="Microphone" value={micStatus === 'unknown' ? '— will prompt —' : micStatus} ok={micStatus !== 'denied'} />
+                <StatusCard label="Captions sent" value={String(history.filter(h => h.ok).length)} sub={history.length ? `${history.filter(h => !h.ok).length} failed` : ''} ok={history.every(h => h.ok)} />
+            </div>
+
+            {/* No-service helper — hidden once a service is already running so
+                  the "Could not start" error doesn't haunt admins who already
+                  have a live service. */}
+            {!service?.id && service?.status !== 'live' && (
+                <div className="mb-4 p-4 rounded-xl border bg-amber-50 border-amber-200 text-amber-900">
+                    <div className="flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
+                        <div className="text-sm flex-1">
+                            <p className="font-bold mb-1">No live service is running.</p>
+                            <p className="mb-3">Captions are scoped to a service so viewers see them in the right place. Click the button below to spin one up automatically — or use <Link href="/admin/online-campus" className="underline font-bold">Online Campus admin</Link> to configure one with a real title and stream URL.</p>
+                            <button onClick={quickStartService} disabled={quickStarting}
+                                className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-4 py-2.5 rounded-lg disabled:opacity-50">
+                                {quickStarting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                                {quickStarting ? 'Starting…' : 'Start a captions service now'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Diagnostics — prominent button, always available */}
+            <div className="mb-4 bg-white border border-gray-200 rounded-2xl p-4">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                        <p className="font-black text-[#140152] text-sm flex items-center gap-2"><Activity className="w-4 h-4" /> Diagnostics</p>
+                        <p className="text-xs text-gray-500">Run if anything seems off. Each check shows PASS or the exact reason it failed.</p>
+                    </div>
+                    <button onClick={runDiagnostics} disabled={running}
+                        className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-bold px-5 py-2.5 rounded-xl text-sm disabled:opacity-50">
+                        {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
+                        {running ? 'Running…' : 'Run diagnostics'}
+                    </button>
+                </div>
+                {diag && (
+                    <ul className="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-1.5 text-xs">
+                        {diag.map((d, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                                {d.ok ? <CheckCircle className="w-3.5 h-3.5 mt-0.5 text-emerald-600 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 mt-0.5 text-red-600 shrink-0" />}
+                                <span className="font-mono"><strong>{d.label}:</strong> {d.detail}</span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+
+            {error && (
+                <div className="mb-4 p-3 rounded-xl border bg-red-50 border-red-200 text-red-800 flex items-start gap-2">
+                    <AlertCircle className="w-5 h-5" /><span className="text-sm">{error}</span>
+                    <button onClick={() => setError(null)} className="ml-auto text-xs underline">Dismiss</button>
+                </div>
+            )}
+
+            {/* Mode toggle */}
+            <div className="mb-4 inline-flex bg-white border border-gray-200 rounded-2xl p-1 shadow-sm">
+                <button onClick={() => setMode('mic')} disabled={listening || ytCapturing}
+                    className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl disabled:opacity-40 ${mode === 'mic' ? 'bg-[#140152] text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+                    <Mic className="w-4 h-4" /> Microphone
+                </button>
+                <button onClick={() => setMode('youtube')} disabled={listening || ytCapturing}
+                    className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl disabled:opacity-40 ${mode === 'youtube' ? 'bg-[#140152] text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+                    <Youtube className="w-4 h-4" /> YouTube live audio
+                </button>
+            </div>
+
+            {/* Controls */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
+                <h2 className="font-black text-[#140152] mb-3">1 · {mode === 'mic' ? 'Speech-to-caption' : 'YouTube → Whisper → caption'}</h2>
+                <p className="text-xs text-gray-500 mb-4">
+                    {mode === 'mic'
+                        ? 'Speak into your mic (or point a mic at the audio source). Each completed sentence is sent to the backend, where it\'s translated into all supported languages.'
+                        : 'Paste the URL of a YouTube live stream. The page embeds it so you can hear it, then captures the tab audio in 5-second chunks. Each chunk goes to Whisper for transcription and then through the same translation pipeline. Needs OPENAI_API_KEY configured on Render.'}
+                </p>
+
+                {mode === 'mic' && (
+                    <>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <select value={sourceLang} onChange={e => setSourceLang(e.target.value)} disabled={listening}
+                                className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm">
+                                {SOURCE_LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+                            </select>
+
+                            {!listening ? (
+                                <button onClick={start} disabled={!service?.id || !supported}
+                                    className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] disabled:opacity-40 text-white font-bold px-6 py-3 rounded-xl">
+                                    <Mic className="w-5 h-5" /> Start listening
+                                </button>
+                            ) : (
+                                <button onClick={stop}
+                                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl animate-pulse">
+                                    <MicOff className="w-5 h-5" /> Stop
+                                </button>
+                            )}
+
+                            {listening && (
+                                <span className="text-xs text-emerald-700 inline-flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Listening …
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Interim transcript */}
+                        {interim && (
+                            <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-600 italic">
+                                <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400 block mb-1">Hearing</span>
+                                {interim}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {mode === 'youtube' && (
+                    <div className="space-y-4">
+                        <div className="grid md:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-1.5">YouTube live URL</label>
+                                <input value={ytUrl} onChange={e => setYtUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..."
+                                    disabled={ytCapturing}
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-mono" />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-1.5">Spoken language (for Whisper)</label>
+                                <select value={sourceLang} onChange={e => setSourceLang(e.target.value)} disabled={ytCapturing}
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm">
+                                    {SOURCE_LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        {ytUrl && (
+                            <div className="aspect-video bg-black rounded-xl overflow-hidden border border-gray-200">
+                                <iframe
+                                    src={toEmbedUrl(ytUrl, { autoplay: true })}
+                                    allow="autoplay; encrypted-media; picture-in-picture"
+                                    className="w-full h-full"
+                                    style={{ border: 0 }}
+                                />
+                            </div>
+                        )}
+
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900 flex items-start gap-2">
+                            <Sparkles className="w-4 h-4 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="font-bold mb-1">Fully server-side — no screen share required.</p>
+                                <p>Paste a YouTube live URL, click <strong>Start capture</strong>, and the backend pulls the audio directly (yt-dlp → ffmpeg → Whisper → translate). You can close this tab while it runs; the capture keeps going on the server until you click Stop.</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 flex-wrap">
+                            {!ytCapturing ? (
+                                <button onClick={startYouTubeCapture} disabled={!service?.id || !ytUrl.trim()}
+                                    className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] disabled:opacity-40 text-white font-bold px-6 py-3 rounded-xl">
+                                    <Youtube className="w-5 h-5" /> Start capture
+                                </button>
+                            ) : (
+                                <button onClick={stopYouTubeCapture}
+                                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl animate-pulse">
+                                    <MicOff className="w-5 h-5" /> Stop capture
+                                </button>
+                            )}
+                            {ytCapturing && (
+                                <span className="text-xs text-emerald-700 inline-flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Server is capturing — captions stream to /live every ~8 seconds
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Manual typing fallback */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
+                <h2 className="font-black text-[#140152] mb-3">2 · Or type a line</h2>
+                <p className="text-xs text-gray-500 mb-3">Useful when the speaker pauses, or as backup if your mic is offline.</p>
+                <div className="flex gap-2">
+                    <input value={manualText} onChange={e => setManualText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendManual()}
+                        placeholder="Type a caption and press Enter…"
+                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm" />
+                    <button onClick={sendManual} disabled={!service?.id || !manualText.trim() || sendingManual}
+                        className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-bold px-5 py-2.5 rounded-lg disabled:opacity-40">
+                        {sendingManual ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                        Send line
+                    </button>
+                </div>
+            </div>
+
+            {/* History */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-black text-[#140152]">3 · Recently sent</h2>
+                    {history.length > 0 && (
+                        <button onClick={() => setHistory([])} className="text-xs text-gray-500 hover:text-red-600 inline-flex items-center gap-1">
+                            <Trash2 className="w-3 h-3" /> Clear list
+                        </button>
+                    )}
+                </div>
+                {history.length === 0 ? (
+                    <p className="text-sm text-gray-400 italic">Nothing sent yet.</p>
+                ) : (
+                    <ul className="space-y-2 max-h-96 overflow-y-auto">
+                        {history.map((h, i) => (
+                            <li key={i} className={`p-2.5 rounded-lg border text-sm flex items-start gap-2 ${h.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-red-50 border-red-200 text-red-900'}`}>
+                                {h.ok ? <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" /> : <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />}
+                                <div className="flex-1 min-w-0">
+                                    <p>{h.text}</p>
+                                    {h.error && <p className="text-[11px] mt-0.5 opacity-70">{h.error}</p>}
+                                </div>
+                                <span className="text-[10px] text-gray-400 shrink-0">{new Date(h.sentAt).toLocaleTimeString()}</span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </div>
+    )
+}
+
+function StatusCard({ label, value, sub, ok }: { label: string; value: string; sub?: string; ok?: boolean }) {
+    return (
+        <div className={`bg-white rounded-xl border p-4 ${ok ? 'border-emerald-200' : 'border-gray-200'}`}>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold">{label}</p>
+            <p className="text-sm font-black text-[#140152] truncate mt-1">{value}</p>
+            {sub && <p className={`text-[11px] mt-1 ${ok ? 'text-emerald-700' : 'text-gray-400'}`}>{sub}</p>}
+        </div>
+    )
+}

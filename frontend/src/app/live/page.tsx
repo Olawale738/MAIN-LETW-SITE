@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Radio, Heart, Hand, Cross, CheckCircle2, Loader2, Calendar, Users, Send } from 'lucide-react'
 import { onlineCampusApi, type CurrentService } from '@/lib/api'
+import LiveCoExperience from '@/components/live/LiveCoExperience'
 import { useT } from '@/lib/i18n'
 import { toEmbedUrl } from '@/lib/youtube'
 
@@ -110,6 +111,14 @@ export default function LivePage() {
                 ) : null}
             </section>
 
+            {/* Watch-party chat + live captions — gated by isLive so the panel
+                  ONLY appears while a service is actually streaming. When the
+                  service ends, the section disappears entirely. */}
+            {isLive && service?.id && (
+                <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-20">
+                    <LiveCoExperience serviceId={service.id} defaultTab="chat" />
+                </section>
+            )}
 
             {showAltar && <AltarCallModal serviceId={service?.id} onClose={() => setShowAltar(false)} />}
             {showRaiseHand && <RaiseHandModal serviceId={service?.id} onClose={() => setShowRaiseHand(false)} />}
