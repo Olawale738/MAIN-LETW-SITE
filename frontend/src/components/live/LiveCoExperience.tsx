@@ -188,7 +188,7 @@ export default function LiveCoExperience({ serviceId, defaultTab = 'chat' }: { s
                         <input value={body} onChange={e => setBody(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && submit()}
                             placeholder="Share an amen, a prayer, a verse…" maxLength={500}
-                            className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#140152]/20" />
+                            className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#140152]/20" />
                         <button onClick={submit} disabled={!body.trim() || posting}
                             className="bg-[#140152] hover:bg-[#1d0175] text-white font-bold w-11 h-11 rounded-full flex items-center justify-center disabled:opacity-50">
                             {posting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
