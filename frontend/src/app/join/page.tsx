@@ -9,10 +9,12 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { BookOpen, Users, Heart, Star, ArrowRight, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { authApi } from '@/lib/api'
+import { authApi, cmsApi, type Block } from '@/lib/api'
+import PageRenderer from '@/components/cms/PageRenderer'
 import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
+import { CONTINENTS, countriesIn, findCountry, type Continent } from '@/lib/countries'
 
 export default function JoinPage() {
   const router = useRouter()
@@ -20,10 +22,24 @@ export default function JoinPage() {
     name: '',
     email: '',
     phone: '',
-    membershipType: 'new'
+    membershipType: 'new',
+    continent: '' as '' | Continent,
+    country_code: '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Admin CMS path — if an admin has saved blocks under the 'join' page slug,
+  // render those instead of the default layout (admin can add / delete / edit
+  // freely via /admin/pages just like /onboarding etc.).
+  const [cmsBlocks, setCmsBlocks] = useState<Block[] | null>(null)
+  const [cmsLoaded, setCmsLoaded] = useState(false)
+  useEffect(() => {
+    cmsApi.getPage('join')
+      .then(d => setCmsBlocks((d?.content?.blocks && d.content.blocks.length > 0) ? d.content.blocks : null))
+      .catch(() => setCmsBlocks(null))
+      .finally(() => setCmsLoaded(true))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,9 +47,13 @@ export default function JoinPage() {
     setError('')
 
     try {
+      const country = formData.country_code ? findCountry(formData.country_code) : undefined
       await authApi.register({
         name: formData.name,
-        email: formData.email
+        email: formData.email,
+        country_code: country?.code,
+        country_name: country?.name,
+        continent: country?.continent,
       })
 
       // Redirect to verify email page
@@ -55,6 +75,19 @@ export default function JoinPage() {
       [e.target.name]: e.target.value
     }))
   }
+
+  // Render the admin-managed CMS version when blocks are saved.
+  if (cmsLoaded && cmsBlocks) {
+    return (
+      <>
+        <PageCmsOverlay slug="join" position="top" />
+        <PageRenderer blocks={cmsBlocks} />
+        <PageCmsOverlay slug="join" position="bottom" />
+      </>
+    )
+  }
+
+  const continentCountries = formData.continent ? countriesIn(formData.continent) : []
 
   return (
     <>
@@ -185,6 +218,41 @@ export default function JoinPage() {
                     className="h-12 rounded-xl border-gray-200"
                     placeholder="Enter your phone number"
                   />
+                </div>
+
+                {/* Continent → country cascading dropdowns. Country selection
+                      is required; the chosen continent is derived from the
+                      country at submit (see findCountry), so admin tables can
+                      filter and group by either. */}
+                <div className="space-y-2">
+                  <Label htmlFor="continent" className="text-xs font-bold text-[#140152] uppercase tracking-widest pl-2">Continent</Label>
+                  <select
+                    id="continent"
+                    name="continent"
+                    value={formData.continent}
+                    onChange={e => setFormData(prev => ({ ...prev, continent: e.target.value as Continent, country_code: '' }))}
+                    required
+                    className="w-full h-12 rounded-xl border border-gray-200 bg-white px-3 text-sm text-[#140152]">
+                    <option value="">Select your continent</option>
+                    {CONTINENTS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="country_code" className="text-xs font-bold text-[#140152] uppercase tracking-widest pl-2">Country</Label>
+                  <select
+                    id="country_code"
+                    name="country_code"
+                    value={formData.country_code}
+                    onChange={e => setFormData(prev => ({ ...prev, country_code: e.target.value }))}
+                    required
+                    disabled={!formData.continent}
+                    className="w-full h-12 rounded-xl border border-gray-200 bg-white px-3 text-sm text-[#140152] disabled:bg-gray-50 disabled:text-gray-400">
+                    <option value="">{formData.continent ? 'Select your country' : 'Pick a continent first'}</option>
+                    {continentCountries.map(c => (
+                      <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-3">

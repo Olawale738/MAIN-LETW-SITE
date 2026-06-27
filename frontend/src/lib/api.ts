@@ -1137,6 +1137,9 @@ export interface AdminUser {
     role: string;
     created_at: string;
     services: string[];
+    country_code?: string | null;
+    country_name?: string | null;
+    continent?: string | null;
 }
 
 export interface DashboardUserUpdate {

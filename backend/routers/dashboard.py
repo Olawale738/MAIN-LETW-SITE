@@ -228,7 +228,11 @@ async def list_users(
                 "status": u.status.value if u.status else "unknown",
                 "role": u.role.value if u.role else "user",
                 "created_at": u.created_at,
-                "services": u.services or []
+                "services": u.services or [],
+                # Geo fields collected at signup (/join) — admin filters by them.
+                "country_code": getattr(u, "country_code", None),
+                "country_name": getattr(u, "country_name", None),
+                "continent": getattr(u, "continent", None),
             }
             for u in users
         ],

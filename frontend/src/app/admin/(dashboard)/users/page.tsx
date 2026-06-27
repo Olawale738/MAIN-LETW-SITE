@@ -170,6 +170,7 @@ export default function AdminUsersPage() {
                             <thead className="text-xs text-gray-500 uppercase bg-gray-50/50">
                                 <tr>
                                     <th className="px-6 py-3">User</th>
+                                    <th className="px-6 py-3">Location</th>
                                     <th className="px-6 py-3">Status</th>
                                     <th className="px-6 py-3">Role</th>
                                     <th className="px-6 py-3">Services</th>
@@ -192,6 +193,18 @@ export default function AdminUsersPage() {
                                                     </div>
                                                 </div>
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {user.country_name ? (
+                                                <div className="text-xs">
+                                                    <div className="font-medium text-[#140152]">{user.country_name}</div>
+                                                    {user.continent && (
+                                                        <div className="text-gray-400">{user.continent}</div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400 text-xs">—</span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4">{getStatusBadge(user.status)}</td>
                                         <td className="px-6 py-4">{getRoleBadge(user.role)}</td>
