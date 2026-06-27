@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import PremiumButton from '@/components/ui/PremiumButton'
 import SearchButton from '@/components/SearchButton'
-import LanguagePicker from '@/components/layout/LanguagePicker'
+import { useT } from '@/lib/i18n'
 import { Menu, X, ChevronDown, GraduationCap, ArrowRight, LayoutGrid } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -48,6 +48,29 @@ export default function Navbar() {
   const [isEducationHovered, setIsEducationHovered] = useState(false)
   const [isMinistriesHovered, setIsMinistriesHovered] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const { t } = useT()
+  // Map default href → existing dictionary key. CMS-saved nav links get
+  // their stored name (admin-controlled translations layered via i18n
+  // overrides). Anything not in this map falls through to the raw name.
+  const navKey = (href: string): string => {
+    switch (href) {
+      case '/':         return 'nav.home'
+      case '/about':    return 'nav.about'
+      case '/sermons':  return 'nav.sermons'
+      case '/events':   return 'nav.events'
+      case '/prayer':   return 'nav.prayer'
+      case '/blog':     return 'nav.blog'
+      case '/live':     return 'nav.live'
+      case '/giving':
+      case '/give':     return 'nav.give'
+      case '/impact':   return 'nav.outcomes'
+      default:          return ''
+    }
+  }
+  const navName = (link: NavLink): string => {
+    const k = navKey(link.href)
+    return k ? t(k, link.name) : link.name
+  }
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   // Admin-managed nav config. Falls through to defaults if nothing saved.
@@ -144,14 +167,14 @@ export default function Navbar() {
           <nav className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link
-                key={link.name}
+                key={link.href}
                 href={link.href}
                 className={cn(
                   "relative px-4 py-2 text-sm font-medium rounded-full transition-all duration-300 hover:text-[#140152]",
                   pathname === link.href ? "text-[#140152] bg-[#140152]/5" : "text-gray-600 hover:bg-gray-100/50"
                 )}
               >
-                {link.name}
+                {navName(link)}
                 {pathname === link.href && (
                   <motion.div
                     layoutId="activeTab"
@@ -255,7 +278,6 @@ export default function Navbar() {
           {/* ACTIONS & MOBILE TOGGLE */}
           <div className="flex items-center gap-2 lg:gap-3">
             <SearchButton />
-            <LanguagePicker compact />
             <div className="hidden lg:block">
               {isLoggedIn ? (
                 <PremiumButton href="/dashboard" className="text-sm">
@@ -297,7 +319,7 @@ export default function Navbar() {
           >
             <div className="flex flex-col gap-6">
               {navLinks.map((link, i) => (
-                <motion.div key={link.name} custom={i} variants={linkVariants}>
+                <motion.div key={link.href} custom={i} variants={linkVariants}>
                   <Link
                     href={link.href}
                     onClick={() => setIsOpen(false)}
@@ -306,7 +328,7 @@ export default function Navbar() {
                       pathname === link.href ? "text-[#140152]" : "text-gray-400"
                     )}
                   >
-                    {link.name}
+                    {navName(link)}
                   </Link>
                 </motion.div>
               ))}
