@@ -34,6 +34,7 @@ ALLOWED_KEYS = {
     "voice-page",       # /voice copy + commands
     "grow-page",        # /grow copy + habit presets
     "email-templates",  # Welcome / reset / prayer / decision confirmations
+    "onboarding-page",  # /onboarding hero, 5 chapters, scripture tagline, final CTA
 }
 
 

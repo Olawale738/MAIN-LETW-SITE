@@ -16,76 +16,71 @@ import {
     Calendar, Users, BookOpen, Heart, Phone, Sparkles, ArrowRight,
     Loader2, MapPin, ChevronDown, CalendarDays,
 } from 'lucide-react'
-import { cmsApi, type Block } from '@/lib/api'
+import { cmsApi, ministryContentApi, type Block } from '@/lib/api'
 import PageRenderer from '@/components/cms/PageRenderer'
 import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 import { verseForToday, dayOfYear, DAILY_VERSES } from '@/lib/dailyVerses'
 
-type Step = {
-    n: number
-    title: string
-    eyebrow: string
-    desc: string
-    href: string
-    icon: any
-    /** Per-chapter colour key — drives ambient orb colour + accent. */
-    hue: string
-    /** Soft tint for the chapter card background. */
-    tint: string
+// ─── CMS-editable copy (admin overrides any string here from
+//      /admin/onboarding-page; missing fields fall through to DEFAULTS) ──
+type ChapterCfg = { eyebrow: string; title: string; desc: string; href: string }
+type OnboardingConfig = {
+    hero: {
+        eyebrow: string; title_line_1: string; title_line_2: string; subtitle: string
+        cta1_label: string; cta1_href: string
+        cta2_label: string; cta2_href: string
+        scroll_label: string
+    }
+    chapters: ChapterCfg[]   // 5 entries; colour + icon stay fixed
+    scripture: { tagline: string }
+    final_cta: {
+        eyebrow: string; heading: string; body: string
+        cta1_label: string; cta1_href: string
+        cta2_label: string; cta2_href: string
+    }
+}
+const DEFAULTS: OnboardingConfig = {
+    hero: {
+        eyebrow: 'A guided welcome',
+        title_line_1: 'Welcome to',
+        title_line_2: 'the Family',
+        subtitle: 'Five short chapters to make Light Encounter Tabernacle your home — at your own pace. Start where you are. Finish closer to Jesus.',
+        cta1_label: 'Begin chapter one',
+        cta1_href: '#step-1',
+        cta2_label: 'Skip to membership',
+        cta2_href: '/join',
+        scroll_label: 'Scroll',
+    },
+    chapters: [
+        { eyebrow: 'First Sunday',         title: 'Plan your visit',           desc: 'Attend a Sunday service — in the sanctuary or online. We will save you a seat and a fresh cup of coffee.',                 href: '/services/sunday-service' },
+        { eyebrow: 'Beyond the Pew',       title: 'Connect with a pastor',     desc: 'Book a 30-minute welcome conversation. We want to know your name, your story, and how to pray for you.',                href: '/contact' },
+        { eyebrow: 'Our Foundation',       title: 'Discover what we believe',  desc: 'Read our Statement of Faith. Know what you are stepping into — no surprises, no fine print.',                            href: '/about' },
+        { eyebrow: 'Faith in Community',   title: 'Join a small group',        desc: 'Christianity was never meant to be lived alone. Find a midweek group near your home or workplace.',                      href: '/bible-study' },
+        { eyebrow: 'A Public Yes',         title: 'Get baptized & serve',      desc: 'Make your faith public, then put it to work. Join a ministry team and become part of the unfolding story.',              href: '/life-events' },
+    ],
+    scripture: { tagline: 'A fresh verse rises with the sun. Walk the 365-day path with us.' },
+    final_cta: {
+        eyebrow: 'The next step is yours',
+        heading: 'Make it official.',
+        body: 'One name. One email. One step. A real pastor — not a chatbot, not a form-letter — will call to learn your story, pray with you, and walk this road beside you. No script. No salesman energy. Just family making room.',
+        cta1_label: 'Become a member',
+        cta1_href: '/join',
+        cta2_label: 'Visit us first',
+        cta2_href: '/contact',
+    },
 }
 
-const STEPS: Step[] = [
-    {
-        n: 1,
-        eyebrow: 'First Sunday',
-        title: 'Plan your visit',
-        desc: 'Attend a Sunday service — in the sanctuary or online. We will save you a seat and a fresh cup of coffee.',
-        href: '/services/sunday-service',
-        icon: Calendar,
-        hue: '#7c3aed',
-        tint: 'from-violet-50 via-white to-white',
-    },
-    {
-        n: 2,
-        eyebrow: 'Beyond the Pew',
-        title: 'Connect with a pastor',
-        desc: 'Book a 30-minute welcome conversation. We want to know your name, your story, and how to pray for you.',
-        href: '/contact',
-        icon: Phone,
-        hue: '#ec4899',
-        tint: 'from-rose-50 via-white to-white',
-    },
-    {
-        n: 3,
-        eyebrow: 'Our Foundation',
-        title: 'Discover what we believe',
-        desc: 'Read our Statement of Faith. Know what you are stepping into — no surprises, no fine print.',
-        href: '/about',
-        icon: BookOpen,
-        hue: '#f5bb00',
-        tint: 'from-amber-50 via-white to-white',
-    },
-    {
-        n: 4,
-        eyebrow: 'Faith in Community',
-        title: 'Join a small group',
-        desc: 'Christianity was never meant to be lived alone. Find a midweek group near your home or workplace.',
-        href: '/bible-study',
-        icon: Users,
-        hue: '#10b981',
-        tint: 'from-emerald-50 via-white to-white',
-    },
-    {
-        n: 5,
-        eyebrow: 'A Public Yes',
-        title: 'Get baptized & serve',
-        desc: 'Make your faith public, then put it to work. Join a ministry team and become part of the unfolding story.',
-        href: '/life-events',
-        icon: Heart,
-        hue: '#06b6d4',
-        tint: 'from-cyan-50 via-white to-white',
-    },
+// Stable visual identity per chapter — admin can't break these so the layout
+// never collapses on save.
+const CHAPTER_STYLE = [
+    { icon: Calendar, hue: '#7c3aed', tint: 'from-violet-50 via-white to-white' },
+    { icon: Phone,    hue: '#ec4899', tint: 'from-rose-50 via-white to-white' },
+    { icon: BookOpen, hue: '#f5bb00', tint: 'from-amber-50 via-white to-white' },
+    { icon: Users,    hue: '#10b981', tint: 'from-emerald-50 via-white to-white' },
+    { icon: Heart,    hue: '#06b6d4', tint: 'from-cyan-50 via-white to-white' },
 ]
+
+// (config + visual identity defined at top of file)
 
 export default function OnboardingPage() {
     const [cmsBlocks, setCmsBlocks] = useState<Block[] | null>(null)
@@ -126,6 +121,26 @@ function OnboardingDefault() {
     const { scrollYProgress } = useScroll({ target: containerRef })
     const progressX = useSpring(scrollYProgress, { stiffness: 120, damping: 25 })
 
+    // Admin overrides for every visible string. Loads in the background;
+    // until it returns, DEFAULTS render so the page never flashes empty.
+    const [cfg, setCfg] = useState<OnboardingConfig>(DEFAULTS)
+    useEffect(() => {
+        ministryContentApi.get('onboarding-page')
+            .then(r => {
+                const c = (r.content || {}) as Partial<OnboardingConfig> & { chapters?: Partial<ChapterCfg>[] }
+                // Field-level merge — each missing string stays as default so a
+                // half-saved admin record cannot blank-out the page.
+                const mergedChapters = DEFAULTS.chapters.map((d, i) => ({ ...d, ...(c.chapters?.[i] || {}) }))
+                setCfg({
+                    hero: { ...DEFAULTS.hero, ...(c.hero || {}) },
+                    chapters: mergedChapters,
+                    scripture: { ...DEFAULTS.scripture, ...(c.scripture || {}) },
+                    final_cta: { ...DEFAULTS.final_cta, ...(c.final_cta || {}) },
+                })
+            })
+            .catch(() => { /* keep DEFAULTS */ })
+    }, [])
+
     return (
         <main ref={containerRef} className="bg-[#fbf5e6] relative overflow-x-hidden">
             <PageCmsOverlay slug="onboarding" position="top" />
@@ -140,11 +155,11 @@ function OnboardingDefault() {
                 }}
             />
 
-            <Hero />
-            <JourneyRail />
-            <StepsSection />
-            <ScriptureMoment />
-            <FinalCTA />
+            <Hero hero={cfg.hero} />
+            <JourneyRail chapters={cfg.chapters} />
+            <StepsSection chapters={cfg.chapters} />
+            <ScriptureMoment tagline={cfg.scripture.tagline} />
+            <FinalCTA cta={cfg.final_cta} />
 
             <PageCmsOverlay slug="onboarding" position="bottom" />
         </main>
@@ -153,7 +168,7 @@ function OnboardingDefault() {
 
 // ─── Hero — cinematic, deep navy, parallax orbs ───────────────────────────
 
-function Hero() {
+function Hero({ hero }: { hero: OnboardingConfig['hero'] }) {
     // Cursor-following gold spotlight — adds tactile depth to the deep-navy stage.
     const [pos, setPos] = useState({ x: 50, y: 50 })
     useEffect(() => {
@@ -227,13 +242,13 @@ function Hero() {
                         color: 'transparent',
                         animation: 'eyebrowShimmer 5s linear infinite',
                     }}>
-                    <Sparkles className="w-3.5 h-3.5 text-[#f5bb00]" /> A guided welcome
+                    <Sparkles className="w-3.5 h-3.5 text-[#f5bb00]" /> {hero.eyebrow}
                 </motion.p>
 
                 {/* Word-by-word entrance */}
                 <h1 className="font-serif font-black text-white leading-[0.95] tracking-tight mb-6"
                     style={{ fontSize: 'clamp(2.75rem, 8vw, 6.5rem)', textShadow: '0 6px 40px rgba(0,0,0,0.55)' }}>
-                    {'Welcome to'.split(' ').map((w, i) => (
+                    {hero.title_line_1.split(' ').map((w, i) => (
                         <motion.span key={`a-${i}`} className="inline-block mr-[0.22em]"
                             initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
                             animate={{ opacity: 1, y: 0, filter: 'blur(0)' }}
@@ -248,7 +263,7 @@ function Hero() {
                         transition={{ delay: 0.55, duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
                         className="inline-block bg-gradient-to-r from-[#ffd763] via-[#fff5d6] to-[#f5bb00] bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(245,187,0,0.55)]"
                         style={{ backgroundSize: '200% auto', animation: 'titleShimmer 6s linear infinite' }}>
-                        the Family
+                        {hero.title_line_2}
                     </motion.span>
                 </h1>
 
@@ -258,7 +273,7 @@ function Hero() {
                     transition={{ delay: 0.85, duration: 0.9 }}
                     className="text-white/75 text-base md:text-lg leading-relaxed font-light max-w-xl mx-auto"
                     style={{ textShadow: '0 2px 18px rgba(0,0,0,0.55)' }}>
-                    Five short chapters to make Light Encounter Tabernacle your home — at your own pace. Start where you are. Finish closer to Jesus.
+                    {hero.subtitle}
                 </motion.p>
 
                 <motion.div
@@ -266,25 +281,25 @@ function Hero() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 1.05, duration: 0.9 }}
                     className="mt-10 flex flex-wrap items-center justify-center gap-3">
-                    <a href="#step-1"
+                    <a href={hero.cta1_href}
                         className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-black px-7 py-4 rounded-full text-sm uppercase tracking-widest shadow-2xl shadow-[#f5bb00]/30 hover:scale-105 transition-transform">
-                        Begin chapter one <ArrowRight className="w-4 h-4" />
+                        {hero.cta1_label} <ArrowRight className="w-4 h-4" />
                     </a>
-                    <Link href="/join"
+                    <Link href={hero.cta2_href}
                         className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur text-white font-bold px-7 py-4 rounded-full text-sm uppercase tracking-widest border border-white/25 transition-colors">
-                        Skip to membership
+                        {hero.cta2_label}
                     </Link>
                 </motion.div>
             </div>
 
             {/* Scroll cue */}
-            <motion.a href="#step-1"
+            <motion.a href={hero.cta1_href}
                 aria-label="Scroll to chapters"
                 className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/40 hover:text-white/80 transition-colors"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.4, duration: 1 }}>
-                <span className="text-[10px] uppercase tracking-[0.4em]">Scroll</span>
+                <span className="text-[10px] uppercase tracking-[0.4em]">{hero.scroll_label}</span>
                 <ChevronDown className="w-4 h-4 animate-bounce" />
             </motion.a>
 
@@ -324,7 +339,7 @@ function Hero() {
 
 // ─── Journey Rail — sticky vertical progress indicator (desktop only) ──
 
-function JourneyRail() {
+function JourneyRail({ chapters }: { chapters: ChapterCfg[] }) {
     const [active, setActive] = useState(1)
 
     useEffect(() => {
@@ -337,12 +352,12 @@ function JourneyRail() {
             })
         }, { rootMargin: '-40% 0px -50% 0px' })
 
-        STEPS.forEach(s => {
-            const el = document.getElementById(`step-${s.n}`)
+        chapters.forEach((_, i) => {
+            const el = document.getElementById(`step-${i + 1}`)
             if (el) observer.observe(el)
         })
         return () => observer.disconnect()
-    }, [])
+    }, [chapters])
 
     return (
         <div className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-6 z-30 pointer-events-none">
@@ -350,13 +365,14 @@ function JourneyRail() {
                 {/* Connector line */}
                 <div className="absolute top-3 bottom-3 left-1/2 -translate-x-1/2 w-px bg-[#140152]/15" />
 
-                {STEPS.map(s => {
-                    const isActive = s.n === active
-                    const isPast = s.n < active
+                {chapters.map((s, i) => {
+                    const n = i + 1
+                    const isActive = n === active
+                    const isPast = n < active
                     return (
-                        <a key={s.n} href={`#step-${s.n}`}
+                        <a key={n} href={`#step-${n}`}
                             className="relative z-10 group"
-                            aria-label={`Jump to step ${s.n}: ${s.title}`}>
+                            aria-label={`Jump to step ${n}: ${s.title}`}>
                             <span className={`block w-3 h-3 rounded-full transition-all duration-300 ${
                                 isActive
                                     ? 'bg-[#f5bb00] ring-4 ring-[#f5bb00]/25 scale-110'
@@ -368,7 +384,7 @@ function JourneyRail() {
                             />
                             {/* Hover tooltip */}
                             <span className="absolute left-6 top-1/2 -translate-y-1/2 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.25em] text-[#140152] opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur px-2.5 py-1.5 rounded-md shadow">
-                                {String(s.n).padStart(2, '0')} · {s.title}
+                                {String(n).padStart(2, '0')} · {s.title}
                             </span>
                         </a>
                     )
@@ -380,23 +396,25 @@ function JourneyRail() {
 
 // ─── Steps Section — magazine chapters ─────────────────────────────────
 
-function StepsSection() {
+function StepsSection({ chapters }: { chapters: ChapterCfg[] }) {
     return (
         <section className="relative pt-24 pb-32 px-4 sm:px-6 max-w-5xl mx-auto">
-            {STEPS.map((s, i) => (
-                <Chapter key={s.n} step={s} index={i} />
+            {chapters.map((s, i) => (
+                <Chapter key={i} step={s} index={i} />
             ))}
         </section>
     )
 }
 
-function Chapter({ step, index }: { step: Step; index: number }) {
-    const Icon = step.icon
+function Chapter({ step, index }: { step: ChapterCfg; index: number }) {
+    const style = CHAPTER_STYLE[index] || CHAPTER_STYLE[0]
+    const Icon = style.icon
+    const n = index + 1
     const flipped = index % 2 === 1
 
     return (
         <motion.article
-            id={`step-${step.n}`}
+            id={`step-${n}`}
             initial={{ opacity: 0, y: 60 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-100px' }}
@@ -407,33 +425,33 @@ function Chapter({ step, index }: { step: Step; index: number }) {
             {/* Ambient mood blob per chapter */}
             <div className="absolute -z-10 inset-0 pointer-events-none">
                 <div className={`absolute ${flipped ? 'right-[-10%]' : 'left-[-10%]'} top-1/2 -translate-y-1/2 w-[40rem] h-[40rem] rounded-full blur-[140px] opacity-25`}
-                    style={{ background: step.hue }} />
+                    style={{ background: style.hue }} />
             </div>
 
             {/* Number / icon side */}
             <div className={`relative ${flipped ? 'md:order-2' : ''}`}>
-                <div className={`relative bg-gradient-to-br ${step.tint} border border-[#140152]/8 rounded-[2.25rem] p-8 sm:p-10 overflow-hidden shadow-[0_30px_80px_-30px_rgba(20,1,82,0.25)]`}>
+                <div className={`relative bg-gradient-to-br ${style.tint} border border-[#140152]/8 rounded-[2.25rem] p-8 sm:p-10 overflow-hidden shadow-[0_30px_80px_-30px_rgba(20,1,82,0.25)]`}>
                     {/* Oversized numeral as background art */}
                     <span aria-hidden
                         className="absolute -top-8 -right-2 font-serif font-black leading-none select-none"
                         style={{
                             fontSize: 'clamp(8rem, 18vw, 14rem)',
-                            color: step.hue,
+                            color: style.hue,
                             opacity: 0.08,
                         }}>
-                        {step.n}
+                        {n}
                     </span>
 
                     <div className="relative">
                         <p className="font-bold tracking-[0.4em] text-[10px] uppercase mb-4"
-                            style={{ color: step.hue }}>
-                            Chapter {String(step.n).padStart(2, '0')}
+                            style={{ color: style.hue }}>
+                            Chapter {String(n).padStart(2, '0')}
                         </p>
                         <p className="font-serif italic text-[#140152]/70 text-sm mb-6">{step.eyebrow}</p>
                         <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg mb-4"
                             style={{
-                                background: `linear-gradient(135deg, ${step.hue} 0%, ${step.hue}dd 100%)`,
-                                boxShadow: `0 16px 40px -8px ${step.hue}66`,
+                                background: `linear-gradient(135deg, ${style.hue} 0%, ${style.hue}dd 100%)`,
+                                boxShadow: `0 16px 40px -8px ${style.hue}66`,
                             }}>
                             <Icon className="w-7 h-7 text-white" />
                         </div>
@@ -467,7 +485,7 @@ function Chapter({ step, index }: { step: Step; index: number }) {
 // A small "Day X · MMM D" badge frames it as part of an intentional, paced
 // walk through the year — not a static quote.
 
-function ScriptureMoment() {
+function ScriptureMoment({ tagline }: { tagline: string }) {
     const [verse, setVerse] = useState(() => verseForToday())
     const [day, setDay] = useState(() => dayOfYear())
     const [stampDate, setStampDate] = useState(() => new Date())
@@ -570,7 +588,7 @@ function ScriptureMoment() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.9, delay: 0.4 }}
                     className="text-white/40 text-xs md:text-sm mt-10 italic">
-                    A fresh verse rises with the sun. Walk the 365-day path with us.
+                    {tagline}
                 </motion.p>
             </div>
         </section>
@@ -579,7 +597,7 @@ function ScriptureMoment() {
 
 // ─── Final CTA — full-bleed cinematic close ────────────────────────────
 
-function FinalCTA() {
+function FinalCTA({ cta }: { cta: OnboardingConfig['final_cta'] }) {
     return (
         <section className="relative px-6 py-32 overflow-hidden bg-gradient-to-br from-[#140152] via-[#1d0175] to-[#2d0b8e]">
             <div className="absolute top-1/4 -right-40 w-[40rem] h-[40rem] rounded-full blur-[150px] opacity-30 pointer-events-none"
@@ -592,7 +610,7 @@ function FinalCTA() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.8 }}
                     className="font-bold tracking-[0.5em] text-[10px] uppercase text-[#f5bb00] mb-5">
-                    The next step is yours
+                    {cta.eyebrow}
                 </motion.p>
 
                 <motion.h2
@@ -602,7 +620,7 @@ function FinalCTA() {
                     transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
                     className="font-serif font-black text-white tracking-tight leading-[1.05] mb-6"
                     style={{ fontSize: 'clamp(2.25rem, 6vw, 4.5rem)' }}>
-                    Make it official.
+                    {cta.heading}
                 </motion.h2>
 
                 <motion.p
@@ -611,7 +629,7 @@ function FinalCTA() {
                     viewport={{ once: true }}
                     transition={{ duration: 1, delay: 0.2 }}
                     className="text-white/75 text-base md:text-lg leading-relaxed max-w-xl mx-auto mb-10">
-                    One name. One email. One step. A real pastor &mdash; not a chatbot, not a form-letter &mdash; will call to learn your story, pray with you, and walk this road beside you. No script. No salesman energy. Just family making room.
+                    {cta.body}
                 </motion.p>
 
                 <motion.div
@@ -620,14 +638,18 @@ function FinalCTA() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.9, delay: 0.3 }}
                     className="flex flex-wrap items-center justify-center gap-3">
-                    <Link href="/join"
-                        className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-black px-8 py-4 rounded-full text-sm uppercase tracking-widest shadow-2xl shadow-[#f5bb00]/30 hover:scale-105 transition-transform">
-                        Become a member <ArrowRight className="w-5 h-5" />
-                    </Link>
-                    <Link href="/contact"
-                        className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur text-white font-bold px-8 py-4 rounded-full text-sm uppercase tracking-widest border border-white/25 transition-colors">
-                        <MapPin className="w-4 h-4" /> Visit us first
-                    </Link>
+                    {cta.cta1_label && (
+                        <Link href={cta.cta1_href || '#'}
+                            className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-black px-8 py-4 rounded-full text-sm uppercase tracking-widest shadow-2xl shadow-[#f5bb00]/30 hover:scale-105 transition-transform">
+                            {cta.cta1_label} <ArrowRight className="w-5 h-5" />
+                        </Link>
+                    )}
+                    {cta.cta2_label && (
+                        <Link href={cta.cta2_href || '#'}
+                            className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur text-white font-bold px-8 py-4 rounded-full text-sm uppercase tracking-widest border border-white/25 transition-colors">
+                            <MapPin className="w-4 h-4" /> {cta.cta2_label}
+                        </Link>
+                    )}
                 </motion.div>
             </div>
         </section>
