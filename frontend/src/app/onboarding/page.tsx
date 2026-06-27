@@ -611,7 +611,7 @@ function FinalCTA() {
                     viewport={{ once: true }}
                     transition={{ duration: 1, delay: 0.2 }}
                     className="text-white/75 text-base md:text-lg leading-relaxed max-w-xl mx-auto mb-10">
-                    One name. One email. One step. Within 48 hours a real pastor &mdash; not a chatbot, not a form-letter &mdash; calls to learn your story, pray with you, and walk this road beside you. No script. No salesman energy. Just family making room.
+                    One name. One email. One step. A real pastor &mdash; not a chatbot, not a form-letter &mdash; will call to learn your story, pray with you, and walk this road beside you. No script. No salesman energy. Just family making room.
                 </motion.p>
 
                 <motion.div
