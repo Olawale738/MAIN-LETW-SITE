@@ -1,24 +1,95 @@
 'use client'
-import { useEffect, useState } from 'react'
+/**
+ * /onboarding — editorial-grade "Welcome to the Family" experience.
+ *
+ * Design intent: a guided journey, not a list. Each step is a chapter with
+ * its own colour mood, a scrolling progress rail in the gutter, scripture
+ * pull-quotes between beats, and a cinematic final CTA.
+ *
+ * Admin CMS blocks (key 'onboarding') still override the entire page — the
+ * default below only renders when no CMS template has been saved.
+ */
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Calendar, Users, BookOpen, Heart, Phone, Sparkles, ArrowRight, Loader2 } from 'lucide-react'
+import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
+import {
+    Calendar, Users, BookOpen, Heart, Phone, Sparkles, ArrowRight,
+    Loader2, MapPin, ChevronDown,
+} from 'lucide-react'
 import { cmsApi, type Block } from '@/lib/api'
 import PageRenderer from '@/components/cms/PageRenderer'
 import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
 
-const STEPS = [
-    { n: 1, title: 'Plan Your Visit', desc: "Attend a Sunday service — in person or online. We'll save you a seat.", href: '/services/sunday-service', icon: Calendar, color: 'from-[#140152] to-[#7c3aed]' },
-    { n: 2, title: 'Connect with a Pastor', desc: "Book a 30-minute welcome call. We want to know your name, not just your face.", href: '/contact', icon: Phone, color: 'from-[#7c3aed] to-rose-500' },
-    { n: 3, title: 'Discover What We Believe', desc: "Read our Statement of Faith. Know what you're stepping into.", href: '/about', icon: BookOpen, color: 'from-rose-500 to-[#f5bb00]' },
-    { n: 4, title: 'Join a Small Group', desc: 'Faith grows in community. Find a midweek group near you.', href: '/bible-study', icon: Users, color: 'from-[#f5bb00] to-emerald-500' },
-    { n: 5, title: 'Get Baptized & Serve', desc: 'Make your faith public, then put it to work. Join a ministry team.', href: '/life-events', icon: Heart, color: 'from-emerald-500 to-cyan-500' },
+type Step = {
+    n: number
+    title: string
+    eyebrow: string
+    desc: string
+    href: string
+    icon: any
+    /** Per-chapter colour key — drives ambient orb colour + accent. */
+    hue: string
+    /** Soft tint for the chapter card background. */
+    tint: string
+}
+
+const STEPS: Step[] = [
+    {
+        n: 1,
+        eyebrow: 'First Sunday',
+        title: 'Plan your visit',
+        desc: 'Attend a Sunday service — in the sanctuary or online. We will save you a seat and a fresh cup of coffee.',
+        href: '/services/sunday-service',
+        icon: Calendar,
+        hue: '#7c3aed',
+        tint: 'from-violet-50 via-white to-white',
+    },
+    {
+        n: 2,
+        eyebrow: 'Beyond the Pew',
+        title: 'Connect with a pastor',
+        desc: 'Book a 30-minute welcome conversation. We want to know your name, your story, and how to pray for you.',
+        href: '/contact',
+        icon: Phone,
+        hue: '#ec4899',
+        tint: 'from-rose-50 via-white to-white',
+    },
+    {
+        n: 3,
+        eyebrow: 'Our Foundation',
+        title: 'Discover what we believe',
+        desc: 'Read our Statement of Faith. Know what you are stepping into — no surprises, no fine print.',
+        href: '/about',
+        icon: BookOpen,
+        hue: '#f5bb00',
+        tint: 'from-amber-50 via-white to-white',
+    },
+    {
+        n: 4,
+        eyebrow: 'Faith in Community',
+        title: 'Join a small group',
+        desc: 'Christianity was never meant to be lived alone. Find a midweek group near your home or workplace.',
+        href: '/bible-study',
+        icon: Users,
+        hue: '#10b981',
+        tint: 'from-emerald-50 via-white to-white',
+    },
+    {
+        n: 5,
+        eyebrow: 'A Public Yes',
+        title: 'Get baptized & serve',
+        desc: 'Make your faith public, then put it to work. Join a ministry team and become part of the unfolding story.',
+        href: '/life-events',
+        icon: Heart,
+        hue: '#06b6d4',
+        tint: 'from-cyan-50 via-white to-white',
+    },
 ]
 
 export default function OnboardingPage() {
-    // Optional admin-loaded CMS template. If saved, renders INSTEAD of the
-    // default 5-step flow below.
     const [cmsBlocks, setCmsBlocks] = useState<Block[] | null>(null)
     const [loaded, setLoaded] = useState(false)
+
     useEffect(() => {
         cmsApi.getPage('onboarding')
             .then(d => setCmsBlocks((d?.content?.blocks && d.content.blocks.length > 0) ? d.content.blocks : null))
@@ -27,7 +98,11 @@ export default function OnboardingPage() {
     }, [])
 
     if (!loaded) {
-        return <div className="min-h-screen flex items-center justify-center bg-[#fbf5e6]"><Loader2 className="w-10 h-10 animate-spin text-[#140152]" /></div>
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#06002a]">
+                <Loader2 className="w-10 h-10 animate-spin text-[#f5bb00]" />
+            </div>
+        )
     }
 
     if (cmsBlocks) {
@@ -40,72 +115,434 @@ export default function OnboardingPage() {
         )
     }
 
+    return <OnboardingDefault />
+}
+
+// ─── Default editorial layout ─────────────────────────────────────────────
+
+function OnboardingDefault() {
+    const containerRef = useRef<HTMLElement>(null)
+    const { scrollYProgress } = useScroll({ target: containerRef })
+    const progressX = useSpring(scrollYProgress, { stiffness: 120, damping: 25 })
+
     return (
-        <main className="min-h-screen bg-gradient-to-b from-[#fbf5e6] via-white to-[#fbf5e6]">
+        <main ref={containerRef} className="bg-[#fbf5e6] relative overflow-x-hidden">
             <PageCmsOverlay slug="onboarding" position="top" />
 
-            {/* Hero */}
-            <section className="relative overflow-hidden py-24 px-4">
-                <div className="absolute -top-40 right-0 w-[500px] h-[500px] rounded-full bg-[#f5bb00]/15 blur-[120px] pointer-events-none" />
-                <div className="absolute -bottom-40 left-0 w-[500px] h-[500px] rounded-full bg-[#140152]/10 blur-[120px] pointer-events-none" />
-                <div className="relative max-w-3xl mx-auto text-center">
-                    <p className="inline-flex items-center gap-2 text-[#f5bb00] font-bold tracking-[0.4em] text-xs uppercase mb-4">
-                        <Sparkles className="w-3.5 h-3.5" /> Welcome
-                    </p>
-                    <h1 className="text-4xl md:text-6xl font-black text-[#140152] leading-[1.05] tracking-tight">
-                        Welcome to the Family
-                    </h1>
-                    <p className="text-lg text-[#140152]/70 mt-5 max-w-xl mx-auto leading-relaxed">
-                        Five short steps to make LETW your home. Start where you are, finish closer to Jesus.
-                    </p>
-                    <a href="#step-1" className="inline-flex items-center gap-2 mt-8 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-7 py-3.5 rounded-full shadow-lg shadow-[#140152]/20">
-                        Begin Step 1 <ArrowRight className="w-4 h-4" />
-                    </a>
-                </div>
-            </section>
+            {/* Top-of-viewport scroll progress bar — cinematic gold thread */}
+            <motion.div
+                className="fixed top-0 left-0 right-0 h-[2px] z-50 origin-left"
+                style={{
+                    scaleX: progressX,
+                    background: 'linear-gradient(90deg, #f5bb00 0%, #ffd763 50%, #f5bb00 100%)',
+                    boxShadow: '0 0 12px rgba(245,187,0,0.55)',
+                }}
+            />
 
-            {/* Steps */}
-            <section className="max-w-4xl mx-auto px-4 pb-20">
-                <div className="space-y-6">
-                    {STEPS.map(s => (
-                        <div key={s.n} id={`step-${s.n}`} className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-shadow overflow-hidden">
-                            <div className="grid sm:grid-cols-[120px_1fr] items-stretch">
-                                <div className={`bg-gradient-to-br ${s.color} text-white flex flex-col items-center justify-center p-6 gap-2`}>
-                                    <p className="text-[10px] uppercase tracking-[0.3em] font-bold opacity-70">Step</p>
-                                    <p className="text-5xl font-black leading-none">{s.n}</p>
-                                    <s.icon className="w-5 h-5 mt-1 opacity-70" />
-                                </div>
-                                <div className="p-6 sm:p-8 flex flex-col justify-center">
-                                    <h2 className="text-2xl font-black text-[#140152]">{s.title}</h2>
-                                    <p className="text-gray-600 mt-2 leading-relaxed">{s.desc}</p>
-                                    <Link href={s.href} className="inline-flex items-center gap-1.5 mt-4 text-sm font-black text-[#140152] hover:gap-2.5 transition-all">
-                                        Get started <ArrowRight className="w-4 h-4" />
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Scripture */}
-                <div className="text-center mt-16 max-w-2xl mx-auto">
-                    <p className="text-xl md:text-2xl italic text-[#140152] leading-relaxed">
-                        "Therefore, as you have received Christ Jesus the Lord, so walk in him, rooted and built up in him and established in the faith."
-                    </p>
-                    <p className="text-[#f5bb00] font-bold uppercase tracking-[0.3em] text-xs mt-4">Colossians 2:6-7</p>
-                </div>
-
-                {/* Final CTA */}
-                <div className="mt-16 bg-gradient-to-br from-[#140152] via-[#1d0175] to-[#2d0b8e] text-white rounded-3xl p-10 text-center shadow-2xl">
-                    <h2 className="text-3xl md:text-4xl font-black mb-3">Ready to make it official?</h2>
-                    <p className="text-blue-200 max-w-lg mx-auto mb-6">Fill the membership form and a pastor will personally reach out within 48 hours.</p>
-                    <Link href="/join" className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-black px-8 py-4 rounded-full shadow-lg">
-                        Become a Member <ArrowRight className="w-5 h-5" />
-                    </Link>
-                </div>
-            </section>
+            <Hero />
+            <JourneyRail />
+            <StepsSection />
+            <ScriptureMoment />
+            <FinalCTA />
 
             <PageCmsOverlay slug="onboarding" position="bottom" />
         </main>
+    )
+}
+
+// ─── Hero — cinematic, deep navy, parallax orbs ───────────────────────────
+
+function Hero() {
+    return (
+        <section className="relative min-h-[100svh] flex items-center justify-center overflow-hidden bg-[#06002a]">
+            {/* Ambient brand orbs */}
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-1/4 -left-40 w-[40rem] h-[40rem] rounded-full blur-[150px] opacity-40"
+                    style={{ background: '#f5bb00', animation: 'orbDriftA 16s ease-in-out infinite alternate' }} />
+                <div className="absolute bottom-1/4 -right-40 w-[42rem] h-[42rem] rounded-full blur-[160px] opacity-30"
+                    style={{ background: '#7c3aed', animation: 'orbDriftB 20s ease-in-out infinite alternate' }} />
+                <div className="absolute top-1/2 left-1/2 w-[30rem] h-[30rem] rounded-full blur-[120px] opacity-20 -translate-x-1/2 -translate-y-1/2"
+                    style={{ background: '#ec4899' }} />
+            </div>
+
+            {/* Faint grid texture for depth */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.06]"
+                style={{
+                    backgroundImage: 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)',
+                    backgroundSize: '72px 72px',
+                }}
+            />
+
+            {/* Drifting light particles */}
+            <div className="absolute inset-0 pointer-events-none">
+                {Array.from({ length: 30 }).map((_, i) => {
+                    const dur = 9 + (i % 7) * 2
+                    const size = 1 + (i % 4)
+                    return (
+                        <span key={i}
+                            className="absolute block rounded-full bg-[#f5bb00]"
+                            style={{
+                                left: `${(i * 137) % 100}%`,
+                                bottom: '-2%',
+                                width: `${size}px`,
+                                height: `${size}px`,
+                                boxShadow: '0 0 10px rgba(245,187,0,0.9)',
+                                opacity: 0.4,
+                                animation: `divineDrift ${dur}s linear infinite`,
+                                animationDelay: `${(i * 0.27).toFixed(2)}s`,
+                            }} />
+                    )
+                })}
+            </div>
+
+            {/* Content */}
+            <div className="relative z-10 text-center px-6 max-w-3xl mx-auto">
+                <motion.p
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    className="inline-flex items-center gap-2.5 font-bold tracking-[0.55em] text-[10px] md:text-[11px] uppercase mb-6"
+                    style={{
+                        backgroundImage: 'linear-gradient(90deg,#ffd763 0%,#f5bb00 25%,#fff5d6 50%,#f5bb00 75%,#ffd763 100%)',
+                        backgroundSize: '200% auto',
+                        WebkitBackgroundClip: 'text',
+                        backgroundClip: 'text',
+                        color: 'transparent',
+                        animation: 'eyebrowShimmer 5s linear infinite',
+                    }}>
+                    <Sparkles className="w-3.5 h-3.5 text-[#f5bb00]" /> A guided welcome
+                </motion.p>
+
+                {/* Word-by-word entrance */}
+                <h1 className="font-serif font-black text-white leading-[0.95] tracking-tight mb-6"
+                    style={{ fontSize: 'clamp(2.75rem, 8vw, 6.5rem)', textShadow: '0 6px 40px rgba(0,0,0,0.55)' }}>
+                    {'Welcome to'.split(' ').map((w, i) => (
+                        <motion.span key={`a-${i}`} className="inline-block mr-[0.22em]"
+                            initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
+                            animate={{ opacity: 1, y: 0, filter: 'blur(0)' }}
+                            transition={{ delay: 0.15 + i * 0.11, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>
+                            {w}
+                        </motion.span>
+                    ))}
+                    <br />
+                    <motion.span
+                        initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
+                        animate={{ opacity: 1, y: 0, filter: 'blur(0)' }}
+                        transition={{ delay: 0.55, duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+                        className="inline-block bg-gradient-to-r from-[#ffd763] via-[#fff5d6] to-[#f5bb00] bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(245,187,0,0.55)]"
+                        style={{ backgroundSize: '200% auto', animation: 'titleShimmer 6s linear infinite' }}>
+                        the Family
+                    </motion.span>
+                </h1>
+
+                <motion.p
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.85, duration: 0.9 }}
+                    className="text-white/75 text-base md:text-lg leading-relaxed font-light max-w-xl mx-auto"
+                    style={{ textShadow: '0 2px 18px rgba(0,0,0,0.55)' }}>
+                    Five short chapters to make Light Encounter Tabernacle your home — at your own pace. Start where you are. Finish closer to Jesus.
+                </motion.p>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.05, duration: 0.9 }}
+                    className="mt-10 flex flex-wrap items-center justify-center gap-3">
+                    <a href="#step-1"
+                        className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-black px-7 py-4 rounded-full text-sm uppercase tracking-widest shadow-2xl shadow-[#f5bb00]/30 hover:scale-105 transition-transform">
+                        Begin chapter one <ArrowRight className="w-4 h-4" />
+                    </a>
+                    <Link href="/join"
+                        className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur text-white font-bold px-7 py-4 rounded-full text-sm uppercase tracking-widest border border-white/25 transition-colors">
+                        Skip to membership
+                    </Link>
+                </motion.div>
+            </div>
+
+            {/* Scroll cue */}
+            <motion.a href="#step-1"
+                aria-label="Scroll to chapters"
+                className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/40 hover:text-white/80 transition-colors"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.4, duration: 1 }}>
+                <span className="text-[10px] uppercase tracking-[0.4em]">Scroll</span>
+                <ChevronDown className="w-4 h-4 animate-bounce" />
+            </motion.a>
+
+            {/* Curved bottom edge → cream */}
+            <svg viewBox="0 0 1440 100" preserveAspectRatio="none" aria-hidden
+                className="absolute left-0 right-0 bottom-0 w-full h-[80px] md:h-[120px]">
+                <path d="M0,40 Q360,120 720,60 T1440,40 L1440,100 L0,100 Z" fill="#fbf5e6" />
+            </svg>
+
+            <style jsx>{`
+                @keyframes orbDriftA {
+                    0% { transform: translate(0,0) scale(1); }
+                    100% { transform: translate(80px,40px) scale(1.1); }
+                }
+                @keyframes orbDriftB {
+                    0% { transform: translate(0,0) scale(1.05); }
+                    100% { transform: translate(-70px,-50px) scale(.95); }
+                }
+                @keyframes divineDrift {
+                    0%   { transform: translateY(0); opacity: 0; }
+                    8%   { opacity: 0.6; }
+                    90%  { opacity: 0.6; }
+                    100% { transform: translateY(-110vh) translateX(40px); opacity: 0; }
+                }
+                @keyframes titleShimmer {
+                    0%   { background-position: 0% center; }
+                    100% { background-position: 200% center; }
+                }
+                @keyframes eyebrowShimmer {
+                    0%   { background-position: 0% center; }
+                    100% { background-position: 200% center; }
+                }
+            `}</style>
+        </section>
+    )
+}
+
+// ─── Journey Rail — sticky vertical progress indicator (desktop only) ──
+
+function JourneyRail() {
+    const [active, setActive] = useState(1)
+
+    useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    const n = parseInt(e.target.id.replace('step-', ''), 10)
+                    if (!isNaN(n)) setActive(n)
+                }
+            })
+        }, { rootMargin: '-40% 0px -50% 0px' })
+
+        STEPS.forEach(s => {
+            const el = document.getElementById(`step-${s.n}`)
+            if (el) observer.observe(el)
+        })
+        return () => observer.disconnect()
+    }, [])
+
+    return (
+        <div className="hidden lg:block fixed top-1/2 -translate-y-1/2 left-6 z-30 pointer-events-none">
+            <div className="relative flex flex-col items-center gap-5 pointer-events-auto">
+                {/* Connector line */}
+                <div className="absolute top-3 bottom-3 left-1/2 -translate-x-1/2 w-px bg-[#140152]/15" />
+
+                {STEPS.map(s => {
+                    const isActive = s.n === active
+                    const isPast = s.n < active
+                    return (
+                        <a key={s.n} href={`#step-${s.n}`}
+                            className="relative z-10 group"
+                            aria-label={`Jump to step ${s.n}: ${s.title}`}>
+                            <span className={`block w-3 h-3 rounded-full transition-all duration-300 ${
+                                isActive
+                                    ? 'bg-[#f5bb00] ring-4 ring-[#f5bb00]/25 scale-110'
+                                    : isPast
+                                        ? 'bg-[#140152]'
+                                        : 'bg-[#140152]/30 group-hover:bg-[#140152]/60'
+                            }`}
+                                style={isActive ? { boxShadow: '0 0 20px rgba(245,187,0,0.6)' } : undefined}
+                            />
+                            {/* Hover tooltip */}
+                            <span className="absolute left-6 top-1/2 -translate-y-1/2 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.25em] text-[#140152] opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur px-2.5 py-1.5 rounded-md shadow">
+                                {String(s.n).padStart(2, '0')} · {s.title}
+                            </span>
+                        </a>
+                    )
+                })}
+            </div>
+        </div>
+    )
+}
+
+// ─── Steps Section — magazine chapters ─────────────────────────────────
+
+function StepsSection() {
+    return (
+        <section className="relative pt-24 pb-32 px-4 sm:px-6 max-w-5xl mx-auto">
+            {STEPS.map((s, i) => (
+                <Chapter key={s.n} step={s} index={i} />
+            ))}
+        </section>
+    )
+}
+
+function Chapter({ step, index }: { step: Step; index: number }) {
+    const Icon = step.icon
+    const flipped = index % 2 === 1
+
+    return (
+        <motion.article
+            id={`step-${step.n}`}
+            initial={{ opacity: 0, y: 60 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            className={`relative scroll-mt-32 mb-24 sm:mb-32 last:mb-0 grid gap-8 items-center
+                ${flipped ? 'md:grid-cols-[1fr_1.3fr]' : 'md:grid-cols-[1.3fr_1fr]'}
+            `}>
+            {/* Ambient mood blob per chapter */}
+            <div className="absolute -z-10 inset-0 pointer-events-none">
+                <div className={`absolute ${flipped ? 'right-[-10%]' : 'left-[-10%]'} top-1/2 -translate-y-1/2 w-[40rem] h-[40rem] rounded-full blur-[140px] opacity-25`}
+                    style={{ background: step.hue }} />
+            </div>
+
+            {/* Number / icon side */}
+            <div className={`relative ${flipped ? 'md:order-2' : ''}`}>
+                <div className={`relative bg-gradient-to-br ${step.tint} border border-[#140152]/8 rounded-[2.25rem] p-8 sm:p-10 overflow-hidden shadow-[0_30px_80px_-30px_rgba(20,1,82,0.25)]`}>
+                    {/* Oversized numeral as background art */}
+                    <span aria-hidden
+                        className="absolute -top-8 -right-2 font-serif font-black leading-none select-none"
+                        style={{
+                            fontSize: 'clamp(8rem, 18vw, 14rem)',
+                            color: step.hue,
+                            opacity: 0.08,
+                        }}>
+                        {step.n}
+                    </span>
+
+                    <div className="relative">
+                        <p className="font-bold tracking-[0.4em] text-[10px] uppercase mb-4"
+                            style={{ color: step.hue }}>
+                            Chapter {String(step.n).padStart(2, '0')}
+                        </p>
+                        <p className="font-serif italic text-[#140152]/70 text-sm mb-6">{step.eyebrow}</p>
+                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg mb-4"
+                            style={{
+                                background: `linear-gradient(135deg, ${step.hue} 0%, ${step.hue}dd 100%)`,
+                                boxShadow: `0 16px 40px -8px ${step.hue}66`,
+                            }}>
+                            <Icon className="w-7 h-7 text-white" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Copy side */}
+            <div className={flipped ? 'md:order-1' : ''}>
+                <h2 className="font-serif font-black text-[#140152] tracking-tight leading-[1.05]"
+                    style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)' }}>
+                    {step.title}
+                </h2>
+                <p className="font-sans text-[#140152]/70 mt-5 text-base md:text-lg leading-relaxed max-w-prose">
+                    {step.desc}
+                </p>
+                <Link href={step.href}
+                    className="group inline-flex items-center gap-2 mt-7 text-sm font-black text-[#140152] hover:text-[#1d0175]">
+                    <span className="border-b-2 border-[#f5bb00] pb-0.5 group-hover:pb-1 transition-all">Begin this chapter</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+            </div>
+        </motion.article>
+    )
+}
+
+// ─── Scripture Moment — editorial pull-quote on deep navy ──────────────
+
+function ScriptureMoment() {
+    return (
+        <section className="relative py-28 px-6 overflow-hidden bg-[#06002a]">
+            <div className="absolute top-0 -left-40 w-[36rem] h-[36rem] rounded-full blur-[150px] opacity-30 pointer-events-none"
+                style={{ background: '#7c3aed' }} />
+            <div className="absolute bottom-0 -right-40 w-[36rem] h-[36rem] rounded-full blur-[150px] opacity-30 pointer-events-none"
+                style={{ background: '#f5bb00' }} />
+
+            <motion.blockquote
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                className="relative max-w-3xl mx-auto text-center">
+
+                {/* Embossed gold quotation mark */}
+                <p aria-hidden className="font-serif font-black leading-none mx-auto mb-2"
+                    style={{
+                        fontSize: 'clamp(6rem, 14vw, 10rem)',
+                        backgroundImage: 'linear-gradient(135deg, #ffd763 0%, #f5bb00 50%, #b88800 100%)',
+                        WebkitBackgroundClip: 'text',
+                        backgroundClip: 'text',
+                        color: 'transparent',
+                        textShadow: '0 4px 30px rgba(245,187,0,0.3)',
+                    }}>
+                    &ldquo;
+                </p>
+
+                <p className="font-serif italic text-white text-xl md:text-3xl leading-[1.4] -mt-4 md:-mt-8 px-4"
+                    style={{ textShadow: '0 2px 30px rgba(0,0,0,0.55)' }}>
+                    Therefore, as you have received Christ Jesus the Lord, so walk in him, rooted and built up in him and established in the faith.
+                </p>
+
+                <footer className="mt-8 inline-flex items-center gap-3">
+                    <span className="block w-12 h-px bg-[#f5bb00]" />
+                    <cite className="not-italic text-[#f5bb00] font-bold tracking-[0.4em] text-[10px] uppercase">
+                        Colossians 2:6&ndash;7
+                    </cite>
+                    <span className="block w-12 h-px bg-[#f5bb00]" />
+                </footer>
+            </motion.blockquote>
+        </section>
+    )
+}
+
+// ─── Final CTA — full-bleed cinematic close ────────────────────────────
+
+function FinalCTA() {
+    return (
+        <section className="relative px-6 py-32 overflow-hidden bg-gradient-to-br from-[#140152] via-[#1d0175] to-[#2d0b8e]">
+            <div className="absolute top-1/4 -right-40 w-[40rem] h-[40rem] rounded-full blur-[150px] opacity-30 pointer-events-none"
+                style={{ background: '#f5bb00' }} />
+
+            <div className="relative max-w-3xl mx-auto text-center">
+                <motion.p
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8 }}
+                    className="font-bold tracking-[0.5em] text-[10px] uppercase text-[#f5bb00] mb-5">
+                    The next step is yours
+                </motion.p>
+
+                <motion.h2
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                    className="font-serif font-black text-white tracking-tight leading-[1.05] mb-6"
+                    style={{ fontSize: 'clamp(2.25rem, 6vw, 4.5rem)' }}>
+                    Make it official.
+                </motion.h2>
+
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 1, delay: 0.2 }}
+                    className="text-white/70 text-base md:text-lg leading-relaxed max-w-xl mx-auto mb-10">
+                    Fill the membership form and a pastor will personally reach out within 48 hours. We will pray with you, get to know you, and walk this with you.
+                </motion.p>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.9, delay: 0.3 }}
+                    className="flex flex-wrap items-center justify-center gap-3">
+                    <Link href="/join"
+                        className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-black px-8 py-4 rounded-full text-sm uppercase tracking-widest shadow-2xl shadow-[#f5bb00]/30 hover:scale-105 transition-transform">
+                        Become a member <ArrowRight className="w-5 h-5" />
+                    </Link>
+                    <Link href="/contact"
+                        className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur text-white font-bold px-8 py-4 rounded-full text-sm uppercase tracking-widest border border-white/25 transition-colors">
+                        <MapPin className="w-4 h-4" /> Visit us first
+                    </Link>
+                </motion.div>
+            </div>
+        </section>
     )
 }
