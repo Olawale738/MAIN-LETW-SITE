@@ -11,14 +11,15 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion'
 import {
     Calendar, Users, BookOpen, Heart, Phone, Sparkles, ArrowRight,
-    Loader2, MapPin, ChevronDown,
+    Loader2, MapPin, ChevronDown, CalendarDays,
 } from 'lucide-react'
 import { cmsApi, type Block } from '@/lib/api'
 import PageRenderer from '@/components/cms/PageRenderer'
 import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
+import { verseForToday, dayOfYear, DAILY_VERSES } from '@/lib/dailyVerses'
 
 type Step = {
     n: number
@@ -153,8 +154,24 @@ function OnboardingDefault() {
 // ─── Hero — cinematic, deep navy, parallax orbs ───────────────────────────
 
 function Hero() {
+    // Cursor-following gold spotlight — adds tactile depth to the deep-navy stage.
+    const [pos, setPos] = useState({ x: 50, y: 50 })
+    useEffect(() => {
+        const move = (e: MouseEvent) => {
+            setPos({ x: (e.clientX / window.innerWidth) * 100, y: (e.clientY / window.innerHeight) * 100 })
+        }
+        window.addEventListener('mousemove', move, { passive: true })
+        return () => window.removeEventListener('mousemove', move)
+    }, [])
+
     return (
         <section className="relative min-h-[100svh] flex items-center justify-center overflow-hidden bg-[#06002a]">
+            {/* Cursor-following gold spotlight */}
+            <div className="absolute inset-0 pointer-events-none transition-[background] duration-300"
+                style={{
+                    background: `radial-gradient(600px circle at ${pos.x}% ${pos.y}%, rgba(245,187,0,0.18), transparent 45%)`,
+                }} />
+
             {/* Ambient brand orbs */}
             <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute top-1/4 -left-40 w-[40rem] h-[40rem] rounded-full blur-[150px] opacity-40"
@@ -443,25 +460,74 @@ function Chapter({ step, index }: { step: Step; index: number }) {
     )
 }
 
-// ─── Scripture Moment — editorial pull-quote on deep navy ──────────────
+// ─── Scripture Moment — daily-rotating verse from the 365-day plan ─────
+//
+// The verse changes every day (indexed by day-of-year). On the seam between
+// two days the verse fades through AnimatePresence rather than snapping.
+// A small "Day X · MMM D" badge frames it as part of an intentional, paced
+// walk through the year — not a static quote.
 
 function ScriptureMoment() {
+    const [verse, setVerse] = useState(() => verseForToday())
+    const [day, setDay] = useState(() => dayOfYear())
+    const [stampDate, setStampDate] = useState(() => new Date())
+
+    // Re-evaluate every minute. Verse will only actually swap at midnight
+    // local-time when the day-of-year ticks over; the cheap interval makes
+    // sure that swap is visible without a page refresh.
+    useEffect(() => {
+        const id = setInterval(() => {
+            const now = new Date()
+            const d = dayOfYear(now)
+            if (d !== day) {
+                setDay(d)
+                setVerse(verseForToday(now))
+                setStampDate(now)
+            }
+        }, 60_000)
+        return () => clearInterval(id)
+    }, [day])
+
+    const stamp = stampDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+
     return (
         <section className="relative py-28 px-6 overflow-hidden bg-[#06002a]">
-            <div className="absolute top-0 -left-40 w-[36rem] h-[36rem] rounded-full blur-[150px] opacity-30 pointer-events-none"
+            {/* Ambient mood orbs */}
+            <div className="absolute top-0 -left-40 w-[36rem] h-[36rem] rounded-full blur-[150px] opacity-30 pointer-events-none animate-[orbDriftA_18s_ease-in-out_infinite_alternate]"
                 style={{ background: '#7c3aed' }} />
-            <div className="absolute bottom-0 -right-40 w-[36rem] h-[36rem] rounded-full blur-[150px] opacity-30 pointer-events-none"
+            <div className="absolute bottom-0 -right-40 w-[36rem] h-[36rem] rounded-full blur-[150px] opacity-30 pointer-events-none animate-[orbDriftB_22s_ease-in-out_infinite_alternate]"
                 style={{ background: '#f5bb00' }} />
 
-            <motion.blockquote
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                className="relative max-w-3xl mx-auto text-center">
+            {/* Faint scripture-paper texture grid */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
+                style={{
+                    backgroundImage: 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)',
+                    backgroundSize: '88px 88px',
+                }}
+            />
 
-                {/* Embossed gold quotation mark */}
-                <p aria-hidden className="font-serif font-black leading-none mx-auto mb-2"
+            <div className="relative max-w-3xl mx-auto text-center">
+                {/* Day badge — gives the rotation rhythm */}
+                <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.7 }}
+                    className="inline-flex items-center gap-2 bg-white/5 backdrop-blur border border-white/10 rounded-full px-4 py-2 mb-8">
+                    <CalendarDays className="w-3.5 h-3.5 text-[#f5bb00]" />
+                    <span className="text-[10px] font-black tracking-[0.4em] uppercase text-[#f5bb00]">
+                        Day {day} of 365 · {stamp}
+                    </span>
+                </motion.div>
+
+                {/* Embossed gold quotation mark — pulses gently */}
+                <motion.p
+                    aria-hidden
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                    className="font-serif font-black leading-none mx-auto mb-2 select-none"
                     style={{
                         fontSize: 'clamp(6rem, 14vw, 10rem)',
                         backgroundImage: 'linear-gradient(135deg, #ffd763 0%, #f5bb00 50%, #b88800 100%)',
@@ -471,21 +537,42 @@ function ScriptureMoment() {
                         textShadow: '0 4px 30px rgba(245,187,0,0.3)',
                     }}>
                     &ldquo;
-                </p>
+                </motion.p>
 
-                <p className="font-serif italic text-white text-xl md:text-3xl leading-[1.4] -mt-4 md:-mt-8 px-4"
-                    style={{ textShadow: '0 2px 30px rgba(0,0,0,0.55)' }}>
-                    Therefore, as you have received Christ Jesus the Lord, so walk in him, rooted and built up in him and established in the faith.
-                </p>
+                {/* Verse text — crossfades when day rolls over */}
+                <AnimatePresence mode="wait">
+                    <motion.blockquote
+                        key={day}
+                        initial={{ opacity: 0, y: 16, filter: 'blur(6px)' }}
+                        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                        exit={{ opacity: 0, y: -16, filter: 'blur(6px)' }}
+                        transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                        className="relative">
+                        <p className="font-serif italic text-white text-xl md:text-3xl leading-[1.4] -mt-4 md:-mt-8 px-4"
+                            style={{ textShadow: '0 2px 30px rgba(0,0,0,0.55)' }}>
+                            {verse.text}
+                        </p>
 
-                <footer className="mt-8 inline-flex items-center gap-3">
-                    <span className="block w-12 h-px bg-[#f5bb00]" />
-                    <cite className="not-italic text-[#f5bb00] font-bold tracking-[0.4em] text-[10px] uppercase">
-                        Colossians 2:6&ndash;7
-                    </cite>
-                    <span className="block w-12 h-px bg-[#f5bb00]" />
-                </footer>
-            </motion.blockquote>
+                        <footer className="mt-8 inline-flex items-center gap-3">
+                            <span className="block w-12 h-px bg-[#f5bb00]" />
+                            <cite className="not-italic text-[#f5bb00] font-bold tracking-[0.4em] text-[10px] uppercase">
+                                {verse.ref}
+                            </cite>
+                            <span className="block w-12 h-px bg-[#f5bb00]" />
+                        </footer>
+                    </motion.blockquote>
+                </AnimatePresence>
+
+                {/* Sub-line — gives the rotation a tagline */}
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.9, delay: 0.4 }}
+                    className="text-white/40 text-xs md:text-sm mt-10 italic">
+                    A fresh verse rises with the sun. Walk the 365-day path with us.
+                </motion.p>
+            </div>
         </section>
     )
 }
@@ -523,8 +610,8 @@ function FinalCTA() {
                     whileInView={{ opacity: 1 }}
                     viewport={{ once: true }}
                     transition={{ duration: 1, delay: 0.2 }}
-                    className="text-white/70 text-base md:text-lg leading-relaxed max-w-xl mx-auto mb-10">
-                    Fill the membership form and a pastor will personally reach out within 48 hours. We will pray with you, get to know you, and walk this with you.
+                    className="text-white/75 text-base md:text-lg leading-relaxed max-w-xl mx-auto mb-10">
+                    One name. One email. One step. Within 48 hours a real pastor &mdash; not a chatbot, not a form-letter &mdash; calls to learn your story, pray with you, and walk this road beside you. No script. No salesman energy. Just family making room.
                 </motion.p>
 
                 <motion.div
