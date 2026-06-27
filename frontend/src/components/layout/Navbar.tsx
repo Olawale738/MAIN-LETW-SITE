@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import PremiumButton from '@/components/ui/PremiumButton'
 import SearchButton from '@/components/SearchButton'
+import LanguagePicker from '@/components/layout/LanguagePicker'
 import { Menu, X, ChevronDown, GraduationCap, ArrowRight, LayoutGrid } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -254,6 +255,7 @@ export default function Navbar() {
           {/* ACTIONS & MOBILE TOGGLE */}
           <div className="flex items-center gap-2 lg:gap-3">
             <SearchButton />
+            <LanguagePicker compact />
             <div className="hidden lg:block">
               {isLoggedIn ? (
                 <PremiumButton href="/dashboard" className="text-sm">

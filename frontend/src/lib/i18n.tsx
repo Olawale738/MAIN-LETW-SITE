@@ -203,28 +203,60 @@ const I18nContext = createContext<I18nContextValue>({
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
     const [locale, setLocaleState] = useState<Locale>('en')
+    // Admin-saved overrides per locale, fetched once on mount. Layered ON TOP
+    // of the bundled DICT so admins can extend or correct without a redeploy.
+    const [overrides, setOverrides] = useState<Record<Locale, Record<string, string>>>(() => ({
+        en: {}, yo: {}, ig: {}, ha: {}, fr: {}, es: {},
+    }))
 
     useEffect(() => {
         try {
             const saved = localStorage.getItem('letw-locale') as Locale | null
             if (saved && DICT[saved]) setLocaleState(saved)
             else {
-                // Auto-detect from browser
                 const browser = (navigator.language || 'en').slice(0, 2) as Locale
                 if (DICT[browser]) setLocaleState(browser)
             }
         } catch { /* noop */ }
+
+        // Best-effort load of admin-managed dictionaries. Each locale is its own
+        // ministry-content row. We hit /api/translations/<locale> in parallel —
+        // missing rows just resolve to an empty override.
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+        const localesToLoad: Locale[] = ['en', 'yo', 'ig', 'ha', 'fr', 'es']
+        Promise.all(localesToLoad.map(l =>
+            fetch(`${API_BASE}/translations/${l}`, { cache: 'no-store' })
+                .then(r => r.ok ? r.json() : { translations: {} })
+                .then(j => [l, (j?.translations || {}) as Record<string, string>] as const)
+                .catch(() => [l, {} as Record<string, string>] as const),
+        )).then(rows => {
+            const next: Record<Locale, Record<string, string>> = { en: {}, yo: {}, ig: {}, ha: {}, fr: {}, es: {} }
+            rows.forEach(([l, dict]) => { next[l] = dict })
+            setOverrides(next)
+        }).catch(() => { /* keep empty overrides */ })
     }, [])
 
     const setLocale = useCallback((l: Locale) => {
         setLocaleState(l)
         try { localStorage.setItem('letw-locale', l) } catch { /* noop */ }
-        try { document.documentElement.lang = l } catch { /* noop */ }
+        try {
+            document.documentElement.lang = l
+            // RTL languages — not in current Locale union, but if we extend to
+            // ar/he/fa/ur later, this is the hook that flips layout.
+            document.documentElement.dir = ['ar', 'he', 'fa', 'ur'].includes(l) ? 'rtl' : 'ltr'
+        } catch { /* noop */ }
     }, [])
 
     const t = useCallback((key: string, fallback?: string): string => {
-        return DICT[locale]?.[key] || DICT.en[key] || fallback || key
-    }, [locale])
+        // Lookup order: admin override (current locale) > admin override (EN
+        // master) > bundled current locale > bundled EN > fallback > key.
+        return overrides[locale]?.[key]
+            || overrides.en?.[key]
+            || DICT[locale]?.[key]
+            || DICT.en[key]
+            || fallback
+            || key
+    }, [locale, overrides])
 
     return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>
 }

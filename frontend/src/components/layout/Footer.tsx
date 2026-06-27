@@ -40,6 +40,8 @@ const DEFAULT_FOOTER: FooterCfg = {
     { name: 'Virtual Church Tour', href: '/tour' },
     { name: 'Voice & Smart Speakers', href: '/voice' },
     { name: 'Sermon Podcast (RSS)', href: '/sermons/podcast.xml' },
+    { name: 'Sanctuary & Hall Booking', href: '/sanctuary' },
+    { name: 'Marriage Prep Course', href: '/marriage-prep' },
   ],
   ministries: [
     { name: 'Alter Sound', href: '/services/alter-sound' },
