@@ -184,6 +184,16 @@ async def init_db():
                 ("users", "continent", "VARCHAR(40)"),
                 # Live caption source-language marker for operator↔viewer sync.
                 ("live_captions", "is_source", "BOOLEAN DEFAULT FALSE NOT NULL"),
+                # Sunday automation pipeline outputs (all admin-editable).
+                ("sermons", "transcript",           "TEXT"),
+                ("sermons", "auto_notes",           "TEXT"),
+                ("sermons", "auto_email_subject",   "VARCHAR(300)"),
+                ("sermons", "auto_email_body",      "TEXT"),
+                ("sermons", "auto_blog_draft",      "TEXT"),
+                ("sermons", "auto_social_posts",    "JSONB"),
+                ("sermons", "auto_chapters",        "JSONB"),
+                ("sermons", "auto_generated_at",    "TIMESTAMP"),
+                ("sermons", "auto_email_sent_at",   "TIMESTAMP"),
             ]
 
             # NOTE: ALTER TABLE ... ADD COLUMN IF NOT EXISTS is idempotent in

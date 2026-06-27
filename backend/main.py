@@ -153,6 +153,26 @@ app.include_router(youth_program.router)
 from routers import ministry_content
 app.include_router(ministry_content.router)
 
+# Sunday automation pipeline (Whisper + Claude → notes / email / blog / social / chapters)
+from routers import sunday_automation
+app.include_router(sunday_automation.router)
+
+# Sanctuary / hall booking (rooms + booking requests + admin approval)
+from routers import sanctuary
+app.include_router(sanctuary.router)
+
+# Marriage Prep (6-week course + pastor sign-off)
+from routers import marriage_prep
+app.include_router(marriage_prep.router)
+
+# Live attendance (anonymous in-memory presence tracking by country)
+from routers import live_attendance
+app.include_router(live_attendance.router)
+
+# Multi-language UI translations (admin-edited per locale)
+from routers import translations
+app.include_router(translations.router)
+
 # Site Branding (admin-uploaded logo + favicon)
 from routers import site_branding
 app.include_router(site_branding.router)

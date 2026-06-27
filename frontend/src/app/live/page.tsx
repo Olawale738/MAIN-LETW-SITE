@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Radio, Heart, Hand, Cross, CheckCircle2, Loader2, Calendar, Users, Send } from 'lucide-react'
 import { onlineCampusApi, type CurrentService } from '@/lib/api'
 import LiveCoExperience from '@/components/live/LiveCoExperience'
+import LiveAttendanceWidget from '@/components/live/LiveAttendanceWidget'
 import { useT } from '@/lib/i18n'
 import { toEmbedUrl } from '@/lib/youtube'
 
@@ -110,6 +111,14 @@ export default function LivePage() {
                     </div>
                 ) : null}
             </section>
+
+            {/* Live attendance counter — anonymous, real-time, shows total
+                  viewers + countries while a service is broadcasting. */}
+            {isLive && (
+                <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-6">
+                    <LiveAttendanceWidget />
+                </section>
+            )}
 
             {/* Watch-party chat + live captions — gated by isLive so the panel
                   ONLY appears while a service is actually streaming. When the

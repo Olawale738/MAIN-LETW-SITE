@@ -1,0 +1,59 @@
+"""
+Marriage Prep — 6-week guided course with pastor sign-off.
+
+  - marriage_prep_modules   — the curriculum (one row per week-lesson). Admin owns these.
+  - marriage_prep_couples   — couple enrolment record + assigned pastor + status.
+  - marriage_prep_progress  — per-module check-ins keyed (couple, module).
+"""
+
+import uuid
+from datetime import datetime
+from typing import Optional
+
+from sqlalchemy import String, DateTime, Integer, Text, Boolean, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
+
+from database import Base
+
+
+class MarriagePrepModule(Base):
+    __tablename__ = "marriage_prep_modules"
+
+    id:          Mapped[str]  = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    week_number: Mapped[int]  = mapped_column(Integer, nullable=False, index=True)
+    title:       Mapped[str]  = mapped_column(String(200), nullable=False)
+    summary:     Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    body_html:   Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    scripture:   Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    homework:    Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_published:Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at:  Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class MarriagePrepCouple(Base):
+    __tablename__ = "marriage_prep_couples"
+
+    id:                 Mapped[str]  = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    partner_a_name:     Mapped[str]  = mapped_column(String(150), nullable=False)
+    partner_a_email:    Mapped[str]  = mapped_column(String(255), nullable=False)
+    partner_b_name:     Mapped[str]  = mapped_column(String(150), nullable=False)
+    partner_b_email:    Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    intended_wedding_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    assigned_pastor_user_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    status:             Mapped[str]  = mapped_column(String(20), default="enrolled", nullable=False, index=True)  # enrolled|in_progress|completed|withdrew
+    pastor_signed_off:  Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    pastor_signed_at:   Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    pastor_signature:   Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    pastor_note:        Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at:         Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class MarriagePrepProgress(Base):
+    __tablename__ = "marriage_prep_progress"
+
+    id:           Mapped[str]  = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    couple_id:    Mapped[str]  = mapped_column(String(36), ForeignKey("marriage_prep_couples.id", ondelete="CASCADE"), nullable=False, index=True)
+    module_id:    Mapped[str]  = mapped_column(String(36), ForeignKey("marriage_prep_modules.id", ondelete="CASCADE"), nullable=False, index=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    reflections:  Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at:   Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

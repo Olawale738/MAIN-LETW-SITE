@@ -4248,6 +4248,121 @@ export const intercessionApi = {
     adminAllRequests: (status?: string) => fetchApi<Array<{ id: string; display_name: string; text: string; is_anonymous: boolean; category: string | null; status: string; intercessor_id: string | null; created_at: string; assigned_at: string | null; closed_at: string | null; answered_testimony: string | null }>>(`/intercession/admin/requests${status ? `?status=${status}` : ''}`),
 };
 
+// ── Sunday Automation pipeline ──────────────────────────────────────────────
+export interface SundayAutomationOutputs {
+    sermon_id: string
+    title: string
+    preacher: string
+    sermon_date: string | null
+    transcript: string | null
+    auto_notes: string | null
+    auto_email_subject: string | null
+    auto_email_body: string | null
+    auto_blog_draft: string | null
+    auto_social_posts: { platform: string; text: string }[]
+    auto_chapters: { start_seconds: number; title: string }[]
+    auto_generated_at: string | null
+    auto_email_sent_at: string | null
+}
+export const sundayAutomationApi = {
+    get: (sermonId: string) => fetchApi<SundayAutomationOutputs>(`/sunday-automation/${sermonId}`),
+    chapters: (sermonId: string) => fetchApi<{ chapters: { start_seconds: number; title: string }[] }>(`/sunday-automation/${sermonId}/chapters`),
+    run: (sermonId: string, force_transcribe = false) =>
+        fetchApi<SundayAutomationOutputs>(`/sunday-automation/${sermonId}/run`, { method: 'POST', body: JSON.stringify({ force_transcribe }) }),
+    update: (sermonId: string, body: Partial<Omit<SundayAutomationOutputs, 'sermon_id' | 'title' | 'preacher' | 'sermon_date' | 'auto_generated_at' | 'auto_email_sent_at'>>) =>
+        fetchApi<SundayAutomationOutputs>(`/sunday-automation/${sermonId}`, { method: 'PUT', body: JSON.stringify(body) }),
+    sendEmail: (sermonId: string) =>
+        fetchApi<{ sent: number; failed: number; total: number }>(`/sunday-automation/${sermonId}/send-email`, { method: 'POST' }),
+}
+
+// ── Sanctuary / hall booking ────────────────────────────────────────────────
+export interface SanctuaryRoom {
+    id: string; name: string; description: string | null
+    capacity: number; location: string | null; image_url: string | null
+    equipment: string[]; rate_note: string | null
+    is_active: boolean; sort_order: number
+}
+export interface SanctuaryBooking {
+    id: string; room_id: string; purpose: string
+    contact_name: string; contact_email: string; contact_phone: string | null
+    starts_at: string; ends_at: string; attendees: number; note: string | null
+    status: 'requested' | 'approved' | 'declined' | 'cancelled'
+    admin_note: string | null; created_at: string
+}
+export const sanctuaryApi = {
+    rooms: () => fetchApi<SanctuaryRoom[]>('/sanctuary/rooms'),
+    availability: (room_id: string) =>
+        fetchApi<{ id: string; starts_at: string; ends_at: string; purpose: string }[]>(`/sanctuary/availability?room_id=${encodeURIComponent(room_id)}`),
+    requestBooking: (b: Omit<SanctuaryBooking, 'id' | 'status' | 'admin_note' | 'created_at'>) =>
+        fetchApi<SanctuaryBooking>('/sanctuary/bookings', { method: 'POST', body: JSON.stringify(b) }),
+    // admin
+    createRoom: (b: Omit<SanctuaryRoom, 'id'>) =>
+        fetchApi<SanctuaryRoom>('/sanctuary/rooms', { method: 'POST', body: JSON.stringify(b) }),
+    updateRoom: (id: string, b: Omit<SanctuaryRoom, 'id'>) =>
+        fetchApi<SanctuaryRoom>(`/sanctuary/rooms/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    deleteRoom: (id: string) => fetchApi<{ deleted: number }>(`/sanctuary/rooms/${id}`, { method: 'DELETE' }),
+    listBookings: (status?: string) =>
+        fetchApi<SanctuaryBooking[]>(`/sanctuary/admin/bookings${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+    updateBooking: (id: string, b: { status?: SanctuaryBooking['status']; admin_note?: string }) =>
+        fetchApi<SanctuaryBooking>(`/sanctuary/admin/bookings/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+}
+
+// ── Marriage Prep ───────────────────────────────────────────────────────────
+export interface MarriagePrepModule {
+    id: string; week_number: number; title: string
+    summary: string | null; body_html: string | null
+    scripture: string | null; homework: string | null; is_published: boolean
+}
+export interface MarriagePrepCouple {
+    id: string; partner_a_name: string; partner_a_email: string
+    partner_b_name: string; partner_b_email: string | null
+    intended_wedding_date: string | null
+    assigned_pastor_user_id: string | null
+    status: 'enrolled' | 'in_progress' | 'completed' | 'withdrew'
+    pastor_signed_off: boolean; pastor_signed_at: string | null
+    pastor_signature: string | null; pastor_note: string | null
+    created_at: string
+}
+export const marriagePrepApi = {
+    modules: () => fetchApi<MarriagePrepModule[]>('/marriage-prep/modules'),
+    enrol: (b: Omit<MarriagePrepCouple, 'id' | 'assigned_pastor_user_id' | 'status' | 'pastor_signed_off' | 'pastor_signed_at' | 'pastor_signature' | 'pastor_note' | 'created_at'>) =>
+        fetchApi<MarriagePrepCouple>('/marriage-prep/enrol', { method: 'POST', body: JSON.stringify(b) }),
+    logProgress: (couple_id: string, module_id: string, reflections: string, completed: boolean) =>
+        fetchApi<unknown>('/marriage-prep/progress', { method: 'POST', body: JSON.stringify({ couple_id, module_id, reflections, completed }) }),
+    coupleProgress: (couple_id: string) =>
+        fetchApi<{ id: string; couple_id: string; module_id: string; completed_at: string | null; reflections: string | null }[]>(`/marriage-prep/couples/${couple_id}/progress`),
+    // admin
+    createModule: (b: Omit<MarriagePrepModule, 'id'>) =>
+        fetchApi<MarriagePrepModule>('/marriage-prep/admin/modules', { method: 'POST', body: JSON.stringify(b) }),
+    updateModule: (id: string, b: Omit<MarriagePrepModule, 'id'>) =>
+        fetchApi<MarriagePrepModule>(`/marriage-prep/admin/modules/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    deleteModule: (id: string) => fetchApi<{ deleted: number }>(`/marriage-prep/admin/modules/${id}`, { method: 'DELETE' }),
+    listCouples: (status?: string) =>
+        fetchApi<MarriagePrepCouple[]>(`/marriage-prep/admin/couples${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+    signOff: (couple_id: string, pastor_signature: string, pastor_note?: string) =>
+        fetchApi<MarriagePrepCouple>(`/marriage-prep/admin/couples/${couple_id}/sign-off`, { method: 'POST', body: JSON.stringify({ pastor_signature, pastor_note }) }),
+}
+
+// ── Live Attendance (anonymous heartbeat) ───────────────────────────────────
+export interface AttendanceSnapshot {
+    total: number
+    countries: { code: string; count: number }[]
+    continents: Record<string, number>
+}
+export const liveAttendanceApi = {
+    heartbeat: (session_id?: string) =>
+        fetchApi<AttendanceSnapshot & { session_id: string }>('/live-attendance/heartbeat', { method: 'POST', body: JSON.stringify({ session_id }) }),
+    snapshot: () => fetchApi<AttendanceSnapshot>('/live-attendance/snapshot'),
+}
+
+// ── Multi-language UI translations ──────────────────────────────────────────
+export const translationsApi = {
+    locales: () => fetchApi<{ locales: string[] }>('/translations/locales'),
+    get: (locale: string) => fetchApi<{ locale: string; translations: Record<string, string> }>(`/translations/${locale}`),
+    update: (locale: string, translations: Record<string, string>) =>
+        fetchApi<{ locale: string; translations: Record<string, string> }>(`/translations/${locale}`, { method: 'PUT', body: JSON.stringify({ translations }) }),
+}
+
 export const twoFactorApi = {
     status: () => fetchApi<{ enabled: boolean; verified: boolean; last_used_at: string | null }>('/2fa/status'),
     setup: () => fetchApi<{ secret: string; otpauth_uri: string; qr_png_base64: string }>('/2fa/setup', { method: 'POST' }),

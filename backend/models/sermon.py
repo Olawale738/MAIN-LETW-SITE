@@ -6,7 +6,9 @@ Stores sermons with support for video URLs, audio, and documents.
 import uuid
 from datetime import datetime, date
 from enum import Enum
-from sqlalchemy import String, DateTime, Date, ForeignKey, Text, Boolean, Integer, LargeBinary
+from typing import Any, Optional
+from sqlalchemy import String, DateTime, Date, ForeignKey, Text, Boolean, Integer, LargeBinary, JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -144,6 +146,17 @@ class Sermon(Base):
         server_default=func.now(),
         nullable=False
     )
-    
+
+    # ── Sunday automation outputs (all admin-editable after generation) ──
+    transcript:         Mapped[Optional[str]] = mapped_column(Text,         nullable=True)
+    auto_notes:         Mapped[Optional[str]] = mapped_column(Text,         nullable=True)   # Markdown-ish HTML
+    auto_email_subject: Mapped[Optional[str]] = mapped_column(String(300),  nullable=True)
+    auto_email_body:    Mapped[Optional[str]] = mapped_column(Text,         nullable=True)   # HTML
+    auto_blog_draft:    Mapped[Optional[str]] = mapped_column(Text,         nullable=True)   # HTML
+    auto_social_posts:  Mapped[Optional[Any]] = mapped_column(JSONB,        nullable=True)   # [{platform, text}]
+    auto_chapters:      Mapped[Optional[Any]] = mapped_column(JSONB,        nullable=True)   # [{start_seconds, title}]
+    auto_generated_at:  Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    auto_email_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     def __repr__(self) -> str:
         return f"<Sermon {self.title} by {self.preacher}>"
