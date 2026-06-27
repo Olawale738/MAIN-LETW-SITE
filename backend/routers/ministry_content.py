@@ -35,6 +35,7 @@ ALLOWED_KEYS = {
     "grow-page",        # /grow copy + habit presets
     "email-templates",  # Welcome / reset / prayer / decision confirmations
     "onboarding-page",  # /onboarding hero, 5 chapters, scripture tagline, final CTA
+    "volunteer-page",   # /volunteer hero, why-points, departments, form labels, bottom banner
 }
 
 

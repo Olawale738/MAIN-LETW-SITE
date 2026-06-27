@@ -116,6 +116,7 @@ const sidebarItems: SidebarItem[] = [
     { title: 'Homepage Hero Video', href: '/admin/hero-video', icon: Video },
     { title: 'Site Chrome (nav · footer · apps · pages · emails)', href: '/admin/site-content', icon: LayoutDashboard },
     { title: 'Onboarding Page (hero · chapters · CTA)', href: '/admin/onboarding-page', icon: Sparkles },
+    { title: 'Volunteer Page (hero · departments · form)', href: '/admin/volunteer-page', icon: Heart },
     { title: 'Sunday Automation (Whisper → notes/email/blog/social)', href: '/admin/sunday-automation', icon: Sparkles },
     { title: 'Sanctuary / Hall Booking', href: '/admin/sanctuary', icon: Calendar },
     { title: 'Marriage Prep (6-week course)', href: '/admin/marriage-prep', icon: Heart },
