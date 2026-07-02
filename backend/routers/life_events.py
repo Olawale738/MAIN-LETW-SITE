@@ -59,6 +59,31 @@ async def submit_request(
     db.add(r)
     await db.commit()
     await db.refresh(r)
+
+    # Same notification pattern as sanctuary: acknowledge the requester, page
+    # the pastor inbox. Never poison the request on mail hiccups.
+    reference = r.id.split("-")[0].upper()
+    try:
+        from services.email_service import (
+            send_life_event_received,
+            send_life_event_admin_notice,
+            _admin_notify_email,
+        )
+        await send_life_event_received(
+            to_email=r.requester_email, name=r.requester_name,
+            kind=r.kind, preferred_date=r.preferred_date,
+            reference=reference,
+        )
+        admin_email = await _admin_notify_email()
+        await send_life_event_admin_notice(
+            admin_email=admin_email,
+            requester_name=r.requester_name, requester_email=r.requester_email,
+            kind=r.kind, preferred_date=r.preferred_date,
+            reference=reference,
+        )
+    except Exception as e:
+        print(f"[life-events] receipt emails failed: {type(e).__name__}: {e}", flush=True)
+
     return r
 
 
@@ -94,6 +119,19 @@ async def update_request(rid: str, body: RequestUpdate, db: AsyncSession = Depen
         setattr(r, k, v)
     await db.commit()
     await db.refresh(r)
+
+    # Fan out decision emails on approve / decline transitions only.
+    if body.status in {"approved", "declined"} and r.requester_email:
+        try:
+            from services.email_service import send_life_event_decision
+            await send_life_event_decision(
+                to_email=r.requester_email, name=r.requester_name,
+                kind=r.kind, decision=body.status,
+                approved_date=r.approved_date, admin_note=r.admin_notes,
+            )
+        except Exception as e:
+            print(f"[life-events] decision email failed: {type(e).__name__}: {e}", flush=True)
+
     return r
 
 

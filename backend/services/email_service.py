@@ -696,3 +696,295 @@ async def send_marriage_prep_completion_email(
     )
     html_body = _render_admin_template_body(body, couple=couple_label)
     return await send_email(to_email, subject, html_body)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin-notify helper — used by sanctuary / life-events flows to page the
+# right inbox when a member submits a booking or request. Reads the church
+# email from ministry-content 'footer' (admin-editable at /admin/site-content
+# → Footer tab) so the notification address can change without redeploying.
+# Falls back to config.CONTACT_EMAIL and finally to a hardcoded default.
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def _admin_notify_email() -> str:
+    try:
+        from database import AsyncSessionLocal
+        from models.ministry_content import MinistryContent
+        async with AsyncSessionLocal() as db:
+            row = (await db.execute(
+                select(MinistryContent).where(MinistryContent.key == "footer")
+            )).scalar_one_or_none()
+            if row and row.content:
+                v = (row.content.get("email") or "").strip()
+                if v:
+                    return v
+    except Exception as e:
+        logger.warning("Failed to read admin notify email from footer key: %s", e)
+    return getattr(settings, "CONTACT_EMAIL", None) or "info@letw.org"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Sanctuary / hall booking — three emails per booking
+#   1. sanctuary_booking_received       (to requester,  on submit)
+#   2. sanctuary_booking_admin_notice   (to admin,      on submit)
+#   3. sanctuary_booking_decision       (to requester,  on approve/decline)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _fmt_range(starts, ends) -> str:
+    try:
+        s = starts.strftime("%A %d %b %Y · %H:%M") if hasattr(starts, "strftime") else str(starts)
+        e = ends.strftime("%H:%M")               if hasattr(ends,   "strftime") else str(ends)
+        return f"{s} — {e}"
+    except Exception:
+        return f"{starts} — {ends}"
+
+
+async def send_sanctuary_booking_received(
+    to_email: str, name: str, room_name: str, purpose: str,
+    starts_at, ends_at, reference: str,
+) -> bool:
+    """Immediate confirmation to the requester on submission."""
+    if not to_email:
+        return False
+    range_str = _fmt_range(starts_at, ends_at)
+    admin_tpl = await _get_admin_email_template("sanctuary_booking_received")
+    if admin_tpl:
+        subj = (admin_tpl["subject"]
+                .replace("{name}", name).replace("{room}", room_name)
+                .replace("{purpose}", purpose).replace("{reference}", reference))
+        body = (admin_tpl["body"]
+                .replace("{room}", room_name).replace("{purpose}", purpose)
+                .replace("{range}", range_str).replace("{reference}", reference))
+        return await send_email(to_email, subj, _render_admin_template_body(body, name=name))
+
+    subject = f"We received your booking request for {room_name}"
+    body = (
+        f"Hi {name or 'Friend'},\n\n"
+        f"Thank you for requesting {room_name} for \"{purpose}\".\n\n"
+        f"Requested window: {range_str}\n"
+        f"Reference: {reference}\n\n"
+        f"What happens next:\n\n"
+        f"1. A coordinator reviews your request against the room's calendar.\n"
+        f"2. You will receive an approval or decline email within 48 hours.\n"
+        f"3. On approval you'll get arrival + setup notes for the space.\n\n"
+        f"Questions? Just reply to this email — we're here.\n\n"
+        f"Grace and peace,\n"
+        f"Light Encounter Tabernacle Worldwide"
+    )
+    return await send_email(to_email, subject, _render_admin_template_body(body, name=name or "Friend"))
+
+
+async def send_sanctuary_booking_admin_notice(
+    admin_email: str, requester_name: str, requester_email: str,
+    room_name: str, purpose: str, starts_at, ends_at,
+    reference: str,
+) -> bool:
+    """Ping the church inbox so someone can act on the new request."""
+    if not admin_email:
+        return False
+    range_str = _fmt_range(starts_at, ends_at)
+    admin_tpl = await _get_admin_email_template("sanctuary_booking_admin_notice")
+    if admin_tpl:
+        subj = (admin_tpl["subject"]
+                .replace("{room}", room_name).replace("{name}", requester_name)
+                .replace("{purpose}", purpose))
+        body = (admin_tpl["body"]
+                .replace("{room}", room_name).replace("{name}", requester_name)
+                .replace("{email}", requester_email).replace("{purpose}", purpose)
+                .replace("{range}", range_str).replace("{reference}", reference))
+        return await send_email(admin_email, subj, _render_admin_template_body(body))
+
+    subject = f"[Booking] {room_name} — {requester_name} — {purpose}"
+    body = (
+        f"A new sanctuary booking is waiting for review.\n\n"
+        f"Room:        {room_name}\n"
+        f"Purpose:     {purpose}\n"
+        f"Requester:   {requester_name} <{requester_email}>\n"
+        f"Window:      {range_str}\n"
+        f"Reference:   {reference}\n\n"
+        f"Approve or decline at:\n"
+        f"{settings.FRONTEND_URL}/admin/sanctuary\n"
+    )
+    return await send_email(admin_email, subject, _render_admin_template_body(body))
+
+
+async def send_sanctuary_booking_decision(
+    to_email: str, name: str, room_name: str, purpose: str,
+    starts_at, ends_at, decision: str,   # 'approved' | 'declined'
+    admin_note: str | None = None,
+) -> bool:
+    """Ripple approval or decline back to the requester."""
+    if not to_email:
+        return False
+    range_str = _fmt_range(starts_at, ends_at)
+    slot = f"sanctuary_booking_{decision}"
+    admin_tpl = await _get_admin_email_template(slot)
+    if admin_tpl:
+        subj = (admin_tpl["subject"]
+                .replace("{name}", name).replace("{room}", room_name)
+                .replace("{purpose}", purpose))
+        body = (admin_tpl["body"]
+                .replace("{room}", room_name).replace("{purpose}", purpose)
+                .replace("{range}", range_str)
+                .replace("{admin_note}", admin_note or ""))
+        return await send_email(to_email, subj, _render_admin_template_body(body, name=name))
+
+    if decision == "approved":
+        subject = f"Approved · {room_name} — {range_str}"
+        note_block = f"\nNote from the coordinator:\n\n  {admin_note}\n" if admin_note else ""
+        body = (
+            f"Hi {name or 'Friend'},\n\n"
+            f"Good news — your booking is confirmed.\n\n"
+            f"Room:     {room_name}\n"
+            f"Purpose:  {purpose}\n"
+            f"Window:   {range_str}\n"
+            f"{note_block}\n"
+            f"What happens next:\n\n"
+            f"1. Arrive 30 minutes early to greet the on-site team.\n"
+            f"2. Bring valid ID and any decor / catering supplies you plan to use.\n"
+            f"3. If anything changes, reply to this email so we can update the calendar.\n\n"
+            f"Grace and peace,\n"
+            f"Light Encounter Tabernacle Worldwide"
+        )
+    else:  # declined
+        subject = f"About your booking request for {room_name}"
+        note_block = f"\nReason from the coordinator:\n\n  {admin_note}\n" if admin_note else ""
+        body = (
+            f"Hi {name or 'Friend'},\n\n"
+            f"We were not able to confirm {room_name} for the window you requested "
+            f"({range_str}).\n"
+            f"{note_block}\n"
+            f"Next steps you can try:\n\n"
+            f"1. Pick a different window and submit a fresh request at\n"
+            f"   {settings.FRONTEND_URL}/sanctuary\n"
+            f"2. Consider one of our other rooms with similar capacity.\n"
+            f"3. If this is time-sensitive, reply and a coordinator will call you.\n\n"
+            f"Grace and peace,\n"
+            f"Light Encounter Tabernacle Worldwide"
+        )
+    return await send_email(to_email, subject, _render_admin_template_body(body, name=name or "Friend"))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Life events — wedding / baptism / dedication / funeral. Same 3-email shape.
+# ─────────────────────────────────────────────────────────────────────────────
+
+_LIFE_EVENT_LABELS = {
+    "wedding":    "wedding",
+    "baptism":    "baptism",
+    "dedication": "child dedication",
+    "funeral":    "memorial",
+}
+
+
+async def send_life_event_received(
+    to_email: str, name: str, kind: str, preferred_date, reference: str,
+) -> bool:
+    if not to_email:
+        return False
+    kind_label = _LIFE_EVENT_LABELS.get(kind, kind)
+    date_str = preferred_date.strftime("%A %d %B %Y") if hasattr(preferred_date, "strftime") else str(preferred_date)
+    admin_tpl = await _get_admin_email_template("life_event_received")
+    if admin_tpl:
+        subj = admin_tpl["subject"].replace("{name}", name).replace("{kind}", kind_label)
+        body = (admin_tpl["body"]
+                .replace("{kind}", kind_label).replace("{date}", date_str)
+                .replace("{reference}", reference))
+        return await send_email(to_email, subj, _render_admin_template_body(body, name=name))
+
+    subject = f"We received your {kind_label} request"
+    body = (
+        f"Hi {name or 'Friend'},\n\n"
+        f"Thank you for asking us to serve your {kind_label}. "
+        f"We consider this a great honour.\n\n"
+        f"Preferred date: {date_str}\n"
+        f"Reference:      {reference}\n\n"
+        f"What happens next:\n\n"
+        f"1. A pastor will reach out within 3 working days to introduce themselves.\n"
+        f"2. You'll be invited to a 30-minute planning conversation — in person, on Zoom, or by phone.\n"
+        f"3. Together we'll confirm the date, walk through the order of service, and answer any questions.\n\n"
+        f"With joy,\n"
+        f"Light Encounter Tabernacle Worldwide"
+    )
+    return await send_email(to_email, subject, _render_admin_template_body(body, name=name or "Friend"))
+
+
+async def send_life_event_admin_notice(
+    admin_email: str, requester_name: str, requester_email: str,
+    kind: str, preferred_date, reference: str,
+) -> bool:
+    if not admin_email:
+        return False
+    kind_label = _LIFE_EVENT_LABELS.get(kind, kind)
+    date_str = preferred_date.strftime("%A %d %B %Y") if hasattr(preferred_date, "strftime") else str(preferred_date)
+    admin_tpl = await _get_admin_email_template("life_event_admin_notice")
+    if admin_tpl:
+        subj = admin_tpl["subject"].replace("{kind}", kind_label).replace("{name}", requester_name)
+        body = (admin_tpl["body"]
+                .replace("{kind}", kind_label).replace("{name}", requester_name)
+                .replace("{email}", requester_email).replace("{date}", date_str)
+                .replace("{reference}", reference))
+        return await send_email(admin_email, subj, _render_admin_template_body(body))
+
+    subject = f"[Life Event] {kind_label} — {requester_name}"
+    body = (
+        f"A new life event request needs pastoral review.\n\n"
+        f"Kind:        {kind_label}\n"
+        f"Requester:   {requester_name} <{requester_email}>\n"
+        f"Preferred:   {date_str}\n"
+        f"Reference:   {reference}\n\n"
+        f"Review at:\n{settings.FRONTEND_URL}/admin/life-events\n"
+    )
+    return await send_email(admin_email, subject, _render_admin_template_body(body))
+
+
+async def send_life_event_decision(
+    to_email: str, name: str, kind: str,
+    decision: str,   # 'approved' | 'declined'
+    approved_date=None, admin_note: str | None = None,
+) -> bool:
+    if not to_email:
+        return False
+    kind_label = _LIFE_EVENT_LABELS.get(kind, kind)
+    date_str = (approved_date.strftime("%A %d %B %Y")
+                if approved_date and hasattr(approved_date, "strftime")
+                else (str(approved_date) if approved_date else ""))
+    slot = f"life_event_{decision}"
+    admin_tpl = await _get_admin_email_template(slot)
+    if admin_tpl:
+        subj = admin_tpl["subject"].replace("{name}", name).replace("{kind}", kind_label)
+        body = (admin_tpl["body"]
+                .replace("{kind}", kind_label).replace("{date}", date_str)
+                .replace("{admin_note}", admin_note or ""))
+        return await send_email(to_email, subj, _render_admin_template_body(body, name=name))
+
+    if decision == "approved":
+        subject = f"Your {kind_label} is confirmed"
+        note_block = f"\nNote from the pastor:\n\n  {admin_note}\n" if admin_note else ""
+        body = (
+            f"Hi {name or 'Friend'},\n\n"
+            f"Wonderful — your {kind_label} is confirmed.\n\n"
+            f"Confirmed date: {date_str or 'as previously discussed'}\n"
+            f"{note_block}\n"
+            f"What happens next:\n\n"
+            f"1. Your pastor will call to arrange rehearsal / preparation session(s).\n"
+            f"2. We'll send you an information pack covering order of service and expectations.\n"
+            f"3. Save the date. We're praying for you.\n\n"
+            f"With joy,\n"
+            f"Light Encounter Tabernacle Worldwide"
+        )
+    else:
+        subject = f"About your {kind_label} request"
+        note_block = f"\nNote from the pastor:\n\n  {admin_note}\n" if admin_note else ""
+        body = (
+            f"Hi {name or 'Friend'},\n\n"
+            f"We were not able to confirm your {kind_label} for the date requested.\n"
+            f"{note_block}\n"
+            f"Next steps:\n\n"
+            f"1. Reply to this email with an alternative date and we'll try again.\n"
+            f"2. Or submit a fresh request at\n"
+            f"   {settings.FRONTEND_URL}/life-events\n\n"
+            f"Grace and peace,\n"
+            f"Light Encounter Tabernacle Worldwide"
+        )
+    return await send_email(to_email, subject, _render_admin_template_body(body, name=name or "Friend"))

@@ -49,12 +49,23 @@ export default function LifeEventsPage() {
     }
 
     if (submitted) {
+        const kindLabel = KINDS.find(k => k.value === kind)?.label || 'life event'
         return (
             <main className="min-h-screen bg-[#fbf5e6] flex items-center justify-center p-6">
                 <div className="bg-white rounded-3xl shadow-xl p-10 max-w-md text-center">
                     <CheckCircle className="w-16 h-16 mx-auto text-green-500 mb-4" />
                     <h2 className="text-2xl font-black text-[#140152]">Request Received</h2>
-                    <p className="text-gray-600 mt-3">We've received your request and a pastor will contact you within 3 working days.</p>
+                    <p className="text-gray-600 mt-3">
+                        We&apos;ve emailed a confirmation for your <strong className="text-[#140152]">{kindLabel.toLowerCase()}</strong> request to <strong className="text-[#140152]">{email}</strong>.
+                    </p>
+                    <div className="mt-5 bg-gray-50 border border-gray-100 rounded-2xl p-4 text-left">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[#f5bb00] mb-2">What happens next</p>
+                        <ol className="text-xs text-gray-700 space-y-1.5 list-decimal ml-4">
+                            <li>A pastor will reach out within <strong>3 working days</strong> to introduce themselves.</li>
+                            <li>You&apos;ll be invited to a <strong>30-minute planning conversation</strong> — in person, on Zoom, or by phone.</li>
+                            <li>Together we confirm the date, walk through the order of service, and answer questions.</li>
+                        </ol>
+                    </div>
                 </div>
             </main>
         )

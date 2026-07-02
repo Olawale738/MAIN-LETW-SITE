@@ -148,7 +148,17 @@ function BookingModal({ room, onClose }: { room: SanctuaryRoom; onClose: () => v
                     <div className="p-8 text-center">
                         <CheckCircle className="w-14 h-14 text-emerald-500 mx-auto mb-3" />
                         <h4 className="text-2xl font-black text-[#140152]">Request received</h4>
-                        <p className="text-gray-600 mt-3 text-sm">A pastor or coordinator will reach out to confirm. Watch your inbox.</p>
+                        <p className="text-gray-600 mt-3 text-sm">
+                            We&apos;ve emailed a confirmation to <strong className="text-[#140152]">{email}</strong>.
+                        </p>
+                        <div className="mt-5 bg-gray-50 border border-gray-100 rounded-2xl p-4 text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-[#f5bb00] mb-2">What happens next</p>
+                            <ol className="text-xs text-gray-700 space-y-1.5 list-decimal ml-4">
+                                <li>A coordinator checks {room.name}&apos;s calendar against your window.</li>
+                                <li>You&apos;ll get an <strong>approval or decline</strong> email within 48 hours.</li>
+                                <li>On approval, we&apos;ll send arrival and setup notes for the space.</li>
+                            </ol>
+                        </div>
                         <button onClick={onClose} className="mt-6 inline-flex items-center gap-2 bg-[#140152] text-white font-bold px-5 py-2.5 rounded-full text-sm">Close</button>
                     </div>
                 ) : (

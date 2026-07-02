@@ -460,11 +460,22 @@ function GrowTab({ d, setD }: TabProps) {
 
 function EmailsTab({ d, setD }: TabProps) {
     const slots: { key: string; label: string; tokens: string }[] = [
-        { key: 'welcome',                    label: 'Welcome (new member)',    tokens: '{name}' },
-        { key: 'password_reset',             label: 'Password reset',          tokens: '{name}, {reset_link}' },
-        { key: 'prayer_received',            label: 'Prayer received',         tokens: '{name}' },
-        { key: 'decision_followup',          label: 'Decision follow-up',      tokens: '{name}' },
-        { key: 'marriage_prep_completion',   label: 'Marriage-prep completion (post sign-off)', tokens: '{couple}, {partner_a}, {partner_b}, {pastor}, {pastor_note}, {wedding_date}, {certificate_link}, {sanctuary_link}, {contact_link}' },
+        // Membership & pastoral
+        { key: 'welcome',                            label: 'Welcome (new member)',                     tokens: '{name}' },
+        { key: 'password_reset',                     label: 'Password reset',                           tokens: '{name}, {reset_link}' },
+        { key: 'prayer_received',                    label: 'Prayer received',                          tokens: '{name}' },
+        { key: 'decision_followup',                  label: 'Decision follow-up',                       tokens: '{name}' },
+        { key: 'marriage_prep_completion',           label: 'Marriage-prep completion (post sign-off)', tokens: '{couple}, {partner_a}, {partner_b}, {pastor}, {pastor_note}, {wedding_date}, {certificate_link}, {sanctuary_link}, {contact_link}' },
+        // Sanctuary / hall bookings — 3 slots (received / approved / declined + admin notice)
+        { key: 'sanctuary_booking_received',         label: 'Sanctuary — booking received (to requester)',       tokens: '{name}, {room}, {purpose}, {range}, {reference}' },
+        { key: 'sanctuary_booking_admin_notice',     label: 'Sanctuary — new booking (to admin inbox)',          tokens: '{name}, {email}, {room}, {purpose}, {range}, {reference}' },
+        { key: 'sanctuary_booking_approved',         label: 'Sanctuary — booking approved (to requester)',       tokens: '{name}, {room}, {purpose}, {range}, {admin_note}' },
+        { key: 'sanctuary_booking_declined',         label: 'Sanctuary — booking declined (to requester)',       tokens: '{name}, {room}, {purpose}, {range}, {admin_note}' },
+        // Life events — 3 slots (received / approved / declined + admin notice)
+        { key: 'life_event_received',                label: 'Life event — request received (to requester)',      tokens: '{name}, {kind}, {date}, {reference}' },
+        { key: 'life_event_admin_notice',            label: 'Life event — new request (to admin inbox)',         tokens: '{name}, {email}, {kind}, {date}, {reference}' },
+        { key: 'life_event_approved',                label: 'Life event — request approved (to requester)',      tokens: '{name}, {kind}, {date}, {admin_note}' },
+        { key: 'life_event_declined',                label: 'Life event — request declined (to requester)',      tokens: '{name}, {kind}, {admin_note}' },
     ]
     return (
         <div className="space-y-6">

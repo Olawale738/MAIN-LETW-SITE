@@ -100,6 +100,35 @@ async def request_booking(body: BookingIn, db: AsyncSession = Depends(get_db)):
     db.add(b)
     await db.commit()
     await db.refresh(b)
+
+    # Best-effort notification loop — never let email hiccups poison the request.
+    # Reference is short + shareable so a coordinator can quote it on the phone.
+    reference = b.id.split("-")[0].upper()
+    try:
+        from services.email_service import (
+            send_sanctuary_booking_received,
+            send_sanctuary_booking_admin_notice,
+            _admin_notify_email,
+        )
+        # To the requester — "we got it, here's what happens next".
+        await send_sanctuary_booking_received(
+            to_email=b.contact_email, name=b.contact_name,
+            room_name=room.name, purpose=b.purpose,
+            starts_at=b.starts_at, ends_at=b.ends_at,
+            reference=reference,
+        )
+        # To the church inbox — "someone please act on this".
+        admin_email = await _admin_notify_email()
+        await send_sanctuary_booking_admin_notice(
+            admin_email=admin_email,
+            requester_name=b.contact_name, requester_email=b.contact_email,
+            room_name=room.name, purpose=b.purpose,
+            starts_at=b.starts_at, ends_at=b.ends_at,
+            reference=reference,
+        )
+    except Exception as e:
+        print(f"[sanctuary] booking-received emails failed: {type(e).__name__}: {e}", flush=True)
+
     return _booking(b)
 
 
@@ -197,6 +226,23 @@ async def update_booking(
         b.admin_note = body.admin_note
     await db.commit()
     await db.refresh(b)
+
+    # If the status flipped to approved or declined, notify the requester.
+    # We only email on those two — 'cancelled' / 'requested' bounces don't.
+    if body.status in {"approved", "declined"} and b.contact_email:
+        try:
+            from services.email_service import send_sanctuary_booking_decision
+            # Room might have been renamed since the request; look it up fresh.
+            room = (await db.execute(select(SanctuaryRoom).where(SanctuaryRoom.id == b.room_id))).scalar_one_or_none()
+            await send_sanctuary_booking_decision(
+                to_email=b.contact_email, name=b.contact_name,
+                room_name=(room.name if room else "the room"), purpose=b.purpose,
+                starts_at=b.starts_at, ends_at=b.ends_at,
+                decision=body.status, admin_note=b.admin_note,
+            )
+        except Exception as e:
+            print(f"[sanctuary] decision email failed: {type(e).__name__}: {e}", flush=True)
+
     return _booking(b)
 
 
