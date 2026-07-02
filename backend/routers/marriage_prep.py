@@ -146,6 +146,46 @@ async def list_couples_admin(status: Optional[str] = None, db: AsyncSession = De
     return [_couple(c) for c in res.scalars().all()]
 
 
+class CoupleUpdateIn(BaseModel):
+    """Any subset — admin can rename, fix an email, push the wedding date,
+    change status, or wipe / rewrite the pastor note without redoing sign-off."""
+    partner_a_name:        Optional[str] = None
+    partner_a_email:       Optional[EmailStr] = None
+    partner_b_name:        Optional[str] = None
+    partner_b_email:       Optional[EmailStr] = None
+    intended_wedding_date: Optional[datetime] = None
+    status:                Optional[str] = None      # enrolled | in_progress | completed | withdrew
+    pastor_signature:      Optional[str] = None
+    pastor_note:           Optional[str] = None
+
+
+@router.put("/admin/couples/{couple_id}")
+async def update_couple(couple_id: str, body: CoupleUpdateIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
+    if not c:
+        raise HTTPException(404, "Couple not found")
+    # Only apply keys the admin actually sent — model_dump(exclude_unset=True)
+    # so a blank field doesn't overwrite with None.
+    for k, v in body.model_dump(exclude_unset=True).items():
+        setattr(c, k, v)
+    await db.commit()
+    await db.refresh(c)
+    return _couple(c)
+
+
+@router.delete("/admin/couples/{couple_id}")
+async def delete_couple(couple_id: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
+    if not c:
+        return {"deleted": 0}
+    # Cascade — remove their progress rows first so we don't orphan them.
+    from sqlalchemy import delete as sql_delete
+    await db.execute(sql_delete(MarriagePrepProgress).where(MarriagePrepProgress.couple_id == couple_id))
+    await db.delete(c)
+    await db.commit()
+    return {"deleted": 1}
+
+
 class SignOffIn(BaseModel):
     pastor_signature: str
     pastor_note:      Optional[str] = None

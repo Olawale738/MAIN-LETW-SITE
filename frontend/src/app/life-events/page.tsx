@@ -1,8 +1,14 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Heart, Send, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
-import { lifeEventApi } from '@/lib/api'
+import { lifeEventApi, ministryContentApi } from '@/lib/api'
 import PageCmsOverlay from '@/components/cms/PageCmsOverlay'
+
+const DEFAULT_COPY = {
+    eyebrow: 'Sacred Milestones',
+    title:   'Mark the moments that matter.',
+    subtitle: 'Wedding, baptism, child dedication, or memorial — request a date and our pastoral team will reach out.',
+}
 
 const KINDS = [
     { value: 'wedding', label: 'Wedding', desc: 'Marriage ceremony or vow renewal.' },
@@ -21,6 +27,12 @@ export default function LifeEventsPage() {
     const [submitting, setSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
     const [err, setErr] = useState<string | null>(null)
+    const [copy, setCopy] = useState(DEFAULT_COPY)
+    useEffect(() => {
+        ministryContentApi.get('life-events-page')
+            .then(r => setCopy({ ...DEFAULT_COPY, ...(r.content || {}) }))
+            .catch(() => { /* keep defaults */ })
+    }, [])
 
     const submit = async () => {
         if (!name || !email || !preferred) return
@@ -52,9 +64,9 @@ export default function LifeEventsPage() {
         <main className="min-h-screen bg-gradient-to-b from-[#fbf5e6] via-white to-[#fbf5e6]">
             <PageCmsOverlay slug="life-events" position="top" />
             <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-12 text-center">
-                <p className="text-[#f5bb00] font-bold tracking-[0.3em] text-xs uppercase mb-3">Sacred Milestones</p>
-                <h1 className="text-4xl md:text-5xl font-black text-[#140152] leading-tight">Mark the moments that matter.</h1>
-                <p className="text-gray-600 mt-4 max-w-xl mx-auto">Wedding, baptism, child dedication, or memorial — request a date and our pastoral team will reach out.</p>
+                <p className="text-[#f5bb00] font-bold tracking-[0.3em] text-xs uppercase mb-3">{copy.eyebrow}</p>
+                <h1 className="text-4xl md:text-5xl font-black text-[#140152] leading-tight">{copy.title}</h1>
+                <p className="text-gray-600 mt-4 max-w-xl mx-auto">{copy.subtitle}</p>
             </section>
 
             <section className="max-w-2xl mx-auto px-4 sm:px-6 pb-24">

@@ -10,18 +10,28 @@ import { useEffect, useState } from 'react'
 import {
     Loader2, MapPin, Users, Calendar, Send, CheckCircle, X, AlertCircle, Sparkles,
 } from 'lucide-react'
-import { sanctuaryApi, type SanctuaryRoom } from '@/lib/api'
+import { sanctuaryApi, ministryContentApi, type SanctuaryRoom } from '@/lib/api'
+
+const DEFAULT_COPY = {
+    eyebrow: 'Bookable Spaces',
+    title:   'Sanctuary, halls & rooms',
+    subtitle: 'Reserve our wedding hall, prayer chapel, conference rooms and more for your event, gathering or quiet retreat.',
+}
 
 export default function SanctuaryPage() {
     const [rooms, setRooms] = useState<SanctuaryRoom[]>([])
     const [loading, setLoading] = useState(true)
     const [picked, setPicked] = useState<SanctuaryRoom | null>(null)
+    const [copy, setCopy] = useState(DEFAULT_COPY)
 
     useEffect(() => {
         sanctuaryApi.rooms()
             .then(setRooms)
             .catch(() => { /* page renders empty-state */ })
             .finally(() => setLoading(false))
+        ministryContentApi.get('sanctuary-page')
+            .then(r => setCopy({ ...DEFAULT_COPY, ...(r.content || {}) }))
+            .catch(() => { /* keep defaults */ })
     }, [])
 
     const active = rooms.filter(r => r.is_active)
@@ -34,13 +44,13 @@ export default function SanctuaryPage() {
                 <div className="absolute -bottom-40 left-0 w-[500px] h-[500px] rounded-full bg-[#140152]/10 blur-[120px] pointer-events-none" />
                 <div className="relative max-w-3xl mx-auto text-center">
                     <p className="inline-flex items-center gap-2 text-[#f5bb00] font-bold tracking-[0.4em] text-xs uppercase mb-4">
-                        <Sparkles className="w-3.5 h-3.5" /> Bookable Spaces
+                        <Sparkles className="w-3.5 h-3.5" /> {copy.eyebrow}
                     </p>
                     <h1 className="text-4xl md:text-6xl font-black text-[#140152] leading-[1.05] tracking-tight">
-                        Sanctuary, halls &amp; rooms
+                        {copy.title}
                     </h1>
                     <p className="text-lg text-[#140152]/70 mt-5 max-w-xl mx-auto leading-relaxed">
-                        Reserve our wedding hall, prayer chapel, conference rooms and more for your event, gathering or quiet retreat.
+                        {copy.subtitle}
                     </p>
                 </div>
             </section>

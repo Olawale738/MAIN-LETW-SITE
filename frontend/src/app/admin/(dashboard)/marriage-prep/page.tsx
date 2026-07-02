@@ -5,7 +5,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import {
-    Loader2, Plus, Save, Trash2, Heart, CheckCircle, AlertCircle, Quote,
+    Loader2, Plus, Save, Trash2, Heart, CheckCircle, AlertCircle, Quote, Pencil, X,
 } from 'lucide-react'
 import { marriagePrepApi, type MarriagePrepModule, type MarriagePrepCouple } from '@/lib/api'
 
@@ -124,6 +124,8 @@ function ModulesTab({ modules, onSaved, onMsg }: { modules: MarriagePrepModule[]
 }
 
 function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]; onSaved: () => void; onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void }) {
+    const [editing, setEditing] = useState<MarriagePrepCouple | null>(null)
+
     const signOff = async (c: MarriagePrepCouple) => {
         const sig = prompt(`Sign off on ${c.partner_a_name} & ${c.partner_b_name}? Enter your name as signature:`)
         if (!sig) return
@@ -135,39 +137,174 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
         } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
     }
 
+    const remove = async (c: MarriagePrepCouple) => {
+        if (!confirm(
+            `Delete ${c.partner_a_name} & ${c.partner_b_name}?\n\n`
+            + `This will remove the couple and all their weekly progress notes.\n`
+            + `It cannot be undone.`
+        )) return
+        try {
+            await marriagePrepApi.deleteCouple(c.id)
+            onMsg({ kind: 'ok', text: `Deleted ${c.partner_a_name} & ${c.partner_b_name}.` })
+            onSaved()
+        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
+    }
+
     return (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm divide-y divide-gray-100">
-            {couples.length === 0 && <p className="p-6 text-center text-gray-400 text-sm">No couples enrolled yet.</p>}
-            {couples.map(c => (
-                <div key={c.id} className="p-4 grid md:grid-cols-[1fr_auto] gap-3 items-start">
-                    <div>
-                        <p className="font-bold text-[#140152]">{c.partner_a_name} <span className="text-gray-400 font-normal">&</span> {c.partner_b_name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{c.partner_a_email}{c.partner_b_email ? ` · ${c.partner_b_email}` : ''}</p>
-                        {c.intended_wedding_date && <p className="text-xs text-gray-500">Wedding {new Date(c.intended_wedding_date).toLocaleDateString()}</p>}
-                        <p className="text-[10px] uppercase tracking-widest mt-1 font-bold inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{c.status}</p>
-                        {c.pastor_signed_off && c.pastor_signature && (
-                            <p className="text-xs text-emerald-700 mt-1 inline-flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" /> Signed by {c.pastor_signature}
-                            </p>
-                        )}
-                        {c.pastor_signed_off && (
-                            <p className="text-[10px] text-gray-500 mt-1">
-                                Completion email was sent to the couple with their certificate + next steps.
-                                <Link
-                                    href={`/marriage-prep/complete/${c.id}`}
-                                    target="_blank"
-                                    className="underline text-[#140152] ml-1"
-                                >View their page ↗</Link>
-                            </p>
-                        )}
+        <>
+            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm divide-y divide-gray-100">
+                {couples.length === 0 && <p className="p-6 text-center text-gray-400 text-sm">No couples enrolled yet.</p>}
+                {couples.map(c => (
+                    <div key={c.id} className="p-4 grid md:grid-cols-[1fr_auto] gap-3 items-start">
+                        <div>
+                            <p className="font-bold text-[#140152]">{c.partner_a_name} <span className="text-gray-400 font-normal">&</span> {c.partner_b_name}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{c.partner_a_email}{c.partner_b_email ? ` · ${c.partner_b_email}` : ''}</p>
+                            {c.intended_wedding_date && <p className="text-xs text-gray-500">Wedding {new Date(c.intended_wedding_date).toLocaleDateString()}</p>}
+                            <p className="text-[10px] uppercase tracking-widest mt-1 font-bold inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{c.status}</p>
+                            {c.pastor_signed_off && c.pastor_signature && (
+                                <p className="text-xs text-emerald-700 mt-1 inline-flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3" /> Signed by {c.pastor_signature}
+                                </p>
+                            )}
+                            {c.pastor_signed_off && (
+                                <p className="text-[10px] text-gray-500 mt-1">
+                                    Completion email was sent to the couple with their certificate + next steps.
+                                    <Link
+                                        href={`/marriage-prep/complete/${c.id}`}
+                                        target="_blank"
+                                        className="underline text-[#140152] ml-1"
+                                    >View their page ↗</Link>
+                                </p>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 items-start">
+                            {!c.pastor_signed_off && (
+                                <button onClick={() => signOff(c)} className="inline-flex items-center gap-1 bg-[#140152] hover:bg-[#1d0175] text-white text-xs font-bold px-3 py-1.5 rounded-lg">
+                                    <CheckCircle className="w-3 h-3" /> Sign off
+                                </button>
+                            )}
+                            <button onClick={() => setEditing(c)} title="Edit couple"
+                                className="inline-flex items-center gap-1 border border-gray-200 hover:border-[#140152] text-gray-700 hover:text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg">
+                                <Pencil className="w-3 h-3" /> Edit
+                            </button>
+                            <button onClick={() => remove(c)} title="Delete couple"
+                                className="inline-flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold px-3 py-1.5 rounded-lg">
+                                <Trash2 className="w-3 h-3" /> Delete
+                            </button>
+                        </div>
                     </div>
-                    {!c.pastor_signed_off && (
-                        <button onClick={() => signOff(c)} className="inline-flex items-center gap-1 bg-[#140152] hover:bg-[#1d0175] text-white text-xs font-bold px-3 py-1.5 rounded-lg">
-                            <CheckCircle className="w-3 h-3" /> Sign off
-                        </button>
-                    )}
+                ))}
+            </div>
+
+            {editing && (
+                <EditCoupleModal
+                    couple={editing}
+                    onClose={() => setEditing(null)}
+                    onSaved={() => { setEditing(null); onSaved() }}
+                    onMsg={onMsg}
+                />
+            )}
+        </>
+    )
+}
+
+function EditCoupleModal({ couple, onClose, onSaved, onMsg }: {
+    couple: MarriagePrepCouple
+    onClose: () => void
+    onSaved: () => void
+    onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void
+}) {
+    // Local editable copy — ISO date is trimmed to YYYY-MM-DD so the native
+    // date input accepts it. Status enum is a discriminated list.
+    const [form, setForm] = useState({
+        partner_a_name: couple.partner_a_name || '',
+        partner_a_email: couple.partner_a_email || '',
+        partner_b_name: couple.partner_b_name || '',
+        partner_b_email: couple.partner_b_email || '',
+        intended_wedding_date: couple.intended_wedding_date ? couple.intended_wedding_date.slice(0, 10) : '',
+        status: couple.status || 'enrolled',
+        pastor_signature: couple.pastor_signature || '',
+        pastor_note: couple.pastor_note || '',
+    })
+    const [saving, setSaving] = useState(false)
+
+    const save = async () => {
+        setSaving(true)
+        try {
+            await marriagePrepApi.updateCouple(couple.id, {
+                partner_a_name: form.partner_a_name,
+                partner_a_email: form.partner_a_email,
+                partner_b_name: form.partner_b_name,
+                partner_b_email: form.partner_b_email || null,
+                intended_wedding_date: form.intended_wedding_date ? new Date(form.intended_wedding_date).toISOString() : null,
+                status: form.status as 'enrolled' | 'in_progress' | 'completed' | 'withdrew',
+                pastor_signature: form.pastor_signature || null,
+                pastor_note: form.pastor_note || null,
+            })
+            onMsg({ kind: 'ok', text: 'Saved.' })
+            onSaved()
+        } catch (e) {
+            onMsg({ kind: 'err', text: (e as Error).message })
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} className="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                    <h3 className="font-black text-[#140152]">Edit couple</h3>
+                    <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
-            ))}
+                <div className="p-5 space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                        <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Partner A name</label>
+                            <input value={form.partner_a_name} onChange={e => setForm({ ...form, partner_a_name: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Partner A email</label>
+                            <input type="email" value={form.partner_a_email} onChange={e => setForm({ ...form, partner_a_email: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Partner B name</label>
+                            <input value={form.partner_b_name} onChange={e => setForm({ ...form, partner_b_name: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Partner B email</label>
+                            <input type="email" value={form.partner_b_email} onChange={e => setForm({ ...form, partner_b_email: e.target.value })} placeholder="(optional)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Wedding date</label>
+                            <input type="date" value={form.intended_wedding_date} onChange={e => setForm({ ...form, intended_wedding_date: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Status</label>
+                            <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as typeof form.status })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                                <option value="enrolled">Enrolled</option>
+                                <option value="in_progress">In progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="withdrew">Withdrew</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Pastor signature</label>
+                        <input value={form.pastor_signature} onChange={e => setForm({ ...form, pastor_signature: e.target.value })} placeholder="Blank clears the certificate signature" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Pastor note (private)</label>
+                        <textarea value={form.pastor_note} onChange={e => setForm({ ...form, pastor_note: e.target.value })} rows={3} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-y" />
+                    </div>
+                </div>
+                <div className="p-4 border-t border-gray-100 flex items-center justify-end gap-2">
+                    <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-800">Cancel</button>
+                    <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2 rounded-lg text-sm disabled:opacity-50">
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
+                    </button>
+                </div>
+            </div>
         </div>
     )
 }

@@ -3733,7 +3733,7 @@ export interface MinistryContent {
     updated_at?: string | null;
 }
 
-export type MinistryContentKey = 'women' | 'men' | 'theology' | 'leadership' | 'giving' | 'statement-of-faith' | 'privacy-policy' | 'terms-of-service' | 'testimony-page' | 'hero-settings' | 'apps-list' | 'navbar' | 'footer' | 'tour-page' | 'voice-page' | 'grow-page' | 'email-templates' | 'onboarding-page' | 'volunteer-page';
+export type MinistryContentKey = 'women' | 'men' | 'theology' | 'leadership' | 'giving' | 'statement-of-faith' | 'privacy-policy' | 'terms-of-service' | 'testimony-page' | 'hero-settings' | 'apps-list' | 'navbar' | 'footer' | 'tour-page' | 'voice-page' | 'grow-page' | 'email-templates' | 'onboarding-page' | 'volunteer-page' | 'apps-page' | 'sanctuary-page' | 'marriage-prep-page' | 'download-page' | 'life-events-page';
 
 export const ministryContentApi = {
     get: (key: MinistryContentKey): Promise<MinistryContent> =>
@@ -4345,6 +4345,12 @@ export const marriagePrepApi = {
         fetchApi<MarriagePrepCouple[]>(`/marriage-prep/admin/couples${status ? `?status=${encodeURIComponent(status)}` : ''}`),
     signOff: (couple_id: string, pastor_signature: string, pastor_note?: string) =>
         fetchApi<MarriagePrepCouple>(`/marriage-prep/admin/couples/${couple_id}/sign-off`, { method: 'POST', body: JSON.stringify({ pastor_signature, pastor_note }) }),
+    updateCouple: (couple_id: string, body: Partial<Pick<MarriagePrepCouple,
+        'partner_a_name' | 'partner_a_email' | 'partner_b_name' | 'partner_b_email' |
+        'intended_wedding_date' | 'status' | 'pastor_signature' | 'pastor_note'>>) =>
+        fetchApi<MarriagePrepCouple>(`/marriage-prep/admin/couples/${couple_id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    deleteCouple: (couple_id: string) =>
+        fetchApi<{ deleted: number }>(`/marriage-prep/admin/couples/${couple_id}`, { method: 'DELETE' }),
 }
 
 // ── Live Attendance (anonymous heartbeat) ───────────────────────────────────

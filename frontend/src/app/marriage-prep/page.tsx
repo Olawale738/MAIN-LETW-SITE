@@ -9,7 +9,17 @@ import { useEffect, useState } from 'react'
 import {
     Loader2, Heart, ArrowRight, CheckCircle, Sparkles, Send, AlertCircle, BookOpen, Calendar,
 } from 'lucide-react'
-import { marriagePrepApi, type MarriagePrepModule } from '@/lib/api'
+import { marriagePrepApi, ministryContentApi, type MarriagePrepModule } from '@/lib/api'
+
+const DEFAULT_COPY = {
+    eyebrow:  'Six-week guided course',
+    title:    'Marriage prep, together.',
+    subtitle: 'Six weeks of guided conversations, scriptures, and homework — finishing with a pastor’s sign-off so you walk into your covenant ready, not just rushed.',
+    cta_label: 'Enrol your couple',
+    cta_href:  '#enrol',
+    section_heading: 'The journey',
+    section_sub:     'One week at a time. No skipping ahead — even the rush is part of the lesson.',
+}
 
 export default function MarriagePrepPage() {
     const [modules, setModules] = useState<MarriagePrepModule[]>([])
@@ -17,6 +27,7 @@ export default function MarriagePrepPage() {
     const [enrolling, setEnrolling] = useState(false)
     const [done, setDone] = useState(false)
     const [err, setErr] = useState<string | null>(null)
+    const [copy, setCopy] = useState(DEFAULT_COPY)
 
     const [partnerA, setPartnerA] = useState('')
     const [emailA, setEmailA] = useState('')
@@ -29,6 +40,9 @@ export default function MarriagePrepPage() {
             .then(setModules)
             .catch(() => { /* page still works without modules */ })
             .finally(() => setLoading(false))
+        ministryContentApi.get('marriage-prep-page')
+            .then(r => setCopy({ ...DEFAULT_COPY, ...(r.content || {}) }))
+            .catch(() => { /* keep defaults */ })
     }, [])
 
     const submit = async (e: React.FormEvent) => {
@@ -60,24 +74,24 @@ export default function MarriagePrepPage() {
                 <div className="absolute -bottom-40 left-0 w-[500px] h-[500px] rounded-full bg-[#f5bb00]/20 blur-[120px] pointer-events-none" />
                 <div className="relative max-w-3xl mx-auto text-center">
                     <p className="inline-flex items-center gap-2 text-[#f5bb00] font-bold tracking-[0.4em] text-xs uppercase mb-4">
-                        <Sparkles className="w-3.5 h-3.5" /> Six-week guided course
+                        <Sparkles className="w-3.5 h-3.5" /> {copy.eyebrow}
                     </p>
                     <h1 className="font-serif text-5xl md:text-7xl font-black text-[#140152] leading-[1.05] tracking-tight">
-                        Marriage prep, <span className="italic font-light">together</span>.
+                        {copy.title}
                     </h1>
                     <p className="text-lg text-[#140152]/70 mt-6 max-w-xl mx-auto leading-relaxed">
-                        Six weeks of guided conversations, scriptures, and homework — finishing with a pastor's sign-off so you walk into your covenant ready, not just rushed.
+                        {copy.subtitle}
                     </p>
-                    <a href="#enrol" className="inline-flex items-center gap-2 mt-8 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-7 py-3.5 rounded-full shadow-lg">
-                        Enrol your couple <ArrowRight className="w-4 h-4" />
+                    <a href={copy.cta_href || '#enrol'} className="inline-flex items-center gap-2 mt-8 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-7 py-3.5 rounded-full shadow-lg">
+                        {copy.cta_label} <ArrowRight className="w-4 h-4" />
                     </a>
                 </div>
             </section>
 
             {/* Curriculum */}
             <section className="max-w-4xl mx-auto px-4 pb-16">
-                <h2 className="text-center text-3xl font-black text-[#140152] mb-2">The journey</h2>
-                <p className="text-center text-[#140152]/60 text-sm mb-10">One week at a time. No skipping ahead — even the rush is part of the lesson.</p>
+                <h2 className="text-center text-3xl font-black text-[#140152] mb-2">{copy.section_heading}</h2>
+                <p className="text-center text-[#140152]/60 text-sm mb-10">{copy.section_sub}</p>
 
                 {loading ? (
                     <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-[#140152]" /></div>

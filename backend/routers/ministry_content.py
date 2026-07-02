@@ -36,6 +36,12 @@ ALLOWED_KEYS = {
     "email-templates",  # Welcome / reset / prayer / decision confirmations
     "onboarding-page",  # /onboarding hero, 5 chapters, scripture tagline, final CTA
     "volunteer-page",   # /volunteer hero, why-points, departments, form labels, bottom banner
+    # Editorial copy for pages backed by data models (rooms, modules, requests)
+    "apps-page",        # /apps hero eyebrow + title + subtitle + CTA
+    "sanctuary-page",   # /sanctuary hero + intro + empty-state text
+    "marriage-prep-page",  # /marriage-prep hero + curriculum heading + enrol CTA
+    "download-page",    # /download hero + CTA labels
+    "life-events-page", # /life-events hero + form labels
 }
 
 
