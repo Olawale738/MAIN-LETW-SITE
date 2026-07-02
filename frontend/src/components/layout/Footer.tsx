@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Facebook, Twitter, Instagram, Youtube, MapPin, Phone, Mail, ExternalLink, BookOpen, Radio, ChevronDown } from 'lucide-react'
 import { ministryContentApi } from '@/lib/api'
-import LanguagePicker from '@/components/layout/LanguagePicker'
 
 type LinkItem = { name: string; href: string }
 type SvcTime  = { day: string; time: string }
@@ -271,20 +270,6 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        {/* Language picker — lives in the footer now (was navbar). The
-              picker stores the locale in localStorage so the choice persists
-              across pages; all components using useT() respond live. */}
-        <div className="border-t border-white/10 pt-6 pb-6 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 text-gray-400 text-xs">
-          <span className="inline-flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#f5bb00]">Language</span>
-            <span className="hidden sm:inline opacity-60">·</span>
-            <span className="hidden sm:inline">Switch the language for navigation, headings, and on-page strings.</span>
-          </span>
-          <div className="bg-white/5 border border-white/10 rounded-full">
-            <LanguagePicker />
-          </div>
-        </div>
-
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-gray-500 text-sm">
             {cfg.copyright.replace('{year}', String(new Date().getFullYear()))}

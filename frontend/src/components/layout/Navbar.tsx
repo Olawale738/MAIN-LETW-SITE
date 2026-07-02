@@ -79,6 +79,10 @@ export default function Navbar() {
   const [educationLinks, setEducationLinks]   = useState<NavLink[]>(DEFAULT_EDUCATION)
   const [ctaLabel, setCtaLabel] = useState('Join Us')
   const [ctaHref, setCtaHref]   = useState('/join')
+  // Admin can now define arbitrary dropdowns from /admin/site-content →
+  // Navbar → Custom dropdowns. Each entry: { label, items: NavLink[] }.
+  const [customDropdowns, setCustomDropdowns] = useState<{ label: string; items: NavLink[] }[]>([])
+  const [hoveredDropdown, setHoveredDropdown] = useState<number | null>(null)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -89,12 +93,28 @@ export default function Navbar() {
 
     ministryContentApi.get('navbar')
       .then(r => {
-        const c = (r.content || {}) as { main?: NavLink[]; ministries?: NavLink[]; education?: NavLink[]; cta_label?: string; cta_href?: string }
+        const c = (r.content || {}) as {
+          main?: NavLink[]; ministries?: NavLink[]; education?: NavLink[]
+          cta_label?: string; cta_href?: string
+          dropdowns?: { label?: string; items?: NavLink[] }[]
+        }
         if (Array.isArray(c.main)       && c.main.length)       setNavLinks(c.main)
         if (Array.isArray(c.ministries) && c.ministries.length) setMinistriesLinks(c.ministries)
         if (Array.isArray(c.education)  && c.education.length)  setEducationLinks(c.education)
         if (c.cta_label) setCtaLabel(c.cta_label)
         if (c.cta_href)  setCtaHref(c.cta_href)
+        // Only accept custom dropdowns that have BOTH a label and at least
+        // one non-empty item — silently drop half-empty rows so a stray
+        // save can never leave a bare chevron in the navbar.
+        if (Array.isArray(c.dropdowns)) {
+          const cleaned = c.dropdowns
+            .map(dd => ({
+              label: (dd?.label || '').trim(),
+              items: Array.isArray(dd?.items) ? dd.items.filter(i => i && i.name && i.href) : [],
+            }))
+            .filter(dd => dd.label && dd.items.length > 0)
+          setCustomDropdowns(cleaned)
+        }
       })
       .catch(() => { /* keep defaults */ })
 
@@ -273,6 +293,51 @@ export default function Navbar() {
                 )}
               </AnimatePresence>
             </div>
+
+            {/* CUSTOM ADMIN-DEFINED DROPDOWNS — rendered after the built-in
+                  Ministries + Education dropdowns. Any number, any labels. */}
+            {customDropdowns.map((dd, di) => {
+              const isOpen = hoveredDropdown === di
+              const anyChildActive = dd.items.some(i => i.href && pathname === i.href)
+              return (
+                <div
+                  key={`custom-${di}`}
+                  className="relative px-2"
+                  onMouseEnter={() => setHoveredDropdown(di)}
+                  onMouseLeave={() => setHoveredDropdown(null)}
+                >
+                  <button className={cn(
+                    "flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-full transition-colors outline-none",
+                    isOpen || anyChildActive ? "text-[#140152] bg-[#140152]/5" : "text-gray-600 hover:bg-gray-100/50"
+                  )}>
+                    {dd.label} <ChevronDown className={cn("w-4 h-4 transition-transform duration-300", isOpen && "rotate-180")} />
+                  </button>
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial="closed"
+                        animate="open"
+                        exit="closed"
+                        variants={dropdownVariants}
+                        className="absolute top-full right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden p-2"
+                        style={{ transformOrigin: "top right" }}
+                      >
+                        {dd.items.map((item, ii) => (
+                          <Link
+                            key={`${di}-${ii}`}
+                            href={item.href}
+                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:text-[#140152] hover:bg-gray-50 rounded-xl transition-colors group"
+                          >
+                            <div className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-[#f5bb00] transition-colors" />
+                            {item.name}
+                          </Link>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )
+            })}
           </nav>
 
           {/* ACTIONS & MOBILE TOGGLE */}
@@ -367,7 +432,31 @@ export default function Navbar() {
                 </div>
               </motion.div>
 
-              <motion.div custom={navLinks.length + 1} variants={linkVariants} className="mt-auto">
+              {/* Mobile — Custom admin-defined dropdowns as extra sections */}
+              {customDropdowns.map((dd, di) => (
+                <motion.div
+                  key={`m-custom-${di}`}
+                  custom={navLinks.length + 2 + di}
+                  variants={linkVariants}
+                  className="pt-4"
+                >
+                  <p className="text-sm font-bold text-[#f5bb00] uppercase tracking-widest mb-4">{dd.label}</p>
+                  <div className="grid grid-cols-1 gap-3 pl-4 border-l-2 border-gray-100">
+                    {dd.items.map((item, ii) => (
+                      <Link
+                        key={`${di}-${ii}`}
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className="text-lg font-medium text-gray-600 hover:text-[#140152]"
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
+                  </div>
+                </motion.div>
+              ))}
+
+              <motion.div custom={navLinks.length + 2 + customDropdowns.length} variants={linkVariants} className="mt-auto">
                 {isLoggedIn ? (
                   <PremiumButton href="/dashboard" className="text-center justify-center text-lg mb-4">
                     My Dashboard

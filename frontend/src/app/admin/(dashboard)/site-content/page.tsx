@@ -280,14 +280,59 @@ function AppsTab({ d, setD }: TabProps) {
 }
 
 function NavbarTab({ d, setD }: TabProps) {
+    const dropdowns: { label: string; items: { name?: string; href?: string }[] }[] = Array.isArray(d.dropdowns) ? d.dropdowns : []
     return (
         <div className="space-y-6">
-            <Header title="Main navigation" sub="Top-level navbar links shown on every page." />
+            <Header title="Main navigation" sub="Top-level navbar links shown on every page (flat, no dropdown)." />
             <LinkRepeater value={d.main || []} onChange={v => setD({ ...d, main: v })} label="Link" />
-            <Header title="Ministries dropdown" sub="" />
+
+            <Header title="Ministries dropdown" sub="Built-in Ministries menu." />
             <LinkRepeater value={d.ministries || []} onChange={v => setD({ ...d, ministries: v })} label="Ministry link" />
-            <Header title="Education dropdown" sub="" />
+
+            <Header title="Education dropdown" sub="Built-in Education menu." />
             <LinkRepeater value={d.education || []} onChange={v => setD({ ...d, education: v })} label="Education link" />
+
+            {/* Fully admin-defined dropdowns — new in this build. Add as many
+                as you like; each renders on the desktop navbar between the
+                built-in dropdowns and the CTA. */}
+            <Header title="Custom dropdowns" sub="Group any items into your own dropdown. Set a label, then add / reorder items inside. Delete a dropdown to remove it entirely." />
+            {dropdowns.map((dd, di) => (
+                <div key={di} className="border border-gray-200 rounded-2xl p-4 mt-2">
+                    <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 w-16 shrink-0">Dropdown #{di + 1}</span>
+                        <input
+                            value={dd.label || ''}
+                            onChange={e => {
+                                const next = dropdowns.slice()
+                                next[di] = { ...dd, label: e.target.value }
+                                setD({ ...d, dropdowns: next })
+                            }}
+                            placeholder="Dropdown label (e.g. Resources, Connect, Worship)"
+                            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                        />
+                        <button
+                            onClick={() => setD({ ...d, dropdowns: dropdowns.filter((_, j) => j !== di) })}
+                            className="text-xs font-bold text-red-500 hover:text-red-700">
+                            Delete
+                        </button>
+                    </div>
+                    <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400 mb-2">Items</p>
+                    <LinkRepeater
+                        value={dd.items || []}
+                        onChange={items => {
+                            const next = dropdowns.slice()
+                            next[di] = { ...dd, items }
+                            setD({ ...d, dropdowns: next })
+                        }}
+                        label="Item"
+                    />
+                </div>
+            ))}
+            <AddButton
+                label="Add dropdown"
+                onClick={() => setD({ ...d, dropdowns: [...dropdowns, { label: 'New dropdown', items: [] }] })}
+            />
+
             <Header title="CTA button" sub="Right-side gold button on the navbar." />
             <div className="grid md:grid-cols-2 gap-3">
                 <Field label="Label" value={d.cta_label || ''} onChange={v => setD({ ...d, cta_label: v })} />
