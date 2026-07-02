@@ -4331,6 +4331,10 @@ export const marriagePrepApi = {
         fetchApi<unknown>('/marriage-prep/progress', { method: 'POST', body: JSON.stringify({ couple_id, module_id, reflections, completed }) }),
     coupleProgress: (couple_id: string) =>
         fetchApi<{ id: string; couple_id: string; module_id: string; completed_at: string | null; reflections: string | null }[]>(`/marriage-prep/couples/${couple_id}/progress`),
+    // Public certificate — used by /marriage-prep/complete/{id}. Returns
+    // 404 until the pastor has signed off; couple id (UUID) is the only auth.
+    certificate: (couple_id: string) =>
+        fetchApi<{ id: string; partner_a_name: string; partner_b_name: string; wedding_date: string | null; pastor_signature: string | null; pastor_signed_at: string | null; status: string }>(`/marriage-prep/certificate/${couple_id}`),
     // admin
     createModule: (b: Omit<MarriagePrepModule, 'id'>) =>
         fetchApi<MarriagePrepModule>('/marriage-prep/admin/modules', { method: 'POST', body: JSON.stringify(b) }),

@@ -2,6 +2,7 @@
 /**
  * /admin/marriage-prep — curriculum CRUD + couple sign-off.
  */
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import {
     Loader2, Plus, Save, Trash2, Heart, CheckCircle, AlertCircle, Quote,
@@ -144,7 +145,21 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
                         <p className="text-xs text-gray-500 mt-0.5">{c.partner_a_email}{c.partner_b_email ? ` · ${c.partner_b_email}` : ''}</p>
                         {c.intended_wedding_date && <p className="text-xs text-gray-500">Wedding {new Date(c.intended_wedding_date).toLocaleDateString()}</p>}
                         <p className="text-[10px] uppercase tracking-widest mt-1 font-bold inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{c.status}</p>
-                        {c.pastor_signed_off && c.pastor_signature && <p className="text-xs text-emerald-700 mt-1 inline-flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Signed by {c.pastor_signature}</p>}
+                        {c.pastor_signed_off && c.pastor_signature && (
+                            <p className="text-xs text-emerald-700 mt-1 inline-flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3" /> Signed by {c.pastor_signature}
+                            </p>
+                        )}
+                        {c.pastor_signed_off && (
+                            <p className="text-[10px] text-gray-500 mt-1">
+                                Completion email was sent to the couple with their certificate + next steps.
+                                <Link
+                                    href={`/marriage-prep/complete/${c.id}`}
+                                    target="_blank"
+                                    className="underline text-[#140152] ml-1"
+                                >View their page ↗</Link>
+                            </p>
+                        )}
                     </div>
                     {!c.pastor_signed_off && (
                         <button onClick={() => signOff(c)} className="inline-flex items-center gap-1 bg-[#140152] hover:bg-[#1d0175] text-white text-xs font-bold px-3 py-1.5 rounded-lg">

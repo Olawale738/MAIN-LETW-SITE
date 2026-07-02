@@ -169,7 +169,53 @@ async def pastor_sign_off(
     c.status = "completed"
     await db.commit()
     await db.refresh(c)
+
+    # Notify both partners with a link to their certificate + next steps.
+    # Best-effort — a mail hiccup must not roll back the sign-off itself.
+    try:
+        from services.email_service import send_marriage_prep_completion_email
+        wedding_date = c.intended_wedding_date.strftime("%A, %B %d, %Y") if c.intended_wedding_date else ""
+        for addr in [c.partner_a_email, c.partner_b_email]:
+            if not addr:
+                continue
+            await send_marriage_prep_completion_email(
+                to_email=addr,
+                partner_a_name=c.partner_a_name or "",
+                partner_b_name=c.partner_b_name or "",
+                couple_id=c.id,
+                pastor_signature=c.pastor_signature or "",
+                pastor_note=c.pastor_note or "",
+                wedding_date=wedding_date,
+            )
+    except Exception as e:
+        print(f"[marriage-prep] completion email failed: {type(e).__name__}: {e}", flush=True)
+
     return _couple(c)
+
+
+# ── Public certificate lookup — only the id is used (UUIDs are
+#    unguessable enough for this use). Returns a minimal view: no
+#    email addresses, no pastor's private note. Used by
+#    /marriage-prep/complete/{id} on the frontend so the couple can
+#    view + print their certificate.
+@router.get("/certificate/{couple_id}")
+async def get_certificate(couple_id: str, db: AsyncSession = Depends(get_db)):
+    c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
+    if not c:
+        raise HTTPException(404, "Not found")
+    if not c.pastor_signed_off:
+        # Not signed off yet — don't expose a "certificate" for an
+        # unfinished couple. Frontend can decide what to render.
+        raise HTTPException(404, "Certificate not yet issued")
+    return {
+        "id":                c.id,
+        "partner_a_name":    c.partner_a_name,
+        "partner_b_name":    c.partner_b_name,
+        "wedding_date":      c.intended_wedding_date.isoformat() if c.intended_wedding_date else None,
+        "pastor_signature":  c.pastor_signature,
+        "pastor_signed_at":  c.pastor_signed_at.isoformat() if c.pastor_signed_at else None,
+        "status":            c.status,
+    }
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────

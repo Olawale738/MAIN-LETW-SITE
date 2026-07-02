@@ -460,10 +460,11 @@ function GrowTab({ d, setD }: TabProps) {
 
 function EmailsTab({ d, setD }: TabProps) {
     const slots: { key: string; label: string; tokens: string }[] = [
-        { key: 'welcome',           label: 'Welcome (new member)',  tokens: '{name}' },
-        { key: 'password_reset',    label: 'Password reset',        tokens: '{name}, {reset_link}' },
-        { key: 'prayer_received',   label: 'Prayer received',       tokens: '{name}' },
-        { key: 'decision_followup', label: 'Decision follow-up',    tokens: '{name}' },
+        { key: 'welcome',                    label: 'Welcome (new member)',    tokens: '{name}' },
+        { key: 'password_reset',             label: 'Password reset',          tokens: '{name}, {reset_link}' },
+        { key: 'prayer_received',            label: 'Prayer received',         tokens: '{name}' },
+        { key: 'decision_followup',          label: 'Decision follow-up',      tokens: '{name}' },
+        { key: 'marriage_prep_completion',   label: 'Marriage-prep completion (post sign-off)', tokens: '{couple}, {partner_a}, {partner_b}, {pastor}, {pastor_note}, {wedding_date}, {certificate_link}, {sanctuary_link}, {contact_link}' },
     ]
     return (
         <div className="space-y-6">

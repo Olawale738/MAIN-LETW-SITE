@@ -616,3 +616,83 @@ async def send_decision_followup_email(to_email: str, name: str, decision_kind: 
     )
     html_body = _render_admin_template_body(body, name=name or "Friend")
     return await send_email(to_email, subject, html_body)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Marriage-prep sign-off — congratulates the couple, links to their
+# certificate + next-steps page, and hints at wedding-hall booking and
+# pastor follow-up. Uses admin-managed template if present.
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def send_marriage_prep_completion_email(
+    to_email: str,
+    partner_a_name: str,
+    partner_b_name: str,
+    couple_id: str,
+    pastor_signature: str = "",
+    pastor_note: str = "",
+    wedding_date: str = "",
+) -> bool:
+    """
+    Emails a completed couple with congratulations, a link to their
+    certificate + next-steps page, and pointers to the sanctuary booking,
+    contact-a-pastor form, and referral link. Best-effort — a mail failure
+    never blocks sign-off.
+    """
+    if not to_email:
+        return False
+
+    couple_label = f"{partner_a_name} & {partner_b_name}".strip(" &")
+    complete_url  = f"{settings.FRONTEND_URL}/marriage-prep/complete/{couple_id}"
+    sanctuary_url = f"{settings.FRONTEND_URL}/sanctuary"
+    contact_url   = f"{settings.FRONTEND_URL}/contact"
+
+    admin_tpl = await _get_admin_email_template("marriage_prep_completion")
+    if admin_tpl:
+        subject = (
+            admin_tpl["subject"]
+            .replace("{couple}", couple_label)
+            .replace("{partner_a}", partner_a_name or "")
+            .replace("{partner_b}", partner_b_name or "")
+            .replace("{pastor}", pastor_signature or "")
+        )
+        body = (
+            admin_tpl["body"]
+            .replace("{couple}", couple_label)
+            .replace("{partner_a}", partner_a_name or "")
+            .replace("{partner_b}", partner_b_name or "")
+            .replace("{pastor}", pastor_signature or "")
+            .replace("{pastor_note}", pastor_note or "")
+            .replace("{wedding_date}", wedding_date or "")
+            .replace("{certificate_link}", complete_url)
+            .replace("{sanctuary_link}", sanctuary_url)
+            .replace("{contact_link}", contact_url)
+        )
+        html_body = _render_admin_template_body(body, couple=couple_label)
+        return await send_email(to_email, subject, html_body)
+
+    # Built-in default — used when admin has NOT saved a custom template.
+    subject = f"You did it, {couple_label} — Marriage Prep complete"
+    wed_line = f"Wedding date on file: {wedding_date}\n" if wedding_date else ""
+    note_line = f"\nYour pastor's note:\n\"{pastor_note}\"\n" if pastor_note else ""
+    body = (
+        f"Dear {couple_label},\n\n"
+        f"Congratulations. You have completed all six weeks of Marriage Prep. "
+        f"Your certificate and next steps are ready for you here:\n"
+        f"{complete_url}\n\n"
+        f"{wed_line}"
+        f"{note_line}"
+        f"\nNext steps we recommend:\n\n"
+        f"1. Print or download your Certificate of Completion at the link above.\n"
+        f"2. Book your wedding hall or reserve a rehearsal date at\n"
+        f"   {sanctuary_url}\n"
+        f"3. Schedule a final planning call with your pastor at\n"
+        f"   {contact_url}\n"
+        f"4. Keep the conversation going — the habits you built in these six weeks\n"
+        f"   are muscles that grow when you use them.\n\n"
+        f"With joy,\n"
+        f"{pastor_signature or 'The Pastoral Team'}\n"
+        f"Light Encounter Tabernacle Worldwide\n"
+    )
+    html_body = _render_admin_template_body(body, couple=couple_label)
+    return await send_email(to_email, subject, html_body)
