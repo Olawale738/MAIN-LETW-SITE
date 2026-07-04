@@ -183,6 +183,15 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
                                     <CheckCircle className="w-3 h-3" /> Sign off
                                 </button>
                             )}
+                            <button onClick={() => {
+                                const url = `${window.location.origin}/marriage-prep/journey/${c.id}`
+                                navigator.clipboard.writeText(url)
+                                    .then(() => onMsg({ kind: 'ok', text: 'Portal link copied — send it to the couple so they can read modules + log reflections.' }))
+                                    .catch(() => onMsg({ kind: 'err', text: url }))
+                            }} title="Copy the couple's portal link"
+                                className="inline-flex items-center gap-1 bg-[#f5bb00]/15 hover:bg-[#f5bb00]/30 text-[#8a6d00] text-xs font-bold px-3 py-1.5 rounded-lg">
+                                <Quote className="w-3 h-3" /> Portal link
+                            </button>
                             <button onClick={() => setEditing(c)} title="Edit couple"
                                 className="inline-flex items-center gap-1 border border-gray-200 hover:border-[#140152] text-gray-700 hover:text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg">
                                 <Pencil className="w-3 h-3" /> Edit

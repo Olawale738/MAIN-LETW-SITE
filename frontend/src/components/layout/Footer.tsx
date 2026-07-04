@@ -42,6 +42,7 @@ const DEFAULT_FOOTER: FooterCfg = {
     { name: 'Sermon Podcast (RSS)', href: '/sermons/podcast.xml' },
     { name: 'Sanctuary & Hall Booking', href: '/sanctuary' },
     { name: 'Marriage Prep Course', href: '/marriage-prep' },
+    { name: 'Fasting Calendar', href: '/fasting' },
   ],
   ministries: [
     { name: 'Alter Sound', href: '/services/alter-sound' },

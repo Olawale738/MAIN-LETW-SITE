@@ -177,6 +177,14 @@ app.include_router(translations.router)
 from routers import site_branding
 app.include_router(site_branding.router)
 
+# Fasting calendar (corporate fasts + daily check-ins + prayer prompts)
+from routers import fasting
+app.include_router(fasting.router)
+
+# Volunteer rota (teams + per-Sunday assignments with email notify)
+from routers import volunteer_rota
+app.include_router(volunteer_rota.router)
+
 # Welcome onboarding flow
 from routers import welcome_flow
 app.include_router(welcome_flow.router)

@@ -95,6 +95,24 @@ async def get_couple_progress(couple_id: str, db: AsyncSession = Depends(get_db)
     return [_progress(p) for p in res.scalars().all()]
 
 
+@router.get("/couples/{couple_id}")
+async def get_couple_public(couple_id: str, db: AsyncSession = Depends(get_db)):
+    """Public capability-link lookup for the couple portal. The UUID is
+    unguessable, so knowing it is the access credential — same model as the
+    certificate page. Only non-sensitive fields are returned."""
+    c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
+    if not c:
+        raise HTTPException(404, "Couple not found")
+    return {
+        "id": c.id,
+        "partner_a_name": c.partner_a_name,
+        "partner_b_name": c.partner_b_name,
+        "intended_wedding_date": c.intended_wedding_date,
+        "status": c.status,
+        "pastor_signed_off": c.pastor_signed_off,
+    }
+
+
 # ── Admin: modules CRUD + sign-off ─────────────────────────────────────────
 
 class ModuleIn(BaseModel):

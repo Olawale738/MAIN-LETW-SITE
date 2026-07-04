@@ -51,7 +51,29 @@ async def register(
             status_code=status.HTTP_409_CONFLICT,
             detail=message
         )
-    
+
+    # First-time visitor follow-up: drop a card into the Conversion CRM so a
+    # pastor shepherds every new signup, not just altar-call responders.
+    # Best-effort — a CRM hiccup must never block registration.
+    try:
+        from models.conversion_journey import ConversionJourney
+        from datetime import datetime as _dt
+        location = request.country_name or None
+        j = ConversionJourney(
+            name=request.name,
+            email=request.email,
+            location=location,
+            source="signup",
+            source_ref=(user.id if user else None),
+            stage="welcomed",
+            welcomed_at=_dt.utcnow(),
+            notes="Auto-created from website signup (/join or /onboarding).",
+        )
+        db.add(j)
+        await db.commit()
+    except Exception as e:
+        print(f"[register] conversion-journey card failed: {type(e).__name__}: {e}", flush=True)
+
     return RegisterResponse(
         message=message,
         email=request.email,

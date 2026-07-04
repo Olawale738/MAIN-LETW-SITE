@@ -4331,6 +4331,8 @@ export const marriagePrepApi = {
         fetchApi<unknown>('/marriage-prep/progress', { method: 'POST', body: JSON.stringify({ couple_id, module_id, reflections, completed }) }),
     coupleProgress: (couple_id: string) =>
         fetchApi<{ id: string; couple_id: string; module_id: string; completed_at: string | null; reflections: string | null }[]>(`/marriage-prep/couples/${couple_id}/progress`),
+    getCouple: (couple_id: string) =>
+        fetchApi<{ id: string; partner_a_name: string; partner_b_name: string; intended_wedding_date: string | null; status: string; pastor_signed_off: boolean }>(`/marriage-prep/couples/${couple_id}`),
     // Public certificate — used by /marriage-prep/complete/{id}. Returns
     // 404 until the pastor has signed off; couple id (UUID) is the only auth.
     certificate: (couple_id: string) =>
@@ -4351,6 +4353,67 @@ export const marriagePrepApi = {
         fetchApi<MarriagePrepCouple>(`/marriage-prep/admin/couples/${couple_id}`, { method: 'PUT', body: JSON.stringify(body) }),
     deleteCouple: (couple_id: string) =>
         fetchApi<{ deleted: number }>(`/marriage-prep/admin/couples/${couple_id}`, { method: 'DELETE' }),
+}
+
+// ── Fasting calendar ────────────────────────────────────────────────────────
+export interface Fast {
+    id: string; title: string; description: string | null
+    kind: 'full' | 'daniel' | 'partial' | 'media'
+    start_date: string; end_date: string
+    scripture_focus: string | null
+    prayer_prompts: string[]
+    is_published: boolean
+    total_days: number
+    current_day: number | null
+    status: 'upcoming' | 'active' | 'completed'
+}
+export const fastingApi = {
+    list: () => fetchApi<Fast[]>('/fasting/'),
+    checkin: (b: { fast_id: string; participant_key: string; display_name?: string; note?: string }) =>
+        fetchApi<{ ok: boolean; day_number: number; already: boolean }>('/fasting/checkin', { method: 'POST', body: JSON.stringify(b) }),
+    myCheckins: (fast_id: string, participant_key: string) =>
+        fetchApi<{ days: number[] }>(`/fasting/${fast_id}/my-checkins?participant_key=${encodeURIComponent(participant_key)}`),
+    stats: (fast_id: string) =>
+        fetchApi<{ participants: number; checked_in_today: number }>(`/fasting/${fast_id}/stats`),
+    // admin
+    adminList: () => fetchApi<Fast[]>('/fasting/admin/all'),
+    create: (b: Omit<Fast, 'id' | 'total_days' | 'current_day' | 'status'>) =>
+        fetchApi<Fast>('/fasting/admin', { method: 'POST', body: JSON.stringify(b) }),
+    update: (id: string, b: Omit<Fast, 'id' | 'total_days' | 'current_day' | 'status'>) =>
+        fetchApi<Fast>(`/fasting/admin/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    remove: (id: string) => fetchApi<{ deleted: number }>(`/fasting/admin/${id}`, { method: 'DELETE' }),
+}
+
+// ── Volunteer rota ──────────────────────────────────────────────────────────
+export interface RotaTeam {
+    id: string; name: string; description: string | null
+    is_active: boolean; sort_order: number
+}
+export interface RotaAssignment {
+    id: string; team_id: string; service_date: string
+    member_name: string; member_email: string | null
+    role_note: string | null
+    status: 'assigned' | 'confirmed' | 'declined'
+    created_at: string
+}
+export const rotaApi = {
+    teams: () => fetchApi<RotaTeam[]>('/rota/teams'),
+    createTeam: (b: Omit<RotaTeam, 'id'>) =>
+        fetchApi<RotaTeam>('/rota/teams', { method: 'POST', body: JSON.stringify(b) }),
+    updateTeam: (id: string, b: Omit<RotaTeam, 'id'>) =>
+        fetchApi<RotaTeam>(`/rota/teams/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    deleteTeam: (id: string) => fetchApi<{ deleted: number }>(`/rota/teams/${id}`, { method: 'DELETE' }),
+    assignments: (params?: { from_date?: string; to_date?: string; team_id?: string }) => {
+        const qs = new URLSearchParams()
+        Object.entries(params || {}).forEach(([k, v]) => { if (v) qs.set(k, v) })
+        const s = qs.toString()
+        return fetchApi<RotaAssignment[]>(`/rota/assignments${s ? `?${s}` : ''}`)
+    },
+    assign: (b: { team_id: string; service_date: string; member_name: string; member_email?: string; role_note?: string }) =>
+        fetchApi<RotaAssignment>('/rota/assignments', { method: 'POST', body: JSON.stringify(b) }),
+    updateAssignment: (id: string, b: Partial<Pick<RotaAssignment, 'status' | 'role_note' | 'member_name' | 'member_email' | 'service_date'>>) =>
+        fetchApi<RotaAssignment>(`/rota/assignments/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    deleteAssignment: (id: string) => fetchApi<{ deleted: number }>(`/rota/assignments/${id}`, { method: 'DELETE' }),
 }
 
 // ── Live Attendance (anonymous heartbeat) ───────────────────────────────────

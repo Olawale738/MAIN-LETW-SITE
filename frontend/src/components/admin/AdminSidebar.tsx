@@ -121,6 +121,8 @@ const sidebarItems: SidebarItem[] = [
     { title: 'Sunday Automation (Whisper → notes/email/blog/social)', href: '/admin/sunday-automation', icon: Sparkles },
     { title: 'Sanctuary / Hall Booking', href: '/admin/sanctuary', icon: Calendar },
     { title: 'Marriage Prep (6-week course)', href: '/admin/marriage-prep', icon: Heart },
+    { title: 'Fasting Calendar (corporate fasts)', href: '/admin/fasting', icon: Zap },
+    { title: 'Volunteer Rota (who serves which Sunday)', href: '/admin/volunteer-rota', icon: UserCheck },
     { title: 'Translations (multi-language UI)', href: '/admin/translations', icon: Globe },
     { title: 'Caption Operator', href: '/admin/live-captions', icon: Megaphone },
     { title: 'Moderators', href: '/admin/moderators', icon: ShieldCheck },
