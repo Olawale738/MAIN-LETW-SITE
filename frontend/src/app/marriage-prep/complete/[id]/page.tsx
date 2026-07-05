@@ -37,6 +37,16 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
     const [cert, setCert] = useState<CertificateData | null>(null)
     const [loading, setLoading] = useState(true)
     const [err, setErr] = useState<string | null>(null)
+    // The QR is fetched as raw SVG text and inlined as a data: URI — NOT left
+    // as a live cross-origin <img src>. This is what actually fixes "works
+    // on screen, blank in the saved PDF": a browser's print/PDF export
+    // snapshots the DOM at the moment you click Print. If the QR were still
+    // a pending network request against a cold Render backend, the PDF would
+    // capture whatever was on screen at that instant — often nothing. Once
+    // it's a data: URI already sitting in the DOM, there is no request left
+    // to race; print always sees the finished image.
+    const [qrDataUri, setQrDataUri] = useState<string | null>(null)
+    const [qrFailed, setQrFailed] = useState(false)
 
     useEffect(() => {
         marriagePrepApi.certificate(id)
@@ -44,6 +54,20 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
             .catch((e: Error) => setErr(e.message || 'Not found.'))
             .finally(() => setLoading(false))
     }, [id])
+
+    useEffect(() => {
+        if (!cert) return
+        let cancelled = false
+        fetch(marriagePrepApi.certificateQrUrl(cert.id))
+            .then(r => { if (!r.ok) throw new Error('QR fetch failed'); return r.text() })
+            .then(svgText => {
+                if (cancelled) return
+                const uri = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgText)))}`
+                setQrDataUri(uri)
+            })
+            .catch(() => { if (!cancelled) setQrFailed(true) })
+        return () => { cancelled = true }
+    }, [cert])
 
     // Loading + not-yet-signed-off states are treated as distinct experiences
     // so a couple mid-course doesn't see "error"; they see encouragement.
@@ -150,15 +174,20 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
 
                             {/* QR chip — scan lands on letw.org/verify/cert/… where the
                                   server recomputes the HMAC. Fingerprint below lets a
-                                  human cross-check the scan result against the print. */}
+                                  human cross-check the scan result against the print.
+                                  Rendered from an already-fetched data: URI (see the
+                                  effect above) so Print/Save-as-PDF can never capture
+                                  a half-loaded image. */}
                             <div className="text-center">
-                                <div className="w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-2xl border-2 border-[#f5bb00] bg-white p-1.5 shadow-[0_4px_20px_rgba(245,187,0,0.25)]">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src={marriagePrepApi.certificateQrUrl(cert.id)}
-                                        alt="Scan to verify this certificate"
-                                        className="w-full h-full"
-                                    />
+                                <div className="w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-2xl border-2 border-[#f5bb00] bg-white p-1.5 shadow-[0_4px_20px_rgba(245,187,0,0.25)] flex items-center justify-center">
+                                    {qrDataUri ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={qrDataUri} alt="Scan to verify this certificate" className="w-full h-full" />
+                                    ) : qrFailed ? (
+                                        <AlertCircle className="w-6 h-6 text-gray-300" />
+                                    ) : (
+                                        <Loader2 className="w-6 h-6 text-gray-300 animate-spin" />
+                                    )}
                                 </div>
                                 <p className="text-[8px] uppercase tracking-[0.25em] font-black text-gray-500 mt-2">Scan to verify</p>
                                 <p className="font-mono text-[10px] font-bold text-[#140152] mt-0.5">{cert.fingerprint}</p>
@@ -181,10 +210,17 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
                 </div>
 
                 <div className="text-center mt-6 flex flex-wrap items-center justify-center gap-3 print:hidden">
-                    <button onClick={() => window.print()} className="inline-flex items-center gap-2 bg-[#140152] text-white font-bold px-6 py-3 rounded-full text-sm hover:bg-[#1d0175]">
-                        <Printer className="w-4 h-4" /> Print / Save as PDF
+                    <button
+                        onClick={() => window.print()}
+                        disabled={!qrDataUri && !qrFailed}
+                        title={!qrDataUri && !qrFailed ? 'Preparing your QR code — one moment…' : undefined}
+                        className="inline-flex items-center gap-2 bg-[#140152] text-white font-bold px-6 py-3 rounded-full text-sm hover:bg-[#1d0175] disabled:opacity-50 disabled:cursor-wait"
+                    >
+                        {!qrDataUri && !qrFailed
+                            ? <><Loader2 className="w-4 h-4 animate-spin" /> Preparing certificate…</>
+                            : <><Printer className="w-4 h-4" /> Print / Save as PDF</>}
                     </button>
-                    <p className="text-xs text-gray-500">Ctrl / ⌘ + P works too.</p>
+                    <p className="text-xs text-gray-500">Ctrl / ⌘ + P works too — wait for the QR to finish loading first.</p>
                 </div>
             </section>
 

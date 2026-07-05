@@ -301,11 +301,42 @@ async def get_certificate(couple_id: str, db: AsyncSession = Depends(get_db)):
     }
 
 
+def _qr_to_svg(matrix: list[list[bool]], box_size: int = 8, border: int = 2) -> str:
+    """
+    Hand-rolled QR → SVG renderer using plain pixel units and an explicit
+    viewBox. We deliberately do NOT use qrcode.image.svg.SvgPathImage: its
+    default output uses physical units (e.g. width="29mm") with no viewBox,
+    which browsers happily rescale on screen but which print/PDF rasterizers
+    (Chrome "Save as PDF", etc.) handle inconsistently — sometimes shrinking
+    to nothing, sometimes not rendering at all. A deterministic px-based SVG
+    with an opaque white background renders identically everywhere: on
+    screen, in print preview, and baked into a PDF.
+    """
+    n = len(matrix)
+    size = (n + border * 2) * box_size
+    rects = []
+    for r, row in enumerate(matrix):
+        for c, dark in enumerate(row):
+            if not dark:
+                continue
+            x = (c + border) * box_size
+            y = (r + border) * box_size
+            rects.append(f'<rect x="{x}" y="{y}" width="{box_size}" height="{box_size}" fill="#000"/>')
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" '
+        f'viewBox="0 0 {size} {size}" shape-rendering="crispEdges">'
+        f'<rect x="0" y="0" width="{size}" height="{size}" fill="#fff"/>'
+        + "".join(rects) +
+        "</svg>"
+    )
+
+
 @router.get("/certificate/{couple_id}/qr.svg")
 async def certificate_qr(couple_id: str, db: AsyncSession = Depends(get_db)):
     """QR chip for the printed certificate. Encodes the verify URL so any
-    phone camera lands on letw.org's verification page. SVG output (no PIL
-    needed) scales crisply in print."""
+    phone camera lands on letw.org's verification page. Deterministic
+    pixel-based SVG (see _qr_to_svg) so it renders identically in the
+    browser, in print preview, and in a saved PDF."""
     from fastapi.responses import Response
     c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
     if not c or not c.pastor_signed_off:
@@ -313,19 +344,18 @@ async def certificate_qr(couple_id: str, db: AsyncSession = Depends(get_db)):
     from config import settings
     verify_url = f"{settings.FRONTEND_URL}/verify/cert/{c.id}?sig={_cert_signature(c)}"
     try:
-        import io
         import qrcode
-        import qrcode.image.svg
-        qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, border=1)
+        qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, border=0)
         qr.add_data(verify_url)
         qr.make(fit=True)
-        img = qr.make_image(image_factory=qrcode.image.svg.SvgPathImage)
-        buf = io.BytesIO()
-        img.save(buf)
+        svg = _qr_to_svg(qr.get_matrix(), box_size=8, border=2)
         return Response(
-            content=buf.getvalue(),
+            content=svg,
             media_type="image/svg+xml",
-            headers={"Cache-Control": "public, max-age=86400"},
+            headers={
+                "Cache-Control": "public, max-age=86400",
+                "Access-Control-Allow-Origin": "*",
+            },
         )
     except ImportError:
         raise HTTPException(503, "QR generator not installed on the server yet — redeploy with the updated requirements.txt.")
