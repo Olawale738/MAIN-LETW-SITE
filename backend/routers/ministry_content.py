@@ -42,6 +42,7 @@ ALLOWED_KEYS = {
     "marriage-prep-page",  # /marriage-prep hero + curriculum heading + enrol CTA
     "download-page",    # /download hero + CTA labels
     "life-events-page", # /life-events hero + form labels
+    "fasting-page",     # /fasting hero eyebrow + title + subtitle
 }
 
 

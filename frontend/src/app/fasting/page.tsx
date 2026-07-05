@@ -11,7 +11,13 @@ import { useEffect, useState } from 'react'
 import {
     Loader2, Flame, CheckCircle, Users, CalendarDays, Sparkles, Quote, Send,
 } from 'lucide-react'
-import { fastingApi, type Fast } from '@/lib/api'
+import { fastingApi, ministryContentApi, type Fast } from '@/lib/api'
+
+const DEFAULT_COPY = {
+    eyebrow: 'Corporate fasting',
+    title:   'Hunger for more of God.',
+    subtitle: 'Join the whole church in seasons of consecration — daily prayer prompts, a shared rhythm, and the strength of fasting together.',
+}
 
 const KEY_STORAGE = 'letw-fast-participant-key'
 
@@ -35,12 +41,16 @@ const KIND_LABEL: Record<string, string> = {
 export default function FastingPage() {
     const [fasts, setFasts] = useState<Fast[]>([])
     const [loading, setLoading] = useState(true)
+    const [copy, setCopy] = useState(DEFAULT_COPY)
 
     useEffect(() => {
         fastingApi.list()
             .then(setFasts)
             .catch(() => { /* empty-state renders */ })
             .finally(() => setLoading(false))
+        ministryContentApi.get('fasting-page')
+            .then(r => setCopy({ ...DEFAULT_COPY, ...(r.content || {}) }))
+            .catch(() => { /* keep defaults */ })
     }, [])
 
     const active = fasts.filter(f => f.status === 'active')
@@ -54,13 +64,13 @@ export default function FastingPage() {
                 <div className="absolute -top-32 left-1/4 w-[420px] h-[420px] rounded-full bg-[#f5bb00]/15 blur-[110px] pointer-events-none" />
                 <div className="absolute -bottom-40 right-0 w-[480px] h-[480px] rounded-full bg-purple-500/15 blur-[130px] pointer-events-none" />
                 <p className="inline-flex items-center gap-2 text-[#f5bb00] font-bold tracking-[0.4em] text-xs uppercase mb-4">
-                    <Flame className="w-3.5 h-3.5" /> Corporate fasting
+                    <Flame className="w-3.5 h-3.5" /> {copy.eyebrow}
                 </p>
                 <h1 className="font-serif text-4xl md:text-6xl font-black leading-[1.05] tracking-tight">
-                    Hunger for more of God.
+                    {copy.title}
                 </h1>
                 <p className="text-white/70 mt-5 max-w-xl mx-auto leading-relaxed">
-                    Join the whole church in seasons of consecration — daily prayer prompts, a shared rhythm, and the strength of fasting <em>together</em>.
+                    {copy.subtitle}
                 </p>
             </section>
 

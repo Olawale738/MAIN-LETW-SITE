@@ -1,9 +1,9 @@
 'use client'
 /**
  * /admin/page-copy — one place to edit the hero + top-level copy on the
- * five public pages that are backed by data models (apps, sanctuary,
- * marriage-prep, download, life-events). Each tab writes to its own
- * ministry-content key; each public page reads it with field-level
+ * six public pages that are backed by data models (apps, sanctuary,
+ * marriage-prep, download, life-events, fasting). Each tab writes to its
+ * own ministry-content key; each public page reads it with field-level
  * fallbacks so a half-saved record can never blank the site.
  *
  * This complements — it does not replace — the specialised editors:
@@ -12,12 +12,13 @@
  *   /admin/marriage-prep               (curriculum + couples)
  *   /admin/downloads                    (files)
  *   /admin/life-events                  (requests)
+ *   /admin/fasting                      (fasts + prayer prompts)
  */
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
     Loader2, Save, RotateCcw, AlertCircle, CheckCircle, ExternalLink,
-    LayoutGrid, MapPin, Heart, Download, CalendarHeart, Sparkles,
+    LayoutGrid, MapPin, Heart, Download, CalendarHeart, Sparkles, Flame,
 } from 'lucide-react'
 import { ministryContentApi, type MinistryContentKey } from '@/lib/api'
 
@@ -69,6 +70,13 @@ const DEFAULTS: Record<MinistryContentKey, PageCopy> = {
         cta_label: '',
         cta_href:  '',
     },
+    'fasting-page': {
+        eyebrow: 'Corporate fasting',
+        title:   'Hunger for more of God.',
+        subtitle: 'Join the whole church in seasons of consecration — daily prayer prompts, a shared rhythm, and the strength of fasting together.',
+        cta_label: '',
+        cta_href:  '',
+    },
     // The union type requires all keys — the below are unused by this
     // editor. Keeping them as no-op defaults so TypeScript is happy.
     'women': BLANK(),           'men': BLANK(),                 'theology': BLANK(),
@@ -90,6 +98,7 @@ const TABS: { key: MinistryContentKey; label: string; icon: any; public_path: st
     { key: 'marriage-prep-page', label: '/marriage-prep', icon: Heart,        public_path: '/marriage-prep' },
     { key: 'download-page',      label: '/download',      icon: Download,     public_path: '/download' },
     { key: 'life-events-page',   label: '/life-events',   icon: CalendarHeart, public_path: '/life-events' },
+    { key: 'fasting-page',       label: '/fasting',       icon: Flame,        public_path: '/fasting' },
 ]
 
 export default function PageCopyAdmin() {
@@ -184,6 +193,7 @@ export default function PageCopyAdmin() {
                     {tab === 'marriage-prep-page' && <Link href="/admin/marriage-prep" className="text-amber-900 hover:underline">Curriculum + couples →</Link>}
                     {tab === 'download-page' && <Link href="/admin/downloads" className="text-amber-900 hover:underline">Files →</Link>}
                     {tab === 'life-events-page' && <Link href="/admin/life-events" className="text-amber-900 hover:underline">Requests →</Link>}
+                    {tab === 'fasting-page' && <Link href="/admin/fasting" className="text-amber-900 hover:underline">Fasts + prompts →</Link>}
                     {tab === 'apps-page' && <Link href="/admin/site-content" className="text-amber-900 hover:underline">Apps grid →</Link>}
                 </div>
             </div>
