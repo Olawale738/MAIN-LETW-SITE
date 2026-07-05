@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from 'react'
 import {
-    Loader2, Heart, ArrowRight, CheckCircle, Sparkles, Send, AlertCircle, BookOpen, Calendar,
+    Loader2, Heart, ArrowRight, CheckCircle, Sparkles, Send, AlertCircle, BookOpen, Calendar, ChevronDown,
 } from 'lucide-react'
 import { marriagePrepApi, ministryContentApi, type MarriagePrepModule } from '@/lib/api'
 
@@ -29,6 +29,8 @@ export default function MarriagePrepPage() {
     const [coupleId, setCoupleId] = useState<string | null>(null)
     const [err, setErr] = useState<string | null>(null)
     const [copy, setCopy] = useState(DEFAULT_COPY)
+    // Which curriculum week card is expanded (null = all collapsed).
+    const [openWeek, setOpenWeek] = useState<string | null>(null)
 
     const [partnerA, setPartnerA] = useState('')
     const [emailA, setEmailA] = useState('')
@@ -105,20 +107,53 @@ export default function MarriagePrepPage() {
                         <p>Curriculum is being prepared. You can still enrol below and we&apos;ll start with you as soon as it&apos;s ready.</p>
                     </div>
                 ) : (
+                    // Expandable disclosure cards — click a week to read the full
+                    // teaching + homework right here. Same content the couple
+                    // portal shows; only reflections/completion live in the portal.
                     <ol className="space-y-3">
-                        {published.map(m => (
-                            <li key={m.id} className="bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-5 flex items-start gap-4">
-                                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#f5bb00] to-amber-400 text-[#140152] font-black flex flex-col items-center justify-center shrink-0">
-                                    <span className="text-[8px] uppercase tracking-widest opacity-70">Week</span>
-                                    <span className="text-xl leading-none">{m.week_number}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <h3 className="font-black text-[#140152]">{m.title}</h3>
-                                    {m.scripture && <p className="text-xs italic text-gray-500 mt-0.5">{m.scripture}</p>}
-                                    {m.summary && <p className="text-sm text-gray-700 mt-2 leading-relaxed">{m.summary}</p>}
-                                </div>
-                            </li>
-                        ))}
+                        {published.map(m => {
+                            const open = openWeek === m.id
+                            return (
+                                <li key={m.id} className="bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                                    <button
+                                        onClick={() => setOpenWeek(open ? null : m.id)}
+                                        aria-expanded={open}
+                                        className="w-full p-5 flex items-start gap-4 text-left"
+                                    >
+                                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#f5bb00] to-amber-400 text-[#140152] font-black flex flex-col items-center justify-center shrink-0">
+                                            <span className="text-[8px] uppercase tracking-widest opacity-70">Week</span>
+                                            <span className="text-xl leading-none">{m.week_number}</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-black text-[#140152]">{m.title}</h3>
+                                            {m.scripture && <p className="text-xs italic text-gray-500 mt-0.5">{m.scripture}</p>}
+                                            {m.summary && <p className="text-sm text-gray-700 mt-2 leading-relaxed">{m.summary}</p>}
+                                        </div>
+                                        <ChevronDown className={`w-5 h-5 text-gray-400 shrink-0 mt-1 transition-transform ${open ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    {open && (
+                                        <div className="px-5 pb-6 border-t border-gray-50">
+                                            {m.body_html ? (
+                                                <div className="prose prose-sm max-w-none mt-4 text-gray-800"
+                                                    dangerouslySetInnerHTML={{ __html: m.body_html }} />
+                                            ) : !m.homework ? (
+                                                <p className="text-sm text-gray-400 italic mt-4">Full teaching notes for this week are shared in your course portal.</p>
+                                            ) : null}
+                                            {m.homework && (
+                                                <div className="mt-4 bg-[#fbf5e6] border border-[#f5bb00]/30 rounded-2xl p-4">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#b8860b] mb-1.5">This week&apos;s homework</p>
+                                                    <p className="text-sm text-gray-800 whitespace-pre-wrap">{m.homework}</p>
+                                                </div>
+                                            )}
+                                            <p className="mt-4 text-xs text-gray-500">
+                                                Enrolled? Write your shared reflections and mark this week complete in your <strong>course portal</strong> — the link is in your enrolment email.
+                                            </p>
+                                        </div>
+                                    )}
+                                </li>
+                            )
+                        })}
                     </ol>
                 )}
             </section>
