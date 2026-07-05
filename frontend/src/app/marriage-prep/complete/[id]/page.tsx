@@ -25,6 +25,9 @@ interface CertificateData {
     pastor_signature: string | null
     pastor_signed_at: string | null
     status: string
+    signature: string
+    fingerprint: string
+    verify_url: string
 }
 
 export default function MarriagePrepCompletePage({ params }: { params: Promise<{ id: string }> }) {
@@ -108,9 +111,10 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
                 </div>
             </section>
 
-            {/* Certificate — printable card */}
+            {/* Certificate — printable card. id=cert-print-area is targeted by
+                  the print stylesheet below so ONLY this card prints. */}
             <section className="max-w-3xl mx-auto px-4 pb-12">
-                <div className="relative bg-white border-4 border-[#140152] rounded-3xl p-8 sm:p-12 shadow-xl overflow-hidden print:shadow-none print:border-2">
+                <div id="cert-print-area" className="relative bg-white border-4 border-[#140152] rounded-3xl p-8 sm:p-12 shadow-xl overflow-hidden print:shadow-none print:border-2">
                     {/* Corner ornaments */}
                     <div className="absolute top-0 left-0 w-24 h-24 border-t-4 border-l-4 border-[#f5bb00] rounded-tl-3xl" />
                     <div className="absolute top-0 right-0 w-24 h-24 border-t-4 border-r-4 border-[#f5bb00] rounded-tr-3xl" />
@@ -137,18 +141,42 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
                             </p>
                         )}
 
-                        <div className="mt-10 pt-6 border-t border-gray-200 grid grid-cols-2 gap-8 max-w-lg mx-auto text-left">
+                        <div className="mt-10 pt-6 border-t border-gray-200 grid grid-cols-[1fr_auto_1fr] items-start gap-4 sm:gap-8 max-w-xl mx-auto text-left">
                             <div>
                                 <p className="text-[9px] uppercase tracking-widest font-bold text-gray-400">Signed by</p>
                                 <p className="font-serif italic text-lg text-[#140152] mt-1">{cert.pastor_signature || '—'}</p>
                                 <p className="text-[10px] text-gray-500 mt-1">Pastor</p>
                             </div>
-                            <div>
+
+                            {/* QR chip — scan lands on letw.org/verify/cert/… where the
+                                  server recomputes the HMAC. Fingerprint below lets a
+                                  human cross-check the scan result against the print. */}
+                            <div className="text-center">
+                                <div className="w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-2xl border-2 border-[#f5bb00] bg-white p-1.5 shadow-[0_4px_20px_rgba(245,187,0,0.25)]">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={marriagePrepApi.certificateQrUrl(cert.id)}
+                                        alt="Scan to verify this certificate"
+                                        className="w-full h-full"
+                                    />
+                                </div>
+                                <p className="text-[8px] uppercase tracking-[0.25em] font-black text-gray-500 mt-2">Scan to verify</p>
+                                <p className="font-mono text-[10px] font-bold text-[#140152] mt-0.5">{cert.fingerprint}</p>
+                            </div>
+
+                            <div className="text-right sm:text-left">
                                 <p className="text-[9px] uppercase tracking-widest font-bold text-gray-400">Date signed</p>
                                 <p className="text-lg text-[#140152] mt-1">{signedAt || '—'}</p>
                                 <p className="text-[10px] text-gray-500 mt-1">Light Encounter Tabernacle Worldwide</p>
                             </div>
                         </div>
+
+                        <p className="mt-6 text-[9px] text-gray-400 tracking-wide inline-flex items-center gap-1.5 justify-center w-full">
+                            <ShieldCheck className="w-3 h-3 text-[#f5bb00]" />
+                            Cryptographically signed &amp; verifiable at <strong className="text-gray-600">letw.org</strong>
+                            <span className="text-gray-300">·</span>
+                            <span className="font-mono">{cert.fingerprint}</span>
+                        </p>
                     </div>
                 </div>
 
@@ -204,13 +232,27 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
                 </div>
             </section>
 
-            {/* Print styles — strip the page chrome so only the certificate prints. */}
+            {/* Print styles — hide EVERYTHING except the certificate card, then
+                  pin the card to the top of the sheet. The visibility trick (vs
+                  display:none) keeps the card's layout box intact so its own
+                  absolute-positioned corner ornaments still render. */}
             <style jsx global>{`
                 @media print {
                     body { background: white !important; }
-                    header, footer, nav { display: none !important; }
-                    section { padding: 0 !important; }
-                    .print\\:hidden { display: none !important; }
+                    body * { visibility: hidden !important; }
+                    #cert-print-area, #cert-print-area * { visibility: visible !important; }
+                    #cert-print-area {
+                        position: absolute !important;
+                        left: 50% !important;
+                        top: 0 !important;
+                        transform: translateX(-50%) !important;
+                        width: 180mm !important;
+                        margin: 10mm 0 !important;
+                        box-shadow: none !important;
+                        border-width: 2px !important;
+                        page-break-inside: avoid !important;
+                    }
+                    @page { size: A4 portrait; margin: 10mm; }
                 }
             `}</style>
         </main>

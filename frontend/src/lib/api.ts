@@ -4336,7 +4336,13 @@ export const marriagePrepApi = {
     // Public certificate — used by /marriage-prep/complete/{id}. Returns
     // 404 until the pastor has signed off; couple id (UUID) is the only auth.
     certificate: (couple_id: string) =>
-        fetchApi<{ id: string; partner_a_name: string; partner_b_name: string; wedding_date: string | null; pastor_signature: string | null; pastor_signed_at: string | null; status: string }>(`/marriage-prep/certificate/${couple_id}`),
+        fetchApi<{ id: string; partner_a_name: string; partner_b_name: string; wedding_date: string | null; pastor_signature: string | null; pastor_signed_at: string | null; status: string; signature: string; fingerprint: string; verify_url: string }>(`/marriage-prep/certificate/${couple_id}`),
+    // QR chip image for the printed certificate (SVG scales crisply in print).
+    certificateQrUrl: (couple_id: string) => `${API_BASE_URL}/marriage-prep/certificate/${couple_id}/qr.svg`,
+    // Public verification — what the QR code lands on. Constant-time HMAC
+    // check server-side; forged/altered certs come back valid=false.
+    verifyCert: (couple_id: string, sig: string) =>
+        fetchApi<{ valid: boolean; reason?: string; partner_a_name?: string; partner_b_name?: string; pastor_signature?: string | null; pastor_signed_at?: string | null; wedding_date?: string | null; fingerprint?: string; issuer?: string }>(`/marriage-prep/verify/${couple_id}?sig=${encodeURIComponent(sig)}`),
     // admin
     createModule: (b: Omit<MarriagePrepModule, 'id'>) =>
         fetchApi<MarriagePrepModule>('/marriage-prep/admin/modules', { method: 'POST', body: JSON.stringify(b) }),

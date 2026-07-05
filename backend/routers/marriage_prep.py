@@ -256,6 +256,24 @@ async def pastor_sign_off(
 #    email addresses, no pastor's private note. Used by
 #    /marriage-prep/complete/{id} on the frontend so the couple can
 #    view + print their certificate.
+def _cert_signature(c: MarriagePrepCouple) -> str:
+    """HMAC-SHA256 over the certificate's immutable facts, keyed with the
+    server secret. Anyone can RE-VERIFY via /verify (server recomputes);
+    nobody can FORGE without the key. Payload pins id + names + sign-off
+    timestamp so editing any of them invalidates old QR codes."""
+    import hmac as _hmac, hashlib as _hashlib
+    from config import settings as _settings
+    signed_at = c.pastor_signed_at.isoformat() if c.pastor_signed_at else ""
+    payload = f"letw-marriage-cert|{c.id}|{c.partner_a_name}|{c.partner_b_name}|{signed_at}"
+    return _hmac.new(_settings.JWT_SECRET.encode(), payload.encode(), _hashlib.sha256).hexdigest()
+
+
+def _fingerprint(sig: str) -> str:
+    """Human-checkable short form printed on the certificate: 3F2A-9B41-C8D0."""
+    s = sig[:12].upper()
+    return f"{s[0:4]}-{s[4:8]}-{s[8:12]}"
+
+
 @router.get("/certificate/{couple_id}")
 async def get_certificate(couple_id: str, db: AsyncSession = Depends(get_db)):
     c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
@@ -265,6 +283,8 @@ async def get_certificate(couple_id: str, db: AsyncSession = Depends(get_db)):
         # Not signed off yet — don't expose a "certificate" for an
         # unfinished couple. Frontend can decide what to render.
         raise HTTPException(404, "Certificate not yet issued")
+    from config import settings
+    sig = _cert_signature(c)
     return {
         "id":                c.id,
         "partner_a_name":    c.partner_a_name,
@@ -273,6 +293,65 @@ async def get_certificate(couple_id: str, db: AsyncSession = Depends(get_db)):
         "pastor_signature":  c.pastor_signature,
         "pastor_signed_at":  c.pastor_signed_at.isoformat() if c.pastor_signed_at else None,
         "status":            c.status,
+        # Cryptographic identity — QR encodes verify_url; fingerprint is the
+        # short human-checkable form printed under the chip.
+        "signature":         sig,
+        "fingerprint":       _fingerprint(sig),
+        "verify_url":        f"{settings.FRONTEND_URL}/verify/cert/{c.id}?sig={sig}",
+    }
+
+
+@router.get("/certificate/{couple_id}/qr.svg")
+async def certificate_qr(couple_id: str, db: AsyncSession = Depends(get_db)):
+    """QR chip for the printed certificate. Encodes the verify URL so any
+    phone camera lands on letw.org's verification page. SVG output (no PIL
+    needed) scales crisply in print."""
+    from fastapi.responses import Response
+    c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
+    if not c or not c.pastor_signed_off:
+        raise HTTPException(404, "Certificate not yet issued")
+    from config import settings
+    verify_url = f"{settings.FRONTEND_URL}/verify/cert/{c.id}?sig={_cert_signature(c)}"
+    try:
+        import io
+        import qrcode
+        import qrcode.image.svg
+        qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, border=1)
+        qr.add_data(verify_url)
+        qr.make(fit=True)
+        img = qr.make_image(image_factory=qrcode.image.svg.SvgPathImage)
+        buf = io.BytesIO()
+        img.save(buf)
+        return Response(
+            content=buf.getvalue(),
+            media_type="image/svg+xml",
+            headers={"Cache-Control": "public, max-age=86400"},
+        )
+    except ImportError:
+        raise HTTPException(503, "QR generator not installed on the server yet — redeploy with the updated requirements.txt.")
+
+
+@router.get("/verify/{couple_id}")
+async def verify_certificate(couple_id: str, sig: str = "", db: AsyncSession = Depends(get_db)):
+    """Public verification endpoint the QR code lands on (via the frontend
+    /verify/cert page). Recomputes the HMAC server-side and compares in
+    constant time — a forged or tampered signature comes back valid=false."""
+    import hmac as _hmac
+    c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
+    if not c or not c.pastor_signed_off:
+        return {"valid": False, "reason": "No issued certificate matches this code."}
+    expected = _cert_signature(c)
+    if not sig or not _hmac.compare_digest(expected, sig):
+        return {"valid": False, "reason": "Signature does not match — this certificate may have been altered or forged."}
+    return {
+        "valid": True,
+        "partner_a_name":   c.partner_a_name,
+        "partner_b_name":   c.partner_b_name,
+        "pastor_signature": c.pastor_signature,
+        "pastor_signed_at": c.pastor_signed_at.isoformat() if c.pastor_signed_at else None,
+        "wedding_date":     c.intended_wedding_date.isoformat() if c.intended_wedding_date else None,
+        "fingerprint":      _fingerprint(expected),
+        "issuer":           "letw.org",
     }
 
 

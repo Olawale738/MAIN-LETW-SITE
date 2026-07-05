@@ -51,3 +51,6 @@ slowapi==0.1.9
 # depend on system ffmpeg being apt-installed on Render.
 yt-dlp>=2025.1.15
 imageio-ffmpeg>=0.5.1
+# QR chips on marriage-prep certificates. Pure-Python; the SVG image factory
+# needs no PIL, so this adds no native build steps on Render.
+qrcode>=7.4
