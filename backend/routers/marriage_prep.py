@@ -305,6 +305,24 @@ def _fingerprint(sig: str) -> str:
     return f"{s[0:4]}-{s[4:8]}-{s[8:12]}"
 
 
+def _short_sig(sig: str) -> str:
+    """First 16 hex chars (64 bits) of the HMAC — used in the QR URL.
+
+    Why truncate: the full 64-hex sig pushes the URL to ~114 chars, which
+    forces a 45×45-module QR. Printed inside the ~22mm chip that meant
+    0.49mm modules — right at the failure threshold of phone cameras
+    (diagnosed by machine-decoding a real certificate PDF: the data was
+    perfect, phones just couldn't resolve the print). Truncating to 64 bits
+    drops the QR to 33×33 modules → ~0.7mm modules at the same size.
+
+    64 bits stays safe here because verification is exclusively server-side:
+    a forger can't test candidates offline (no oracle without the key) and
+    online guessing 2^63 sigs against letw.org isn't a real attack. The
+    full signature is still returned in the certificate payload for anyone
+    who wants maximum-strength manual verification."""
+    return sig[:16]
+
+
 @router.get("/certificate/{couple_id}")
 async def get_certificate(couple_id: str, db: AsyncSession = Depends(get_db)):
     c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
@@ -327,7 +345,7 @@ async def get_certificate(couple_id: str, db: AsyncSession = Depends(get_db)):
         # short human-checkable form printed under the chip.
         "signature":         sig,
         "fingerprint":       _fingerprint(sig),
-        "verify_url":        f"{_public_base()}/verify/cert/{c.id}?sig={sig}",
+        "verify_url":        f"{_public_base()}/verify/cert/{c.id}?sig={_short_sig(sig)}",
     }
 
 
@@ -371,7 +389,9 @@ async def certificate_qr(couple_id: str, db: AsyncSession = Depends(get_db)):
     c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
     if not c or not c.pastor_signed_off:
         raise HTTPException(404, "Certificate not yet issued")
-    verify_url = f"{_public_base()}/verify/cert/{c.id}?sig={_cert_signature(c)}"
+    # Short sig keeps the QR at ~33×33 modules so the printed chip stays
+    # comfortably scannable by phone cameras (see _short_sig for the maths).
+    verify_url = f"{_public_base()}/verify/cert/{c.id}?sig={_short_sig(_cert_signature(c))}"
     try:
         import qrcode
         qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, border=0)
@@ -400,7 +420,17 @@ async def verify_certificate(couple_id: str, sig: str = "", db: AsyncSession = D
     if not c or not c.pastor_signed_off:
         return {"valid": False, "reason": "No issued certificate matches this code."}
     expected = _cert_signature(c)
-    if not sig or not _hmac.compare_digest(expected, sig):
+    # Accept the full 64-hex signature (older printed PDFs, manual checks)
+    # OR a truncated prefix of at least 16 hex chars (what new QR codes
+    # carry). Both paths use constant-time comparison; anything shorter
+    # than 16 is rejected outright so there's no weak-prefix loophole.
+    sig = (sig or "").strip().lower()
+    ok = False
+    if len(sig) == len(expected):
+        ok = _hmac.compare_digest(expected, sig)
+    elif 16 <= len(sig) < len(expected):
+        ok = _hmac.compare_digest(expected[:len(sig)], sig)
+    if not ok:
         return {"valid": False, "reason": "Signature does not match — this certificate may have been altered or forged."}
     return {
         "valid": True,

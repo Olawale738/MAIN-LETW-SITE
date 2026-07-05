@@ -179,7 +179,7 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
                                   effect above) so Print/Save-as-PDF can never capture
                                   a half-loaded image. */}
                             <div className="text-center">
-                                <div className="w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-2xl border-2 border-[#f5bb00] bg-white p-1.5 shadow-[0_4px_20px_rgba(245,187,0,0.25)] flex items-center justify-center">
+                                <div className="qr-chip w-28 h-28 sm:w-32 sm:h-32 mx-auto rounded-2xl border-2 border-[#f5bb00] bg-white p-1.5 shadow-[0_4px_20px_rgba(245,187,0,0.25)] flex items-center justify-center">
                                     {qrDataUri ? (
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img src={qrDataUri} alt="Scan to verify this certificate" className="w-full h-full" />
@@ -287,6 +287,14 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
                         box-shadow: none !important;
                         border-width: 2px !important;
                         page-break-inside: avoid !important;
+                    }
+                    /* QR chip pinned to a physical 32mm on paper. With the
+                       short-sig QR (33×33 modules + quiet zone) that's ~0.8mm
+                       per module — comfortably above the ~0.5mm floor where
+                       phone cameras start failing to lock on. */
+                    .qr-chip {
+                        width: 32mm !important;
+                        height: 32mm !important;
                     }
                     @page { size: A4 portrait; margin: 10mm; }
                 }
