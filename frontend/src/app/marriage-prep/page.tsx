@@ -26,6 +26,7 @@ export default function MarriagePrepPage() {
     const [loading, setLoading] = useState(true)
     const [enrolling, setEnrolling] = useState(false)
     const [done, setDone] = useState(false)
+    const [coupleId, setCoupleId] = useState<string | null>(null)
     const [err, setErr] = useState<string | null>(null)
     const [copy, setCopy] = useState(DEFAULT_COPY)
 
@@ -50,11 +51,14 @@ export default function MarriagePrepPage() {
         if (!partnerA || !emailA || !partnerB) return
         setEnrolling(true); setErr(null)
         try {
-            await marriagePrepApi.enrol({
+            const c = await marriagePrepApi.enrol({
                 partner_a_name: partnerA, partner_a_email: emailA,
                 partner_b_name: partnerB, partner_b_email: emailB || null,
                 intended_wedding_date: weddingDate || null,
             })
+            // The couple's UUID link IS their course access — hand it over
+            // immediately (and the backend also emails it to them).
+            setCoupleId(c.id)
             setDone(true)
             window.scrollTo({ top: 0, behavior: 'smooth' })
         } catch (e) {
@@ -125,13 +129,26 @@ export default function MarriagePrepPage() {
                     {done ? (
                         <div className="text-center py-6">
                             <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-3" />
-                            <h3 className="text-2xl font-black text-[#140152]">Enrolled.</h3>
+                            <h3 className="text-2xl font-black text-[#140152]">Enrolled — your course is ready.</h3>
                             <p className="text-gray-600 mt-3 max-w-md mx-auto">
-                                Your pastor will reach out with the week one materials. Set aside 90 minutes together each week — phones away, hearts open.
+                                Week one is waiting in your private course portal. We&apos;ve also emailed you the
+                                link so you can always find your way back. Set aside 90 minutes together each
+                                week — phones away, hearts open.
                             </p>
-                            <a href="/" className="inline-flex items-center gap-2 mt-6 bg-[#140152] text-white font-bold px-6 py-3 rounded-full text-sm">
-                                Back to home
-                            </a>
+                            {coupleId && (
+                                <a href={`/marriage-prep/journey/${coupleId}`}
+                                    className="inline-flex items-center gap-2 mt-6 bg-[#140152] hover:bg-[#1d0175] text-white font-black px-7 py-3.5 rounded-full text-sm">
+                                    Start week one <ArrowRight className="w-4 h-4" />
+                                </a>
+                            )}
+                            <div className="mt-5 bg-gray-50 border border-gray-100 rounded-2xl p-4 text-left max-w-md mx-auto">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#f5bb00] mb-2">The road ahead</p>
+                                <ol className="text-xs text-gray-700 space-y-1.5 list-decimal ml-4">
+                                    <li>Work through the six weeks in your portal — reflections + mark each week complete.</li>
+                                    <li>After week six, your pastor reviews the journey and <strong>signs off</strong>.</li>
+                                    <li>The moment they do, your <strong>Certificate of Completion</strong> appears in the portal — printable and QR-verified at letw.org.</li>
+                                </ol>
+                            </div>
                         </div>
                     ) : (
                         <form onSubmit={submit} className="space-y-4">

@@ -41,13 +41,44 @@ class CoupleIn(BaseModel):
     intended_wedding_date: Optional[datetime] = None
 
 
+def _public_base() -> str:
+    """Public site origin for links baked into emails and QR codes. Guards
+    against a misconfigured FRONTEND_URL (config default is localhost:3000):
+    a printed certificate whose QR encodes localhost is unscannable from any
+    phone, so anything that leaves the building falls back to letw.org."""
+    from config import settings
+    base = (settings.FRONTEND_URL or "").rstrip("/")
+    if not base or "localhost" in base or "127.0.0.1" in base:
+        return "https://letw.org"
+    return base
+
+
 @router.post("/enrol", status_code=201)
 async def enrol_couple(body: CoupleIn, db: AsyncSession = Depends(get_db)):
     c = MarriagePrepCouple(**body.model_dump())
     db.add(c)
     await db.commit()
     await db.refresh(c)
-    return _couple(c)
+
+    # Welcome email with the couple's portal link — the UUID link is their
+    # access credential, so mailing it means they can always find their way
+    # back to the course. Best-effort: mail hiccups never block enrolment.
+    portal_url = f"{_public_base()}/marriage-prep/journey/{c.id}"
+    try:
+        from services.email_service import send_marriage_prep_enrolled_email
+        for addr in {c.partner_a_email, c.partner_b_email}:
+            if addr:
+                await send_marriage_prep_enrolled_email(
+                    to_email=addr,
+                    partner_a=c.partner_a_name, partner_b=c.partner_b_name,
+                    portal_url=portal_url,
+                )
+    except Exception as e:
+        print(f"[marriage-prep] enrolment email failed: {type(e).__name__}: {e}", flush=True)
+
+    out = _couple(c)
+    out["portal_url"] = portal_url
+    return out
 
 
 class ProgressIn(BaseModel):
@@ -283,7 +314,6 @@ async def get_certificate(couple_id: str, db: AsyncSession = Depends(get_db)):
         # Not signed off yet — don't expose a "certificate" for an
         # unfinished couple. Frontend can decide what to render.
         raise HTTPException(404, "Certificate not yet issued")
-    from config import settings
     sig = _cert_signature(c)
     return {
         "id":                c.id,
@@ -297,7 +327,7 @@ async def get_certificate(couple_id: str, db: AsyncSession = Depends(get_db)):
         # short human-checkable form printed under the chip.
         "signature":         sig,
         "fingerprint":       _fingerprint(sig),
-        "verify_url":        f"{settings.FRONTEND_URL}/verify/cert/{c.id}?sig={sig}",
+        "verify_url":        f"{_public_base()}/verify/cert/{c.id}?sig={sig}",
     }
 
 
@@ -341,8 +371,7 @@ async def certificate_qr(couple_id: str, db: AsyncSession = Depends(get_db)):
     c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
     if not c or not c.pastor_signed_off:
         raise HTTPException(404, "Certificate not yet issued")
-    from config import settings
-    verify_url = f"{settings.FRONTEND_URL}/verify/cert/{c.id}?sig={_cert_signature(c)}"
+    verify_url = f"{_public_base()}/verify/cert/{c.id}?sig={_cert_signature(c)}"
     try:
         import qrcode
         qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, border=0)

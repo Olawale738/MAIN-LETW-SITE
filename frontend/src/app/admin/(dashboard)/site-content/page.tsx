@@ -465,6 +465,7 @@ function EmailsTab({ d, setD }: TabProps) {
         { key: 'password_reset',                     label: 'Password reset',                           tokens: '{name}, {reset_link}' },
         { key: 'prayer_received',                    label: 'Prayer received',                          tokens: '{name}' },
         { key: 'decision_followup',                  label: 'Decision follow-up',                       tokens: '{name}' },
+        { key: 'marriage_prep_enrolled',             label: 'Marriage-prep enrolled (portal link, on signup)', tokens: '{couple}, {partner_a}, {partner_b}, {portal_link}' },
         { key: 'marriage_prep_completion',           label: 'Marriage-prep completion (post sign-off)', tokens: '{couple}, {partner_a}, {partner_b}, {pastor}, {pastor_note}, {wedding_date}, {certificate_link}, {sanctuary_link}, {contact_link}' },
         // Sanctuary / hall bookings — 3 slots (received / approved / declined + admin notice)
         { key: 'sanctuary_booking_received',         label: 'Sanctuary — booking received (to requester)',       tokens: '{name}, {room}, {purpose}, {range}, {reference}' },
