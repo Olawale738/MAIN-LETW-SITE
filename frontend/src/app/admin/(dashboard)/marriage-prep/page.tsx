@@ -53,21 +53,37 @@ export default function MarriagePrepAdmin() {
     )
 }
 
+interface PendingResource { title: string; kind: 'url' | 'file'; url?: string; file?: File }
+
 function ModulesTab({ modules, onSaved, onMsg }: { modules: MarriagePrepModule[]; onSaved: () => void; onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void }) {
     const [editing, setEditing] = useState<Omit<MarriagePrepModule, 'id'> | null>(null)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
+    // Resources staged while creating a brand-new module — it has no id yet
+    // to attach them to, so we hold them here and upload right after the
+    // module itself is created (see save()). Existing modules skip this
+    // entirely and upload immediately (ModuleResources below).
+    const [pending, setPending] = useState<PendingResource[]>([])
 
     const blank: Omit<MarriagePrepModule, 'id'> = { week_number: modules.length + 1, title: '', summary: '', body_html: '', scripture: '', homework: '', is_published: true }
     const currentModule = editingId ? modules.find(m => m.id === editingId) : null
+
+    const closeForm = () => { setEditing(null); setEditingId(null); setPending([]) }
 
     const save = async () => {
         if (!editing || !editing.title) return
         setSaving(true)
         try {
-            if (editingId) await marriagePrepApi.updateModule(editingId, editing)
-            else await marriagePrepApi.createModule(editing)
-            setEditing(null); setEditingId(null)
+            if (editingId) {
+                await marriagePrepApi.updateModule(editingId, editing)
+            } else {
+                const created = await marriagePrepApi.createModule(editing)
+                for (const p of pending) {
+                    if (p.kind === 'url' && p.url) await marriagePrepApi.addModuleResourceUrl(created.id, p.title, p.url)
+                    if (p.kind === 'file' && p.file) await marriagePrepApi.addModuleResourceFile(created.id, p.title, p.file)
+                }
+            }
+            closeForm()
             onMsg({ kind: 'ok', text: 'Saved.' })
             onSaved()
         } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
@@ -90,15 +106,22 @@ function ModulesTab({ modules, onSaved, onMsg }: { modules: MarriagePrepModule[]
                     {currentModule ? (
                         <ModuleResources module={currentModule} onSaved={onSaved} onMsg={onMsg} />
                     ) : (
-                        <p className="text-xs text-gray-400 italic border-t border-gray-100 pt-3 mt-1">
-                            Save this module first, then reopen it to attach links, PDFs, or documents.
-                        </p>
+                        <ResourceEditorList
+                            rows={pending.map((p, i) => ({
+                                id: String(i), title: p.title, kind: p.kind,
+                                meta: p.kind === 'file' && p.file ? `${Math.max(1, Math.round(p.file.size / 1024))} KB` : undefined,
+                            }))}
+                            note="Uploaded automatically once you save this new module."
+                            onAddLink={(title, url) => setPending(prev => [...prev, { title, kind: 'url', url }])}
+                            onAddFile={(title, file) => setPending(prev => [...prev, { title, kind: 'file', file }])}
+                            onRemove={id => setPending(prev => prev.filter((_, i) => i !== Number(id)))}
+                        />
                     )}
 
                     <div className="flex items-center gap-4 mt-3">
                         <label className="text-sm inline-flex items-center gap-2"><input type="checkbox" checked={editing.is_published} onChange={e => setEditing({ ...editing, is_published: e.target.checked })} /> Published</label>
                         <div className="flex-1" />
-                        <button onClick={() => { setEditing(null); setEditingId(null) }} className="text-sm text-gray-500 hover:text-gray-800">Cancel</button>
+                        <button onClick={closeForm} className="text-sm text-gray-500 hover:text-gray-800">Cancel</button>
                         <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2.5 rounded-xl text-sm disabled:opacity-50">
                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save module
                         </button>
@@ -107,7 +130,7 @@ function ModulesTab({ modules, onSaved, onMsg }: { modules: MarriagePrepModule[]
             )}
 
             {!editing && (
-                <button onClick={() => { setEditing(blank); setEditingId(null) }} className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-black px-5 py-2.5 rounded-xl text-sm">
+                <button onClick={() => { setEditing(blank); setEditingId(null); setPending([]) }} className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-black px-5 py-2.5 rounded-xl text-sm">
                     <Plus className="w-4 h-4" /> New module
                 </button>
             )}
@@ -122,7 +145,7 @@ function ModulesTab({ modules, onSaved, onMsg }: { modules: MarriagePrepModule[]
                             {m.summary && <p className="text-xs text-gray-600 mt-1 line-clamp-2">{m.summary}</p>}
                         </div>
                         <div className="flex gap-1">
-                            <button onClick={() => { setEditing({ week_number: m.week_number, title: m.title, summary: m.summary, body_html: m.body_html, scripture: m.scripture, homework: m.homework, is_published: m.is_published }); setEditingId(m.id) }} className="text-xs underline text-[#140152]">Edit</button>
+                            <button onClick={() => { setEditing({ week_number: m.week_number, title: m.title, summary: m.summary, body_html: m.body_html, scripture: m.scripture, homework: m.homework, is_published: m.is_published }); setEditingId(m.id); setPending([]) }} className="text-xs underline text-[#140152]">Edit</button>
                             <button onClick={async () => { if (confirm(`Delete "${m.title}"?`)) { try { await marriagePrepApi.deleteModule(m.id); onSaved() } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) } } }} className="p-1.5 text-red-400 hover:text-red-700 hover:bg-red-50 rounded">
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -134,69 +157,40 @@ function ModulesTab({ modules, onSaved, onMsg }: { modules: MarriagePrepModule[]
     )
 }
 
-function ModuleResources({ module: m, onSaved, onMsg }: {
-    module: MarriagePrepModule
-    onSaved: () => void
-    onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void
+interface ResourceRow { id: string; title: string; kind: 'url' | 'file'; href?: string; meta?: string }
+
+/** Shared list + "add link" / "upload file" controls. Used both for an
+ * existing module's resources (persisted immediately) and for a brand-new
+ * module's staged resources (persisted once the module itself is saved). */
+function ResourceEditorList({ rows, busy, note, onAddLink, onAddFile, onRemove }: {
+    rows: ResourceRow[]
+    busy?: boolean
+    note?: string
+    onAddLink: (title: string, url: string) => void
+    onAddFile: (title: string, file: File) => void
+    onRemove: (id: string) => void
 }) {
     const [linkTitle, setLinkTitle] = useState('')
     const [linkUrl, setLinkUrl] = useState('')
     const [fileTitle, setFileTitle] = useState('')
-    const [busy, setBusy] = useState(false)
-    const resources = m.resources || []
-
-    const addLink = async () => {
-        if (!linkTitle || !linkUrl) return
-        setBusy(true)
-        try {
-            await marriagePrepApi.addModuleResourceUrl(m.id, linkTitle, linkUrl)
-            setLinkTitle(''); setLinkUrl('')
-            onMsg({ kind: 'ok', text: 'Link added.' })
-            onSaved()
-        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
-        finally { setBusy(false) }
-    }
-
-    const addFile = async (file: File) => {
-        setBusy(true)
-        try {
-            await marriagePrepApi.addModuleResourceFile(m.id, fileTitle || file.name, file)
-            setFileTitle('')
-            onMsg({ kind: 'ok', text: 'File uploaded.' })
-            onSaved()
-        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
-        finally { setBusy(false) }
-    }
-
-    const remove = async (r: MarriagePrepModuleResource) => {
-        if (!confirm(`Remove "${r.title}"?`)) return
-        try {
-            await marriagePrepApi.deleteModuleResource(r.id)
-            onMsg({ kind: 'ok', text: 'Removed.' })
-            onSaved()
-        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
-    }
 
     return (
         <div className="border-t border-gray-100 mt-1 pt-3">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">Resources (links, PDFs, documents)</p>
+            {note && <p className="text-[11px] text-gray-400 mb-2">{note}</p>}
 
-            {resources.length > 0 && (
+            {rows.length > 0 && (
                 <ul className="space-y-1.5 mb-3">
-                    {resources.map(r => (
+                    {rows.map(r => (
                         <li key={r.id} className="flex items-center gap-2 text-sm bg-gray-50 rounded-lg px-3 py-2">
                             {r.kind === 'url' ? <LinkIcon className="w-3.5 h-3.5 text-gray-400 shrink-0" /> : <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
-                            <a
-                                href={r.kind === 'url' ? (r.external_url || '#') : marriagePrepApi.moduleResourceFileUrl(r.id)}
-                                target="_blank" rel="noreferrer"
-                                className="flex-1 truncate underline text-[#140152]"
-                            >
-                                {r.title}
-                            </a>
-                            {r.kind === 'file' && r.file_size != null && (
-                                <span className="text-[10px] text-gray-400 shrink-0">{Math.max(1, Math.round(r.file_size / 1024))} KB</span>
+                            {r.href ? (
+                                <a href={r.href} target="_blank" rel="noreferrer" className="flex-1 truncate underline text-[#140152]">{r.title}</a>
+                            ) : (
+                                <span className="flex-1 truncate text-gray-700">{r.title}</span>
                             )}
-                            <button onClick={() => remove(r)} className="p-1 text-red-400 hover:text-red-700 hover:bg-red-50 rounded shrink-0">
+                            {r.meta && <span className="text-[10px] text-gray-400 shrink-0">{r.meta}</span>}
+                            <button onClick={() => onRemove(r.id)} className="p-1 text-red-400 hover:text-red-700 hover:bg-red-50 rounded shrink-0">
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>
                         </li>
@@ -207,7 +201,8 @@ function ModuleResources({ module: m, onSaved, onMsg }: {
             <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-2 mb-2">
                 <input value={linkTitle} onChange={e => setLinkTitle(e.target.value)} placeholder="Link title" className="border border-gray-200 rounded-lg px-2.5 py-2 text-xs" />
                 <input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://..." className="border border-gray-200 rounded-lg px-2.5 py-2 text-xs" />
-                <button type="button" onClick={addLink} disabled={busy || !linkTitle || !linkUrl}
+                <button type="button" disabled={busy || !linkTitle || !linkUrl}
+                    onClick={() => { onAddLink(linkTitle, linkUrl); setLinkTitle(''); setLinkUrl('') }}
                     className="inline-flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-2 rounded-lg text-xs disabled:opacity-50">
                     {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />} Add link
                 </button>
@@ -224,7 +219,7 @@ function ModuleResources({ module: m, onSaved, onMsg }: {
                         disabled={busy}
                         onChange={e => {
                             const f = e.target.files?.[0]
-                            if (f) addFile(f)
+                            if (f) { onAddFile(fileTitle || f.name, f); setFileTitle('') }
                             e.target.value = ''
                         }}
                     />
@@ -232,6 +227,53 @@ function ModuleResources({ module: m, onSaved, onMsg }: {
             </div>
         </div>
     )
+}
+
+function ModuleResources({ module: m, onSaved, onMsg }: {
+    module: MarriagePrepModule
+    onSaved: () => void
+    onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void
+}) {
+    const [busy, setBusy] = useState(false)
+    const resources = m.resources || []
+
+    const addLink = async (title: string, url: string) => {
+        setBusy(true)
+        try {
+            await marriagePrepApi.addModuleResourceUrl(m.id, title, url)
+            onMsg({ kind: 'ok', text: 'Link added.' })
+            onSaved()
+        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setBusy(false) }
+    }
+
+    const addFile = async (title: string, file: File) => {
+        setBusy(true)
+        try {
+            await marriagePrepApi.addModuleResourceFile(m.id, title, file)
+            onMsg({ kind: 'ok', text: 'File uploaded.' })
+            onSaved()
+        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setBusy(false) }
+    }
+
+    const remove = async (id: string) => {
+        const r = resources.find(x => x.id === id)
+        if (r && !confirm(`Remove "${r.title}"?`)) return
+        try {
+            await marriagePrepApi.deleteModuleResource(id)
+            onMsg({ kind: 'ok', text: 'Removed.' })
+            onSaved()
+        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
+    }
+
+    const rows: ResourceRow[] = resources.map(r => ({
+        id: r.id, title: r.title, kind: r.kind,
+        href: r.kind === 'url' ? (r.external_url || '#') : marriagePrepApi.moduleResourceFileUrl(r.id),
+        meta: r.kind === 'file' && r.file_size != null ? `${Math.max(1, Math.round(r.file_size / 1024))} KB` : undefined,
+    }))
+
+    return <ResourceEditorList rows={rows} busy={busy} onAddLink={addLink} onAddFile={addFile} onRemove={remove} />
 }
 
 function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]; onSaved: () => void; onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void }) {
