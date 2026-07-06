@@ -15,7 +15,7 @@ import Link from 'next/link'
 import {
     Loader2, Heart, Printer, MapPin, Phone, Sparkles, ArrowRight, ShieldCheck, CalendarHeart, AlertCircle,
 } from 'lucide-react'
-import { marriagePrepApi } from '@/lib/api'
+import { marriagePrepApi, ministryContentApi } from '@/lib/api'
 
 interface CertificateData {
     id: string
@@ -47,12 +47,22 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
     // to race; print always sees the finished image.
     const [qrDataUri, setQrDataUri] = useState<string | null>(null)
     const [qrFailed, setQrFailed] = useState(false)
+    // Course length is admin-editable (see /admin/page-copy → marriage-prep
+    // tab, "Course length"). Defaults to 6 so the certificate never blanks
+    // out if the ministry-content record hasn't been saved yet.
+    const [courseWeeks, setCourseWeeks] = useState(6)
 
     useEffect(() => {
         marriagePrepApi.certificate(id)
             .then(setCert)
             .catch((e: Error) => setErr(e.message || 'Not found.'))
             .finally(() => setLoading(false))
+        ministryContentApi.get('marriage-prep-page')
+            .then(r => {
+                const w = (r.content as { course_weeks?: number } | null)?.course_weeks
+                if (typeof w === 'number' && w > 0) setCourseWeeks(w)
+            })
+            .catch(() => { /* keep default */ })
     }, [id])
 
     useEffect(() => {
@@ -87,7 +97,7 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
                     <h1 className="text-2xl font-black text-[#140152]">Not quite yet.</h1>
                     <p className="text-gray-600 mt-3 leading-relaxed">
                         We couldn&apos;t find a completed Marriage Prep certificate for this link.
-                        If you&apos;re still working through the six weeks, keep going —
+                        If you&apos;re still working through the {courseWeeks} weeks, keep going —
                         this page unlocks the moment your pastor signs off.
                     </p>
                     <div className="flex items-center justify-center gap-2 mt-6">
@@ -130,7 +140,7 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
                         Marriage Prep, complete.
                     </h1>
                     <p className="text-lg text-[#140152]/70 mt-4">
-                        Congratulations, <strong>{coupleLabel}</strong>. Six weeks of listening, learning, and choosing each other on purpose — signed off by your pastor.
+                        Congratulations, <strong>{coupleLabel}</strong>. {courseWeeks} weeks of listening, learning, and choosing each other on purpose — signed off by your pastor.
                     </p>
                 </div>
             </section>
@@ -148,14 +158,14 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
                     <div className="text-center relative">
                         <ShieldCheck className="w-14 h-14 mx-auto text-[#140152] mb-4" />
                         <p className="text-[10px] uppercase tracking-[0.5em] font-black text-gray-500">Certificate of Completion</p>
-                        <p className="text-[10px] uppercase tracking-[0.4em] font-bold text-[#f5bb00] mt-1">Six-Week Marriage Prep</p>
+                        <p className="text-[10px] uppercase tracking-[0.4em] font-bold text-[#f5bb00] mt-1">{courseWeeks}-Week Marriage Prep</p>
 
                         <p className="text-sm text-[#140152]/70 mt-8 italic">This is to certify that</p>
                         <h2 className="font-serif text-3xl sm:text-5xl font-black text-[#140152] mt-3 leading-tight break-words">
                             {coupleLabel}
                         </h2>
                         <p className="text-sm text-[#140152]/70 mt-4 italic max-w-md mx-auto leading-relaxed">
-                            have faithfully completed the six-week Marriage Prep course at Light Encounter Tabernacle Worldwide.
+                            have faithfully completed the {courseWeeks}-week Marriage Prep course at Light Encounter Tabernacle Worldwide.
                         </p>
 
                         {weddingLabel && (
@@ -252,7 +262,7 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
                         n={3}
                         icon={<Heart className="w-5 h-5" />}
                         title="Keep the muscles you built"
-                        desc="Set a weekly rhythm: one long conversation, one shared prayer, one small kindness. The six weeks aren't a finish line — they're a starter kit."
+                        desc={`Set a weekly rhythm: one long conversation, one shared prayer, one small kindness. The ${courseWeeks} weeks aren't a finish line — they're a starter kit.`}
                         cta="See Grow"
                         href="/grow"
                     />
@@ -260,7 +270,7 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
 
                 <div className="mt-10 bg-white rounded-3xl border border-gray-100 shadow-sm p-6 text-center">
                     <p className="text-sm text-gray-600">
-                        Know another couple who could use these six weeks? Share the link.
+                        Know another couple who could use these {courseWeeks} weeks? Share the link.
                     </p>
                     <Link href="/marriage-prep" className="inline-flex items-center gap-1.5 mt-3 text-sm font-bold text-[#140152] underline">
                         letw.org/marriage-prep <ArrowRight className="w-3.5 h-3.5" />

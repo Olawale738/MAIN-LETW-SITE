@@ -19,6 +19,7 @@ const DEFAULT_COPY = {
     cta_href:  '#enrol',
     section_heading: 'The journey',
     section_sub:     'One week at a time. No skipping ahead — even the rush is part of the lesson.',
+    course_weeks: 6,
 }
 
 export default function MarriagePrepPage() {
@@ -179,8 +180,8 @@ export default function MarriagePrepPage() {
                             <div className="mt-5 bg-gray-50 border border-gray-100 rounded-2xl p-4 text-left max-w-md mx-auto">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-[#f5bb00] mb-2">The road ahead</p>
                                 <ol className="text-xs text-gray-700 space-y-1.5 list-decimal ml-4">
-                                    <li>Work through the six weeks in your portal — reflections + mark each week complete.</li>
-                                    <li>After week six, your pastor reviews the journey and <strong>signs off</strong>.</li>
+                                    <li>Work through the {copy.course_weeks} weeks in your portal — reflections + mark each week complete.</li>
+                                    <li>After week {copy.course_weeks}, your pastor reviews the journey and <strong>signs off</strong>.</li>
                                     <li>The moment they do, your <strong>Certificate of Completion</strong> appears in the portal — printable and QR-verified at letw.org.</li>
                                 </ol>
                             </div>

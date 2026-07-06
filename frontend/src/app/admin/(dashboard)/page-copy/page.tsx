@@ -30,6 +30,10 @@ interface PageCopy {
     cta_href:  string
     section_heading?: string
     section_sub?:     string
+    // Single source of truth for the marriage-prep course length. Every
+    // surface that mentions "N weeks" (home page, road-ahead card,
+    // certificate) reads this instead of hardcoding a number.
+    course_weeks?: number
 }
 
 const DEFAULTS: Record<MinistryContentKey, PageCopy> = {
@@ -55,6 +59,7 @@ const DEFAULTS: Record<MinistryContentKey, PageCopy> = {
         cta_href:  '#enrol',
         section_heading: 'The journey',
         section_sub:     'One week at a time. No skipping ahead — even the rush is part of the lesson.',
+        course_weeks: 6,
     },
     'download-page': {
         eyebrow: '',
@@ -212,6 +217,20 @@ export default function PageCopyAdmin() {
                     {tab === 'marriage-prep-page' && (
                         <>
                             <div className="border-t border-gray-100 mt-4 pt-3">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">Course length</p>
+                                <div className="mb-3 max-w-[220px]">
+                                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-1.5">Number of weeks</label>
+                                    <input type="number" min={1} max={52} value={data.course_weeks ?? 6}
+                                        onChange={e => setData({ ...data, course_weeks: Math.max(1, Number(e.target.value) || 1) })}
+                                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm" />
+                                </div>
+                                <p className="text-xs text-gray-400 -mt-2 mb-3">
+                                    Drives every "N weeks" mention on the public page, the couple&apos;s road-ahead
+                                    checklist, and the printed certificate — including the eyebrow/subtitle text
+                                    below if you mention the week count there too.
+                                </p>
+                            </div>
+                            <div className="border-t border-gray-100 mt-1 pt-3">
                                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">Curriculum section</p>
                                 <Field label="Heading (e.g. 'The journey')" value={data.section_heading || ''}
                                     onChange={v => setData({ ...data, section_heading: v })} />
