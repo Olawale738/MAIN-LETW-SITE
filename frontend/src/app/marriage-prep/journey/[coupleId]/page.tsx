@@ -12,7 +12,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
     Loader2, Heart, CheckCircle, ChevronDown, Quote, BookOpen,
-    PenLine, Save, Sparkles, Award, AlertCircle,
+    PenLine, Save, Sparkles, Award, AlertCircle, Link as LinkIcon, FileText,
 } from 'lucide-react'
 import { marriagePrepApi, type MarriagePrepModule } from '@/lib/api'
 
@@ -182,6 +182,22 @@ function WeekCard({ module: m, row, open, onToggle, coupleId, onSaved }: {
                             <p className="text-[10px] font-black uppercase tracking-widest text-[#b8860b] mb-1.5 inline-flex items-center gap-1.5"><PenLine className="w-3 h-3" /> This week&apos;s homework</p>
                             <p className="text-sm text-gray-800 whitespace-pre-wrap">{m.homework}</p>
                         </div>
+                    )}
+                    {!!m.resources?.length && (
+                        <ul className="mt-4 space-y-1.5">
+                            {m.resources.map(r => (
+                                <li key={r.id}>
+                                    <a
+                                        href={r.kind === 'url' ? (r.external_url || '#') : marriagePrepApi.moduleResourceFileUrl(r.id)}
+                                        target="_blank" rel="noreferrer"
+                                        className="inline-flex items-center gap-1.5 text-sm text-[#140152] font-bold underline underline-offset-2"
+                                    >
+                                        {r.kind === 'url' ? <LinkIcon className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+                                        {r.title}
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
                     )}
 
                     {/* Shared reflections */}

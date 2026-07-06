@@ -6,8 +6,9 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import {
     Loader2, Plus, Save, Trash2, Heart, CheckCircle, AlertCircle, Quote, Pencil, X,
+    Link as LinkIcon, FileText, Upload,
 } from 'lucide-react'
-import { marriagePrepApi, type MarriagePrepModule, type MarriagePrepCouple } from '@/lib/api'
+import { marriagePrepApi, type MarriagePrepModule, type MarriagePrepModuleResource, type MarriagePrepCouple } from '@/lib/api'
 
 export default function MarriagePrepAdmin() {
     const [tab, setTab] = useState<'modules' | 'couples'>('modules')
@@ -58,6 +59,7 @@ function ModulesTab({ modules, onSaved, onMsg }: { modules: MarriagePrepModule[]
     const [saving, setSaving] = useState(false)
 
     const blank: Omit<MarriagePrepModule, 'id'> = { week_number: modules.length + 1, title: '', summary: '', body_html: '', scripture: '', homework: '', is_published: true }
+    const currentModule = editingId ? modules.find(m => m.id === editingId) : null
 
     const save = async () => {
         if (!editing || !editing.title) return
@@ -84,7 +86,16 @@ function ModulesTab({ modules, onSaved, onMsg }: { modules: MarriagePrepModule[]
                     <textarea value={editing.summary || ''} onChange={e => setEditing({ ...editing, summary: e.target.value })} placeholder="Short summary" rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2" />
                     <textarea value={editing.body_html || ''} onChange={e => setEditing({ ...editing, body_html: e.target.value })} placeholder="Body (HTML)" rows={8} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono mb-2" />
                     <textarea value={editing.homework || ''} onChange={e => setEditing({ ...editing, homework: e.target.value })} placeholder="Couple's homework / discussion questions" rows={3} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2" />
-                    <div className="flex items-center gap-4">
+
+                    {currentModule ? (
+                        <ModuleResources module={currentModule} onSaved={onSaved} onMsg={onMsg} />
+                    ) : (
+                        <p className="text-xs text-gray-400 italic border-t border-gray-100 pt-3 mt-1">
+                            Save this module first, then reopen it to attach links, PDFs, or documents.
+                        </p>
+                    )}
+
+                    <div className="flex items-center gap-4 mt-3">
                         <label className="text-sm inline-flex items-center gap-2"><input type="checkbox" checked={editing.is_published} onChange={e => setEditing({ ...editing, is_published: e.target.checked })} /> Published</label>
                         <div className="flex-1" />
                         <button onClick={() => { setEditing(null); setEditingId(null) }} className="text-sm text-gray-500 hover:text-gray-800">Cancel</button>
@@ -118,6 +129,106 @@ function ModulesTab({ modules, onSaved, onMsg }: { modules: MarriagePrepModule[]
                         </div>
                     </div>
                 ))}
+            </div>
+        </div>
+    )
+}
+
+function ModuleResources({ module: m, onSaved, onMsg }: {
+    module: MarriagePrepModule
+    onSaved: () => void
+    onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void
+}) {
+    const [linkTitle, setLinkTitle] = useState('')
+    const [linkUrl, setLinkUrl] = useState('')
+    const [fileTitle, setFileTitle] = useState('')
+    const [busy, setBusy] = useState(false)
+    const resources = m.resources || []
+
+    const addLink = async () => {
+        if (!linkTitle || !linkUrl) return
+        setBusy(true)
+        try {
+            await marriagePrepApi.addModuleResourceUrl(m.id, linkTitle, linkUrl)
+            setLinkTitle(''); setLinkUrl('')
+            onMsg({ kind: 'ok', text: 'Link added.' })
+            onSaved()
+        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setBusy(false) }
+    }
+
+    const addFile = async (file: File) => {
+        setBusy(true)
+        try {
+            await marriagePrepApi.addModuleResourceFile(m.id, fileTitle || file.name, file)
+            setFileTitle('')
+            onMsg({ kind: 'ok', text: 'File uploaded.' })
+            onSaved()
+        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setBusy(false) }
+    }
+
+    const remove = async (r: MarriagePrepModuleResource) => {
+        if (!confirm(`Remove "${r.title}"?`)) return
+        try {
+            await marriagePrepApi.deleteModuleResource(r.id)
+            onMsg({ kind: 'ok', text: 'Removed.' })
+            onSaved()
+        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
+    }
+
+    return (
+        <div className="border-t border-gray-100 mt-1 pt-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">Resources (links, PDFs, documents)</p>
+
+            {resources.length > 0 && (
+                <ul className="space-y-1.5 mb-3">
+                    {resources.map(r => (
+                        <li key={r.id} className="flex items-center gap-2 text-sm bg-gray-50 rounded-lg px-3 py-2">
+                            {r.kind === 'url' ? <LinkIcon className="w-3.5 h-3.5 text-gray-400 shrink-0" /> : <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
+                            <a
+                                href={r.kind === 'url' ? (r.external_url || '#') : marriagePrepApi.moduleResourceFileUrl(r.id)}
+                                target="_blank" rel="noreferrer"
+                                className="flex-1 truncate underline text-[#140152]"
+                            >
+                                {r.title}
+                            </a>
+                            {r.kind === 'file' && r.file_size != null && (
+                                <span className="text-[10px] text-gray-400 shrink-0">{Math.max(1, Math.round(r.file_size / 1024))} KB</span>
+                            )}
+                            <button onClick={() => remove(r)} className="p-1 text-red-400 hover:text-red-700 hover:bg-red-50 rounded shrink-0">
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            )}
+
+            <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-2 mb-2">
+                <input value={linkTitle} onChange={e => setLinkTitle(e.target.value)} placeholder="Link title" className="border border-gray-200 rounded-lg px-2.5 py-2 text-xs" />
+                <input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://..." className="border border-gray-200 rounded-lg px-2.5 py-2 text-xs" />
+                <button type="button" onClick={addLink} disabled={busy || !linkTitle || !linkUrl}
+                    className="inline-flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-2 rounded-lg text-xs disabled:opacity-50">
+                    {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />} Add link
+                </button>
+            </div>
+
+            <div className="grid sm:grid-cols-[1fr_auto] gap-2">
+                <input value={fileTitle} onChange={e => setFileTitle(e.target.value)} placeholder="File label (optional — defaults to filename)" className="border border-gray-200 rounded-lg px-2.5 py-2 text-xs" />
+                <label className="inline-flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-2 rounded-lg text-xs cursor-pointer whitespace-nowrap">
+                    <Upload className="w-3 h-3" /> Upload PDF / document
+                    <input
+                        type="file"
+                        accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,application/pdf"
+                        className="hidden"
+                        disabled={busy}
+                        onChange={e => {
+                            const f = e.target.files?.[0]
+                            if (f) addFile(f)
+                            e.target.value = ''
+                        }}
+                    />
+                </label>
             </div>
         </div>
     )

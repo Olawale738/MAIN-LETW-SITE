@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import String, DateTime, Integer, Text, Boolean, ForeignKey
+from sqlalchemy import String, DateTime, Integer, Text, Boolean, ForeignKey, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
@@ -28,6 +28,24 @@ class MarriagePrepModule(Base):
     homework:    Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_published:Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at:  Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class MarriagePrepModuleResource(Base):
+    """A link or file attached to a curriculum week — admin can add an
+    external URL, or upload a PDF / Word doc / any other file, stored as
+    binary in Postgres (same pattern as DownloadResource)."""
+    __tablename__ = "marriage_prep_module_resources"
+
+    id:        Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    module_id: Mapped[str] = mapped_column(String(36), ForeignKey("marriage_prep_modules.id", ondelete="CASCADE"), nullable=False, index=True)
+    title:     Mapped[str] = mapped_column(String(255), nullable=False)
+    kind:      Mapped[str] = mapped_column(String(10), nullable=False, default="url")  # 'url' | 'file'
+    external_url:   Mapped[Optional[str]]   = mapped_column(String(800), nullable=True)
+    file_data:      Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True)
+    file_name:      Mapped[Optional[str]]   = mapped_column(String(255), nullable=True)
+    file_mime_type: Mapped[Optional[str]]   = mapped_column(String(120), nullable=True)
+    file_size:      Mapped[Optional[int]]   = mapped_column(Integer, nullable=True)
+    created_at:     Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 class MarriagePrepCouple(Base):

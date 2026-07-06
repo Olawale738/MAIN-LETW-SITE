@@ -4308,10 +4308,16 @@ export const sanctuaryApi = {
 }
 
 // ── Marriage Prep ───────────────────────────────────────────────────────────
+export interface MarriagePrepModuleResource {
+    id: string; module_id: string; title: string; kind: 'url' | 'file'
+    external_url: string | null
+    file_name: string | null; file_mime_type: string | null; file_size: number | null
+}
 export interface MarriagePrepModule {
     id: string; week_number: number; title: string
     summary: string | null; body_html: string | null
     scripture: string | null; homework: string | null; is_published: boolean
+    resources?: MarriagePrepModuleResource[]
 }
 export interface MarriagePrepCouple {
     id: string; partner_a_name: string; partner_a_email: string
@@ -4344,11 +4350,39 @@ export const marriagePrepApi = {
     verifyCert: (couple_id: string, sig: string) =>
         fetchApi<{ valid: boolean; reason?: string; partner_a_name?: string; partner_b_name?: string; pastor_signature?: string | null; pastor_signed_at?: string | null; wedding_date?: string | null; fingerprint?: string; issuer?: string }>(`/marriage-prep/verify/${couple_id}?sig=${encodeURIComponent(sig)}`),
     // admin
-    createModule: (b: Omit<MarriagePrepModule, 'id'>) =>
+    createModule: (b: Omit<MarriagePrepModule, 'id' | 'resources'>) =>
         fetchApi<MarriagePrepModule>('/marriage-prep/admin/modules', { method: 'POST', body: JSON.stringify(b) }),
-    updateModule: (id: string, b: Omit<MarriagePrepModule, 'id'>) =>
+    updateModule: (id: string, b: Omit<MarriagePrepModule, 'id' | 'resources'>) =>
         fetchApi<MarriagePrepModule>(`/marriage-prep/admin/modules/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
     deleteModule: (id: string) => fetchApi<{ deleted: number }>(`/marriage-prep/admin/modules/${id}`, { method: 'DELETE' }),
+    // Per-module resources — a link, or an uploaded PDF/Word doc/any file.
+    // Raw fetch (not fetchApi) for the multipart calls so the browser sets
+    // its own Content-Type boundary — same pattern as sermons file uploads.
+    addModuleResourceUrl: async (moduleId: string, title: string, externalUrl: string): Promise<MarriagePrepModuleResource> => {
+        const fd = new FormData()
+        fd.append('title', title)
+        fd.append('external_url', externalUrl)
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+        const res = await fetch(`${API_BASE_URL}/marriage-prep/admin/modules/${moduleId}/resources/url`, {
+            method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd,
+        })
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed to add link')
+        return res.json()
+    },
+    addModuleResourceFile: async (moduleId: string, title: string, file: File): Promise<MarriagePrepModuleResource> => {
+        const fd = new FormData()
+        fd.append('title', title)
+        fd.append('file', file)
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+        const res = await fetch(`${API_BASE_URL}/marriage-prep/admin/modules/${moduleId}/resources/file`, {
+            method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd,
+        })
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed to upload file')
+        return res.json()
+    },
+    deleteModuleResource: (resourceId: string) =>
+        fetchApi<{ deleted: number }>(`/marriage-prep/admin/modules/resources/${resourceId}`, { method: 'DELETE' }),
+    moduleResourceFileUrl: (resourceId: string) => `${API_BASE_URL}/marriage-prep/modules/resources/${resourceId}/file`,
     listCouples: (status?: string) =>
         fetchApi<MarriagePrepCouple[]>(`/marriage-prep/admin/couples${status ? `?status=${encodeURIComponent(status)}` : ''}`),
     signOff: (couple_id: string, pastor_signature: string, pastor_note?: string) =>

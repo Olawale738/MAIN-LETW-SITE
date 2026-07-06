@@ -10,17 +10,35 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select, desc, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+import io
 
 from database import get_db
 from models.user import User
-from models.marriage_prep import MarriagePrepModule, MarriagePrepCouple, MarriagePrepProgress
+from models.marriage_prep import MarriagePrepModule, MarriagePrepCouple, MarriagePrepProgress, MarriagePrepModuleResource
 from utils.dependencies import get_admin_user
 
 router = APIRouter(prefix="/api/marriage-prep", tags=["Marriage Prep"])
+
+MAX_RESOURCE_FILE_BYTES = 25 * 1024 * 1024   # 25 MB hard cap — matches /downloads
+
+
+async def _resources_by_module(db: AsyncSession, module_ids: list[str]) -> dict[str, list[dict]]:
+    if not module_ids:
+        return {}
+    res = await db.execute(
+        select(MarriagePrepModuleResource)
+        .where(MarriagePrepModuleResource.module_id.in_(module_ids))
+        .order_by(MarriagePrepModuleResource.created_at)
+    )
+    out: dict[str, list[dict]] = {mid: [] for mid in module_ids}
+    for r in res.scalars().all():
+        out.setdefault(r.module_id, []).append(_resource(r))
+    return out
 
 
 # ── Public: modules + couple flow ──────────────────────────────────────────
@@ -30,7 +48,9 @@ async def list_modules(db: AsyncSession = Depends(get_db)):
     res = await db.execute(
         select(MarriagePrepModule).where(MarriagePrepModule.is_published == True).order_by(MarriagePrepModule.week_number)  # noqa: E712
     )
-    return [_module(m) for m in res.scalars().all()]
+    modules = res.scalars().all()
+    by_module = await _resources_by_module(db, [m.id for m in modules])
+    return [_module(m, by_module.get(m.id, [])) for m in modules]
 
 
 class CoupleIn(BaseModel):
@@ -184,6 +204,81 @@ async def delete_module(module_id: str, db: AsyncSession = Depends(get_db), _: U
         await db.delete(m)
         await db.commit()
     return {"deleted": 1 if m else 0}
+
+
+# ── Admin: per-module resources (link / PDF / document) ────────────────────
+
+@router.post("/admin/modules/{module_id}/resources/url", status_code=201)
+async def add_module_resource_url(
+    module_id: str,
+    title: str = Form(...),
+    external_url: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+):
+    if not (await db.execute(select(MarriagePrepModule).where(MarriagePrepModule.id == module_id))).scalar_one_or_none():
+        raise HTTPException(404, "Module not found")
+    r = MarriagePrepModuleResource(module_id=module_id, title=title, kind="url", external_url=external_url)
+    db.add(r)
+    await db.commit()
+    await db.refresh(r)
+    return _resource(r)
+
+
+@router.post("/admin/modules/{module_id}/resources/file", status_code=201)
+async def add_module_resource_file(
+    module_id: str,
+    title: str = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+):
+    """Accepts a PDF, Word doc, or any other document — same 25MB cap and
+    binary-in-Postgres storage as /downloads."""
+    if not (await db.execute(select(MarriagePrepModule).where(MarriagePrepModule.id == module_id))).scalar_one_or_none():
+        raise HTTPException(404, "Module not found")
+    data = await file.read()
+    if len(data) > MAX_RESOURCE_FILE_BYTES:
+        raise HTTPException(413, f"File exceeds {MAX_RESOURCE_FILE_BYTES // (1024 * 1024)} MB. Use a URL instead.")
+    r = MarriagePrepModuleResource(
+        module_id=module_id, title=title, kind="file", file_data=data,
+        file_name=file.filename or "untitled",
+        file_mime_type=file.content_type or "application/octet-stream",
+        file_size=len(data),
+    )
+    db.add(r)
+    await db.commit()
+    await db.refresh(r)
+    return _resource(r)
+
+
+@router.delete("/admin/modules/resources/{resource_id}")
+async def delete_module_resource(resource_id: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    r = (await db.execute(select(MarriagePrepModuleResource).where(MarriagePrepModuleResource.id == resource_id))).scalar_one_or_none()
+    if r:
+        await db.delete(r)
+        await db.commit()
+    return {"deleted": 1 if r else 0}
+
+
+@router.get("/modules/resources/{resource_id}/file")
+async def stream_module_resource_file(resource_id: str, db: AsyncSession = Depends(get_db)):
+    """Public — curriculum previews and the couple portal are both public
+    (capability-link, no auth), so an attached PDF/document is fetchable the
+    same way the page that shows it already is."""
+    r = (await db.execute(select(MarriagePrepModuleResource).where(MarriagePrepModuleResource.id == resource_id))).scalar_one_or_none()
+    if not r or r.kind != "file" or not r.file_data:
+        raise HTTPException(404, "Not found")
+    safe_name = (r.file_name or f"{r.id}.bin").replace('"', "")
+    mime = r.file_mime_type or "application/octet-stream"
+    return StreamingResponse(
+        io.BytesIO(r.file_data),
+        media_type=mime,
+        headers={
+            "Content-Disposition": f'inline; filename="{safe_name}"',
+            "Cache-Control": "public, max-age=86400",
+        },
+    )
 
 
 @router.get("/admin/couples")
@@ -446,12 +541,23 @@ async def verify_certificate(couple_id: str, sig: str = "", db: AsyncSession = D
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
-def _module(m: MarriagePrepModule) -> dict[str, Any]:
+def _module(m: MarriagePrepModule, resources: Optional[list[dict]] = None) -> dict[str, Any]:
     return {
         "id": m.id, "week_number": m.week_number, "title": m.title,
         "summary": m.summary, "body_html": m.body_html,
         "scripture": m.scripture, "homework": m.homework,
         "is_published": m.is_published,
+        "resources": resources or [],
+    }
+
+
+def _resource(r: MarriagePrepModuleResource) -> dict[str, Any]:
+    """Metadata only — never includes file_data, so this is safe to send
+    to the public curriculum preview and the couple portal alike."""
+    return {
+        "id": r.id, "module_id": r.module_id, "title": r.title, "kind": r.kind,
+        "external_url": r.external_url,
+        "file_name": r.file_name, "file_mime_type": r.file_mime_type, "file_size": r.file_size,
     }
 
 
