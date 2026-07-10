@@ -8,7 +8,7 @@ import {
     Loader2, Plus, Save, Trash2, Heart, CheckCircle, AlertCircle, Quote, Pencil, X,
     Link as LinkIcon, FileText, Upload, Video, CalendarClock,
 } from 'lucide-react'
-import { marriagePrepApi, ministryContentApi, type MarriagePrepModule, type MarriagePrepModuleResource, type MarriagePrepCouple } from '@/lib/api'
+import { marriagePrepApi, ministryContentApi, type MarriagePrepModule, type MarriagePrepModuleResource, type MarriagePrepCouple, type MarriagePrepPastor } from '@/lib/api'
 import { marriagePrepRoom } from '@/components/JitsiMeet'
 
 export default function MarriagePrepAdmin() {
@@ -328,6 +328,16 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
     }
 
     const [scheduling, setScheduling] = useState<MarriagePrepCouple | null>(null)
+    const [pastors, setPastors] = useState<MarriagePrepPastor[]>([])
+    useEffect(() => { marriagePrepApi.listPastors().then(setPastors).catch(() => { /* none */ }) }, [])
+
+    const assign = async (c: MarriagePrepCouple, pastorId: string) => {
+        try {
+            await marriagePrepApi.assignPastor(c.id, pastorId || null)
+            onMsg({ kind: 'ok', text: pastorId ? 'Pastor assigned.' : 'Pastor unassigned.' })
+            onSaved()
+        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
+    }
 
     const signOff = async (c: MarriagePrepCouple) => {
         const sig = prompt(`Sign off on ${c.partner_a_name} & ${c.partner_b_name}? Enter your name as signature:`)
@@ -369,6 +379,17 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
                                     <CalendarClock className="w-3 h-3" /> Session {new Date(c.session_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                 </p>
                             )}
+                            <div className="mt-2 flex items-center gap-2">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Pastor</label>
+                                <select
+                                    value={c.assigned_pastor_user_id || ''}
+                                    onChange={e => assign(c, e.target.value)}
+                                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-[#140152] font-semibold max-w-[200px]"
+                                >
+                                    <option value="">— Unassigned —</option>
+                                    {pastors.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                            </div>
                             {c.pastor_signed_off && c.pastor_signature && (
                                 <p className="text-xs text-emerald-700 mt-1 inline-flex items-center gap-1">
                                     <CheckCircle className="w-3 h-3" /> Signed by {c.pastor_signature}

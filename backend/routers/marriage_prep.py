@@ -154,6 +154,10 @@ async def get_couple_public(couple_id: str, db: AsyncSession = Depends(get_db)):
     c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
     if not c:
         raise HTTPException(404, "Couple not found")
+    pastor_name = None
+    if c.assigned_pastor_user_id:
+        u = (await db.execute(select(User).where(User.id == c.assigned_pastor_user_id))).scalar_one_or_none()
+        pastor_name = u.name if u else None
     return {
         "id": c.id,
         "partner_a_name": c.partner_a_name,
@@ -161,6 +165,7 @@ async def get_couple_public(couple_id: str, db: AsyncSession = Depends(get_db)):
         "intended_wedding_date": c.intended_wedding_date,
         "status": c.status,
         "pastor_signed_off": c.pastor_signed_off,
+        "assigned_pastor_name": pastor_name,
         "session_at": c.session_at.isoformat() if c.session_at else None,
         "session_note": c.session_note,
     }
@@ -303,13 +308,56 @@ async def stream_module_resource_file(resource_id: str, db: AsyncSession = Depen
     )
 
 
+@router.get("/admin/pastors")
+async def list_pastors(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Staff who can be assigned to shepherd a couple — admins and moderators
+    with active accounts. Assignment is a label; only admins can sign off."""
+    from models.user import UserRole, UserStatus
+    res = await db.execute(
+        select(User).where(
+            User.role.in_([UserRole.ADMIN, UserRole.MODERATOR]),
+            User.status == UserStatus.ACTIVE,
+        ).order_by(User.name)
+    )
+    return [{"id": u.id, "name": u.name, "email": u.email} for u in res.scalars().all()]
+
+
+async def _pastor_names(db: AsyncSession, ids: list[str]) -> dict[str, str]:
+    ids = [i for i in set(ids) if i]
+    if not ids:
+        return {}
+    res = await db.execute(select(User).where(User.id.in_(ids)))
+    return {u.id: u.name for u in res.scalars().all()}
+
+
 @router.get("/admin/couples")
 async def list_couples_admin(status: Optional[str] = None, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     q = select(MarriagePrepCouple).order_by(desc(MarriagePrepCouple.created_at))
     if status:
         q = q.where(MarriagePrepCouple.status == status)
     res = await db.execute(q.limit(500))
-    return [_couple(c) for c in res.scalars().all()]
+    couples = res.scalars().all()
+    names = await _pastor_names(db, [c.assigned_pastor_user_id for c in couples])
+    return [_couple(c, pastor_name=names.get(c.assigned_pastor_user_id)) for c in couples]
+
+
+class AssignPastorIn(BaseModel):
+    pastor_user_id: Optional[str] = None   # None clears the assignment
+
+
+@router.post("/admin/couples/{couple_id}/assign-pastor")
+async def assign_pastor(couple_id: str, body: AssignPastorIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
+    if not c:
+        raise HTTPException(404, "Couple not found")
+    if body.pastor_user_id:
+        if not (await db.execute(select(User).where(User.id == body.pastor_user_id))).scalar_one_or_none():
+            raise HTTPException(404, "Pastor not found")
+    c.assigned_pastor_user_id = body.pastor_user_id or None
+    await db.commit()
+    await db.refresh(c)
+    names = await _pastor_names(db, [c.assigned_pastor_user_id])
+    return _couple(c, pastor_name=names.get(c.assigned_pastor_user_id))
 
 
 class CoupleUpdateIn(BaseModel):
@@ -626,13 +674,14 @@ def _resource(r: MarriagePrepModuleResource) -> dict[str, Any]:
     }
 
 
-def _couple(c: MarriagePrepCouple) -> dict[str, Any]:
+def _couple(c: MarriagePrepCouple, pastor_name: Optional[str] = None) -> dict[str, Any]:
     return {
         "id": c.id,
         "partner_a_name": c.partner_a_name, "partner_a_email": c.partner_a_email,
         "partner_b_name": c.partner_b_name, "partner_b_email": c.partner_b_email,
         "intended_wedding_date": c.intended_wedding_date.isoformat() if c.intended_wedding_date else None,
         "assigned_pastor_user_id": c.assigned_pastor_user_id,
+        "assigned_pastor_name": pastor_name,
         "status": c.status, "pastor_signed_off": c.pastor_signed_off,
         "pastor_signed_at": c.pastor_signed_at.isoformat() if c.pastor_signed_at else None,
         "pastor_signature": c.pastor_signature, "pastor_note": c.pastor_note,

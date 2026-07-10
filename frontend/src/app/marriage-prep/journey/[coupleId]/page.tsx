@@ -20,6 +20,7 @@ import JitsiMeet, { marriagePrepRoom } from '@/components/JitsiMeet'
 interface CoupleInfo {
     id: string; partner_a_name: string; partner_b_name: string
     intended_wedding_date: string | null; status: string; pastor_signed_off: boolean
+    assigned_pastor_name?: string | null
     session_at?: string | null; session_note?: string | null
 }
 interface ProgressRow {
@@ -103,6 +104,11 @@ export default function CoupleJourneyPage() {
                 </h1>
                 {couple.intended_wedding_date && (
                     <p className="text-sm text-[#140152]/60 mt-2">Wedding · {new Date(couple.intended_wedding_date).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                )}
+                {couple.assigned_pastor_name && (
+                    <p className="text-sm text-[#140152]/70 mt-1 inline-flex items-center gap-1.5">
+                        <Heart className="w-3.5 h-3.5 text-rose-400" /> Your pastor: <strong>{couple.assigned_pastor_name}</strong>
+                    </p>
                 )}
 
                 {/* Progress bar */}
