@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
 import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, MessageSquare, Megaphone, Send, HandHeart, CheckCircle2, Phone, CalendarDays, Bell, X, ChevronRight, ArrowRight, Sparkles } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
-import { serviceRequestApi, notificationApi, Notification, ServiceRequest } from '@/lib/api'
+import { serviceRequestApi, notificationApi, paymentsApi, Notification, ServiceRequest } from '@/lib/api'
 import { checkMembership, type Department } from '@/lib/dept-api'
 import { Spotlight } from '@/components/ui/spotlight'
 
@@ -149,6 +149,8 @@ export default function UserDashboard() {
     // Notifications state
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [unreadCount, setUnreadCount] = useState(0)
+    // My Giving — the member's own gifts, matched by their account email.
+    const [giving, setGiving] = useState<Awaited<ReturnType<typeof paymentsApi.myGiving>> | null>(null)
     const [showNotifications, setShowNotifications] = useState(false)
     const [notificationsLoading, setNotificationsLoading] = useState(false)
 
@@ -214,6 +216,13 @@ export default function UserDashboard() {
                 setUnreadCount(countData.unread_count)
             } catch (err) {
                 console.error('Failed to load notifications count', err)
+            }
+
+            // My giving (best-effort — empty for members who haven't given)
+            try {
+                setGiving(await paymentsApi.myGiving())
+            } catch (err) {
+                console.error('Failed to load giving', err)
             }
         }
         init()
@@ -349,6 +358,76 @@ export default function UserDashboard() {
                                     className="bg-[#140152] text-white hover:bg-[#140152]/90 border-none justify-center rounded-xl shadow-none">
                                     View Full Schedule
                                 </PremiumButton>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* ── My Giving ── */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                        <Card className="bg-white border border-gray-100 shadow-lg rounded-2xl lg:col-span-2">
+                            <CardContent className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 bg-[#f5bb00]/15 rounded-lg flex items-center justify-center">
+                                            <HandHeart className="w-4 h-4 text-[#b8860b]" />
+                                        </div>
+                                        <span className="text-xs font-bold text-[#b8860b] uppercase tracking-wider">My Giving{giving?.year ? ` · ${giving.year}` : ''}</span>
+                                    </div>
+                                    <Link href="/giving" className="text-xs font-bold text-[#140152] hover:underline flex items-center gap-1">
+                                        Give <ChevronRight className="w-3.5 h-3.5" />
+                                    </Link>
+                                </div>
+                                {giving && giving.count > 0 ? (
+                                    <>
+                                        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 mb-4">
+                                            {giving.totals.map(t => (
+                                                <span key={t.currency} className="text-3xl font-black text-[#140152]">
+                                                    {t.currency} {t.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                </span>
+                                            ))}
+                                            <span className="text-gray-400 text-sm">this year{giving.has_recurring ? ' · monthly gift active' : ''}</span>
+                                        </div>
+                                        <div className="divide-y divide-gray-50 border-t border-gray-50">
+                                            {giving.recent.slice(0, 4).map((g, i) => (
+                                                <div key={i} className="flex items-center justify-between py-2 text-sm">
+                                                    <span className="text-gray-500">{new Date(g.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} · <span className="text-gray-700">{g.fund}</span>{g.recurring ? ' · recurring' : ''}</span>
+                                                    <span className="font-bold text-[#140152]">{g.currency} {g.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="text-center py-6">
+                                        <p className="text-gray-500 text-sm mb-3">No gifts on record yet. Your giving history will appear here.</p>
+                                        <PremiumButton href="/giving" className="justify-center rounded-xl mx-auto">Give now</PremiumButton>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* At a glance — one tap into the rest of the member's church life */}
+                        <Card className="bg-white border border-gray-100 shadow-lg rounded-2xl">
+                            <CardContent className="p-6">
+                                <span className="text-xs font-bold text-[#140152]/50 uppercase tracking-wider">My Church at a glance</span>
+                                <div className="mt-4 grid grid-cols-1 gap-2">
+                                    {[
+                                        { label: 'My Groups', sub: 'Ministries & departments', icon: Users, href: '/dashboard/volunteer' },
+                                        { label: 'Children Check-In', sub: 'Family hub', icon: HandHeart, href: '/children' },
+                                        { label: 'My Prayers', sub: 'Requests & wall', icon: Heart, href: '/dashboard/prayer-wall' },
+                                        { label: 'Giving Statement', sub: 'Annual receipt', icon: BookOpen, href: '/giving' },
+                                    ].map((x, i) => (
+                                        <Link key={i} href={x.href} className="flex items-center gap-3 rounded-xl border border-gray-100 hover:border-[#140152]/30 hover:shadow-sm px-3 py-2.5 transition-all group">
+                                            <div className="w-8 h-8 rounded-lg bg-[#140152]/5 flex items-center justify-center shrink-0">
+                                                <x.icon className="w-4 h-4 text-[#140152]" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-sm text-[#140152] truncate">{x.label}</p>
+                                                <p className="text-[10px] text-gray-400 truncate">{x.sub}</p>
+                                            </div>
+                                            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#140152] transition-colors shrink-0" />
+                                        </Link>
+                                    ))}
+                                </div>
                             </CardContent>
                         </Card>
                     </div>

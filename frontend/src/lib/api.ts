@@ -3918,6 +3918,13 @@ export const paymentsApi = {
     },
     lookupByReference: (reference: string) =>
         fetchApi<{ reference: string; payer_name: string; amount: number; currency: string; fund: string; status: string; created_at: string }>(`/payments/donations/by-reference/${encodeURIComponent(reference)}`),
+    // The signed-in member's own giving (matched by their account email).
+    myGiving: () =>
+        fetchApi<{
+            year: number | null; count: number; has_recurring?: boolean
+            totals: Array<{ currency: string; amount: number }>
+            recent: Array<{ date: string; amount: number; currency: string; fund: string; status: string; recurring: boolean }>
+        }>('/payments/me/giving'),
 };
 
 // ─── Event photo upload (file) ──────────────────────────────────────────────

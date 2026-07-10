@@ -32,7 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from models.payment import PaymentProvider, Donation
 from models.user import User
-from utils.dependencies import get_admin_user
+from utils.dependencies import get_admin_user, get_current_user
 from utils.audit import log_action
 
 logger = logging.getLogger(__name__)
@@ -583,6 +583,41 @@ async def donation_by_reference(reference: str, db: AsyncSession = Depends(get_d
         "reference": d.reference, "payer_name": d.payer_name,
         "amount": float(d.amount), "currency": d.currency,
         "fund": d.fund, "status": d.status, "created_at": d.created_at,
+    }
+
+
+@router.get("/me/giving")
+async def my_giving(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    """The signed-in member's own giving, matched by their account email:
+    this-year total (per currency) plus their most recent gifts. Powers the
+    'My Giving' card in the member hub."""
+    email = (user.email or "").strip().lower()
+    if not email:
+        return {"year": None, "totals": [], "recent": [], "count": 0}
+    rows = (await db.execute(
+        select(Donation).where(
+            func.lower(Donation.payer_email) == email,
+            Donation.status == "success",
+        ).order_by(Donation.created_at.desc()).limit(200)
+    )).scalars().all()
+    if not rows:
+        return {"year": None, "totals": [], "recent": [], "count": 0}
+    year = rows[0].created_at.year
+    totals: dict[str, float] = {}
+    for d in rows:
+        if d.created_at.year == year:
+            cur = (d.currency or "").upper()
+            totals[cur] = totals.get(cur, 0.0) + float(d.amount)
+    recent = [{
+        "date": d.created_at.isoformat(), "amount": float(d.amount),
+        "currency": (d.currency or "").upper(), "fund": d.fund,
+        "status": d.status, "recurring": bool(d.interval),
+    } for d in rows[:6]]
+    has_recurring = any(d.interval for d in rows)
+    return {
+        "year": year,
+        "totals": [{"currency": c, "amount": round(a, 2)} for c, a in sorted(totals.items())],
+        "recent": recent, "count": len(rows), "has_recurring": has_recurring,
     }
 
 
