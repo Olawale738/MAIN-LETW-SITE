@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Loader2, Wallet, RefreshCw, AlertCircle } from 'lucide-react'
+import { Loader2, Wallet, RefreshCw, AlertCircle, FileText, ChevronDown } from 'lucide-react'
 import { paymentsApi, type Donation } from '@/lib/api'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -56,6 +56,8 @@ export default function AdminDonationsPage() {
                 ))}
             </div>
 
+            <YearEndStatements />
+
             <div className="flex gap-2 mb-4 flex-wrap">
                 {['', 'success', 'pending', 'failed', 'refunded'].map(s => (
                     <button key={s} onClick={() => setFilter(s)} className={`px-3 py-1.5 text-xs font-bold rounded-lg ${filter === s ? 'bg-[#140152] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
@@ -90,6 +92,77 @@ export default function AdminDonationsPage() {
                     </tbody>
                 </table>
             </div>
+        </div>
+    )
+}
+
+function YearEndStatements() {
+    const now = new Date().getFullYear()
+    const [open, setOpen] = useState(false)
+    const [year, setYear] = useState(now - 1)
+    const [rows, setRows] = useState<Array<{ email: string | null; name: string; count: number; totals: Array<{ currency: string; amount: number }> }> | null>(null)
+    const [loading, setLoading] = useState(false)
+    const [err, setErr] = useState<string | null>(null)
+
+    const generate = async () => {
+        setLoading(true); setErr(null); setRows(null)
+        try {
+            const r = await paymentsApi.givingStatements(year)
+            setRows(r.donors)
+        } catch (e) { setErr((e as Error).message) }
+        finally { setLoading(false) }
+    }
+
+    const openStatement = (d: { email: string | null; name: string }) => {
+        const qs = new URLSearchParams({ year: String(year) })
+        if (d.email) qs.set('email', d.email); else qs.set('name', d.name)
+        window.open(`/admin/donations/statement?${qs.toString()}`, '_blank')
+    }
+
+    return (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 overflow-hidden">
+            <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-3 p-4 text-left">
+                <FileText className="w-5 h-5 text-[#f5bb00]" />
+                <div className="flex-1">
+                    <p className="font-black text-[#140152]">Year-end giving statements</p>
+                    <p className="text-xs text-gray-500">Generate a printable annual statement (tax receipt) for each donor.</p>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+
+            {open && (
+                <div className="px-4 pb-4 border-t border-gray-50">
+                    <div className="flex items-end gap-2 mt-3 mb-3">
+                        <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Tax year</label>
+                            <input type="number" value={year} onChange={e => setYear(Number(e.target.value) || now)} className="w-28 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                        <button onClick={generate} disabled={loading} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2 rounded-lg text-sm disabled:opacity-50">
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />} Generate
+                        </button>
+                    </div>
+
+                    {err && <p className="text-sm text-red-600 mb-2">{err}</p>}
+
+                    {rows && rows.length === 0 && <p className="text-sm text-gray-400 py-4">No successful gifts recorded in {year}.</p>}
+                    {rows && rows.length > 0 && (
+                        <div className="divide-y divide-gray-50 border border-gray-100 rounded-xl">
+                            {rows.map((d, i) => (
+                                <div key={i} className="flex items-center gap-3 p-3">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-[#140152] truncate">{d.name}</p>
+                                        <p className="text-xs text-gray-400 truncate">{d.email || 'no email on file'} · {d.count} gift{d.count !== 1 ? 's' : ''}</p>
+                                    </div>
+                                    <div className="text-right text-sm font-bold text-[#140152] shrink-0">
+                                        {d.totals.map(t => <div key={t.currency}>{t.currency} {t.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>)}
+                                    </div>
+                                    <button onClick={() => openStatement(d)} className="text-xs font-bold text-[#140152] underline shrink-0">View / print →</button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     )
 }

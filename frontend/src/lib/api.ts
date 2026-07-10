@@ -3902,6 +3902,20 @@ export const paymentsApi = {
         return fetchApi<Donation[]>(`/payments/donations?${qs.toString()}`);
     },
     stats: () => fetchApi<{ by_status: Record<string, { count: number; amount: number }>; by_fund: Array<{ fund: string; count: number; amount: number }> }>('/payments/stats'),
+    // Year-end giving statements (admin).
+    givingStatements: (year: number) =>
+        fetchApi<{ year: number; donors: Array<{ email: string | null; name: string; count: number; totals: Array<{ currency: string; amount: number }> }> }>(`/payments/statements?year=${year}`),
+    givingStatement: (year: number, opts: { email?: string; name?: string }) => {
+        const qs = new URLSearchParams({ year: String(year) })
+        if (opts.email) qs.set('email', opts.email)
+        else if (opts.name) qs.set('name', opts.name)
+        return fetchApi<{
+            year: number; donor_name: string; donor_email: string | null; count: number
+            items: Array<{ date: string; fund: string; amount: number; currency: string; reference: string; recurring: boolean }>
+            by_fund: Array<{ fund: string; currency: string; amount: number }>
+            totals: Array<{ currency: string; amount: number }>
+        }>(`/payments/statement?${qs.toString()}`)
+    },
     lookupByReference: (reference: string) =>
         fetchApi<{ reference: string; payer_name: string; amount: number; currency: string; fund: string; status: string; created_at: string }>(`/payments/donations/by-reference/${encodeURIComponent(reference)}`),
 };

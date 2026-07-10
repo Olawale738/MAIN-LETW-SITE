@@ -586,6 +586,84 @@ async def donation_by_reference(reference: str, db: AsyncSession = Depends(get_d
     }
 
 
+@router.get("/statements")
+async def giving_statements(year: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Year-end giving summary grouped by donor (by email, falling back to name),
+    across successful gifts only. One row per donor with per-currency totals —
+    the admin picks a donor and opens their detailed statement to print/send."""
+    start = datetime(year, 1, 1)
+    end = datetime(year + 1, 1, 1)
+    res = await db.execute(
+        select(Donation).where(
+            Donation.status == "success",
+            Donation.created_at >= start, Donation.created_at < end,
+        ).order_by(Donation.created_at)
+    )
+    donors: dict[str, dict] = {}
+    for d in res.scalars().all():
+        key = (d.payer_email or "").strip().lower() or f"name:{(d.payer_name or 'Anonymous').strip().lower()}"
+        entry = donors.setdefault(key, {
+            "email": d.payer_email, "name": d.payer_name or "Anonymous",
+            "count": 0, "totals": {},
+        })
+        entry["count"] += 1
+        if d.payer_email:
+            entry["email"] = d.payer_email  # prefer a real email if any gift had one
+        cur = (d.currency or "").upper()
+        entry["totals"][cur] = entry["totals"].get(cur, 0.0) + float(d.amount)
+    out = []
+    for e in donors.values():
+        out.append({
+            "email": e["email"], "name": e["name"], "count": e["count"],
+            "totals": [{"currency": c, "amount": round(a, 2)} for c, a in sorted(e["totals"].items())],
+        })
+    out.sort(key=lambda r: -(sum(t["amount"] for t in r["totals"])))
+    return {"year": year, "donors": out}
+
+
+@router.get("/statement")
+async def giving_statement(year: int, email: str = "", name: str = "", db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """One donor's detailed year-end statement: every successful gift, per-fund
+    and per-currency totals. Matched by email when given, else by exact name
+    (for cash/anonymous donors an admin recorded without an email)."""
+    start = datetime(year, 1, 1)
+    end = datetime(year + 1, 1, 1)
+    q = select(Donation).where(
+        Donation.status == "success",
+        Donation.created_at >= start, Donation.created_at < end,
+    )
+    if email:
+        q = q.where(func.lower(Donation.payer_email) == email.strip().lower())
+    elif name:
+        q = q.where(Donation.payer_email.is_(None), func.lower(Donation.payer_name) == name.strip().lower())
+    else:
+        raise HTTPException(400, "Provide an email or a name")
+    rows = (await db.execute(q.order_by(Donation.created_at))).scalars().all()
+    if not rows:
+        raise HTTPException(404, "No successful gifts found for this donor and year")
+    donor_name = rows[-1].payer_name or "Anonymous"
+    donor_email = next((r.payer_email for r in rows if r.payer_email), email or None)
+    items, by_fund, totals = [], {}, {}
+    for d in rows:
+        cur = (d.currency or "").upper()
+        amt = float(d.amount)
+        items.append({
+            "date": d.created_at.isoformat(), "fund": d.fund,
+            "amount": round(amt, 2), "currency": cur, "reference": d.reference,
+            "recurring": bool(d.interval),
+        })
+        by_fund.setdefault((d.fund, cur), 0.0)
+        by_fund[(d.fund, cur)] += amt
+        totals[cur] = totals.get(cur, 0.0) + amt
+    return {
+        "year": year, "donor_name": donor_name, "donor_email": donor_email,
+        "count": len(rows),
+        "items": items,
+        "by_fund": [{"fund": f, "currency": c, "amount": round(a, 2)} for (f, c), a in sorted(by_fund.items())],
+        "totals": [{"currency": c, "amount": round(a, 2)} for c, a in sorted(totals.items())],
+    }
+
+
 @router.get("/stats")
 async def donation_stats(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     res = await db.execute(
