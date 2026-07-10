@@ -197,6 +197,135 @@ async def send_email_smtp(to_email: str, subject: str, html_content: str) -> boo
         return False
 
 
+def _build_ics(*, uid: str, start: "datetime_type", end: "datetime_type", summary: str,
+               description: str, url: str = "") -> str:
+    """Minimal RFC-5545 VEVENT as a floating-local-time calendar invite.
+
+    Floating time (no Z / no TZID) is interpreted by calendar clients in the
+    viewer's own local zone — which is what we want for a church scheduling a
+    call with a local couple, without wrangling timezones."""
+    def fmt(d):
+        return d.strftime("%Y%m%dT%H%M%S")
+    lines = [
+        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//LETW//Marriage Prep//EN",
+        "CALSCALE:GREGORIAN", "METHOD:REQUEST", "BEGIN:VEVENT",
+        f"UID:{uid}", f"DTSTAMP:{fmt(start)}", f"DTSTART:{fmt(start)}", f"DTEND:{fmt(end)}",
+        f"SUMMARY:{summary}",
+        "DESCRIPTION:" + description.replace("\n", "\\n"),
+    ]
+    if url:
+        lines.append(f"URL:{url}")
+    lines += ["END:VEVENT", "END:VCALENDAR"]
+    return "\r\n".join(lines)
+
+
+async def send_email_with_ics(to_email: str, subject: str, html_content: str,
+                              ics_text: str, ics_filename: str = "invite.ics") -> bool:
+    """Send an email that carries a calendar (.ics) attachment. Uses Resend when
+    configured (base64 attachment), else SMTP with a MIME attachment, else logs.
+    Best-effort: returns False on failure but never raises."""
+    import base64
+    if not settings.EMAIL_ENABLED:
+        print("\n" + "=" * 60)
+        print("📧 EMAIL+ICS (Development Mode - Not Actually Sent)")
+        print(f"TO: {to_email}\nSUBJECT: {subject}")
+        print("-" * 60 + f"\n{html_content}\n--- ICS ---\n{ics_text}")
+        print("=" * 60 + "\n")
+        return True
+    resend_api_key = getattr(settings, "RESEND_API_KEY", None)
+    try:
+        if resend_api_key and RESEND_AVAILABLE:
+            resend.api_key = resend_api_key
+            resend.Emails.send({
+                "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM_ADDRESS}>",
+                "to": [to_email], "subject": subject, "html": html_content,
+                "attachments": [{
+                    "filename": ics_filename,
+                    "content": base64.b64encode(ics_text.encode("utf-8")).decode("ascii"),
+                    "content_type": "text/calendar",
+                }],
+            })
+            print(f"✅ Email+ICS sent via Resend to {to_email}")
+            return True
+        # SMTP fallback with attachment
+        from email.mime.base import MIMEBase
+        from email import encoders as _encoders
+        message = MIMEMultipart("mixed")
+        message["From"] = f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM_ADDRESS}>"
+        message["To"] = to_email
+        message["Subject"] = subject
+        message.attach(MIMEText(html_content, "html"))
+        part = MIMEBase("text", "calendar", method="REQUEST", name=ics_filename)
+        part.set_payload(ics_text)
+        _encoders.encode_base64(part)
+        part.add_header("Content-Disposition", f'attachment; filename="{ics_filename}"')
+        message.attach(part)
+        use_tls = settings.SMTP_PORT == 465
+        start_tls = settings.SMTP_PORT == 587
+        await aiosmtplib.send(
+            message, hostname=settings.SMTP_HOST, port=settings.SMTP_PORT,
+            username=settings.SMTP_USER, password=settings.SMTP_PASSWORD,
+            use_tls=use_tls, start_tls=start_tls, timeout=30,
+        )
+        print(f"✅ Email+ICS sent via SMTP to {to_email}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send email+ICS to {to_email}: {e}")
+        return False
+
+
+async def send_marriage_prep_session_email(
+    *, to_email: str, partner_a: str, partner_b: str,
+    when, note: str, join_url: str,
+) -> bool:
+    """Emails a couple a calendar invite for a pastor-scheduled session."""
+    from datetime import timedelta
+    from urllib.parse import quote as _q
+    end = when + timedelta(hours=1)
+    when_label = when.strftime("%A, %B %d, %Y at %I:%M %p")
+    couple = html.escape(f"{partner_a} & {partner_b}")
+    note = (note or "").strip()
+    when_stamp = when.strftime("%Y%m%dT%H%M%S")
+    end_stamp = end.strftime("%Y%m%dT%H%M%S")
+    join_line = ("\n\nJoin: " + join_url) if join_url else ""
+    gcal = (
+        "https://www.google.com/calendar/render?action=TEMPLATE"
+        "&text=" + _q("Marriage Prep session with your pastor")
+        + "&dates=" + when_stamp + "/" + end_stamp
+        + "&details=" + _q(note + join_line)
+    )
+    note_block = ("<p style=\"background:#fbf5e6;border:1px solid #f5bb00;border-radius:10px;padding:12px\">"
+                  + html.escape(note) + "</p>") if note else ""
+    body_html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1f2937">
+      <div style="background:#140152;color:#fff;padding:24px;border-radius:16px 16px 0 0">
+        <h2 style="margin:0;color:#f5bb00">Your Marriage Prep session is scheduled</h2>
+      </div>
+      <div style="border:1px solid #eee;border-top:none;padding:24px;border-radius:0 0 16px 16px">
+        <p>Dear {couple},</p>
+        <p>Your pastor has scheduled a session with you:</p>
+        <p style="font-size:18px;font-weight:bold;color:#140152">&#128197; {html.escape(when_label)}</p>
+        {note_block}
+        <p style="margin:24px 0">
+          <a href="{join_url}" style="background:#140152;color:#fff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:999px">Join the video call</a>
+        </p>
+        <p style="font-size:13px;color:#6b7280">
+          The calendar invite (.ics) is attached — open it to add this to your calendar,
+          or <a href="{gcal}">add it to Google Calendar</a>.
+        </p>
+      </div>
+    </div>
+    """
+    ics = _build_ics(
+        uid="letw-mp-" + str(abs(hash((to_email, when_label)))) + "@letw.org",
+        start=when, end=end,
+        summary="Marriage Prep session with your pastor",
+        description=(note or "Marriage Prep pastoral session.") + join_line,
+        url=join_url,
+    )
+    return await send_email_with_ics(to_email, "Your Marriage Prep session is scheduled", body_html, ics, "marriage-prep-session.ics")
+
+
 async def send_verification_email(to_email: str, name: str, token: str) -> bool:
     """
     Send email verification link to new user.

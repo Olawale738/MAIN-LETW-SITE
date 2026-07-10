@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import {
     Loader2, Plus, Save, Trash2, Heart, CheckCircle, AlertCircle, Quote, Pencil, X,
-    Link as LinkIcon, FileText, Upload, Video,
+    Link as LinkIcon, FileText, Upload, Video, CalendarClock,
 } from 'lucide-react'
 import { marriagePrepApi, ministryContentApi, type MarriagePrepModule, type MarriagePrepModuleResource, type MarriagePrepCouple } from '@/lib/api'
 import { marriagePrepRoom } from '@/components/JitsiMeet'
@@ -327,6 +327,8 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
         window.open(url, '_blank', 'noopener')
     }
 
+    const [scheduling, setScheduling] = useState<MarriagePrepCouple | null>(null)
+
     const signOff = async (c: MarriagePrepCouple) => {
         const sig = prompt(`Sign off on ${c.partner_a_name} & ${c.partner_b_name}? Enter your name as signature:`)
         if (!sig) return
@@ -362,6 +364,11 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
                             <p className="text-xs text-gray-500 mt-0.5">{c.partner_a_email}{c.partner_b_email ? ` · ${c.partner_b_email}` : ''}</p>
                             {c.intended_wedding_date && <p className="text-xs text-gray-500">Wedding {new Date(c.intended_wedding_date).toLocaleDateString()}</p>}
                             <p className="text-[10px] uppercase tracking-widest mt-1 font-bold inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{c.status}</p>
+                            {c.session_at && (
+                                <p className="text-xs text-rose-700 mt-1 inline-flex items-center gap-1">
+                                    <CalendarClock className="w-3 h-3" /> Session {new Date(c.session_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                </p>
+                            )}
                             {c.pastor_signed_off && c.pastor_signature && (
                                 <p className="text-xs text-emerald-700 mt-1 inline-flex items-center gap-1">
                                     <CheckCircle className="w-3 h-3" /> Signed by {c.pastor_signature}
@@ -399,6 +406,10 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
                                     <Video className="w-3 h-3" /> Video call
                                 </button>
                             )}
+                            <button onClick={() => setScheduling(c)} title="Schedule a session and email the couple a calendar invite"
+                                className="inline-flex items-center gap-1 border border-gray-200 hover:border-[#140152] text-gray-700 hover:text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg">
+                                <CalendarClock className="w-3 h-3" /> Schedule
+                            </button>
                             <button onClick={() => setEditing(c)} title="Edit couple"
                                 className="inline-flex items-center gap-1 border border-gray-200 hover:border-[#140152] text-gray-700 hover:text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg">
                                 <Pencil className="w-3 h-3" /> Edit
@@ -420,7 +431,73 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
                     onMsg={onMsg}
                 />
             )}
+
+            {scheduling && (
+                <ScheduleModal
+                    couple={scheduling}
+                    onClose={() => setScheduling(null)}
+                    onSaved={() => { setScheduling(null); onSaved() }}
+                    onMsg={onMsg}
+                />
+            )}
         </>
+    )
+}
+
+function ScheduleModal({ couple, onClose, onSaved, onMsg }: {
+    couple: MarriagePrepCouple
+    onClose: () => void
+    onSaved: () => void
+    onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void
+}) {
+    // datetime-local wants "YYYY-MM-DDTHH:mm" — trim any existing ISO value.
+    const [when, setWhen] = useState(couple.session_at ? couple.session_at.slice(0, 16) : '')
+    const [note, setNote] = useState(couple.session_note || '')
+    const [saving, setSaving] = useState(false)
+
+    const save = async (clear: boolean) => {
+        setSaving(true)
+        try {
+            // Send the local wall-clock time as-is (no timezone) — the invite is
+            // floating local time, matching what the pastor typed.
+            await marriagePrepApi.scheduleSession(couple.id, clear ? null : (when || null), clear ? undefined : note)
+            onMsg({ kind: 'ok', text: clear ? 'Session cleared.' : 'Session scheduled — calendar invite emailed to the couple.' })
+            onSaved()
+        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setSaving(false) }
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} className="bg-white rounded-3xl shadow-2xl max-w-md w-full">
+                <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                    <h3 className="font-black text-[#140152]">Schedule a session</h3>
+                    <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+                </div>
+                <div className="p-5 space-y-3">
+                    <p className="text-xs text-gray-500">{couple.partner_a_name} &amp; {couple.partner_b_name} will be emailed a calendar invite (.ics) with their video-room link.</p>
+                    <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Date &amp; time</label>
+                        <input type="datetime-local" value={when} onChange={e => setWhen(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Note to the couple (optional)</label>
+                        <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="What this session is for, anything to prepare…" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-y" />
+                    </div>
+                </div>
+                <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-2">
+                    {couple.session_at ? (
+                        <button onClick={() => save(true)} disabled={saving} className="text-sm text-red-600 hover:text-red-800 font-bold">Clear session</button>
+                    ) : <span />}
+                    <div className="flex items-center gap-2">
+                        <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-800">Cancel</button>
+                        <button onClick={() => save(false)} disabled={saving || !when} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2 rounded-lg text-sm disabled:opacity-50">
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarClock className="w-4 h-4" />} Schedule &amp; invite
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     )
 }
 

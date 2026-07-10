@@ -161,6 +161,8 @@ async def get_couple_public(couple_id: str, db: AsyncSession = Depends(get_db)):
         "intended_wedding_date": c.intended_wedding_date,
         "status": c.status,
         "pastor_signed_off": c.pastor_signed_off,
+        "session_at": c.session_at.isoformat() if c.session_at else None,
+        "session_note": c.session_note,
     }
 
 
@@ -334,6 +336,49 @@ async def update_couple(couple_id: str, body: CoupleUpdateIn, db: AsyncSession =
         setattr(c, k, v)
     await db.commit()
     await db.refresh(c)
+    return _couple(c)
+
+
+class SessionScheduleIn(BaseModel):
+    session_at: Optional[datetime] = None   # None clears the schedule
+    note: Optional[str] = None
+
+
+@router.post("/admin/couples/{couple_id}/schedule")
+async def schedule_session(couple_id: str, body: SessionScheduleIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Pastor proposes (or clears) a session time. When a time is set, both
+    partners are emailed a calendar invite (.ics) with the couple's video-room
+    link. Best-effort email — a mail hiccup never blocks the schedule save."""
+    c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
+    if not c:
+        raise HTTPException(404, "Couple not found")
+    c.session_at = body.session_at
+    c.session_note = (body.note or None) if body.session_at else None
+    await db.commit()
+    await db.refresh(c)
+
+    if c.session_at:
+        # Video-room link mirrors the portal/admin Jitsi rooms.
+        jitsi_domain = "meet.jit.si"
+        try:
+            from models.ministry_content import MinistryContent
+            row = (await db.execute(select(MinistryContent).where(MinistryContent.key == "marriage-prep-page"))).scalar_one_or_none()
+            if row and isinstance(row.content, dict) and row.content.get("jitsi_domain"):
+                jitsi_domain = str(row.content["jitsi_domain"]).strip() or "meet.jit.si"
+        except Exception:
+            pass
+        join_url = f"https://{jitsi_domain}/LETW-MarriagePrep-{c.id}"
+        try:
+            from services.email_service import send_marriage_prep_session_email
+            for addr in {c.partner_a_email, c.partner_b_email}:
+                if addr:
+                    await send_marriage_prep_session_email(
+                        to_email=addr, partner_a=c.partner_a_name, partner_b=c.partner_b_name,
+                        when=c.session_at, note=c.session_note or "", join_url=join_url,
+                    )
+        except Exception as e:
+            print(f"[marriage-prep] session email failed: {type(e).__name__}: {e}", flush=True)
+
     return _couple(c)
 
 
@@ -591,6 +636,8 @@ def _couple(c: MarriagePrepCouple) -> dict[str, Any]:
         "status": c.status, "pastor_signed_off": c.pastor_signed_off,
         "pastor_signed_at": c.pastor_signed_at.isoformat() if c.pastor_signed_at else None,
         "pastor_signature": c.pastor_signature, "pastor_note": c.pastor_note,
+        "session_at": c.session_at.isoformat() if c.session_at else None,
+        "session_note": c.session_note,
         "created_at": c.created_at.isoformat(),
     }
 

@@ -196,6 +196,9 @@ async def init_db():
                 ("sermons", "auto_email_sent_at",   "TIMESTAMP"),
                 # Recurring giving — NULL for one-time gifts, else weekly|monthly|yearly
                 ("donations", "interval", "VARCHAR(20)"),
+                # Marriage-prep pastor-proposed session (calendar invite)
+                ("marriage_prep_couples", "session_at",   "TIMESTAMP"),
+                ("marriage_prep_couples", "session_note", "TEXT"),
             ]
 
             # NOTE: ALTER TABLE ... ADD COLUMN IF NOT EXISTS is idempotent in

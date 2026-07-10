@@ -4355,6 +4355,7 @@ export interface MarriagePrepCouple {
     status: 'enrolled' | 'in_progress' | 'completed' | 'withdrew'
     pastor_signed_off: boolean; pastor_signed_at: string | null
     pastor_signature: string | null; pastor_note: string | null
+    session_at?: string | null; session_note?: string | null
     created_at: string
 }
 export const marriagePrepApi = {
@@ -4366,7 +4367,7 @@ export const marriagePrepApi = {
     coupleProgress: (couple_id: string) =>
         fetchApi<{ id: string; couple_id: string; module_id: string; completed_at: string | null; reflections: string | null }[]>(`/marriage-prep/couples/${couple_id}/progress`),
     getCouple: (couple_id: string) =>
-        fetchApi<{ id: string; partner_a_name: string; partner_b_name: string; intended_wedding_date: string | null; status: string; pastor_signed_off: boolean }>(`/marriage-prep/couples/${couple_id}`),
+        fetchApi<{ id: string; partner_a_name: string; partner_b_name: string; intended_wedding_date: string | null; status: string; pastor_signed_off: boolean; session_at?: string | null; session_note?: string | null }>(`/marriage-prep/couples/${couple_id}`),
     // Public certificate — used by /marriage-prep/complete/{id}. Returns
     // 404 until the pastor has signed off; couple id (UUID) is the only auth.
     certificate: (couple_id: string) =>
@@ -4432,6 +4433,10 @@ export const marriagePrepApi = {
         fetchApi<MarriagePrepCouple>(`/marriage-prep/admin/couples/${couple_id}`, { method: 'PUT', body: JSON.stringify(body) }),
     deleteCouple: (couple_id: string) =>
         fetchApi<{ deleted: number }>(`/marriage-prep/admin/couples/${couple_id}`, { method: 'DELETE' }),
+    // Pastor proposes a session time (or clears it with session_at=null); both
+    // partners are emailed a calendar invite with their video-room link.
+    scheduleSession: (couple_id: string, session_at: string | null, note?: string) =>
+        fetchApi<MarriagePrepCouple>(`/marriage-prep/admin/couples/${couple_id}/schedule`, { method: 'POST', body: JSON.stringify({ session_at, note: note || null }) }),
 }
 
 // ── Fasting calendar ────────────────────────────────────────────────────────

@@ -12,7 +12,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
     Loader2, Heart, CheckCircle, ChevronDown, Quote, BookOpen,
-    PenLine, Save, Sparkles, Award, AlertCircle, Link as LinkIcon, FileText, Video, X,
+    PenLine, Save, Sparkles, Award, AlertCircle, Link as LinkIcon, FileText, Video, X, CalendarClock,
 } from 'lucide-react'
 import { marriagePrepApi, ministryContentApi, toVideoEmbedUrl, type MarriagePrepModule } from '@/lib/api'
 import JitsiMeet, { marriagePrepRoom } from '@/components/JitsiMeet'
@@ -20,6 +20,7 @@ import JitsiMeet, { marriagePrepRoom } from '@/components/JitsiMeet'
 interface CoupleInfo {
     id: string; partner_a_name: string; partner_b_name: string
     intended_wedding_date: string | null; status: string; pastor_signed_off: boolean
+    session_at?: string | null; session_note?: string | null
 }
 interface ProgressRow {
     id: string; couple_id: string; module_id: string
@@ -121,6 +122,30 @@ export default function CoupleJourneyPage() {
                     </div>
                 )}
             </section>
+
+            {/* Upcoming session the pastor scheduled */}
+            {couple.session_at && (
+                <section className="max-w-3xl mx-auto px-4 pb-2">
+                    <div className="bg-[#140152] text-white rounded-3xl shadow-sm p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white/10 text-[#f5bb00] flex items-center justify-center shrink-0">
+                            <CalendarClock className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#f5bb00]">Upcoming session</p>
+                            <h3 className="font-black text-lg">
+                                {new Date(couple.session_at).toLocaleString(undefined, { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                            </h3>
+                            {couple.session_note && <p className="text-sm text-white/70 mt-1">{couple.session_note}</p>}
+                        </div>
+                        {jitsiEnabled && (
+                            <button onClick={() => setInCall(true)}
+                                className="inline-flex items-center justify-center gap-2 bg-[#f5bb00] hover:bg-amber-300 text-[#140152] font-black px-6 py-3 rounded-full text-sm shrink-0">
+                                <Video className="w-4 h-4" /> Join now
+                            </button>
+                        )}
+                    </div>
+                </section>
+            )}
 
             {/* Video session with the pastor */}
             {jitsiEnabled && (
