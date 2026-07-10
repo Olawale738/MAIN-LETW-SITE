@@ -4309,9 +4309,34 @@ export const sanctuaryApi = {
 
 // ── Marriage Prep ───────────────────────────────────────────────────────────
 export interface MarriagePrepModuleResource {
-    id: string; module_id: string; title: string; kind: 'url' | 'file'
+    id: string; module_id: string; title: string; kind: 'url' | 'file' | 'video'
     external_url: string | null
     file_name: string | null; file_mime_type: string | null; file_size: number | null
+}
+
+// Converts a plain YouTube/Vimeo link into its embeddable iframe URL. Falls
+// back to the original URL for anything else (or an unparseable string) so
+// the caller can still link out instead of embedding.
+export function toVideoEmbedUrl(url: string): string {
+    try {
+        const u = new URL(url)
+        if (u.hostname.includes('youtu.be')) {
+            return `https://www.youtube.com/embed/${u.pathname.slice(1)}`
+        }
+        if (u.hostname.includes('youtube.com')) {
+            if (u.pathname.startsWith('/embed/')) return url
+            const id = u.searchParams.get('v') || u.pathname.split('/').filter(Boolean).pop()
+            return id ? `https://www.youtube.com/embed/${id}` : url
+        }
+        if (u.hostname.includes('vimeo.com')) {
+            if (u.hostname.includes('player.vimeo.com')) return url
+            const id = u.pathname.split('/').filter(Boolean).pop()
+            return id ? `https://player.vimeo.com/video/${id}` : url
+        }
+        return url
+    } catch {
+        return url
+    }
 }
 export interface MarriagePrepModule {
     id: string; week_number: number; title: string
@@ -4367,6 +4392,17 @@ export const marriagePrepApi = {
             method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd,
         })
         if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed to add link')
+        return res.json()
+    },
+    addModuleResourceVideo: async (moduleId: string, title: string, videoUrl: string): Promise<MarriagePrepModuleResource> => {
+        const fd = new FormData()
+        fd.append('title', title)
+        fd.append('video_url', videoUrl)
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+        const res = await fetch(`${API_BASE_URL}/marriage-prep/admin/modules/${moduleId}/resources/video`, {
+            method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd,
+        })
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed to add video')
         return res.json()
     },
     addModuleResourceFile: async (moduleId: string, title: string, file: File): Promise<MarriagePrepModuleResource> => {

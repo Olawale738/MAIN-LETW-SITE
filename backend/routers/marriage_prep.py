@@ -225,6 +225,26 @@ async def add_module_resource_url(
     return _resource(r)
 
 
+@router.post("/admin/modules/{module_id}/resources/video", status_code=201)
+async def add_module_resource_video(
+    module_id: str,
+    title: str = Form(...),
+    video_url: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+):
+    """A YouTube/Vimeo link, stored the same way as a plain URL resource but
+    tagged kind='video' so the frontend renders an embedded player instead
+    of a bare link."""
+    if not (await db.execute(select(MarriagePrepModule).where(MarriagePrepModule.id == module_id))).scalar_one_or_none():
+        raise HTTPException(404, "Module not found")
+    r = MarriagePrepModuleResource(module_id=module_id, title=title, kind="video", external_url=video_url)
+    db.add(r)
+    await db.commit()
+    await db.refresh(r)
+    return _resource(r)
+
+
 @router.post("/admin/modules/{module_id}/resources/file", status_code=201)
 async def add_module_resource_file(
     module_id: str,

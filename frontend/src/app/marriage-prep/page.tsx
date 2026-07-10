@@ -10,7 +10,7 @@ import {
     Loader2, Heart, ArrowRight, CheckCircle, Sparkles, Send, AlertCircle, BookOpen, Calendar, ChevronDown,
     Link as LinkIcon, FileText,
 } from 'lucide-react'
-import { marriagePrepApi, ministryContentApi, type MarriagePrepModule } from '@/lib/api'
+import { marriagePrepApi, ministryContentApi, toVideoEmbedUrl, type MarriagePrepModule } from '@/lib/api'
 
 const DEFAULT_COPY = {
     eyebrow:  'Six-week guided course',
@@ -149,20 +149,37 @@ export default function MarriagePrepPage() {
                                                 </div>
                                             )}
                                             {!!m.resources?.length && (
-                                                <ul className="mt-4 space-y-1.5">
-                                                    {m.resources.map(r => (
-                                                        <li key={r.id}>
-                                                            <a
-                                                                href={r.kind === 'url' ? (r.external_url || '#') : marriagePrepApi.moduleResourceFileUrl(r.id)}
-                                                                target="_blank" rel="noreferrer"
-                                                                className="inline-flex items-center gap-1.5 text-sm text-[#140152] font-bold underline underline-offset-2"
-                                                            >
-                                                                {r.kind === 'url' ? <LinkIcon className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
-                                                                {r.title}
-                                                            </a>
-                                                        </li>
+                                                <div className="mt-4 space-y-3">
+                                                    {m.resources.filter(r => r.kind === 'video').map(r => (
+                                                        <div key={r.id}>
+                                                            <p className="text-xs font-bold text-gray-600 mb-1.5">{r.title}</p>
+                                                            <div className="aspect-video rounded-xl overflow-hidden border border-gray-100 bg-black/5">
+                                                                <iframe
+                                                                    src={toVideoEmbedUrl(r.external_url || '')}
+                                                                    className="w-full h-full" title={r.title}
+                                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                    allowFullScreen
+                                                                />
+                                                            </div>
+                                                        </div>
                                                     ))}
-                                                </ul>
+                                                    {m.resources.some(r => r.kind !== 'video') && (
+                                                        <ul className="space-y-1.5">
+                                                            {m.resources.filter(r => r.kind !== 'video').map(r => (
+                                                                <li key={r.id}>
+                                                                    <a
+                                                                        href={r.kind === 'file' ? marriagePrepApi.moduleResourceFileUrl(r.id) : (r.external_url || '#')}
+                                                                        target="_blank" rel="noreferrer"
+                                                                        className="inline-flex items-center gap-1.5 text-sm text-[#140152] font-bold underline underline-offset-2"
+                                                                    >
+                                                                        {r.kind === 'url' ? <LinkIcon className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+                                                                        {r.title}
+                                                                    </a>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                </div>
                                             )}
                                             <p className="mt-4 text-xs text-gray-500">
                                                 Enrolled? Write your shared reflections and mark this week complete in your <strong>course portal</strong> — the link is in your enrolment email.

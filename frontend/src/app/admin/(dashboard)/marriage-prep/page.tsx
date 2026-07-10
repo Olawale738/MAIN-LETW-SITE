@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import {
     Loader2, Plus, Save, Trash2, Heart, CheckCircle, AlertCircle, Quote, Pencil, X,
-    Link as LinkIcon, FileText, Upload,
+    Link as LinkIcon, FileText, Upload, Video,
 } from 'lucide-react'
 import { marriagePrepApi, type MarriagePrepModule, type MarriagePrepModuleResource, type MarriagePrepCouple } from '@/lib/api'
 
@@ -53,7 +53,7 @@ export default function MarriagePrepAdmin() {
     )
 }
 
-interface PendingResource { title: string; kind: 'url' | 'file'; url?: string; file?: File }
+interface PendingResource { title: string; kind: 'url' | 'file' | 'video'; url?: string; file?: File }
 
 function ModulesTab({ modules, onSaved, onMsg }: { modules: MarriagePrepModule[]; onSaved: () => void; onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void }) {
     const [editing, setEditing] = useState<Omit<MarriagePrepModule, 'id'> | null>(null)
@@ -80,6 +80,7 @@ function ModulesTab({ modules, onSaved, onMsg }: { modules: MarriagePrepModule[]
                 const created = await marriagePrepApi.createModule(editing)
                 for (const p of pending) {
                     if (p.kind === 'url' && p.url) await marriagePrepApi.addModuleResourceUrl(created.id, p.title, p.url)
+                    if (p.kind === 'video' && p.url) await marriagePrepApi.addModuleResourceVideo(created.id, p.title, p.url)
                     if (p.kind === 'file' && p.file) await marriagePrepApi.addModuleResourceFile(created.id, p.title, p.file)
                 }
             }
@@ -113,6 +114,7 @@ function ModulesTab({ modules, onSaved, onMsg }: { modules: MarriagePrepModule[]
                             }))}
                             note="Uploaded automatically once you save this new module."
                             onAddLink={(title, url) => setPending(prev => [...prev, { title, kind: 'url', url }])}
+                            onAddVideo={(title, url) => setPending(prev => [...prev, { title, kind: 'video', url }])}
                             onAddFile={(title, file) => setPending(prev => [...prev, { title, kind: 'file', file }])}
                             onRemove={id => setPending(prev => prev.filter((_, i) => i !== Number(id)))}
                         />
@@ -157,44 +159,52 @@ function ModulesTab({ modules, onSaved, onMsg }: { modules: MarriagePrepModule[]
     )
 }
 
-interface ResourceRow { id: string; title: string; kind: 'url' | 'file'; href?: string; meta?: string }
+interface ResourceRow { id: string; title: string; kind: 'url' | 'file' | 'video'; href?: string; meta?: string }
 
-/** Shared list + "add link" / "upload file" controls. Used both for an
- * existing module's resources (persisted immediately) and for a brand-new
- * module's staged resources (persisted once the module itself is saved). */
-function ResourceEditorList({ rows, busy, note, onAddLink, onAddFile, onRemove }: {
+const RESOURCE_ICON: Record<ResourceRow['kind'], typeof LinkIcon> = { url: LinkIcon, file: FileText, video: Video }
+
+/** Shared list + "add link" / "add video" / "upload file" controls. Used both
+ * for an existing module's resources (persisted immediately) and for a
+ * brand-new module's staged resources (persisted once the module is saved). */
+function ResourceEditorList({ rows, busy, note, onAddLink, onAddVideo, onAddFile, onRemove }: {
     rows: ResourceRow[]
     busy?: boolean
     note?: string
     onAddLink: (title: string, url: string) => void
+    onAddVideo: (title: string, url: string) => void
     onAddFile: (title: string, file: File) => void
     onRemove: (id: string) => void
 }) {
     const [linkTitle, setLinkTitle] = useState('')
     const [linkUrl, setLinkUrl] = useState('')
+    const [videoTitle, setVideoTitle] = useState('')
+    const [videoUrl, setVideoUrl] = useState('')
     const [fileTitle, setFileTitle] = useState('')
 
     return (
         <div className="border-t border-gray-100 mt-1 pt-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">Resources (links, PDFs, documents)</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">Resources (links, videos, PDFs, documents)</p>
             {note && <p className="text-[11px] text-gray-400 mb-2">{note}</p>}
 
             {rows.length > 0 && (
                 <ul className="space-y-1.5 mb-3">
-                    {rows.map(r => (
-                        <li key={r.id} className="flex items-center gap-2 text-sm bg-gray-50 rounded-lg px-3 py-2">
-                            {r.kind === 'url' ? <LinkIcon className="w-3.5 h-3.5 text-gray-400 shrink-0" /> : <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
-                            {r.href ? (
-                                <a href={r.href} target="_blank" rel="noreferrer" className="flex-1 truncate underline text-[#140152]">{r.title}</a>
-                            ) : (
-                                <span className="flex-1 truncate text-gray-700">{r.title}</span>
-                            )}
-                            {r.meta && <span className="text-[10px] text-gray-400 shrink-0">{r.meta}</span>}
-                            <button onClick={() => onRemove(r.id)} className="p-1 text-red-400 hover:text-red-700 hover:bg-red-50 rounded shrink-0">
-                                <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                        </li>
-                    ))}
+                    {rows.map(r => {
+                        const Icon = RESOURCE_ICON[r.kind]
+                        return (
+                            <li key={r.id} className="flex items-center gap-2 text-sm bg-gray-50 rounded-lg px-3 py-2">
+                                <Icon className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                {r.href ? (
+                                    <a href={r.href} target="_blank" rel="noreferrer" className="flex-1 truncate underline text-[#140152]">{r.title}</a>
+                                ) : (
+                                    <span className="flex-1 truncate text-gray-700">{r.title}</span>
+                                )}
+                                {r.meta && <span className="text-[10px] text-gray-400 shrink-0">{r.meta}</span>}
+                                <button onClick={() => onRemove(r.id)} className="p-1 text-red-400 hover:text-red-700 hover:bg-red-50 rounded shrink-0">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            </li>
+                        )
+                    })}
                 </ul>
             )}
 
@@ -205,6 +215,16 @@ function ResourceEditorList({ rows, busy, note, onAddLink, onAddFile, onRemove }
                     onClick={() => { onAddLink(linkTitle, linkUrl); setLinkTitle(''); setLinkUrl('') }}
                     className="inline-flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-2 rounded-lg text-xs disabled:opacity-50">
                     {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />} Add link
+                </button>
+            </div>
+
+            <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-2 mb-2">
+                <input value={videoTitle} onChange={e => setVideoTitle(e.target.value)} placeholder="Video title" className="border border-gray-200 rounded-lg px-2.5 py-2 text-xs" />
+                <input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="YouTube or Vimeo link" className="border border-gray-200 rounded-lg px-2.5 py-2 text-xs" />
+                <button type="button" disabled={busy || !videoTitle || !videoUrl}
+                    onClick={() => { onAddVideo(videoTitle, videoUrl); setVideoTitle(''); setVideoUrl('') }}
+                    className="inline-flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-2 rounded-lg text-xs disabled:opacity-50">
+                    {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Video className="w-3 h-3" />} Add video
                 </button>
             </div>
 
@@ -247,6 +267,16 @@ function ModuleResources({ module: m, onSaved, onMsg }: {
         finally { setBusy(false) }
     }
 
+    const addVideo = async (title: string, url: string) => {
+        setBusy(true)
+        try {
+            await marriagePrepApi.addModuleResourceVideo(m.id, title, url)
+            onMsg({ kind: 'ok', text: 'Video added.' })
+            onSaved()
+        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setBusy(false) }
+    }
+
     const addFile = async (title: string, file: File) => {
         setBusy(true)
         try {
@@ -269,11 +299,11 @@ function ModuleResources({ module: m, onSaved, onMsg }: {
 
     const rows: ResourceRow[] = resources.map(r => ({
         id: r.id, title: r.title, kind: r.kind,
-        href: r.kind === 'url' ? (r.external_url || '#') : marriagePrepApi.moduleResourceFileUrl(r.id),
+        href: r.kind === 'file' ? marriagePrepApi.moduleResourceFileUrl(r.id) : (r.external_url || '#'),
         meta: r.kind === 'file' && r.file_size != null ? `${Math.max(1, Math.round(r.file_size / 1024))} KB` : undefined,
     }))
 
-    return <ResourceEditorList rows={rows} busy={busy} onAddLink={addLink} onAddFile={addFile} onRemove={remove} />
+    return <ResourceEditorList rows={rows} busy={busy} onAddLink={addLink} onAddVideo={addVideo} onAddFile={addFile} onRemove={remove} />
 }
 
 function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]; onSaved: () => void; onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void }) {
