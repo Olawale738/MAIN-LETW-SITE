@@ -3890,8 +3890,11 @@ export const paymentsApi = {
     updateProvider: (id: string, b: Omit<PaymentProvider, 'id' | 'created_at' | 'updated_at'>) =>
         fetchApi<PaymentProvider>(`/payments/providers/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
     deleteProvider: (id: string) => fetchApi<{ deleted: number }>(`/payments/providers/${id}`, { method: 'DELETE' }),
-    checkout: (b: { provider_id: string; amount: number; currency?: string; fund?: string; payer_name?: string; payer_email?: string; message?: string }) =>
+    checkout: (b: { provider_id: string; amount: number; currency?: string; fund?: string; payer_name?: string; payer_email?: string; message?: string; interval?: 'weekly' | 'monthly' | 'yearly' | null }) =>
         fetchApi<{ checkout_url: string | null; reference: string; instructions_md?: string }>('/payments/checkout', { method: 'POST', body: JSON.stringify(b) }),
+    // Stripe Customer Portal — recurring donors self-manage (update card, pause, cancel).
+    billingPortal: (customer_email: string, return_url?: string) =>
+        fetchApi<{ url: string }>('/payments/billing-portal', { method: 'POST', body: JSON.stringify({ customer_email, return_url }) }),
     donations: (status?: string, fund?: string, limit = 200) => {
         const qs = new URLSearchParams({ limit: String(limit) });
         if (status) qs.set('status', status);

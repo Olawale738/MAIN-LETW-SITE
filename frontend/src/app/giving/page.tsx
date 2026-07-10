@@ -65,6 +65,10 @@ export default function GivingPage() {
   const [giveError, setGiveError] = useState<string | null>(null)
   const [manualInstructions, setManualInstructions] = useState<string | null>(null)
   const [cms, setCms] = useState<typeof DEFAULTS>(DEFAULTS)
+  // Recurring giving — 'once' or 'monthly'. Only offered when the selected
+  // provider can bill on a schedule (Stripe / Paystack); reset to 'once' when
+  // the donor switches to a provider that can't.
+  const [frequency, setFrequency] = useState<'once' | 'monthly'>('once')
 
   // Load admin CMS content (every visible word is editable).
   useEffect(() => {
@@ -95,7 +99,11 @@ export default function GivingPage() {
       .catch(() => { /* silently fall back to disabled button */ })
   }, [])
 
+  const RECURRING_SLUGS = ['stripe', 'paystack']
+  const selectedCard = providers.find(p => p.id === selectedProviderId)
+  const cardRecurringOk = !!selectedCard && RECURRING_SLUGS.includes(selectedCard.slug)
   const selectedIntl = intlProviders.find(p => p.id === intlProviderId)
+  const intlRecurringOk = !!selectedIntl && RECURRING_SLUGS.includes(selectedIntl.slug)
   const intlCurrency = selectedIntl?.currency || 'USD'
   const intlSymbol = ({ USD: '$', EUR: '€', GBP: '£', CAD: 'C$', AUD: 'A$', ZAR: 'R' } as Record<string, string>)[intlCurrency] || intlCurrency + ' '
   const isValidIntlAmount = intlAmount && !isNaN(parseFloat(intlAmount)) && parseFloat(intlAmount) > 0
@@ -115,6 +123,7 @@ export default function GivingPage() {
         fund: funds.find(f => f.id === fund)?.name || 'Donation',
         payer_name: 'Anonymous',
         payer_email: email || undefined,
+        interval: frequency === 'monthly' && intlRecurringOk ? 'monthly' : null,
       })
       if (r.checkout_url) {
         window.location.href = r.checkout_url
@@ -129,6 +138,25 @@ export default function GivingPage() {
       setGiveError((err as Error).message || 'Failed to start checkout. Please try again.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  // Recurring donors self-manage (update card, pause, cancel) via Stripe's
+  // Customer Portal. We look them up by the email they gave with.
+  const [managing, setManaging] = useState(false)
+  const handleManageRecurring = async () => {
+    const who = (email || window.prompt('Enter the email you used when you set up your monthly gift:') || '').trim()
+    if (!who) return
+    setManaging(true)
+    setGiveError(null)
+    try {
+      const r = await paymentsApi.billingPortal(who, typeof window !== 'undefined' ? window.location.href : undefined)
+      if (r.url) { window.location.href = r.url; return }
+      setGiveError('Could not open the management portal. Please try again.')
+    } catch (err) {
+      setGiveError((err as Error).message || 'No recurring gift found for that email.')
+    } finally {
+      setManaging(false)
     }
   }
 
@@ -173,6 +201,7 @@ export default function GivingPage() {
         fund: getFundName(fund),
         payer_name: 'Anonymous',
         payer_email: email || undefined,
+        interval: frequency === 'monthly' && cardRecurringOk ? 'monthly' : null,
       })
       if (r.checkout_url) {
         window.location.href = r.checkout_url
@@ -311,6 +340,25 @@ export default function GivingPage() {
                         </Select>
                       </div>
 
+                      {/* Frequency — one-time vs monthly recurring. Only when
+                            the selected provider can bill on a schedule. */}
+                      {cardRecurringOk && (
+                        <div className="space-y-2">
+                          <label className="text-xs font-extrabold text-[#140152] uppercase tracking-wider ml-1">Frequency</label>
+                          <div className="grid grid-cols-2 gap-2 bg-[#140152]/5 p-1.5 rounded-xl">
+                            {([['once', 'Give once'], ['monthly', 'Monthly']] as const).map(([id, label]) => (
+                              <button key={id} onClick={() => setFrequency(id)}
+                                className={cn(
+                                  "py-2.5 rounded-lg text-sm font-bold transition-all",
+                                  frequency === id ? "bg-white text-[#140152] shadow-sm" : "text-gray-500 hover:text-[#140152]"
+                                )}>
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Amount Presets */}
                       <div className="space-y-2">
                         <label className="text-xs font-extrabold text-[#140152] uppercase tracking-wider ml-1">Or Choose Amount</label>
@@ -417,7 +465,7 @@ export default function GivingPage() {
                             className="w-full h-14 text-base shadow-xl shadow-[#f5bb00]/20 bg-[#f5bb00] text-[#140152] font-bold rounded-xl hover:bg-[#ffc820] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
                           >
                             {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-                            Give ₦{parseInt(amount || '0').toLocaleString()}
+                            Give ₦{parseInt(amount || '0').toLocaleString()}{cardRecurringOk && frequency === 'monthly' ? ' / month' : ''}
                           </Button>
                         )}
                         <div className="flex items-center justify-center gap-2 mt-4 text-[10px] text-gray-400 font-medium uppercase tracking-widest">
@@ -550,6 +598,24 @@ export default function GivingPage() {
                         </div>
                       )}
 
+                      {/* Frequency — one-time vs monthly recurring (Stripe). */}
+                      {intlRecurringOk && (
+                        <div className="space-y-2">
+                          <label className="text-xs font-extrabold text-[#140152] uppercase tracking-wider ml-1">Frequency</label>
+                          <div className="grid grid-cols-2 gap-2 bg-[#140152]/5 p-1.5 rounded-xl">
+                            {([['once', 'Give once'], ['monthly', 'Monthly']] as const).map(([id, label]) => (
+                              <button key={id} onClick={() => setFrequency(id)}
+                                className={cn(
+                                  "py-2.5 rounded-lg text-sm font-bold transition-all",
+                                  frequency === id ? "bg-white text-[#140152] shadow-sm" : "text-gray-500 hover:text-[#140152]"
+                                )}>
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Amount presets (currency-aware) */}
                       <div className="space-y-2">
                         <label className="text-xs font-extrabold text-[#140152] uppercase tracking-wider ml-1">Or Choose Amount</label>
@@ -613,7 +679,7 @@ export default function GivingPage() {
                             className="w-full h-14 text-base shadow-xl shadow-[#f5bb00]/20 bg-[#f5bb00] text-[#140152] font-bold rounded-xl hover:bg-[#ffc820] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
                           >
                             {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-                            Give {intlSymbol}{parseFloat(intlAmount || '0').toLocaleString()}
+                            Give {intlSymbol}{parseFloat(intlAmount || '0').toLocaleString()}{intlRecurringOk && frequency === 'monthly' ? ' / month' : ''}
                           </Button>
                         )}
                         <div className="flex items-center justify-center gap-2 mt-4 text-[10px] text-gray-400 font-medium uppercase tracking-widest">
@@ -642,6 +708,18 @@ export default function GivingPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {/* Manage an existing monthly gift — self-serve cancel/update. */}
+                <div className="pt-1 text-center">
+                  <button
+                    onClick={handleManageRecurring}
+                    disabled={managing}
+                    className="text-[11px] font-semibold text-gray-400 hover:text-[#140152] underline underline-offset-2 transition-colors disabled:opacity-60 inline-flex items-center gap-1.5"
+                  >
+                    {managing ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                    Manage or cancel a monthly gift
+                  </button>
+                </div>
 
               </CardContent>
             </Card>

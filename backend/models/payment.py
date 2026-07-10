@@ -51,6 +51,10 @@ class Donation(Base):
     currency: Mapped[str] = mapped_column(String(10), default="NGN")
     fund: Mapped[str] = mapped_column(String(80), default="General")  # General | Tithe | Missions | Building | Youth
     status: Mapped[str] = mapped_column(String(20), default="pending", index=True)  # pending | success | failed | refunded
+    # NULL = one-time gift; otherwise the recurring cadence: 'weekly' | 'monthly' | 'yearly'.
+    # For recurring gifts the row records the FIRST charge; the provider (Stripe
+    # subscription / Paystack plan) drives every renewal after that.
+    interval: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     raw_payload: Mapped[Optional[Any]] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)

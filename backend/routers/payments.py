@@ -178,10 +178,33 @@ class CheckoutIn(BaseModel):
     payer_name: str = "Anonymous"
     payer_email: Optional[EmailStr] = None
     message: Optional[str] = None
+    # None = one-time gift. Otherwise a recurring cadence. Only Stripe and
+    # Paystack support recurring; other providers reject a non-None interval.
+    interval: Optional[str] = None  # 'weekly' | 'monthly' | 'yearly'
 
 
 def _gen_ref() -> str:
     return f"LETW-{secrets.token_urlsafe(10)}"
+
+
+# Providers that can bill on a schedule + how each names our cadences.
+RECURRING_PROVIDERS = {"stripe", "paystack"}
+# Stripe recurring interval keys.
+_STRIPE_INTERVAL = {"weekly": "week", "monthly": "month", "yearly": "year"}
+# Paystack plan interval keys.
+_PAYSTACK_INTERVAL = {"weekly": "weekly", "monthly": "monthly", "yearly": "annually"}
+
+
+def _norm_interval(raw: Optional[str]) -> Optional[str]:
+    """Normalise an incoming interval to one of our canonical cadences, or None
+    for a one-time gift. Unknown values raise so the donor isn't silently
+    enrolled in the wrong cadence."""
+    if raw is None or str(raw).strip() == "":
+        return None
+    v = str(raw).strip().lower()
+    if v in ("weekly", "monthly", "yearly"):
+        return v
+    raise HTTPException(400, "interval must be one of: weekly, monthly, yearly")
 
 
 @router.post("/checkout")
@@ -191,11 +214,19 @@ async def checkout(body: CheckoutIn, db: AsyncSession = Depends(get_db)):
     if not p:
         raise HTTPException(404, "Provider not found or inactive")
 
+    interval = _norm_interval(body.interval)
+    if interval and p.slug not in RECURRING_PROVIDERS:
+        raise HTTPException(
+            400,
+            f"{p.name} can't process recurring gifts. Recurring giving is available "
+            f"through Stripe (international) or Paystack (card).",
+        )
+
     ref = _gen_ref()
     d = Donation(
         reference=ref, provider_id=p.id, payer_name=body.payer_name,
         payer_email=body.payer_email, amount=body.amount, currency=body.currency or p.currency,
-        fund=body.fund, status="pending", message=body.message,
+        fund=body.fund, status="pending", message=body.message, interval=interval,
     )
     db.add(d)
     await db.commit()
@@ -206,18 +237,43 @@ async def checkout(body: CheckoutIn, db: AsyncSession = Depends(get_db)):
     if p.slug == "paystack":
         if not p.secret_key:
             raise HTTPException(400, "Paystack secret key not configured")
+        init_payload: dict[str, Any] = {
+            "email": body.payer_email or "anon@letw.org",
+            "amount": int(round(body.amount * 100)),  # kobo
+            "currency": p.currency,
+            "reference": ref,
+            "callback_url": redirect_after,
+            "metadata": {"fund": body.fund, "payer_name": body.payer_name},
+        }
+        if interval:
+            # Paystack recurring = create a plan for this amount+cadence, then
+            # pass its code to initialize. Paystack auto-creates the subscription
+            # after the first successful charge and rebills on schedule. A plan
+            # is created per (amount, cadence, fund); Paystack tolerates repeats.
+            async with httpx.AsyncClient(timeout=15) as cli:
+                pr = await cli.post(
+                    "https://api.paystack.co/plan",
+                    headers={"Authorization": f"Bearer {p.secret_key}"},
+                    json={
+                        "name": f"LETW {body.fund} — {interval} ({body.amount:g} {p.currency})",
+                        "interval": _PAYSTACK_INTERVAL[interval],
+                        "amount": int(round(body.amount * 100)),
+                        "currency": p.currency,
+                    },
+                )
+            if pr.status_code >= 300:
+                raise HTTPException(502, f"Paystack plan create failed: {pr.text}")
+            plan_code = pr.json().get("data", {}).get("plan_code")
+            if not plan_code:
+                raise HTTPException(502, "Paystack did not return a plan code")
+            init_payload["plan"] = plan_code
+            # With a plan, Paystack derives the amount from the plan itself.
+            init_payload.pop("amount", None)
         async with httpx.AsyncClient(timeout=15) as cli:
             r = await cli.post(
                 "https://api.paystack.co/transaction/initialize",
                 headers={"Authorization": f"Bearer {p.secret_key}"},
-                json={
-                    "email": body.payer_email or "anon@letw.org",
-                    "amount": int(round(body.amount * 100)),  # kobo
-                    "currency": p.currency,
-                    "reference": ref,
-                    "callback_url": redirect_after,
-                    "metadata": {"fund": body.fund, "payer_name": body.payer_name},
-                },
+                json=init_payload,
             )
         if r.status_code >= 300:
             raise HTTPException(502, f"Paystack init failed: {r.text}")
@@ -248,9 +304,12 @@ async def checkout(body: CheckoutIn, db: AsyncSession = Depends(get_db)):
     if p.slug == "stripe":
         if not p.secret_key:
             raise HTTPException(400, "Stripe secret key not configured")
-        # Stripe Checkout via form-encoded REST (no SDK dependency)
+        # Stripe Checkout via form-encoded REST (no SDK dependency). One-time
+        # gifts use mode=payment; recurring gifts use mode=subscription with an
+        # inline recurring price — donors self-manage/cancel via the Customer
+        # Portal (see /billing-portal).
         form = {
-            "mode": "payment",
+            "mode": "subscription" if interval else "payment",
             "success_url": f"{redirect_after}?ref={ref}",
             "cancel_url": redirect_after,
             "client_reference_id": ref,
@@ -259,6 +318,12 @@ async def checkout(body: CheckoutIn, db: AsyncSession = Depends(get_db)):
             "line_items[0][price_data][unit_amount]": str(int(round(body.amount * 100))),
             "line_items[0][quantity]": "1",
         }
+        if interval:
+            form["line_items[0][price_data][recurring][interval]"] = _STRIPE_INTERVAL[interval]
+            # Carry our reference into the subscription metadata too so webhook
+            # events for later renewals can still be traced back.
+            form["subscription_data[metadata][ref]"] = ref
+            form["subscription_data[metadata][fund]"] = body.fund
         if body.payer_email:
             form["customer_email"] = body.payer_email
         async with httpx.AsyncClient(timeout=15) as cli:
@@ -430,7 +495,8 @@ async def list_donations(
         "id": d.id, "reference": d.reference, "provider_id": d.provider_id,
         "payer_name": d.payer_name, "payer_email": d.payer_email,
         "amount": float(d.amount), "currency": d.currency, "fund": d.fund,
-        "status": d.status, "message": d.message, "created_at": d.created_at,
+        "status": d.status, "message": d.message, "interval": d.interval,
+        "created_at": d.created_at,
     } for d in rows]
 
 
