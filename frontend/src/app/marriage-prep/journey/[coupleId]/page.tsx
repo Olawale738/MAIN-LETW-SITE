@@ -12,9 +12,10 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
     Loader2, Heart, CheckCircle, ChevronDown, Quote, BookOpen,
-    PenLine, Save, Sparkles, Award, AlertCircle, Link as LinkIcon, FileText,
+    PenLine, Save, Sparkles, Award, AlertCircle, Link as LinkIcon, FileText, Video, X,
 } from 'lucide-react'
-import { marriagePrepApi, toVideoEmbedUrl, type MarriagePrepModule } from '@/lib/api'
+import { marriagePrepApi, ministryContentApi, toVideoEmbedUrl, type MarriagePrepModule } from '@/lib/api'
+import JitsiMeet, { marriagePrepRoom } from '@/components/JitsiMeet'
 
 interface CoupleInfo {
     id: string; partner_a_name: string; partner_b_name: string
@@ -35,6 +36,11 @@ export default function CoupleJourneyPage() {
     const [loading, setLoading] = useState(true)
     const [notFound, setNotFound] = useState(false)
     const [openWeek, setOpenWeek] = useState<string | null>(null)
+    // Jitsi video call — enabled + domain are admin-editable (see
+    // /admin/page-copy → marriage-prep). Defaults keep it on via meet.jit.si.
+    const [jitsiEnabled, setJitsiEnabled] = useState(true)
+    const [jitsiDomain, setJitsiDomain] = useState('meet.jit.si')
+    const [inCall, setInCall] = useState(false)
 
     const refresh = async () => {
         try {
@@ -55,6 +61,15 @@ export default function CoupleJourneyPage() {
         }
     }
     useEffect(() => { if (coupleId) refresh() }, [coupleId])  // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        ministryContentApi.get('marriage-prep-page')
+            .then(r => {
+                const c = (r.content || {}) as { jitsi_enabled?: boolean; jitsi_domain?: string }
+                if (c.jitsi_enabled === false) setJitsiEnabled(false)
+                if (c.jitsi_domain) setJitsiDomain(c.jitsi_domain)
+            })
+            .catch(() => { /* keep defaults */ })
+    }, [])
 
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#fbf5e6]"><Loader2 className="w-10 h-10 animate-spin text-[#140152]" /></div>
 
@@ -106,6 +121,49 @@ export default function CoupleJourneyPage() {
                     </div>
                 )}
             </section>
+
+            {/* Video session with the pastor */}
+            {jitsiEnabled && (
+                <section className="max-w-3xl mx-auto px-4 pb-6">
+                    {inCall ? (
+                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-3">
+                            <div className="flex items-center justify-between px-2 py-1.5">
+                                <p className="text-sm font-black text-[#140152] inline-flex items-center gap-2">
+                                    <Video className="w-4 h-4 text-rose-500" /> Video session
+                                </p>
+                                <button onClick={() => setInCall(false)} className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-[#140152]">
+                                    <X className="w-4 h-4" /> Leave
+                                </button>
+                            </div>
+                            <div className="h-[70vh] min-h-[420px]">
+                                <JitsiMeet
+                                    room={marriagePrepRoom(couple.id)}
+                                    domain={jitsiDomain}
+                                    displayName={`${couple.partner_a_name} & ${couple.partner_b_name}`}
+                                    subject="Marriage Prep — pastoral session"
+                                    onClose={() => setInCall(false)}
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center shrink-0">
+                                <Video className="w-6 h-6" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-black text-[#140152]">Meet your pastor by video</h3>
+                                <p className="text-sm text-gray-600 mt-0.5">
+                                    Your private room is always here. Start it when your pastor asks — they join the same link from their side.
+                                </p>
+                            </div>
+                            <button onClick={() => setInCall(true)}
+                                className="inline-flex items-center justify-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-black px-6 py-3 rounded-full text-sm shrink-0">
+                                <Video className="w-4 h-4" /> Start video call
+                            </button>
+                        </div>
+                    )}
+                </section>
+            )}
 
             {/* Weeks */}
             <section className="max-w-3xl mx-auto px-4 pb-24 space-y-3">

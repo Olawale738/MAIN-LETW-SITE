@@ -8,7 +8,8 @@ import {
     Loader2, Plus, Save, Trash2, Heart, CheckCircle, AlertCircle, Quote, Pencil, X,
     Link as LinkIcon, FileText, Upload, Video,
 } from 'lucide-react'
-import { marriagePrepApi, type MarriagePrepModule, type MarriagePrepModuleResource, type MarriagePrepCouple } from '@/lib/api'
+import { marriagePrepApi, ministryContentApi, type MarriagePrepModule, type MarriagePrepModuleResource, type MarriagePrepCouple } from '@/lib/api'
+import { marriagePrepRoom } from '@/components/JitsiMeet'
 
 export default function MarriagePrepAdmin() {
     const [tab, setTab] = useState<'modules' | 'couples'>('modules')
@@ -308,6 +309,23 @@ function ModuleResources({ module: m, onSaved, onMsg }: {
 
 function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]; onSaved: () => void; onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void }) {
     const [editing, setEditing] = useState<MarriagePrepCouple | null>(null)
+    // Jitsi config mirrors the couple portal — enabled + domain are admin-set
+    // in /admin/page-copy. Default: on, via meet.jit.si.
+    const [jitsi, setJitsi] = useState<{ enabled: boolean; domain: string }>({ enabled: true, domain: 'meet.jit.si' })
+    useEffect(() => {
+        ministryContentApi.get('marriage-prep-page')
+            .then(r => {
+                const c = (r.content || {}) as { jitsi_enabled?: boolean; jitsi_domain?: string }
+                setJitsi({ enabled: c.jitsi_enabled !== false, domain: c.jitsi_domain || 'meet.jit.si' })
+            })
+            .catch(() => { /* keep defaults */ })
+    }, [])
+
+    const joinCall = (c: MarriagePrepCouple) => {
+        const room = marriagePrepRoom(c.id)
+        const url = `https://${jitsi.domain}/${encodeURIComponent(room)}#userInfo.displayName=%22Pastor%22`
+        window.open(url, '_blank', 'noopener')
+    }
 
     const signOff = async (c: MarriagePrepCouple) => {
         const sig = prompt(`Sign off on ${c.partner_a_name} & ${c.partner_b_name}? Enter your name as signature:`)
@@ -375,6 +393,12 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
                                 className="inline-flex items-center gap-1 bg-[#f5bb00]/15 hover:bg-[#f5bb00]/30 text-[#8a6d00] text-xs font-bold px-3 py-1.5 rounded-lg">
                                 <Quote className="w-3 h-3" /> Portal link
                             </button>
+                            {jitsi.enabled && (
+                                <button onClick={() => joinCall(c)} title="Join the couple's video room"
+                                    className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold px-3 py-1.5 rounded-lg">
+                                    <Video className="w-3 h-3" /> Video call
+                                </button>
+                            )}
                             <button onClick={() => setEditing(c)} title="Edit couple"
                                 className="inline-flex items-center gap-1 border border-gray-200 hover:border-[#140152] text-gray-700 hover:text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg">
                                 <Pencil className="w-3 h-3" /> Edit

@@ -34,6 +34,10 @@ interface PageCopy {
     // surface that mentions "N weeks" (home page, road-ahead card,
     // certificate) reads this instead of hardcoding a number.
     course_weeks?: number
+    // Jitsi video calls in the couple portal + admin. jitsi_enabled defaults
+    // to true; jitsi_domain lets a church point at a self-hosted Jitsi.
+    jitsi_enabled?: boolean
+    jitsi_domain?: string
 }
 
 const DEFAULTS: Record<MinistryContentKey, PageCopy> = {
@@ -60,6 +64,8 @@ const DEFAULTS: Record<MinistryContentKey, PageCopy> = {
         section_heading: 'The journey',
         section_sub:     'One week at a time. No skipping ahead — even the rush is part of the lesson.',
         course_weeks: 6,
+        jitsi_enabled: true,
+        jitsi_domain: 'meet.jit.si',
     },
     'download-page': {
         eyebrow: '',
@@ -229,6 +235,17 @@ export default function PageCopyAdmin() {
                                     checklist, and the printed certificate — including the eyebrow/subtitle text
                                     below if you mention the week count there too.
                                 </p>
+                            </div>
+                            <div className="border-t border-gray-100 mt-1 pt-3">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">Video calls (Jitsi)</p>
+                                <label className="flex items-center gap-2 text-sm text-[#140152] mb-3">
+                                    <input type="checkbox" checked={data.jitsi_enabled !== false}
+                                        onChange={e => setData({ ...data, jitsi_enabled: e.target.checked })} />
+                                    Let couples &amp; pastors meet by video from the course portal
+                                </label>
+                                <Field label="Jitsi domain (advanced — leave as meet.jit.si unless self-hosting)"
+                                    value={data.jitsi_domain || 'meet.jit.si'}
+                                    onChange={v => setData({ ...data, jitsi_domain: v.trim() || 'meet.jit.si' })} />
                             </div>
                             <div className="border-t border-gray-100 mt-1 pt-3">
                                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">Curriculum section</p>
