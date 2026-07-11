@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Activity, ExternalLink, Globe, CheckCircle, AlertTriangle, Loader2, Server, Clock, Copy } from 'lucide-react'
+import { emailAdminApi } from '@/lib/api'
 
 /**
  * Live status of the frontend ↔ backend wiring.
@@ -315,6 +316,66 @@ function DiagnosticsLayout({ status, latency, body, errMsg, history, onPing, onC
                     </a>
                 </div>
             </div>
+
+            <EmailDelivery />
+        </div>
+    )
+}
+
+function EmailDelivery() {
+    const [status, setStatus] = useState<Awaited<ReturnType<typeof emailAdminApi.status>> | null>(null)
+    const [to, setTo] = useState('')
+    const [busy, setBusy] = useState(false)
+    const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null)
+
+    useEffect(() => { emailAdminApi.status().then(setStatus).catch(() => setStatus(null)) }, [])
+
+    const send = async () => {
+        if (!to) return
+        setBusy(true); setResult(null)
+        try {
+            const r = await emailAdminApi.test(to)
+            if (r.error) setResult({ ok: false, text: r.error })
+            else if (r.note) setResult({ ok: false, text: r.note })
+            else setResult({ ok: r.sent, text: r.sent ? `Sent via ${r.provider}. Check the inbox (and spam).` : 'The server reported the send did not succeed.' })
+        } catch (e) { setResult({ ok: false, text: (e as Error).message }) }
+        finally { setBusy(false) }
+    }
+
+    const provider = status?.provider || '—'
+    const providerOk = provider === 'resend' || provider === 'smtp'
+
+    return (
+        <div className="mt-6 bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+            <h2 className="font-black text-[#140152] flex items-center gap-2 mb-3"><Server className="w-5 h-5 text-[#f5bb00]" /> Email delivery</h2>
+            {status ? (
+                <div className="space-y-1.5 text-sm mb-4">
+                    <Row label="Status" value={status.email_enabled ? 'Enabled' : 'Disabled (messages are logged, not sent)'} />
+                    <Row label="Provider" value={provider} />
+                    <Row label="From" value={`${status.from_name} <${status.from_address}>`} />
+                    {status.smtp_host && <Row label="SMTP host" value={status.smtp_host} mono />}
+                </div>
+            ) : <p className="text-sm text-gray-400 mb-3">Loading email configuration…</p>}
+
+            {!providerOk && status && (
+                <div className="mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                    Outbound email isn&apos;t fully configured, so invitations, enrolment links and notifications won&apos;t actually send. Set a Resend API key (or SMTP) and EMAIL_ENABLED=true in the backend environment.
+                </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2">
+                <input type="email" value={to} onChange={e => setTo(e.target.value)} placeholder="you@example.com"
+                    className="flex-1 min-w-[200px] border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                <button onClick={send} disabled={busy || !to} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-4 py-2 rounded-lg text-sm disabled:opacity-50">
+                    {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Server className="w-4 h-4" />} Send test email
+                </button>
+            </div>
+            {result && (
+                <p className={`text-sm mt-2 inline-flex items-center gap-1.5 ${result.ok ? 'text-emerald-700' : 'text-red-600'}`}>
+                    {result.ok ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />} {result.text}
+                </p>
+            )}
         </div>
     )
 }

@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import {
     Loader2, Plus, Save, Trash2, Heart, CheckCircle, AlertCircle, Quote, Pencil, X,
-    Link as LinkIcon, FileText, Upload, Video, CalendarClock,
+    Link as LinkIcon, FileText, Upload, Video, CalendarClock, Award, Send,
 } from 'lucide-react'
 import { marriagePrepApi, ministryContentApi, authApi, type MarriagePrepModule, type MarriagePrepModuleResource, type MarriagePrepCouple, type MarriagePrepPastor } from '@/lib/api'
 import { marriagePrepRoom } from '@/components/JitsiMeet'
@@ -423,6 +423,28 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
                                 <button onClick={() => signOff(c)} className="inline-flex items-center gap-1 bg-[#140152] hover:bg-[#1d0175] text-white text-xs font-bold px-3 py-1.5 rounded-lg">
                                     <CheckCircle className="w-3 h-3" /> Sign off
                                 </button>
+                            )}
+                            {c.pastor_signed_off && (
+                                <>
+                                    <button onClick={() => {
+                                        const url = `${window.location.origin}/marriage-prep/complete/${c.id}`
+                                        navigator.clipboard.writeText(url)
+                                            .then(() => onMsg({ kind: 'ok', text: 'Certificate link copied.' }))
+                                            .catch(() => onMsg({ kind: 'err', text: url }))
+                                    }} title="Copy the couple's certificate link"
+                                        className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg">
+                                        <Award className="w-3 h-3" /> Certificate link
+                                    </button>
+                                    <button onClick={async () => {
+                                        try {
+                                            const r = await marriagePrepApi.resendCertificate(c.id)
+                                            onMsg({ kind: 'ok', text: r.emails_sent > 0 ? `Certificate email re-sent to ${r.emails_sent} address${r.emails_sent > 1 ? 'es' : ''}.` : 'Sent (or email not configured — link copied is always safe).' })
+                                        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
+                                    }} title="Re-send the completion email with the certificate link"
+                                        className="inline-flex items-center gap-1 border border-gray-200 hover:border-[#140152] text-gray-700 hover:text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg">
+                                        <Send className="w-3 h-3" /> Re-send
+                                    </button>
+                                </>
                             )}
                             <button onClick={() => {
                                 const url = `${window.location.origin}/marriage-prep/journey/${c.id}`

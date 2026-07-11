@@ -205,6 +205,10 @@ app.include_router(life_events.router)
 from routers import payments
 app.include_router(payments.router)
 
+# Email delivery diagnostics (admin)
+from routers import email_admin
+app.include_router(email_admin.router)
+
 # Daily Verse rotation (homepage widget)
 from routers import daily_verse
 app.include_router(daily_verse.router)

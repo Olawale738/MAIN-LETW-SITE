@@ -468,6 +468,37 @@ async def schedule_session(couple_id: str, body: SessionScheduleIn, db: AsyncSes
     return _couple(c)
 
 
+@router.post("/admin/couples/{couple_id}/resend-certificate")
+async def resend_certificate(couple_id: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Re-send the completion email (with the certificate link + next steps) to
+    both partners. Useful when a couple lost their link, or after re-creating a
+    couple whose old printed certificate no longer matches the live record."""
+    c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
+    if not c:
+        raise HTTPException(404, "Couple not found")
+    if not c.pastor_signed_off:
+        raise HTTPException(400, "This couple hasn't been signed off yet — no certificate to send.")
+    sent = 0
+    try:
+        from services.email_service import send_marriage_prep_completion_email
+        wedding_date = c.intended_wedding_date.strftime("%A, %B %d, %Y") if c.intended_wedding_date else ""
+        for addr in [c.partner_a_email, c.partner_b_email]:
+            if not addr:
+                continue
+            ok = await send_marriage_prep_completion_email(
+                to_email=addr,
+                partner_a_name=c.partner_a_name or "", partner_b_name=c.partner_b_name or "",
+                couple_id=c.id, pastor_signature=c.pastor_signature or "",
+                pastor_note=c.pastor_note or "", wedding_date=wedding_date,
+            )
+            if ok:
+                sent += 1
+    except Exception as e:
+        print(f"[marriage-prep] resend certificate failed: {type(e).__name__}: {e}", flush=True)
+    cert_url = f"{_public_base()}/marriage-prep/complete/{c.id}"
+    return {"ok": True, "emails_sent": sent, "certificate_url": cert_url}
+
+
 @router.delete("/admin/couples/{couple_id}")
 async def delete_couple(couple_id: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()

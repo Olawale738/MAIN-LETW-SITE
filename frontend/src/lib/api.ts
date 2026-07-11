@@ -4471,6 +4471,15 @@ export const marriagePrepApi = {
     listPastors: () => fetchApi<MarriagePrepPastor[]>('/marriage-prep/admin/pastors'),
     assignPastor: (couple_id: string, pastor_user_id: string | null) =>
         fetchApi<MarriagePrepCouple>(`/marriage-prep/admin/couples/${couple_id}/assign-pastor`, { method: 'POST', body: JSON.stringify({ pastor_user_id }) }),
+    // Re-send the completion email (certificate link + next steps) to both partners.
+    resendCertificate: (couple_id: string) =>
+        fetchApi<{ ok: boolean; emails_sent: number; certificate_url: string }>(`/marriage-prep/admin/couples/${couple_id}/resend-certificate`, { method: 'POST' }),
+}
+
+// ─── Email delivery diagnostics (admin) ──────────────────────────────────────
+export const emailAdminApi = {
+    status: () => fetchApi<{ email_enabled: boolean; provider: string; from_name: string; from_address: string; smtp_host: string | null; resend_configured: boolean }>('/admin/email/status'),
+    test: (to: string) => fetchApi<{ sent: boolean; provider: string; note?: string | null; error?: string }>('/admin/email/test', { method: 'POST', body: JSON.stringify({ to }) }),
 }
 
 // ── Fasting calendar ────────────────────────────────────────────────────────
