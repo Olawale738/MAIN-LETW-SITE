@@ -3733,7 +3733,7 @@ export interface MinistryContent {
     updated_at?: string | null;
 }
 
-export type MinistryContentKey = 'women' | 'men' | 'theology' | 'leadership' | 'giving' | 'statement-of-faith' | 'privacy-policy' | 'terms-of-service' | 'testimony-page' | 'hero-settings' | 'apps-list' | 'navbar' | 'footer' | 'tour-page' | 'voice-page' | 'grow-page' | 'email-templates' | 'onboarding-page' | 'volunteer-page' | 'apps-page' | 'sanctuary-page' | 'marriage-prep-page' | 'download-page' | 'life-events-page' | 'fasting-page';
+export type MinistryContentKey = 'women' | 'men' | 'theology' | 'leadership' | 'giving' | 'statement-of-faith' | 'privacy-policy' | 'terms-of-service' | 'testimony-page' | 'hero-settings' | 'apps-list' | 'navbar' | 'footer' | 'tour-page' | 'voice-page' | 'grow-page' | 'email-templates' | 'onboarding-page' | 'volunteer-page' | 'apps-page' | 'sanctuary-page' | 'marriage-prep-page' | 'download-page' | 'life-events-page' | 'fasting-page' | 'blog-page';
 
 export const ministryContentApi = {
     get: (key: MinistryContentKey): Promise<MinistryContent> =>
