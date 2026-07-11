@@ -26,7 +26,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_ as sa_or
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
@@ -187,6 +187,27 @@ def _gen_ref() -> str:
     return f"LETW-{secrets.token_urlsafe(10)}"
 
 
+async def _optional_user_id(request: Request, db: AsyncSession) -> Optional[str]:
+    """Best-effort: if the caller sent a valid member access token, return their
+    user id so the gift can be tied to their account (not just a typed email).
+    Anonymous/guest giving stays fully supported — any problem returns None."""
+    try:
+        auth = request.headers.get("authorization") or request.headers.get("Authorization") or ""
+        if not auth.lower().startswith("bearer "):
+            return None
+        from utils.security import decode_token
+        payload = decode_token(auth.split(" ", 1)[1].strip())
+        if not payload or payload.get("type") != "access":
+            return None
+        uid = payload.get("sub")
+        if not uid:
+            return None
+        u = (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
+        return u.id if u else None
+    except Exception:
+        return None
+
+
 # Providers that can bill on a schedule + how each names our cadences.
 RECURRING_PROVIDERS = {"stripe", "paystack"}
 # Stripe recurring interval keys.
@@ -208,12 +229,15 @@ def _norm_interval(raw: Optional[str]) -> Optional[str]:
 
 
 @router.post("/checkout")
-async def checkout(body: CheckoutIn, db: AsyncSession = Depends(get_db)):
+async def checkout(body: CheckoutIn, request: Request, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(PaymentProvider).where(PaymentProvider.id == body.provider_id, PaymentProvider.is_active == True))
     p = res.scalar_one_or_none()
     if not p:
         raise HTTPException(404, "Provider not found or inactive")
 
+    # If a signed-in member is giving, tie the gift to their account so their
+    # giving history/statements are exact rather than email-matched.
+    donor_user_id = await _optional_user_id(request, db)
     interval = _norm_interval(body.interval)
     if interval and p.slug not in RECURRING_PROVIDERS:
         raise HTTPException(
@@ -227,6 +251,7 @@ async def checkout(body: CheckoutIn, db: AsyncSession = Depends(get_db)):
         reference=ref, provider_id=p.id, payer_name=body.payer_name,
         payer_email=body.payer_email, amount=body.amount, currency=body.currency or p.currency,
         fund=body.fund, status="pending", message=body.message, interval=interval,
+        user_id=donor_user_id,
     )
     db.add(d)
     await db.commit()
@@ -588,15 +613,17 @@ async def donation_by_reference(reference: str, db: AsyncSession = Depends(get_d
 
 @router.get("/me/giving")
 async def my_giving(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
-    """The signed-in member's own giving, matched by their account email:
-    this-year total (per currency) plus their most recent gifts. Powers the
+    """The signed-in member's own giving: gifts tied to their account (exact)
+    OR matched by their account email (for gifts made before they signed in).
+    Returns this-year total (per currency) plus most recent gifts. Powers the
     'My Giving' card in the member hub."""
     email = (user.email or "").strip().lower()
-    if not email:
-        return {"year": None, "totals": [], "recent": [], "count": 0}
+    conds = [Donation.user_id == user.id]
+    if email:
+        conds.append(func.lower(Donation.payer_email) == email)
     rows = (await db.execute(
         select(Donation).where(
-            func.lower(Donation.payer_email) == email,
+            sa_or(*conds),
             Donation.status == "success",
         ).order_by(Donation.created_at.desc()).limit(200)
     )).scalars().all()
