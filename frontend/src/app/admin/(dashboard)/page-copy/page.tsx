@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
     Loader2, Save, RotateCcw, AlertCircle, CheckCircle, ExternalLink,
-    LayoutGrid, MapPin, Heart, Download, CalendarHeart, Sparkles, Flame,
+    LayoutGrid, MapPin, Heart, Download, CalendarHeart, Sparkles, Flame, PenSquare,
 } from 'lucide-react'
 import { ministryContentApi, type MinistryContentKey } from '@/lib/api'
 
@@ -38,6 +38,11 @@ interface PageCopy {
     // to true; jitsi_domain lets a church point at a self-hosted Jitsi.
     jitsi_enabled?: boolean
     jitsi_domain?: string
+    // Blog / "LETW TV" page: channel name + About-the-pastor card.
+    channel_name?: string
+    about_name?:   string
+    about_bio?:    string
+    about_image?:  string
 }
 
 const DEFAULTS: Record<MinistryContentKey, PageCopy> = {
@@ -88,6 +93,17 @@ const DEFAULTS: Record<MinistryContentKey, PageCopy> = {
         cta_label: '',
         cta_href:  '',
     },
+    'blog-page': {
+        eyebrow: "Pastor's Column",
+        title:   'Truth that lasts. Words for now.',
+        subtitle: 'Live services, teachings, and weekly reflections from Light Encounter Tabernacle Worldwide.',
+        cta_label: '',
+        cta_href:  '',
+        channel_name: 'LETW TV',
+        about_name:   'Light Encounter Tabernacle Worldwide',
+        about_bio:    'Weekly reflections, devotionals, and pastoral notes — teaching the Word and building faith for everyday life.',
+        about_image:  '',
+    },
     // The union type requires all keys — the below are unused by this
     // editor. Keeping them as no-op defaults so TypeScript is happy.
     'women': BLANK(),           'men': BLANK(),                 'theology': BLANK(),
@@ -110,6 +126,7 @@ const TABS: { key: MinistryContentKey; label: string; icon: any; public_path: st
     { key: 'download-page',      label: '/download',      icon: Download,     public_path: '/download' },
     { key: 'life-events-page',   label: '/life-events',   icon: CalendarHeart, public_path: '/life-events' },
     { key: 'fasting-page',       label: '/fasting',       icon: Flame,        public_path: '/fasting' },
+    { key: 'blog-page',          label: '/blog',          icon: PenSquare,    public_path: '/blog' },
 ]
 
 export default function PageCopyAdmin() {
@@ -206,6 +223,7 @@ export default function PageCopyAdmin() {
                     {tab === 'life-events-page' && <Link href="/admin/life-events" className="text-amber-900 hover:underline">Requests →</Link>}
                     {tab === 'fasting-page' && <Link href="/admin/fasting" className="text-amber-900 hover:underline">Fasts + prompts →</Link>}
                     {tab === 'apps-page' && <Link href="/admin/site-content" className="text-amber-900 hover:underline">Apps grid →</Link>}
+                    {tab === 'blog-page' && <Link href="/admin/blog" className="text-amber-900 hover:underline">Blog posts →</Link>}
                 </div>
             </div>
 
@@ -267,6 +285,29 @@ export default function PageCopyAdmin() {
                                     onChange={v => setData({ ...data, cta_href: v })} />
                             </div>
                         </div>
+                    )}
+
+                    {tab === 'blog-page' && (
+                        <>
+                            <div className="border-t border-gray-100 mt-4 pt-3">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">TV channel</p>
+                                <Field label="Channel name (shown on the player header, e.g. 'LETW TV')"
+                                    value={data.channel_name || ''}
+                                    onChange={v => setData({ ...data, channel_name: v })} />
+                                <p className="text-xs text-gray-400 -mt-1 mb-2">
+                                    The player and its channel tabs fill automatically from your live stream and recent sermons.
+                                </p>
+                            </div>
+                            <div className="border-t border-gray-100 mt-1 pt-3">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">About card (sidebar)</p>
+                                <Field label="Name / heading" value={data.about_name || ''}
+                                    onChange={v => setData({ ...data, about_name: v })} />
+                                <TextArea label="Bio" rows={3} value={data.about_bio || ''}
+                                    onChange={v => setData({ ...data, about_bio: v })} />
+                                <Field label="Photo URL (optional)" value={data.about_image || ''}
+                                    onChange={v => setData({ ...data, about_image: v })} />
+                            </div>
+                        </>
                     )}
                 </div>
             )}
