@@ -621,6 +621,44 @@ async def my_giving(db: AsyncSession = Depends(get_db), user: User = Depends(get
     }
 
 
+@router.get("/recurring")
+async def recurring_donors(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Members who set up a recurring (monthly/weekly/yearly) gift, with the
+    expected monthly-equivalent total. Note: reflects recurring gifts that were
+    STARTED here — a donor who later cancelled at the provider still shows until
+    the provider webhook reports it, so treat totals as an upper-bound estimate."""
+    res = await db.execute(
+        select(Donation).where(
+            Donation.interval.isnot(None), Donation.status == "success",
+        ).order_by(Donation.created_at.desc())
+    )
+    # One entry per (donor, amount, interval, currency) — the newest of each.
+    seen: dict[tuple, dict] = {}
+    for d in res.scalars().all():
+        cur = (d.currency or "").upper()
+        who = (d.payer_email or d.payer_name or "Anonymous").strip().lower()
+        key = (who, round(float(d.amount), 2), d.interval, cur)
+        if key in seen:
+            continue
+        seen[key] = {
+            "name": d.payer_name or "Anonymous", "email": d.payer_email,
+            "amount": round(float(d.amount), 2), "currency": cur,
+            "interval": d.interval, "fund": d.fund,
+            "since": d.created_at.isoformat(),
+        }
+    donors = list(seen.values())
+    # Monthly-equivalent per currency: weekly ×52/12, monthly ×1, yearly ÷12.
+    factor = {"weekly": 52 / 12, "monthly": 1.0, "yearly": 1 / 12}
+    monthly: dict[str, float] = {}
+    for d in donors:
+        monthly[d["currency"]] = monthly.get(d["currency"], 0.0) + d["amount"] * factor.get(d["interval"], 1.0)
+    return {
+        "donors": donors,
+        "count": len(donors),
+        "expected_monthly": [{"currency": c, "amount": round(a, 2)} for c, a in sorted(monthly.items())],
+    }
+
+
 @router.get("/statements")
 async def giving_statements(year: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     """Year-end giving summary grouped by donor (by email, falling back to name),

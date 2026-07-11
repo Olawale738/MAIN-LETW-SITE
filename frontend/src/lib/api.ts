@@ -3902,6 +3902,13 @@ export const paymentsApi = {
         return fetchApi<Donation[]>(`/payments/donations?${qs.toString()}`);
     },
     stats: () => fetchApi<{ by_status: Record<string, { count: number; amount: number }>; by_fund: Array<{ fund: string; count: number; amount: number }> }>('/payments/stats'),
+    // Active recurring donors + expected monthly total (admin).
+    recurringDonors: () =>
+        fetchApi<{
+            count: number
+            expected_monthly: Array<{ currency: string; amount: number }>
+            donors: Array<{ name: string; email: string | null; amount: number; currency: string; interval: string; fund: string; since: string }>
+        }>('/payments/recurring'),
     // Year-end giving statements (admin).
     givingStatements: (year: number) =>
         fetchApi<{ year: number; donors: Array<{ email: string | null; name: string; count: number; totals: Array<{ currency: string; amount: number }> }> }>(`/payments/statements?year=${year}`),

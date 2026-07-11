@@ -758,12 +758,14 @@ async def send_marriage_prep_enrolled_email(
     partner_a: str,
     partner_b: str,
     portal_url: str,
+    join_url: str = "",
 ) -> bool:
     """
     Welcome email at the moment of enrolment — carries the couple's portal
     link (their UUID capability link is the credential, so this email is how
-    they find their way back to the course). Honours the admin-editable
-    'marriage_prep_enrolled' template slot when saved.
+    they find their way back to the course) and their private video-room link
+    so they can join a call the pastor starts without opening the portal first.
+    Honours the admin-editable 'marriage_prep_enrolled' template slot when saved.
     """
     if not to_email:
         return False
@@ -774,21 +776,27 @@ async def send_marriage_prep_enrolled_email(
         body = (admin_tpl["body"]
                 .replace("{couple}", couple_label)
                 .replace("{partner_a}", partner_a).replace("{partner_b}", partner_b)
-                .replace("{portal_link}", portal_url))
+                .replace("{portal_link}", portal_url)
+                .replace("{video_link}", join_url or portal_url))
         return await send_email(to_email, subj, _render_admin_template_body(body, couple=couple_label))
 
+    video_block = (
+        f"Your private video room (use it when your pastor invites you to a call):\n"
+        f"{join_url}\n\n"
+    ) if join_url else ""
     subject = f"Welcome to Marriage Prep, {couple_label}"
     body = (
         f"Dear {couple_label},\n\n"
-        f"You're enrolled. Six weeks of guided conversations start now — at your own pace, "
+        f"You're enrolled. Your guided course starts now — at your own pace, "
         f"together.\n\n"
         f"Your private course portal (bookmark this — it's your key):\n"
         f"{portal_url}\n\n"
+        f"{video_block}"
         f"How it works:\n\n"
         f"1. Open the portal and read week one together — scripture, teaching, homework.\n"
         f"2. Write your shared reflections in the portal and mark the week complete.\n"
         f"3. Repeat weekly. Set aside 90 minutes — phones away, hearts open.\n"
-        f"4. After week six, your pastor reviews the journey and signs off.\n"
+        f"4. When you finish, your pastor reviews the journey and signs off.\n"
         f"5. The moment they do, your Certificate of Completion appears in the portal — "
         f"printable, QR-verified, and signed by letw.org.\n\n"
         f"We're praying for you both.\n"

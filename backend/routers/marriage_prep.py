@@ -84,6 +84,17 @@ async def enrol_couple(body: CoupleIn, db: AsyncSession = Depends(get_db)):
     # access credential, so mailing it means they can always find their way
     # back to the course. Best-effort: mail hiccups never block enrolment.
     portal_url = f"{_public_base()}/marriage-prep/journey/{c.id}"
+    # Their private video room — same room the pastor joins; handed over now so
+    # they can jump into a call without opening the portal first.
+    jitsi_domain = "meet.jit.si"
+    try:
+        from models.ministry_content import MinistryContent
+        row = (await db.execute(select(MinistryContent).where(MinistryContent.key == "marriage-prep-page"))).scalar_one_or_none()
+        if row and isinstance(row.content, dict) and row.content.get("jitsi_domain"):
+            jitsi_domain = str(row.content["jitsi_domain"]).strip() or "meet.jit.si"
+    except Exception:
+        pass
+    join_url = f"https://{jitsi_domain}/LETW-MarriagePrep-{c.id}"
     try:
         from services.email_service import send_marriage_prep_enrolled_email
         for addr in {c.partner_a_email, c.partner_b_email}:
@@ -91,7 +102,7 @@ async def enrol_couple(body: CoupleIn, db: AsyncSession = Depends(get_db)):
                 await send_marriage_prep_enrolled_email(
                     to_email=addr,
                     partner_a=c.partner_a_name, partner_b=c.partner_b_name,
-                    portal_url=portal_url,
+                    portal_url=portal_url, join_url=join_url,
                 )
     except Exception as e:
         print(f"[marriage-prep] enrolment email failed: {type(e).__name__}: {e}", flush=True)

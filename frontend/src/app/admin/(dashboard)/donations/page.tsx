@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Loader2, Wallet, RefreshCw, AlertCircle, FileText, ChevronDown } from 'lucide-react'
+import { Loader2, Wallet, RefreshCw, AlertCircle, FileText, ChevronDown, Repeat } from 'lucide-react'
 import { paymentsApi, type Donation } from '@/lib/api'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -56,6 +56,7 @@ export default function AdminDonationsPage() {
                 ))}
             </div>
 
+            <RecurringDonors />
             <YearEndStatements />
 
             <div className="flex gap-2 mb-4 flex-wrap">
@@ -92,6 +93,73 @@ export default function AdminDonationsPage() {
                     </tbody>
                 </table>
             </div>
+        </div>
+    )
+}
+
+function RecurringDonors() {
+    const [open, setOpen] = useState(false)
+    const [data, setData] = useState<Awaited<ReturnType<typeof paymentsApi.recurringDonors>> | null>(null)
+    const [loading, setLoading] = useState(false)
+    const [err, setErr] = useState<string | null>(null)
+
+    const load = async () => {
+        if (data) return
+        setLoading(true); setErr(null)
+        try { setData(await paymentsApi.recurringDonors()) }
+        catch (e) { setErr((e as Error).message) }
+        finally { setLoading(false) }
+    }
+    const toggle = () => { const next = !open; setOpen(next); if (next) load() }
+    const money = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+    return (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4 overflow-hidden">
+            <button onClick={toggle} className="w-full flex items-center gap-3 p-4 text-left">
+                <Repeat className="w-5 h-5 text-emerald-500" />
+                <div className="flex-1">
+                    <p className="font-black text-[#140152]">Recurring donors</p>
+                    <p className="text-xs text-gray-500">Active monthly/weekly/yearly givers and the expected monthly total.</p>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+
+            {open && (
+                <div className="px-4 pb-4 border-t border-gray-50">
+                    {loading && <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 animate-spin text-[#140152]" /></div>}
+                    {err && <p className="text-sm text-red-600 py-3">{err}</p>}
+                    {data && (
+                        <>
+                            <div className="flex flex-wrap gap-x-8 gap-y-1 items-baseline my-3">
+                                <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400">Expected / month</span>
+                                {data.expected_monthly.length === 0
+                                    ? <span className="text-gray-400 text-sm">—</span>
+                                    : data.expected_monthly.map(t => <span key={t.currency} className="text-2xl font-black text-[#140152]">{t.currency} {money(t.amount)}</span>)}
+                                <span className="text-xs text-gray-400">{data.count} active setup{data.count !== 1 ? 's' : ''}</span>
+                            </div>
+                            {data.donors.length === 0 ? (
+                                <p className="text-sm text-gray-400 py-3">No recurring gifts set up yet.</p>
+                            ) : (
+                                <div className="divide-y divide-gray-50 border border-gray-100 rounded-xl">
+                                    {data.donors.map((d, i) => (
+                                        <div key={i} className="flex items-center gap-3 p-3">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-[#140152] truncate">{d.name}</p>
+                                                <p className="text-xs text-gray-400 truncate">{d.email || 'no email'} · {d.fund} · since {new Date(d.since).toLocaleDateString()}</p>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <p className="font-bold text-[#140152]">{d.currency} {money(d.amount)}</p>
+                                                <p className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold">{d.interval}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <p className="text-[10px] text-gray-400 mt-2">Estimate — a donor who cancels at the provider may still appear until their cancellation is reported.</p>
+                        </>
+                    )}
+                </div>
+            )}
         </div>
     )
 }
