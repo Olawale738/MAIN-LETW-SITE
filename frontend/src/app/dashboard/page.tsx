@@ -414,7 +414,7 @@ export default function UserDashboard() {
                                         { label: 'My Groups', sub: 'Ministries & departments', icon: Users, href: '/dashboard/volunteer' },
                                         { label: 'Children Check-In', sub: 'Family hub', icon: HandHeart, href: '/children' },
                                         { label: 'My Prayers', sub: 'Requests & wall', icon: Heart, href: '/dashboard/prayer-wall' },
-                                        { label: 'Giving Statement', sub: 'Annual receipt', icon: BookOpen, href: '/giving' },
+                                        { label: 'Give', sub: 'Tithes & offerings', icon: HandHeart, href: '/giving' },
                                     ].map((x, i) => (
                                         <Link key={i} href={x.href} className="flex items-center gap-3 rounded-xl border border-gray-100 hover:border-[#140152]/30 hover:shadow-sm px-3 py-2.5 transition-all group">
                                             <div className="w-8 h-8 rounded-lg bg-[#140152]/5 flex items-center justify-center shrink-0">
