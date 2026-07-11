@@ -8,7 +8,7 @@ import {
     Loader2, Plus, Save, Trash2, Heart, CheckCircle, AlertCircle, Quote, Pencil, X,
     Link as LinkIcon, FileText, Upload, Video, CalendarClock,
 } from 'lucide-react'
-import { marriagePrepApi, ministryContentApi, type MarriagePrepModule, type MarriagePrepModuleResource, type MarriagePrepCouple, type MarriagePrepPastor } from '@/lib/api'
+import { marriagePrepApi, ministryContentApi, authApi, type MarriagePrepModule, type MarriagePrepModuleResource, type MarriagePrepCouple, type MarriagePrepPastor } from '@/lib/api'
 import { marriagePrepRoom } from '@/components/JitsiMeet'
 
 export default function MarriagePrepAdmin() {
@@ -329,7 +329,13 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
 
     const [scheduling, setScheduling] = useState<MarriagePrepCouple | null>(null)
     const [pastors, setPastors] = useState<MarriagePrepPastor[]>([])
+    // "My couples" filter — show only couples assigned to the signed-in pastor.
+    const [myId, setMyId] = useState<string | null>(null)
+    const [mineOnly, setMineOnly] = useState(false)
     useEffect(() => { marriagePrepApi.listPastors().then(setPastors).catch(() => { /* none */ }) }, [])
+    useEffect(() => { authApi.getCurrentUser().then(u => setMyId(u.id)).catch(() => { /* not critical */ }) }, [])
+
+    const visibleCouples = mineOnly && myId ? couples.filter(c => c.assigned_pastor_user_id === myId) : couples
 
     const assign = async (c: MarriagePrepCouple, pastorId: string) => {
         try {
@@ -365,9 +371,15 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
 
     return (
         <>
+            {myId && (
+                <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm mb-3">
+                    <button onClick={() => setMineOnly(false)} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${!mineOnly ? 'bg-[#140152] text-white' : 'text-gray-600 hover:bg-gray-50'}`}>All couples ({couples.length})</button>
+                    <button onClick={() => setMineOnly(true)} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${mineOnly ? 'bg-[#140152] text-white' : 'text-gray-600 hover:bg-gray-50'}`}>My couples ({couples.filter(c => c.assigned_pastor_user_id === myId).length})</button>
+                </div>
+            )}
             <div className="bg-white border border-gray-100 rounded-2xl shadow-sm divide-y divide-gray-100">
-                {couples.length === 0 && <p className="p-6 text-center text-gray-400 text-sm">No couples enrolled yet.</p>}
-                {couples.map(c => (
+                {visibleCouples.length === 0 && <p className="p-6 text-center text-gray-400 text-sm">{mineOnly ? 'No couples assigned to you yet.' : 'No couples enrolled yet.'}</p>}
+                {visibleCouples.map(c => (
                     <div key={c.id} className="p-4 grid md:grid-cols-[1fr_auto] gap-3 items-start">
                         <div>
                             <p className="font-bold text-[#140152]">{c.partner_a_name} <span className="text-gray-400 font-normal">&</span> {c.partner_b_name}</p>

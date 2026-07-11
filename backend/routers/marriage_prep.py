@@ -350,12 +350,39 @@ async def assign_pastor(couple_id: str, body: AssignPastorIn, db: AsyncSession =
     c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
     if not c:
         raise HTTPException(404, "Couple not found")
+    pastor = None
+    previous = c.assigned_pastor_user_id
     if body.pastor_user_id:
-        if not (await db.execute(select(User).where(User.id == body.pastor_user_id))).scalar_one_or_none():
+        pastor = (await db.execute(select(User).where(User.id == body.pastor_user_id))).scalar_one_or_none()
+        if not pastor:
             raise HTTPException(404, "Pastor not found")
     c.assigned_pastor_user_id = body.pastor_user_id or None
     await db.commit()
     await db.refresh(c)
+
+    # Notify the newly-assigned pastor (best-effort; only on a real change).
+    if pastor and pastor.email and previous != c.assigned_pastor_user_id:
+        try:
+            from services.email_service import send_email
+            couple = f"{c.partner_a_name} & {c.partner_b_name}"
+            admin_url = f"{_public_base()}/admin/marriage-prep"
+            body_html = f"""
+            <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1f2937">
+              <div style="background:#140152;color:#fff;padding:20px;border-radius:14px 14px 0 0">
+                <h2 style="margin:0;color:#f5bb00">You've been assigned a couple</h2>
+              </div>
+              <div style="border:1px solid #eee;border-top:none;padding:20px;border-radius:0 0 14px 14px">
+                <p>Hi {pastor.name},</p>
+                <p>You are now the pastor shepherding <strong>{couple}</strong> through Marriage Prep.</p>
+                <p style="margin:20px 0"><a href="{admin_url}" style="background:#140152;color:#fff;text-decoration:none;font-weight:bold;padding:11px 20px;border-radius:999px">Open Marriage Prep admin</a></p>
+                <p style="font-size:13px;color:#6b7280">From there you can schedule a session, start a video call, and sign off when they finish.</p>
+              </div>
+            </div>
+            """
+            await send_email(pastor.email, f"You're now shepherding {couple}", body_html)
+        except Exception as e:
+            print(f"[marriage-prep] pastor-assigned email failed: {type(e).__name__}: {e}", flush=True)
+
     names = await _pastor_names(db, [c.assigned_pastor_user_id])
     return _couple(c, pastor_name=names.get(c.assigned_pastor_user_id))
 
