@@ -85,17 +85,26 @@ export default function BlogTVPage() {
     const galleryImgs = posts.filter(p => p.hero_image_url).slice(0, 6)
 
     return (
-        <main className="min-h-screen bg-gray-50">
+        <main className="min-h-screen bg-gradient-to-b from-gray-50 to-[#fbf5e6]/40">
             {/* Channel bar */}
-            <section className="bg-[#140152] text-white pt-20">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between flex-wrap gap-3">
+            <section className="relative overflow-hidden bg-gradient-to-br from-[#140152] via-[#1a0166] to-[#1d0175] text-white pt-24 pb-8">
+                <div className="absolute -top-24 right-0 w-[420px] h-[420px] bg-[#f5bb00]/10 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute -bottom-28 left-0 w-[380px] h-[380px] bg-rose-400/10 rounded-full blur-[120px] pointer-events-none" />
+                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 flex items-end justify-between flex-wrap gap-4">
                     <div>
-                        <p className="text-[#f5bb00] font-bold tracking-[0.3em] text-[10px] uppercase inline-flex items-center gap-2"><PenSquare className="w-3.5 h-3.5" /> {copy.eyebrow}</p>
-                        <h1 className="text-2xl sm:text-3xl font-black leading-tight flex items-center gap-2">
-                            <Radio className="w-6 h-6 text-[#f5bb00]" /> {copy.channel_name}
+                        <p className="text-[#f5bb00] font-bold tracking-[0.35em] text-[10px] uppercase inline-flex items-center gap-2"><PenSquare className="w-3.5 h-3.5" /> {copy.eyebrow}</p>
+                        <h1 className="text-3xl sm:text-5xl font-black leading-tight flex items-center gap-3 mt-1.5">
+                            <span className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-[#f5bb00] text-[#140152] shadow-lg shadow-[#f5bb00]/30"><Radio className="w-6 h-6" /></span>
+                            {copy.channel_name}
+                            {live && (
+                                <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-red-500 text-white px-2.5 py-1 rounded-full">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> On air
+                                </span>
+                            )}
                         </h1>
+                        <p className="text-white/60 text-sm mt-2.5 max-w-xl leading-relaxed">{copy.subtitle}</p>
                     </div>
-                    <a href="/blog/rss.xml" target="_blank" rel="noopener noreferrer" className="text-xs text-white/70 hover:text-[#f5bb00] inline-flex items-center gap-1.5"><Rss className="w-3.5 h-3.5" /> Subscribe (RSS)</a>
+                    <a href="/blog/rss.xml" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-white/80 hover:text-[#140152] hover:bg-[#f5bb00] border border-white/20 hover:border-[#f5bb00] rounded-full px-4 py-2 inline-flex items-center gap-1.5 transition-colors"><Rss className="w-3.5 h-3.5" /> Subscribe (RSS)</a>
                 </div>
             </section>
 
@@ -103,7 +112,13 @@ export default function BlogTVPage() {
                 {/* ── Main column ─────────────────────────────────────────── */}
                 <div className="min-w-0 space-y-6">
                     {/* Player */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="bg-white rounded-2xl shadow-lg shadow-[#140152]/5 border border-gray-100 overflow-hidden">
+                        {current && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 bg-[#140152] text-white">
+                                {current.live ? <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> : <PlayCircle className="w-4 h-4 text-[#f5bb00]" />}
+                                <p className="text-[11px] font-bold uppercase tracking-wide truncate">{current.live ? 'Live now' : 'Now playing'} <span className="text-white/50">·</span> {current.label}</p>
+                            </div>
+                        )}
                         <div className="aspect-video bg-black relative">
                             {current ? (
                                 <iframe key={current.key} src={toVideoEmbedUrl(current.url)} title={current.label}
@@ -138,18 +153,20 @@ export default function BlogTVPage() {
 
                     {/* Featured post */}
                     {featured && (
-                        <Link href={`/blog/${featured.slug}`} className="block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group">
+                        <Link href={`/blog/${featured.slug}`} className="block bg-white rounded-2xl shadow-lg shadow-[#140152]/5 border border-gray-100 hover:border-[#f5bb00]/50 overflow-hidden group transition-colors">
                             <div className="sm:flex">
                                 {featured.hero_image_url && (
-                                    <div className="sm:w-2/5 aspect-video sm:aspect-auto bg-gray-100 overflow-hidden">
+                                    <div className="relative sm:w-2/5 aspect-video sm:aspect-auto bg-gray-100 overflow-hidden">
                                         <img src={featured.hero_image_url} alt={featured.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <span className="absolute top-3 left-3 text-[9px] font-black tracking-widest uppercase bg-[#f5bb00] text-[#140152] px-2 py-1 rounded-full inline-flex items-center gap-1"><Sparkles className="w-2.5 h-2.5" /> Featured</span>
                                     </div>
                                 )}
                                 <div className="p-5 sm:p-6 flex-1">
-                                    <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-[#f5bb00] mb-2 inline-flex items-center gap-1"><Sparkles className="w-3 h-3" /> Featured</p>
+                                    {!featured.hero_image_url && <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-[#f5bb00] mb-2 inline-flex items-center gap-1"><Sparkles className="w-3 h-3" /> Featured</p>}
                                     <h2 className="text-xl sm:text-2xl font-black text-[#140152] leading-tight group-hover:underline">{featured.title}</h2>
                                     {featured.excerpt && <p className="text-gray-600 mt-2 text-sm leading-relaxed line-clamp-3">{featured.excerpt}</p>}
                                     <p className="text-xs text-gray-500 mt-3 inline-flex items-center gap-1.5"><Calendar className="w-3 h-3" />{featured.published_at ? new Date(featured.published_at).toLocaleDateString() : ''} <Dot className="w-3 h-3" /> {featured.author_name}</p>
+                                    <p className="mt-3 text-xs font-black text-[#140152] inline-flex items-center gap-1 group-hover:gap-2 transition-all">Read the message <ArrowRight className="w-3.5 h-3.5" /></p>
                                 </div>
                             </div>
                         </Link>
@@ -157,23 +174,38 @@ export default function BlogTVPage() {
 
                     {/* Feed */}
                     {posts.length === 0 && !loading ? (
-                        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-400">
+                        <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center text-gray-400">
                             <PenSquare className="w-12 h-12 mx-auto mb-3 opacity-40" /><p>No posts yet. Check back soon.</p>
                         </div>
-                    ) : (
-                        <div className="grid sm:grid-cols-2 gap-4">
-                            {rest.map(p => (
-                                <Link key={p.id} href={`/blog/${p.slug}`} className="block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
-                                    {p.hero_image_url && <div className="aspect-video bg-gray-100 overflow-hidden"><img src={p.hero_image_url} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /></div>}
-                                    <div className="p-4">
-                                        <h3 className="font-bold text-[#140152] leading-tight group-hover:underline">{p.title}</h3>
-                                        {p.excerpt && <p className="text-sm text-gray-600 mt-1.5 line-clamp-2">{p.excerpt}</p>}
-                                        <p className="text-[11px] text-gray-500 mt-2.5 inline-flex items-center gap-1.5"><Calendar className="w-3 h-3" />{p.published_at ? new Date(p.published_at).toLocaleDateString() : ''}</p>
-                                    </div>
-                                </Link>
-                            ))}
+                    ) : rest.length > 0 ? (
+                        <div>
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="h-4 w-1 rounded-full bg-[#f5bb00]" />
+                                <h2 className="text-sm font-black uppercase tracking-widest text-[#140152]">Latest from the column</h2>
+                            </div>
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                {rest.map(p => {
+                                    const tag = (p.tags || '').split(',').map(t => t.trim()).filter(Boolean)[0]
+                                    return (
+                                        <Link key={p.id} href={`/blog/${p.slug}`} className="flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-[#f5bb00]/50 transition-all group">
+                                            {p.hero_image_url && (
+                                                <div className="relative aspect-video bg-gray-100 overflow-hidden">
+                                                    <img src={p.hero_image_url} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                    {tag && <span className="absolute top-2.5 left-2.5 text-[9px] font-black uppercase tracking-wide bg-white/90 text-[#140152] px-2 py-0.5 rounded-full">{tag}</span>}
+                                                </div>
+                                            )}
+                                            <div className="p-4 flex flex-col flex-1">
+                                                {!p.hero_image_url && tag && <span className="text-[9px] font-black uppercase tracking-wide text-[#b8860b] mb-1">{tag}</span>}
+                                                <h3 className="font-bold text-[#140152] leading-tight group-hover:underline">{p.title}</h3>
+                                                {p.excerpt && <p className="text-sm text-gray-600 mt-1.5 line-clamp-2 flex-1">{p.excerpt}</p>}
+                                                <p className="text-[11px] text-gray-500 mt-2.5 inline-flex items-center gap-1.5"><Calendar className="w-3 h-3" />{p.published_at ? new Date(p.published_at).toLocaleDateString() : ''}</p>
+                                            </div>
+                                        </Link>
+                                    )
+                                })}
+                            </div>
                         </div>
-                    )}
+                    ) : null}
                 </div>
 
                 {/* ── Sidebar ─────────────────────────────────────────────── */}
@@ -259,7 +291,7 @@ export default function BlogTVPage() {
 function SideCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-4 py-3 bg-[#140152] text-white flex items-center gap-2">
+            <div className="px-4 py-3 bg-gradient-to-r from-[#140152] to-[#1d0175] text-white flex items-center gap-2">
                 <span className="text-[#f5bb00]">{icon}</span>
                 <h3 className="font-black text-sm uppercase tracking-wide">{title}</h3>
             </div>
