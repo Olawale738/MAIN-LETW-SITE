@@ -4095,6 +4095,12 @@ export const blogApi = {
     delete: (id: string) => fetchApi<{ deleted: number }>(`/blog/admin/posts/${id}`, { method: 'DELETE' }),
 };
 
+// ─── Newsletter ────────────────────────────────────────────────────────────
+export const newsletterApi = {
+    subscribe: (email: string, source = 'blog', name?: string) =>
+        fetchApi<{ message: string }>('/newsletter/subscribe', { method: 'POST', body: JSON.stringify({ email, name, source }) }),
+};
+
 // ─── YouTube import (sermons) ──────────────────────────────────────────────
 export interface YouTubeMetadata {
     video_id: string; title: string; author: string; author_url: string;

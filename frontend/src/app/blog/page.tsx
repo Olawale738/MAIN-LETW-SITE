@@ -13,10 +13,10 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
     PenSquare, Search, Calendar, ArrowRight, Radio, PlayCircle, Video, Sparkles,
-    LayoutGrid, Tag, Rss, User, Dot,
+    LayoutGrid, Tag, Rss, User, Dot, Mail, Loader2, Check, X,
 } from 'lucide-react'
 import {
-    blogApi, sermonApi, liveStreamApi, ministryContentApi, toVideoEmbedUrl,
+    blogApi, sermonApi, liveStreamApi, ministryContentApi, newsletterApi, toVideoEmbedUrl,
     type BlogPost, type Sermon, type LiveStream,
 } from '@/lib/api'
 
@@ -40,6 +40,7 @@ export default function BlogTVPage() {
     const [loading, setLoading] = useState(true)
     const [q, setQ] = useState('')
     const [activeChannel, setActiveChannel] = useState<string>('')
+    const [activeTag, setActiveTag] = useState<string | null>(null)
 
     // Posts react to the search box; everything else loads once.
     useEffect(() => {
@@ -72,8 +73,14 @@ export default function BlogTVPage() {
     }, [channels, activeChannel])
 
     const current = channels.find(c => c.key === activeChannel) || channels[0]
-    const featured = posts.find(p => p.is_featured) || posts[0]
-    const rest = posts.filter(p => p.id !== featured?.id)
+
+    const postHasTag = (p: BlogPost, tag: string) =>
+        (p.tags || '').split(',').map(t => t.trim().toLowerCase()).includes(tag.toLowerCase())
+
+    // When a category is active, restrict the whole feed to it.
+    const shownPosts = activeTag ? posts.filter(p => postHasTag(p, activeTag)) : posts
+    const featured = shownPosts.find(p => p.is_featured) || shownPosts[0]
+    const rest = shownPosts.filter(p => p.id !== featured?.id)
 
     // "Hot Topics" from post tags.
     const topics = useMemo(() => {
@@ -151,6 +158,22 @@ export default function BlogTVPage() {
                             className="w-full bg-white border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#140152]/30" />
                     </div>
 
+                    {/* Category filter bar */}
+                    {topics.length > 0 && (
+                        <div className="flex gap-2 overflow-x-auto pb-1 -mt-1">
+                            <button onClick={() => setActiveTag(null)}
+                                className={`shrink-0 text-xs font-bold px-3.5 py-1.5 rounded-full transition-colors ${activeTag === null ? 'bg-[#140152] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-[#140152]'}`}>
+                                All
+                            </button>
+                            {topics.map(t => (
+                                <button key={t} onClick={() => setActiveTag(t)}
+                                    className={`shrink-0 text-xs font-bold px-3.5 py-1.5 rounded-full transition-colors capitalize ${activeTag?.toLowerCase() === t.toLowerCase() ? 'bg-[#140152] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-[#140152]'}`}>
+                                    {t}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     {/* Featured post */}
                     {featured && (
                         <Link href={`/blog/${featured.slug}`} className="block bg-white rounded-2xl shadow-lg shadow-[#140152]/5 border border-gray-100 hover:border-[#f5bb00]/50 overflow-hidden group transition-colors">
@@ -173,9 +196,11 @@ export default function BlogTVPage() {
                     )}
 
                     {/* Feed */}
-                    {posts.length === 0 && !loading ? (
+                    {shownPosts.length === 0 && !loading ? (
                         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center text-gray-400">
-                            <PenSquare className="w-12 h-12 mx-auto mb-3 opacity-40" /><p>No posts yet. Check back soon.</p>
+                            <PenSquare className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                            <p>{activeTag ? `No posts tagged "${activeTag}" yet.` : q ? 'No posts match your search.' : 'No posts yet. Check back soon.'}</p>
+                            {(activeTag || q) && <button onClick={() => { setActiveTag(null); setQ('') }} className="text-xs font-bold text-[#140152] underline mt-3">Clear filters</button>}
                         </div>
                     ) : rest.length > 0 ? (
                         <div>
@@ -206,6 +231,9 @@ export default function BlogTVPage() {
                             </div>
                         </div>
                     ) : null}
+
+                    {/* Newsletter */}
+                    <NewsletterBand />
                 </div>
 
                 {/* ── Sidebar ─────────────────────────────────────────────── */}
@@ -264,7 +292,8 @@ export default function BlogTVPage() {
                         <SideCard title="Hot Topics" icon={<Tag className="w-4 h-4" />}>
                             <div className="flex flex-wrap gap-2">
                                 {topics.map(t => (
-                                    <button key={t} onClick={() => setQ(t)} className="text-xs font-bold text-[#140152] bg-[#f5bb00]/15 hover:bg-[#f5bb00]/30 px-2.5 py-1 rounded-full transition-colors">{t}</button>
+                                    <button key={t} onClick={() => { setActiveTag(t); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                                        className={`text-xs font-bold px-2.5 py-1 rounded-full transition-colors capitalize ${activeTag?.toLowerCase() === t.toLowerCase() ? 'bg-[#140152] text-white' : 'text-[#140152] bg-[#f5bb00]/15 hover:bg-[#f5bb00]/30'}`}>{t}</button>
                                 ))}
                             </div>
                         </SideCard>
@@ -302,4 +331,47 @@ function SideCard({ title, icon, children }: { title: string; icon: React.ReactN
 
 function Empty({ text }: { text: string }) {
     return <p className="text-xs text-gray-400 py-2">{text}</p>
+}
+
+function NewsletterBand() {
+    const [email, setEmail] = useState('')
+    const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
+    const [msg, setMsg] = useState('')
+
+    const submit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!email) return
+        setState('sending')
+        try {
+            const r = await newsletterApi.subscribe(email, 'blog')
+            setMsg(r.message || "You're subscribed!"); setState('done'); setEmail('')
+        } catch (err) {
+            setMsg((err as Error).message || 'Something went wrong. Please try again.'); setState('error')
+        }
+    }
+
+    return (
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#140152] to-[#1d0175] rounded-2xl p-6 sm:p-8 text-white">
+            <div className="absolute -top-16 -right-10 w-52 h-52 bg-[#f5bb00]/15 rounded-full blur-[80px] pointer-events-none" />
+            <div className="relative">
+                <p className="text-[#f5bb00] font-bold tracking-[0.3em] text-[10px] uppercase inline-flex items-center gap-2 mb-1.5"><Mail className="w-3.5 h-3.5" /> Stay in the Word</p>
+                <h3 className="text-xl sm:text-2xl font-black leading-tight">Get every new message in your inbox</h3>
+                <p className="text-white/60 text-sm mt-1.5">Weekly reflections and teachings from Light Encounter Tabernacle — no spam, unsubscribe anytime.</p>
+
+                {state === 'done' ? (
+                    <p className="mt-4 inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-100 font-bold text-sm px-4 py-2.5 rounded-xl"><Check className="w-4 h-4" /> {msg}</p>
+                ) : (
+                    <form onSubmit={submit} className="mt-4 flex flex-col sm:flex-row gap-2">
+                        <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com"
+                            className="flex-1 rounded-xl px-4 py-3 text-sm text-[#140152] bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f5bb00]" />
+                        <button type="submit" disabled={state === 'sending'}
+                            className="inline-flex items-center justify-center gap-2 bg-[#f5bb00] hover:bg-amber-300 text-[#140152] font-black px-6 py-3 rounded-xl text-sm disabled:opacity-60 transition-colors">
+                            {state === 'sending' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />} Subscribe
+                        </button>
+                    </form>
+                )}
+                {state === 'error' && <p className="mt-2 text-sm text-rose-200 inline-flex items-center gap-1.5"><X className="w-3.5 h-3.5" /> {msg}</p>}
+            </div>
+        </div>
+    )
 }
