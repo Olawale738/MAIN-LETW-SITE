@@ -1041,6 +1041,18 @@ export const eventApi = {
         return fetchApi<Event>(`/events/${eventId}`);
     },
 
+    // Public RSVP for guests (no login) — name + email.
+    guestRsvp: async (eventId: string, data: { guest_name: string; guest_email: string; plus_ones?: number; guest_phone?: string }): Promise<{ ok: boolean; status: string; waitlisted: boolean; message: string }> => {
+        const response = await fetch(`${API_BASE_URL}/events/${eventId}/rsvp/guest`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail || 'Could not register');
+        return response.json();
+    },
+
+    // "Add to calendar" — direct link to the event's .ics file.
+    calendarUrl: (eventId: string): string => `${API_BASE_URL}/events/${eventId}/calendar.ics`,
+
     createEvent: async (data: EventCreateData): Promise<Event> => {
         const formData = new FormData();
         formData.append('title', data.title);

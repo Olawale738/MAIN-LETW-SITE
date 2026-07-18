@@ -6,6 +6,7 @@ tags, reminders, updates, donations, polls, check-in.
 """
 
 import logging
+import re
 import uuid
 from datetime import datetime, date as date_type, timedelta
 from typing import List, Optional
@@ -126,6 +127,110 @@ async def create_rsvp(
         plus_ones=rsvp.plus_ones, payment_status=rsvp.payment_status,
         checked_in=rsvp.checked_in, checked_in_at=rsvp.checked_in_at,
         qr_token=rsvp.qr_token, created_at=rsvp.created_at,
+    )
+
+
+class GuestRsvpIn(BaseModel):
+    guest_name: str
+    guest_email: str
+    plus_ones: int = 0
+    guest_phone: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@router.post("/{event_id}/rsvp/guest", status_code=201)
+async def create_guest_rsvp(event_id: str, body: GuestRsvpIn, db: AsyncSession = Depends(get_db)):
+    """Public RSVP for visitors who aren't signed in — name + email only. Keyed
+    by email per event so re-submitting updates rather than duplicates. Honours
+    capacity by moving overflow to the waitlist."""
+    event = (await db.execute(select(Event).where(Event.id == event_id))).scalar_one_or_none()
+    if not event:
+        raise HTTPException(404, "Event not found")
+
+    email = body.guest_email.strip().lower()
+    plus = max(0, int(body.plus_ones or 0))
+    existing = (await db.execute(select(EventRsvp).where(and_(
+        EventRsvp.event_id == event_id,
+        sql_func.lower(EventRsvp.guest_email) == email,
+    )))).scalar_one_or_none()
+
+    status_val = RsvpStatus.ATTENDING
+    if event.max_attendees:
+        taken = (await db.execute(select(sql_func.coalesce(sql_func.sum(1 + EventRsvp.plus_ones), 0)).where(and_(
+            EventRsvp.event_id == event_id,
+            EventRsvp.status == RsvpStatus.ATTENDING,
+            EventRsvp.id != (existing.id if existing else ""),
+        )))).scalar() or 0
+        if taken + 1 + plus > event.max_attendees:
+            status_val = RsvpStatus.WAITLISTED
+
+    if existing:
+        existing.guest_name = body.guest_name
+        existing.plus_ones = plus
+        existing.guest_phone = body.guest_phone
+        existing.notes = body.notes
+        existing.status = status_val
+        rsvp = existing
+    else:
+        rsvp = EventRsvp(
+            event_id=event_id, user_id=None,
+            guest_name=body.guest_name, guest_email=email, guest_phone=body.guest_phone,
+            status=status_val, plus_ones=plus, notes=body.notes,
+        )
+        db.add(rsvp)
+        if status_val == RsvpStatus.ATTENDING:
+            event.registered_count = (event.registered_count or 0) + 1 + plus
+    await db.commit()
+
+    waitlisted = status_val == RsvpStatus.WAITLISTED
+    return {
+        "ok": True,
+        "status": status_val.value if hasattr(status_val, "value") else status_val,
+        "waitlisted": waitlisted,
+        "message": ("This event is full — you're on the waitlist and we'll be in touch if a spot opens."
+                    if waitlisted else "You're registered! See the 'Add to calendar' button to save the date."),
+    }
+
+
+@router.get("/{event_id}/calendar.ics")
+async def event_calendar_ics(event_id: str, db: AsyncSession = Depends(get_db)):
+    """Public 'Add to calendar' — returns the event as an .ics file that any
+    calendar app can import. Reuses the marriage-prep calendar builder."""
+    from fastapi.responses import Response
+    from services.email_service import _build_ics
+    event = (await db.execute(select(Event).where(Event.id == event_id))).scalar_one_or_none()
+    if not event:
+        raise HTTPException(404, "Event not found")
+
+    def _combine(d, hhmm, default_h, default_m):
+        h, m = default_h, default_m
+        if hhmm and ":" in str(hhmm):
+            try:
+                h, m = int(str(hhmm).split(":")[0]), int(str(hhmm).split(":")[1])
+            except Exception:
+                pass
+        return datetime(d.year, d.month, d.day, h, m)
+
+    start = _combine(event.event_date, event.start_time, 9, 0)
+    end = _combine(event.event_date, event.end_time, start.hour + 1, start.minute)
+    if end <= start:
+        end = start + timedelta(hours=1)
+
+    desc_parts = [event.description or ""]
+    if event.location:
+        desc_parts.append("Location: " + event.location)
+    desc_parts.append("https://letw.org/events")
+    ics = _build_ics(
+        uid="letw-event-" + str(event.id) + "@letw.org",
+        start=start, end=end,
+        summary=event.title,
+        description="\n\n".join(p for p in desc_parts if p),
+        url="https://letw.org/events",
+    )
+    filename = re.sub(r"[^a-zA-Z0-9]+", "-", event.title or "event").strip("-").lower() or "event"
+    return Response(
+        content=ics, media_type="text/calendar",
+        headers={"Content-Disposition": f'attachment; filename="{filename}.ics"'},
     )
 
 
