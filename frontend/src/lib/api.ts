@@ -4329,6 +4329,7 @@ export interface SanctuaryRoom {
     id: string; name: string; description: string | null
     capacity: number; location: string | null; image_url: string | null
     equipment: string[]; rate_note: string | null
+    price: number; currency: string
     is_active: boolean; sort_order: number
 }
 export interface SanctuaryBooking {
@@ -4336,7 +4337,11 @@ export interface SanctuaryBooking {
     contact_name: string; contact_email: string; contact_phone: string | null
     starts_at: string; ends_at: string; attendees: number; note: string | null
     status: 'requested' | 'approved' | 'declined' | 'cancelled'
-    admin_note: string | null; created_at: string
+    admin_note: string | null
+    amount: number; currency: string
+    payment_status: 'unpaid' | 'paid' | 'waived'
+    payment_reference: string | null; paid_at: string | null
+    created_at: string
 }
 export const sanctuaryApi = {
     rooms: () => fetchApi<SanctuaryRoom[]>('/sanctuary/rooms'),
@@ -4352,8 +4357,13 @@ export const sanctuaryApi = {
     deleteRoom: (id: string) => fetchApi<{ deleted: number }>(`/sanctuary/rooms/${id}`, { method: 'DELETE' }),
     listBookings: (status?: string) =>
         fetchApi<SanctuaryBooking[]>(`/sanctuary/admin/bookings${status ? `?status=${encodeURIComponent(status)}` : ''}`),
-    updateBooking: (id: string, b: { status?: SanctuaryBooking['status']; admin_note?: string }) =>
+    updateBooking: (id: string, b: { status?: SanctuaryBooking['status']; admin_note?: string; payment_status?: SanctuaryBooking['payment_status'] }) =>
         fetchApi<SanctuaryBooking>(`/sanctuary/admin/bookings/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    // Link a payment reference to a booking (after starting checkout).
+    attachPayment: (id: string, reference: string) =>
+        fetchApi<{ ok: boolean }>(`/sanctuary/bookings/${id}/attach-payment`, { method: 'POST', body: JSON.stringify({ reference }) }),
+    bookingPaymentStatus: (id: string) =>
+        fetchApi<{ payment_status: string; amount: number; currency: string }>(`/sanctuary/bookings/${id}/payment-status`),
     // Permission letter (approved bookings only) — capability link by booking id.
     permissionLetter: (id: string) =>
         fetchApi<SanctuaryPermissionLetter>(`/sanctuary/bookings/${id}/letter`),

@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Optional
 
-from sqlalchemy import String, DateTime, Integer, Text, Boolean, ForeignKey
+from sqlalchemy import String, DateTime, Integer, Text, Boolean, ForeignKey, Numeric
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -28,6 +28,9 @@ class SanctuaryRoom(Base):
     image_url:   Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     equipment:   Mapped[Optional[Any]] = mapped_column(JSONB, nullable=True)  # ["projector","aircon",...]
     rate_note:   Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    # Structured booking fee. price 0 (or null) = free; anything above requires payment.
+    price:       Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    currency:    Mapped[str]  = mapped_column(String(10), default="NGN", nullable=False)
     is_active:   Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     sort_order:  Mapped[int]  = mapped_column(Integer, default=0, nullable=False)
     created_at:  Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
@@ -48,4 +51,10 @@ class SanctuaryBooking(Base):
     note:         Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status:       Mapped[str]  = mapped_column(String(20), default="requested", nullable=False, index=True)  # requested|approved|declined|cancelled
     admin_note:   Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Payment (set when the room has a price). payment_status: unpaid|paid|waived.
+    amount:           Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    currency:         Mapped[str]  = mapped_column(String(10), default="NGN", nullable=False)
+    payment_status:   Mapped[str]  = mapped_column(String(20), default="unpaid", nullable=False, index=True)
+    payment_reference: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, index=True)
+    paid_at:          Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at:   Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

@@ -110,6 +110,12 @@ async def request_booking(body: BookingIn, db: AsyncSession = Depends(get_db)):
         raise HTTPException(409, "That window overlaps an existing approved booking — pick a different time.")
 
     b = SanctuaryBooking(**body.model_dump())
+    # Carry the room's fee onto the booking so the amount is locked at request
+    # time even if the room's price changes later.
+    if room.price and float(room.price) > 0:
+        b.amount = room.price
+        b.currency = room.currency or "NGN"
+        b.payment_status = "unpaid"
     db.add(b)
     await db.commit()
     await db.refresh(b)
@@ -145,6 +151,74 @@ async def request_booking(body: BookingIn, db: AsyncSession = Depends(get_db)):
     return _booking(b)
 
 
+async def confirm_booking_payment(db: AsyncSession, reference: str) -> bool:
+    """Called by the payments webhook when a gift succeeds. If a booking is
+    linked to this reference, flip it to 'paid', stamp paid_at, and alert every
+    admin (in-app notification + best-effort email). Idempotent."""
+    b = (await db.execute(select(SanctuaryBooking).where(SanctuaryBooking.payment_reference == reference))).scalar_one_or_none()
+    if not b or b.payment_status == "paid":
+        return False
+    b.payment_status = "paid"
+    b.paid_at = datetime.utcnow()
+    room = (await db.execute(select(SanctuaryRoom).where(SanctuaryRoom.id == b.room_id))).scalar_one_or_none()
+    amount_str = f"{b.currency} {float(b.amount or 0):,.2f}"
+    try:
+        from models.user import User as _User, UserRole
+        from models.notification import Notification, NotificationType
+        admins = (await db.execute(select(_User).where(_User.role == UserRole.ADMIN))).scalars().all()
+        for a in admins:
+            db.add(Notification(
+                user_id=a.id,
+                title="Hall booking payment confirmed",
+                message=f"{b.contact_name} paid {amount_str} for {room.name if room else 'a room'} — {b.purpose}.",
+                type=NotificationType.GENERAL,
+                reference_id=b.id,
+            ))
+    except Exception as e:
+        print(f"[sanctuary] admin notify failed: {type(e).__name__}: {e}", flush=True)
+    await db.commit()
+    try:
+        from services.email_service import _admin_notify_email, send_email
+        admin_email = await _admin_notify_email()
+        if admin_email:
+            await send_email(
+                admin_email, f"Payment confirmed — {room.name if room else 'hall'} booking",
+                f'<div style="font-family:Arial,sans-serif"><h2 style="color:#140152">Payment confirmed &#9989;</h2>'
+                f'<p><strong>{b.contact_name}</strong> paid <strong>{amount_str}</strong> for '
+                f'{room.name if room else "a room"} — {b.purpose}.</p>'
+                f'<p style="font-size:12px;color:#6b7280">Ref: {reference}</p></div>',
+            )
+    except Exception as e:
+        print(f"[sanctuary] admin payment email failed: {type(e).__name__}: {e}", flush=True)
+    return True
+
+
+class AttachPaymentIn(BaseModel):
+    reference: str
+
+
+@router.post("/bookings/{booking_id}/attach-payment")
+async def attach_payment_reference(booking_id: str, body: AttachPaymentIn, db: AsyncSession = Depends(get_db)):
+    """Link a payment reference (from /payments/checkout) to a booking so the
+    payment webhook can flip it to 'paid' and alert admins. Public — the
+    requester's browser calls this right after starting checkout."""
+    b = (await db.execute(select(SanctuaryBooking).where(SanctuaryBooking.id == booking_id))).scalar_one_or_none()
+    if not b:
+        raise HTTPException(404, "Booking not found")
+    b.payment_reference = body.reference.strip()
+    await db.commit()
+    return {"ok": True}
+
+
+@router.get("/bookings/{booking_id}/payment-status")
+async def booking_payment_status(booking_id: str, db: AsyncSession = Depends(get_db)):
+    """Public poll for the thank-you page — reflects the webhook's result."""
+    b = (await db.execute(select(SanctuaryBooking).where(SanctuaryBooking.id == booking_id))).scalar_one_or_none()
+    if not b:
+        raise HTTPException(404, "Booking not found")
+    return {"payment_status": b.payment_status, "amount": float(b.amount or 0), "currency": b.currency}
+
+
 # ── Admin: rooms CRUD ──────────────────────────────────────────────────────
 
 class RoomIn(BaseModel):
@@ -155,6 +229,8 @@ class RoomIn(BaseModel):
     image_url:   Optional[str] = None
     equipment:   Optional[list[str]] = None
     rate_note:   Optional[str] = None
+    price:       float = 0
+    currency:    str = "NGN"
     is_active:   bool = True
     sort_order:  int = 0
 
@@ -205,8 +281,9 @@ async def list_bookings_admin(
 
 
 class BookingUpdate(BaseModel):
-    status:     Optional[str] = None   # approved|declined|cancelled
-    admin_note: Optional[str] = None
+    status:         Optional[str] = None   # approved|declined|cancelled
+    admin_note:     Optional[str] = None
+    payment_status: Optional[str] = None   # unpaid|paid|waived (manual override for bank/cash)
 
 
 @router.put("/admin/bookings/{booking_id}")
@@ -237,6 +314,11 @@ async def update_booking(
         b.status = body.status
     if body.admin_note is not None:
         b.admin_note = body.admin_note
+    if body.payment_status is not None:
+        if body.payment_status not in {"unpaid", "paid", "waived"}:
+            raise HTTPException(400, "Bad payment status")
+        b.payment_status = body.payment_status
+        b.paid_at = datetime.utcnow() if body.payment_status == "paid" else None
     await db.commit()
     await db.refresh(b)
 
@@ -247,11 +329,14 @@ async def update_booking(
             from services.email_service import send_sanctuary_booking_decision
             # Room might have been renamed since the request; look it up fresh.
             room = (await db.execute(select(SanctuaryRoom).where(SanctuaryRoom.id == b.room_id))).scalar_one_or_none()
+            # On approval, hand the requester their official permission letter.
+            letter_url = f"{_public_base()}/sanctuary/letter/{b.id}" if body.status == "approved" else ""
             await send_sanctuary_booking_decision(
                 to_email=b.contact_email, name=b.contact_name,
                 room_name=(room.name if room else "the room"), purpose=b.purpose,
                 starts_at=b.starts_at, ends_at=b.ends_at,
                 decision=body.status, admin_note=b.admin_note,
+                letter_url=letter_url,
             )
         except Exception as e:
             print(f"[sanctuary] decision email failed: {type(e).__name__}: {e}", flush=True)
@@ -266,6 +351,7 @@ def _room(r: SanctuaryRoom) -> dict[str, Any]:
         "id": r.id, "name": r.name, "description": r.description,
         "capacity": r.capacity, "location": r.location, "image_url": r.image_url,
         "equipment": r.equipment or [], "rate_note": r.rate_note,
+        "price": float(r.price or 0), "currency": r.currency or "NGN",
         "is_active": r.is_active, "sort_order": r.sort_order,
     }
 
@@ -404,5 +490,9 @@ def _booking(b: SanctuaryBooking) -> dict[str, Any]:
         "starts_at": b.starts_at.isoformat(), "ends_at": b.ends_at.isoformat(),
         "attendees": b.attendees, "note": b.note,
         "status": b.status, "admin_note": b.admin_note,
+        "amount": float(b.amount or 0), "currency": b.currency or "NGN",
+        "payment_status": b.payment_status or "unpaid",
+        "payment_reference": b.payment_reference,
+        "paid_at": b.paid_at.isoformat() if b.paid_at else None,
         "created_at": b.created_at.isoformat(),
     }

@@ -427,6 +427,13 @@ async def _mark_donation(db: AsyncSession, reference: str, status: str, raw: Any
     d.status = status
     d.raw_payload = raw
     await db.commit()
+    # If this payment settles a hall booking, mark it paid + alert admins.
+    if status == "success":
+        try:
+            from routers.sanctuary import confirm_booking_payment
+            await confirm_booking_payment(db, reference)
+        except Exception as e:
+            print(f"[payments] booking-payment hook failed: {type(e).__name__}: {e}", flush=True)
 
 
 @router.post("/webhook/paystack")

@@ -993,8 +993,10 @@ async def send_sanctuary_booking_decision(
     to_email: str, name: str, room_name: str, purpose: str,
     starts_at, ends_at, decision: str,   # 'approved' | 'declined'
     admin_note: str | None = None,
+    letter_url: str = "",
 ) -> bool:
-    """Ripple approval or decline back to the requester."""
+    """Ripple approval or decline back to the requester. On approval, includes
+    the requester's official permission letter link."""
     if not to_email:
         return False
     range_str = _fmt_range(starts_at, ends_at)
@@ -1007,23 +1009,29 @@ async def send_sanctuary_booking_decision(
         body = (admin_tpl["body"]
                 .replace("{room}", room_name).replace("{purpose}", purpose)
                 .replace("{range}", range_str)
+                .replace("{letter_link}", letter_url or "")
                 .replace("{admin_note}", admin_note or ""))
         return await send_email(to_email, subj, _render_admin_template_body(body, name=name))
 
     if decision == "approved":
         subject = f"Approved · {room_name} — {range_str}"
         note_block = f"\nNote from the coordinator:\n\n  {admin_note}\n" if admin_note else ""
+        letter_block = (
+            f"\nYour official permission letter (with QR verification and the church secretary's signature) is ready here:\n"
+            f"  {letter_url}\n"
+        ) if letter_url else ""
         body = (
             f"Hi {name or 'Friend'},\n\n"
             f"Good news — your booking is confirmed.\n\n"
             f"Room:     {room_name}\n"
             f"Purpose:  {purpose}\n"
             f"Window:   {range_str}\n"
-            f"{note_block}\n"
+            f"{note_block}"
+            f"{letter_block}\n"
             f"What happens next:\n\n"
             f"1. Arrive 30 minutes early to greet the on-site team.\n"
             f"2. Bring valid ID and any decor / catering supplies you plan to use.\n"
-            f"3. If anything changes, reply to this email so we can update the calendar.\n\n"
+            f"3. Present your permission letter (above) if asked at the gate.\n\n"
             f"Grace and peace,\n"
             f"Light Encounter Tabernacle Worldwide"
         )

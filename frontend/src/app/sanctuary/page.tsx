@@ -8,9 +8,9 @@
  */
 import { useEffect, useState } from 'react'
 import {
-    Loader2, MapPin, Users, Calendar, Send, CheckCircle, X, AlertCircle, Sparkles,
+    Loader2, MapPin, Users, Calendar, Send, CheckCircle, X, AlertCircle, Sparkles, CreditCard,
 } from 'lucide-react'
-import { sanctuaryApi, ministryContentApi, type SanctuaryRoom } from '@/lib/api'
+import { sanctuaryApi, paymentsApi, ministryContentApi, type SanctuaryRoom, type SanctuaryBooking, type PaymentProvider } from '@/lib/api'
 
 const DEFAULT_COPY = {
     eyebrow: 'Bookable Spaces',
@@ -113,6 +113,10 @@ function BookingModal({ room, onClose }: { room: SanctuaryRoom; onClose: () => v
     const [submitting, setSubmitting] = useState(false)
     const [done, setDone] = useState(false)
     const [err, setErr] = useState<string | null>(null)
+    const [booking, setBooking] = useState<SanctuaryBooking | null>(null)
+    const [providers, setProviders] = useState<PaymentProvider[]>([])
+    const [providerId, setProviderId] = useState('')
+    const [paying, setPaying] = useState(false)
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -123,15 +127,40 @@ function BookingModal({ room, onClose }: { room: SanctuaryRoom; onClose: () => v
         if (room.capacity > 0 && attendees > room.capacity) { setErr(`Capacity for ${room.name} is ${room.capacity}.`); return }
         setSubmitting(true)
         try {
-            await sanctuaryApi.requestBooking({
+            const created = await sanctuaryApi.requestBooking({
                 room_id: room.id, purpose,
                 contact_name: name, contact_email: email, contact_phone: phone || null,
                 starts_at: new Date(start).toISOString(), ends_at: new Date(end).toISOString(),
                 attendees, note: note || null,
             })
+            setBooking(created)
+            // If there's a fee, load payment providers so they can pay now.
+            if (created.amount > 0) {
+                paymentsApi.publicProviders().then(ps => {
+                    const usable = ps.filter(p => p.slug !== 'manual')
+                    setProviders(usable)
+                    if (usable[0]) setProviderId(usable[0].id)
+                }).catch(() => { /* they can still pay later */ })
+            }
             setDone(true)
         } catch (e) { setErr((e as Error).message) }
         finally { setSubmitting(false) }
+    }
+
+    const pay = async () => {
+        if (!booking || !providerId) return
+        setPaying(true); setErr(null)
+        try {
+            const r = await paymentsApi.checkout({
+                provider_id: providerId, amount: booking.amount, currency: booking.currency,
+                fund: `Hall booking — ${room.name}`, payer_name: name, payer_email: email || undefined,
+            })
+            // Link the payment to the booking so the webhook flips it to paid + alerts admins.
+            if (r.reference) await sanctuaryApi.attachPayment(booking.id, r.reference).catch(() => {})
+            if (r.checkout_url) { window.location.href = r.checkout_url; return }
+            setErr('The payment provider did not return a checkout link. Please try another method.')
+        } catch (e) { setErr((e as Error).message) }
+        finally { setPaying(false) }
     }
 
     return (
@@ -152,6 +181,33 @@ function BookingModal({ room, onClose }: { room: SanctuaryRoom; onClose: () => v
                         <p className="text-gray-600 mt-3 text-sm">
                             We&apos;ve emailed a confirmation to <strong className="text-[#140152]">{email}</strong>.
                         </p>
+
+                        {/* Payment step for paid rooms */}
+                        {booking && booking.amount > 0 && (
+                            <div className="mt-5 bg-[#140152] text-white rounded-2xl p-5 text-left">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#f5bb00] mb-1 inline-flex items-center gap-1.5"><CreditCard className="w-3.5 h-3.5" /> Booking fee</p>
+                                <p className="text-2xl font-black">{booking.currency} {booking.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                {err && <p className="text-xs text-red-300 mt-2">{err}</p>}
+                                {providers.length === 0 ? (
+                                    <p className="text-xs text-white/70 mt-2">Online payment isn&apos;t set up yet — the office will share payment details with your confirmation.</p>
+                                ) : (
+                                    <>
+                                        {providers.length > 1 && (
+                                            <div className="grid grid-cols-2 gap-2 mt-3">
+                                                {providers.map(p => (
+                                                    <button key={p.id} onClick={() => setProviderId(p.id)} className={`px-3 py-2 rounded-lg text-xs font-bold border ${providerId === p.id ? 'bg-[#f5bb00] text-[#140152] border-[#f5bb00]' : 'border-white/20 text-white/80 hover:border-white/50'}`}>{p.name}</button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <button onClick={pay} disabled={paying || !providerId} className="w-full mt-3 inline-flex items-center justify-center gap-2 bg-[#f5bb00] hover:bg-amber-300 text-[#140152] font-black px-5 py-3 rounded-full text-sm disabled:opacity-60">
+                                            {paying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />} Pay now
+                                        </button>
+                                        <p className="text-[10px] text-white/50 mt-2 text-center">Once your payment clears, the office is notified automatically.</p>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
                         <div className="mt-5 bg-gray-50 border border-gray-100 rounded-2xl p-4 text-left">
                             <p className="text-[10px] font-black uppercase tracking-widest text-[#f5bb00] mb-2">What happens next</p>
                             <ol className="text-xs text-gray-700 space-y-1.5 list-decimal ml-4">
@@ -164,6 +220,12 @@ function BookingModal({ room, onClose }: { room: SanctuaryRoom; onClose: () => v
                     </div>
                 ) : (
                     <form onSubmit={submit} className="p-6 space-y-3">
+                        {room.price > 0 && (
+                            <div className="bg-[#fbf5e6] border border-[#f5bb00]/40 rounded-lg p-3 text-sm text-[#140152] flex items-center gap-2">
+                                <CreditCard className="w-4 h-4 text-[#b8860b]" />
+                                <span>Booking fee: <strong>{room.currency} {room.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong> — payable after you submit.</span>
+                            </div>
+                        )}
                         {err && (
                             <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm flex items-start gap-2">
                                 <AlertCircle className="w-4 h-4 mt-0.5" />{err}

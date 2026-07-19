@@ -199,6 +199,14 @@ async def init_db():
                 # Marriage-prep pastor-proposed session (calendar invite)
                 ("marriage_prep_couples", "session_at",   "TIMESTAMP"),
                 ("marriage_prep_couples", "session_note", "TEXT"),
+                # Sanctuary paid bookings
+                ("sanctuary_rooms",    "price",             "NUMERIC(12,2) NOT NULL DEFAULT 0"),
+                ("sanctuary_rooms",    "currency",          "VARCHAR(10) NOT NULL DEFAULT 'NGN'"),
+                ("sanctuary_bookings", "amount",            "NUMERIC(12,2) NOT NULL DEFAULT 0"),
+                ("sanctuary_bookings", "currency",          "VARCHAR(10) NOT NULL DEFAULT 'NGN'"),
+                ("sanctuary_bookings", "payment_status",    "VARCHAR(20) NOT NULL DEFAULT 'unpaid'"),
+                ("sanctuary_bookings", "payment_reference", "VARCHAR(120)"),
+                ("sanctuary_bookings", "paid_at",           "TIMESTAMP"),
             ]
 
             # NOTE: ALTER TABLE ... ADD COLUMN IF NOT EXISTS is idempotent in

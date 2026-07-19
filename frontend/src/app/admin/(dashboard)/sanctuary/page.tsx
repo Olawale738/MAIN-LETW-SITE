@@ -64,7 +64,7 @@ function RoomsTab({ rooms, onSaved, onMsg }: { rooms: SanctuaryRoom[]; onSaved: 
 
     const blank: Omit<SanctuaryRoom, 'id'> = {
         name: '', description: '', capacity: 0, location: '', image_url: '',
-        equipment: [], rate_note: '', is_active: true, sort_order: 0,
+        equipment: [], rate_note: '', price: 0, currency: 'NGN', is_active: true, sort_order: 0,
     }
 
     const save = async () => {
@@ -90,6 +90,10 @@ function RoomsTab({ rooms, onSaved, onMsg }: { rooms: SanctuaryRoom[]; onSaved: 
                         <input value={editing.location || ''} onChange={e => setEditing({ ...editing, location: e.target.value })} placeholder="Location (Building B, Floor 2)" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
                         <input type="number" min={0} value={editing.capacity} onChange={e => setEditing({ ...editing, capacity: parseInt(e.target.value) || 0 })} placeholder="Capacity (0 = no limit)" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
                         <input value={editing.rate_note || ''} onChange={e => setEditing({ ...editing, rate_note: e.target.value })} placeholder="Rate note (Free for members, ₦50k for events…)" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                        <div className="flex gap-2">
+                            <input type="number" min={0} step="0.01" value={editing.price} onChange={e => setEditing({ ...editing, price: parseFloat(e.target.value) || 0 })} placeholder="Booking fee (0 = free)" className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                            <input value={editing.currency} onChange={e => setEditing({ ...editing, currency: e.target.value.toUpperCase() || 'NGN' })} placeholder="NGN" maxLength={5} className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                        </div>
                         <input value={editing.image_url || ''} onChange={e => setEditing({ ...editing, image_url: e.target.value })} placeholder="Image URL (optional)" className="border border-gray-200 rounded-lg px-3 py-2 text-sm md:col-span-2" />
                         <input value={(editing.equipment || []).join(', ')} onChange={e => setEditing({ ...editing, equipment: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} placeholder="Equipment (projector, AC, sound system…)" className="border border-gray-200 rounded-lg px-3 py-2 text-sm md:col-span-2" />
                     </div>
@@ -173,11 +177,27 @@ function BookingsTab({ bookings, rooms, onSaved, onMsg }: { bookings: SanctuaryB
                         </p>
                         <p className="text-xs text-gray-500"><MapPin className="w-3 h-3 inline mr-1" /> {roomName(b.room_id)}</p>
                         <p className="text-xs text-gray-500 mt-1">{b.contact_name} · {b.contact_email}{b.contact_phone ? ` · ${b.contact_phone}` : ''}</p>
+                        {b.amount > 0 && (
+                            <p className="text-xs mt-1.5 inline-flex items-center gap-1.5">
+                                <span className="font-bold text-[#140152]">Fee: {b.currency} {b.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                <span className={`font-bold uppercase tracking-widest text-[10px] px-2 py-0.5 rounded-full ${
+                                    b.payment_status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
+                                    b.payment_status === 'waived' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                                }`}>{b.payment_status}</span>
+                                {b.payment_reference && <span className="text-[10px] text-gray-400 font-mono">{b.payment_reference}</span>}
+                            </p>
+                        )}
                         {b.note && <p className="text-xs text-gray-600 mt-2 italic">"{b.note}"</p>}
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                         {b.status !== 'approved' && <button onClick={() => act(b, 'approved')} className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg"><CheckCircle className="w-3 h-3" /> Approve</button>}
                         {b.status !== 'declined' && <button onClick={() => act(b, 'declined')} className="inline-flex items-center gap-1 bg-red-100 text-red-700 hover:bg-red-200 text-xs font-bold px-3 py-1.5 rounded-lg"><XCircle className="w-3 h-3" /> Decline</button>}
+                        {b.amount > 0 && b.payment_status !== 'paid' && (
+                            <button onClick={async () => { try { await sanctuaryApi.updateBooking(b.id, { payment_status: 'paid' }); onMsg({ kind: 'ok', text: 'Marked paid.' }); onSaved() } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) } }} className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg"><CheckCircle className="w-3 h-3" /> Mark paid</button>
+                        )}
+                        {b.amount > 0 && b.payment_status === 'unpaid' && (
+                            <button onClick={async () => { try { await sanctuaryApi.updateBooking(b.id, { payment_status: 'waived' }); onMsg({ kind: 'ok', text: 'Fee waived.' }); onSaved() } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) } }} className="inline-flex items-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-lg">Waive</button>
+                        )}
                         {b.status === 'approved' && (
                             <>
                                 <a href={`/sanctuary/letter/${b.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 bg-[#140152] hover:bg-[#1d0175] text-white text-xs font-bold px-3 py-1.5 rounded-lg"><FileText className="w-3 h-3" /> Permission letter</a>
