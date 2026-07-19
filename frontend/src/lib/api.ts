@@ -4347,7 +4347,7 @@ export const sanctuaryApi = {
     rooms: () => fetchApi<SanctuaryRoom[]>('/sanctuary/rooms'),
     availability: (room_id: string) =>
         fetchApi<{ id: string; starts_at: string; ends_at: string; purpose: string }[]>(`/sanctuary/availability?room_id=${encodeURIComponent(room_id)}`),
-    requestBooking: (b: Omit<SanctuaryBooking, 'id' | 'status' | 'admin_note' | 'created_at'>) =>
+    requestBooking: (b: Omit<SanctuaryBooking, 'id' | 'status' | 'admin_note' | 'created_at' | 'amount' | 'currency' | 'payment_status' | 'payment_reference' | 'paid_at'>) =>
         fetchApi<SanctuaryBooking>('/sanctuary/bookings', { method: 'POST', body: JSON.stringify(b) }),
     // admin
     createRoom: (b: Omit<SanctuaryRoom, 'id'>) =>
