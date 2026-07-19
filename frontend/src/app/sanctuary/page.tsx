@@ -85,7 +85,8 @@ export default function SanctuaryPage() {
                                             {r.equipment.map((e, i) => <span key={i} className="text-[10px] bg-[#140152]/5 text-[#140152] px-2 py-0.5 rounded-full">{e}</span>)}
                                         </div>
                                     )}
-                                    {r.rate_note && <p className="text-xs italic text-gray-500 mt-3">{r.rate_note}</p>}
+                                    {/* Pricing is intentionally NOT shown on the public browse cards —
+                                        only the person actually booking sees the fee (in the modal). */}
                                     <button onClick={() => setPicked(r)} className="mt-4 inline-flex items-center justify-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-3 rounded-full text-sm">
                                         Request booking <Calendar className="w-4 h-4" />
                                     </button>
