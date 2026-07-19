@@ -130,6 +130,40 @@ async def create_rsvp(
     )
 
 
+def _event_ics(event) -> tuple[str, str]:
+    """Build the (ics_text, filename) for an event. Shared by the download
+    endpoint and the RSVP confirmation email."""
+    from services.email_service import _build_ics
+
+    def _combine(d, hhmm, default_h, default_m):
+        h, m = default_h, default_m
+        if hhmm and ":" in str(hhmm):
+            try:
+                h, m = int(str(hhmm).split(":")[0]), int(str(hhmm).split(":")[1])
+            except Exception:
+                pass
+        return datetime(d.year, d.month, d.day, h, m)
+
+    start = _combine(event.event_date, event.start_time, 9, 0)
+    end = _combine(event.event_date, event.end_time, start.hour + 1, start.minute)
+    if end <= start:
+        end = start + timedelta(hours=1)
+
+    desc_parts = [event.description or ""]
+    if event.location:
+        desc_parts.append("Location: " + event.location)
+    desc_parts.append("https://letw.org/events")
+    ics = _build_ics(
+        uid="letw-event-" + str(event.id) + "@letw.org",
+        start=start, end=end,
+        summary=event.title,
+        description="\n\n".join(p for p in desc_parts if p),
+        url="https://letw.org/events",
+    )
+    filename = (re.sub(r"[^a-zA-Z0-9]+", "-", event.title or "event").strip("-").lower() or "event") + ".ics"
+    return ics, filename
+
+
 class GuestRsvpIn(BaseModel):
     guest_name: str
     guest_email: str
@@ -183,6 +217,35 @@ async def create_guest_rsvp(event_id: str, body: GuestRsvpIn, db: AsyncSession =
     await db.commit()
 
     waitlisted = status_val == RsvpStatus.WAITLISTED
+
+    # Confirmation email with the calendar invite attached (best-effort).
+    try:
+        from services.email_service import send_email_with_ics
+        ics, filename = _event_ics(event)
+        when = event.event_date.strftime("%A, %B %d, %Y")
+        time_line = f" at {event.start_time}" if event.start_time else ""
+        loc_line = f'<p style="margin:4px 0"><strong>Where:</strong> {event.location}</p>' if event.location else ""
+        headline = ("You're on the waitlist" if waitlisted else "You're registered!")
+        intro = ("This event is full, so you're on the waitlist — we'll email you if a spot opens up."
+                 if waitlisted else "We've saved your spot. The calendar invite is attached — tap it to add this to your calendar.")
+        html = (
+            '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1f2937">'
+            '<div style="background:#140152;color:#fff;padding:24px;border-radius:16px 16px 0 0">'
+            f'<h2 style="margin:0;color:#f5bb00">{headline}</h2></div>'
+            '<div style="border:1px solid #eee;border-top:none;padding:24px;border-radius:0 0 16px 16px">'
+            f'<p>Hi {body.guest_name},</p><p>{intro}</p>'
+            f'<h3 style="color:#140152;margin:16px 0 6px">{event.title}</h3>'
+            f'<p style="margin:4px 0"><strong>When:</strong> {when}{time_line}</p>'
+            f'{loc_line}'
+            '<p style="margin-top:20px"><a href="https://letw.org/events" '
+            'style="background:#140152;color:#fff;text-decoration:none;font-weight:bold;padding:11px 20px;border-radius:999px">View all events</a></p>'
+            '<p style="font-size:12px;color:#6b7280;margin-top:18px">Light Encounter Tabernacle Worldwide</p>'
+            '</div></div>'
+        )
+        await send_email_with_ics(email, f"RSVP confirmed — {event.title}", html, ics, filename)
+    except Exception as e:
+        print(f"[events] RSVP confirmation email failed: {type(e).__name__}: {e}", flush=True)
+
     return {
         "ok": True,
         "status": status_val.value if hasattr(status_val, "value") else status_val,
@@ -197,40 +260,13 @@ async def event_calendar_ics(event_id: str, db: AsyncSession = Depends(get_db)):
     """Public 'Add to calendar' — returns the event as an .ics file that any
     calendar app can import. Reuses the marriage-prep calendar builder."""
     from fastapi.responses import Response
-    from services.email_service import _build_ics
     event = (await db.execute(select(Event).where(Event.id == event_id))).scalar_one_or_none()
     if not event:
         raise HTTPException(404, "Event not found")
-
-    def _combine(d, hhmm, default_h, default_m):
-        h, m = default_h, default_m
-        if hhmm and ":" in str(hhmm):
-            try:
-                h, m = int(str(hhmm).split(":")[0]), int(str(hhmm).split(":")[1])
-            except Exception:
-                pass
-        return datetime(d.year, d.month, d.day, h, m)
-
-    start = _combine(event.event_date, event.start_time, 9, 0)
-    end = _combine(event.event_date, event.end_time, start.hour + 1, start.minute)
-    if end <= start:
-        end = start + timedelta(hours=1)
-
-    desc_parts = [event.description or ""]
-    if event.location:
-        desc_parts.append("Location: " + event.location)
-    desc_parts.append("https://letw.org/events")
-    ics = _build_ics(
-        uid="letw-event-" + str(event.id) + "@letw.org",
-        start=start, end=end,
-        summary=event.title,
-        description="\n\n".join(p for p in desc_parts if p),
-        url="https://letw.org/events",
-    )
-    filename = re.sub(r"[^a-zA-Z0-9]+", "-", event.title or "event").strip("-").lower() or "event"
+    ics, filename = _event_ics(event)
     return Response(
         content=ics, media_type="text/calendar",
-        headers={"Content-Disposition": f'attachment; filename="{filename}.ics"'},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
