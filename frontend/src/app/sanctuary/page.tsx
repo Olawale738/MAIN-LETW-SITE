@@ -119,7 +119,8 @@ function BookingModal({ room, onClose }: { room: SanctuaryRoom; onClose: () => v
         setErr(null)
         if (!purpose || !name || !email || !start || !end) return
         if (new Date(end) <= new Date(start)) { setErr('End time must be after start time.'); return }
-        if (attendees > room.capacity) { setErr(`Capacity for ${room.name} is ${room.capacity}.`); return }
+        // capacity 0 = no set limit (treat as unlimited)
+        if (room.capacity > 0 && attendees > room.capacity) { setErr(`Capacity for ${room.name} is ${room.capacity}.`); return }
         setSubmitting(true)
         try {
             await sanctuaryApi.requestBooking({
@@ -184,7 +185,7 @@ function BookingModal({ room, onClose }: { room: SanctuaryRoom; onClose: () => v
                                 <input type="datetime-local" value={end} onChange={e => setEnd(e.target.value)} required className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm" />
                             </div>
                         </div>
-                        <input type="number" min={0} max={room.capacity} value={attendees || ''} onChange={e => setAttendees(parseInt(e.target.value) || 0)} placeholder={`Expected attendees (max ${room.capacity})`} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm" />
+                        <input type="number" min={0} max={room.capacity > 0 ? room.capacity : undefined} value={attendees || ''} onChange={e => setAttendees(parseInt(e.target.value) || 0)} placeholder={room.capacity > 0 ? `Expected attendees (max ${room.capacity})` : 'Expected attendees'} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm" />
                         <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="Anything else we should know? (catering, AV needs, accessibility)" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm resize-y" />
                         <button type="submit" disabled={submitting} className="w-full inline-flex items-center justify-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-black px-5 py-3 rounded-full text-sm disabled:opacity-60">
                             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
