@@ -13,7 +13,7 @@ Sanctuary / hall booking router.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -75,11 +75,24 @@ class BookingIn(BaseModel):
     note:          Optional[str] = None
 
 
+def _naive_utc(dt: datetime) -> datetime:
+    """The DB columns are TIMESTAMP WITHOUT TIME ZONE, and asyncpg refuses to
+    bind a tz-aware datetime to them. The frontend sends UTC ISO strings
+    (…Z), which Pydantic parses as aware — so normalise to naive-UTC before
+    any query or insert. Naive inputs pass through unchanged."""
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
 @router.post("/bookings", status_code=201)
 async def request_booking(body: BookingIn, db: AsyncSession = Depends(get_db)):
     # Sanity check the window.
     if body.ends_at <= body.starts_at:
         raise HTTPException(400, "End time must be after start time.")
+    # Normalise to naive-UTC so the naive DB columns / asyncpg accept them.
+    body.starts_at = _naive_utc(body.starts_at)
+    body.ends_at = _naive_utc(body.ends_at)
     # Make sure the room exists + is active.
     room = (await db.execute(select(SanctuaryRoom).where(SanctuaryRoom.id == body.room_id))).scalar_one_or_none()
     if not room or not room.is_active:
