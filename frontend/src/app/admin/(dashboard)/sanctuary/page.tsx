@@ -6,7 +6,7 @@
  */
 import { useEffect, useState } from 'react'
 import {
-    Loader2, Plus, Save, Trash2, Calendar, CheckCircle, XCircle, AlertCircle, MapPin, Users,
+    Loader2, Plus, Save, Trash2, Calendar, CheckCircle, XCircle, AlertCircle, MapPin, Users, FileText, Copy,
 } from 'lucide-react'
 import { sanctuaryApi, type SanctuaryRoom, type SanctuaryBooking } from '@/lib/api'
 
@@ -178,6 +178,15 @@ function BookingsTab({ bookings, rooms, onSaved, onMsg }: { bookings: SanctuaryB
                     <div className="flex flex-wrap gap-1.5">
                         {b.status !== 'approved' && <button onClick={() => act(b, 'approved')} className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg"><CheckCircle className="w-3 h-3" /> Approve</button>}
                         {b.status !== 'declined' && <button onClick={() => act(b, 'declined')} className="inline-flex items-center gap-1 bg-red-100 text-red-700 hover:bg-red-200 text-xs font-bold px-3 py-1.5 rounded-lg"><XCircle className="w-3 h-3" /> Decline</button>}
+                        {b.status === 'approved' && (
+                            <>
+                                <a href={`/sanctuary/letter/${b.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 bg-[#140152] hover:bg-[#1d0175] text-white text-xs font-bold px-3 py-1.5 rounded-lg"><FileText className="w-3 h-3" /> Permission letter</a>
+                                <button onClick={() => {
+                                    const url = `${window.location.origin}/sanctuary/letter/${b.id}`
+                                    navigator.clipboard.writeText(url).then(() => onMsg({ kind: 'ok', text: 'Letter link copied.' })).catch(() => onMsg({ kind: 'err', text: url }))
+                                }} className="inline-flex items-center gap-1 bg-[#f5bb00]/15 hover:bg-[#f5bb00]/30 text-[#8a6d00] text-xs font-bold px-3 py-1.5 rounded-lg"><Copy className="w-3 h-3" /> Copy link</button>
+                            </>
+                        )}
                     </div>
                 </div>
             ))}

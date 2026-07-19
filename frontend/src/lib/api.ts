@@ -4354,6 +4354,26 @@ export const sanctuaryApi = {
         fetchApi<SanctuaryBooking[]>(`/sanctuary/admin/bookings${status ? `?status=${encodeURIComponent(status)}` : ''}`),
     updateBooking: (id: string, b: { status?: SanctuaryBooking['status']; admin_note?: string }) =>
         fetchApi<SanctuaryBooking>(`/sanctuary/admin/bookings/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    // Permission letter (approved bookings only) — capability link by booking id.
+    permissionLetter: (id: string) =>
+        fetchApi<SanctuaryPermissionLetter>(`/sanctuary/bookings/${id}/letter`),
+    letterQrUrl: (id: string) => `${API_BASE_URL}/sanctuary/bookings/${id}/letter/qr.svg`,
+    verifyLetter: (id: string, sig: string) =>
+        fetchApi<SanctuaryLetterVerify>(`/sanctuary/verify/${id}?sig=${encodeURIComponent(sig)}`),
+}
+
+export interface SanctuaryPermissionLetter {
+    id: string; reference: string; room_name: string; room_location: string | null
+    purpose: string; contact_name: string; attendees: number
+    starts_at: string; ends_at: string; admin_note: string | null; issued_at: string
+    secretary_name: string; secretary_title: string; secretary_signature_image: string
+    watermark_image: string; letter_intro: string
+    fingerprint: string; verify_url: string
+}
+export interface SanctuaryLetterVerify {
+    valid: boolean; reason?: string
+    reference?: string; room_name?: string; purpose?: string; contact_name?: string
+    starts_at?: string; ends_at?: string; fingerprint?: string; issuer?: string
 }
 
 // ── Marriage Prep ───────────────────────────────────────────────────────────

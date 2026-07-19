@@ -257,6 +257,132 @@ def _room(r: SanctuaryRoom) -> dict[str, Any]:
     }
 
 
+# ── Hall-booking permission letter (QR-verified) ───────────────────────────
+
+def _public_base() -> str:
+    from config import settings
+    base = (settings.FRONTEND_URL or "").rstrip("/")
+    if not base or "localhost" in base or "127.0.0.1" in base:
+        return "https://letw.org"
+    return base
+
+
+def _permit_signature(b: SanctuaryBooking) -> str:
+    """HMAC-SHA256 over the booking's immutable facts, keyed with the server
+    secret. Server can re-verify; nobody can forge without the key."""
+    import hmac as _hmac, hashlib as _hashlib
+    from config import settings as _settings
+    payload = f"letw-hall-permit|{b.id}|{b.room_id}|{b.purpose}|{b.starts_at.isoformat()}|{b.ends_at.isoformat()}"
+    return _hmac.new(_settings.JWT_SECRET.encode(), payload.encode(), _hashlib.sha256).hexdigest()
+
+
+def _fingerprint(sig: str) -> str:
+    s = sig[:12].upper()
+    return f"{s[0:4]}-{s[4:8]}-{s[8:12]}"
+
+
+def _short_sig(sig: str) -> str:
+    return sig[:16]
+
+
+async def _sanctuary_settings(db: AsyncSession) -> dict:
+    """Admin-set secretary name + signature image (and letterhead bits) from the
+    'sanctuary-page' ministry-content key. Empty dict if unset."""
+    try:
+        from models.ministry_content import MinistryContent
+        row = (await db.execute(select(MinistryContent).where(MinistryContent.key == "sanctuary-page"))).scalar_one_or_none()
+        return dict(row.content) if row and isinstance(row.content, dict) else {}
+    except Exception:
+        return {}
+
+
+@router.get("/bookings/{booking_id}/letter")
+async def booking_permission_letter(booking_id: str, db: AsyncSession = Depends(get_db)):
+    """Public capability-link data for the printable permission letter. Only
+    issued for approved bookings (the UUID is the access credential)."""
+    b = (await db.execute(select(SanctuaryBooking).where(SanctuaryBooking.id == booking_id))).scalar_one_or_none()
+    if not b:
+        raise HTTPException(404, "Booking not found")
+    if b.status != "approved":
+        raise HTTPException(404, "No permission letter — this booking isn't approved.")
+    room = (await db.execute(select(SanctuaryRoom).where(SanctuaryRoom.id == b.room_id))).scalar_one_or_none()
+    cfg = await _sanctuary_settings(db)
+    sig = _permit_signature(b)
+    return {
+        "id": b.id,
+        "reference": "LETW-HALL-" + b.id.split("-")[0].upper(),
+        "room_name": room.name if room else "Hall",
+        "room_location": room.location if room else None,
+        "purpose": b.purpose,
+        "contact_name": b.contact_name,
+        "attendees": b.attendees,
+        "starts_at": b.starts_at.isoformat(),
+        "ends_at": b.ends_at.isoformat(),
+        "admin_note": b.admin_note,
+        "issued_at": b.created_at.isoformat(),
+        # Admin-editable letterhead bits
+        "secretary_name": cfg.get("secretary_name") or "Church Secretary",
+        "secretary_title": cfg.get("secretary_title") or "Church Secretary",
+        "secretary_signature_image": cfg.get("secretary_signature_image") or "",
+        "watermark_image": cfg.get("watermark_image") or "/logo.png",
+        "letter_intro": cfg.get("letter_intro") or "",
+        # Verification
+        "fingerprint": _fingerprint(sig),
+        "verify_url": f"{_public_base()}/verify/booking/{b.id}?sig={_short_sig(sig)}",
+    }
+
+
+@router.get("/bookings/{booking_id}/letter/qr.svg")
+async def booking_letter_qr(booking_id: str, db: AsyncSession = Depends(get_db)):
+    from fastapi.responses import Response
+    b = (await db.execute(select(SanctuaryBooking).where(SanctuaryBooking.id == booking_id))).scalar_one_or_none()
+    if not b or b.status != "approved":
+        raise HTTPException(404, "No permission letter issued")
+    verify_url = f"{_public_base()}/verify/booking/{b.id}?sig={_short_sig(_permit_signature(b))}"
+    try:
+        import qrcode
+        from routers.marriage_prep import _qr_to_svg
+        qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, border=0)
+        qr.add_data(verify_url)
+        qr.make(fit=True)
+        svg = _qr_to_svg(qr.get_matrix(), box_size=8, border=2)
+        return Response(content=svg, media_type="image/svg+xml",
+                        headers={"Cache-Control": "public, max-age=86400", "Access-Control-Allow-Origin": "*"})
+    except ImportError:
+        raise HTTPException(503, "QR generator not installed on the server yet.")
+
+
+@router.get("/verify/{booking_id}")
+async def verify_permission_letter(booking_id: str, sig: str = "", db: AsyncSession = Depends(get_db)):
+    """Public verification the QR lands on. Recomputes the HMAC and compares in
+    constant time — a forged, tampered, or since-cancelled permit fails."""
+    import hmac as _hmac
+    b = (await db.execute(select(SanctuaryBooking).where(SanctuaryBooking.id == booking_id))).scalar_one_or_none()
+    if not b or b.status != "approved":
+        return {"valid": False, "reason": "No approved booking matches this code."}
+    room = (await db.execute(select(SanctuaryRoom).where(SanctuaryRoom.id == b.room_id))).scalar_one_or_none()
+    expected = _permit_signature(b)
+    sig = (sig or "").strip().lower()
+    ok = False
+    if len(sig) == len(expected):
+        ok = _hmac.compare_digest(expected, sig)
+    elif 16 <= len(sig) < len(expected):
+        ok = _hmac.compare_digest(expected[:len(sig)], sig)
+    if not ok:
+        return {"valid": False, "reason": "Signature does not match — this letter may have been altered or forged."}
+    return {
+        "valid": True,
+        "reference": "LETW-HALL-" + b.id.split("-")[0].upper(),
+        "room_name": room.name if room else "Hall",
+        "purpose": b.purpose,
+        "contact_name": b.contact_name,
+        "starts_at": b.starts_at.isoformat(),
+        "ends_at": b.ends_at.isoformat(),
+        "fingerprint": _fingerprint(expected),
+        "issuer": "letw.org",
+    }
+
+
 def _booking(b: SanctuaryBooking) -> dict[str, Any]:
     return {
         "id": b.id, "room_id": b.room_id,

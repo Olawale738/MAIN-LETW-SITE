@@ -43,6 +43,12 @@ interface PageCopy {
     about_name?:   string
     about_bio?:    string
     about_image?:  string
+    // Sanctuary hall-booking permission letter.
+    secretary_name?:            string
+    secretary_title?:           string
+    secretary_signature_image?: string
+    watermark_image?:           string
+    letter_intro?:              string
 }
 
 const DEFAULTS: Record<MinistryContentKey, PageCopy> = {
@@ -284,6 +290,20 @@ export default function PageCopyAdmin() {
                                 <Field label="Anchor / URL" value={data.cta_href}
                                     onChange={v => setData({ ...data, cta_href: v })} />
                             </div>
+                        </div>
+                    )}
+
+                    {tab === 'sanctuary-page' && (
+                        <div className="border-t border-gray-100 mt-4 pt-3">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-2">Hall permission letter</p>
+                            <p className="text-xs text-gray-400 mb-3">Shown on the QR-verified permission letter issued when you approve a booking (/sanctuary/letter/…).</p>
+                            <div className="grid md:grid-cols-2 gap-3">
+                                <Field label="Secretary name" value={data.secretary_name || ''} onChange={v => setData({ ...data, secretary_name: v })} />
+                                <Field label="Secretary title" value={data.secretary_title || 'Church Secretary'} onChange={v => setData({ ...data, secretary_title: v })} />
+                            </div>
+                            <Field label="Secretary signature image URL (optional — a typed name is used if blank)" value={data.secretary_signature_image || ''} onChange={v => setData({ ...data, secretary_signature_image: v })} />
+                            <Field label="Watermark / letterhead logo URL" value={data.watermark_image || '/logo.png'} onChange={v => setData({ ...data, watermark_image: v.trim() || '/logo.png' })} />
+                            <TextArea label="Letter intro paragraph (optional — a sensible default is used if blank)" rows={3} value={data.letter_intro || ''} onChange={v => setData({ ...data, letter_intro: v })} />
                         </div>
                     )}
 
