@@ -922,9 +922,11 @@ def _fmt_range(starts, ends) -> str:
 
 async def send_sanctuary_booking_received(
     to_email: str, name: str, room_name: str, purpose: str,
-    starts_at, ends_at, reference: str,
+    starts_at, ends_at, reference: str, fee: str = "", pay_url: str = "",
 ) -> bool:
-    """Immediate confirmation to the requester on submission."""
+    """Immediate confirmation to the requester on submission. If the room has a
+    fee, the amount is disclosed here (and only here / on the booking screen —
+    never on the public listing) with a link to pay."""
     if not to_email:
         return False
     range_str = _fmt_range(starts_at, ends_at)
@@ -935,19 +937,28 @@ async def send_sanctuary_booking_received(
                 .replace("{purpose}", purpose).replace("{reference}", reference))
         body = (admin_tpl["body"]
                 .replace("{room}", room_name).replace("{purpose}", purpose)
-                .replace("{range}", range_str).replace("{reference}", reference))
+                .replace("{range}", range_str).replace("{reference}", reference)
+                .replace("{fee}", fee or "").replace("{pay_link}", pay_url or ""))
         return await send_email(to_email, subj, _render_admin_template_body(body, name=name))
 
+    fee_block = ""
+    if fee:
+        fee_block = (
+            f"\nBooking fee: {fee}\n"
+            + (f"Complete your payment here to secure the date:\n  {pay_url}\n" if pay_url else
+               "You can pay from your booking confirmation screen.\n")
+        )
     subject = f"We received your booking request for {room_name}"
     body = (
         f"Hi {name or 'Friend'},\n\n"
         f"Thank you for requesting {room_name} for \"{purpose}\".\n\n"
         f"Requested window: {range_str}\n"
-        f"Reference: {reference}\n\n"
+        f"Reference: {reference}\n"
+        f"{fee_block}\n"
         f"What happens next:\n\n"
         f"1. A coordinator reviews your request against the room's calendar.\n"
         f"2. You will receive an approval or decline email within 48 hours.\n"
-        f"3. On approval you'll get arrival + setup notes for the space.\n\n"
+        f"3. On approval you'll get your official permission letter.\n\n"
         f"Questions? Just reply to this email — we're here.\n\n"
         f"Grace and peace,\n"
         f"Light Encounter Tabernacle Worldwide"

@@ -221,12 +221,6 @@ function BookingModal({ room, onClose }: { room: SanctuaryRoom; onClose: () => v
                     </div>
                 ) : (
                     <form onSubmit={submit} className="p-6 space-y-3">
-                        {room.price > 0 && (
-                            <div className="bg-[#fbf5e6] border border-[#f5bb00]/40 rounded-lg p-3 text-sm text-[#140152] flex items-center gap-2">
-                                <CreditCard className="w-4 h-4 text-[#b8860b]" />
-                                <span>Booking fee: <strong>{room.currency} {room.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong> — payable after you submit.</span>
-                            </div>
-                        )}
                         {err && (
                             <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm flex items-start gap-2">
                                 <AlertCircle className="w-4 h-4 mt-0.5" />{err}

@@ -130,11 +130,13 @@ async def request_booking(body: BookingIn, db: AsyncSession = Depends(get_db)):
             _admin_notify_email,
         )
         # To the requester — "we got it, here's what happens next".
+        fee_str = f"{b.currency} {float(b.amount):,.2f}" if b.amount and float(b.amount) > 0 else ""
+        pay_url = f"{_public_base()}/sanctuary/pay/{b.id}" if fee_str else ""
         await send_sanctuary_booking_received(
             to_email=b.contact_email, name=b.contact_name,
             room_name=room.name, purpose=b.purpose,
             starts_at=b.starts_at, ends_at=b.ends_at,
-            reference=reference,
+            reference=reference, fee=fee_str, pay_url=pay_url,
         )
         # To the church inbox — "someone please act on this".
         admin_email = await _admin_notify_email()
