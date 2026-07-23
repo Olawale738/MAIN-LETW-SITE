@@ -255,6 +255,33 @@ function LetterSettings({ onMsg }: { onMsg: (m: { kind: 'ok' | 'err'; text: stri
         finally { setSaving(false) }
     }
 
+    // Signature file → downscaled data-URL stored in the same field. Data-URLs
+    // render in <img> on screen and in print, so the letter needs no changes
+    // and nothing extra has to be hosted.
+    const onSignatureFile = (file: File) => {
+        if (!file.type.startsWith('image/')) { onMsg({ kind: 'err', text: 'Please choose an image file (PNG or JPG).' }); return }
+        const img = new Image()
+        const url = URL.createObjectURL(file)
+        img.onload = () => {
+            URL.revokeObjectURL(url)
+            const maxW = 800
+            const scale = Math.min(1, maxW / img.width)
+            const canvas = document.createElement('canvas')
+            canvas.width = Math.round(img.width * scale)
+            canvas.height = Math.round(img.height * scale)
+            const ctx = canvas.getContext('2d')
+            if (!ctx) { onMsg({ kind: 'err', text: 'Could not read the image.' }); return }
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+            // PNG keeps transparent backgrounds (typical for signatures).
+            const dataUrl = canvas.toDataURL('image/png')
+            if (dataUrl.length > 500_000) { onMsg({ kind: 'err', text: 'That image is too large even after resizing — use a smaller/simpler signature image.' }); return }
+            setSigUrl(dataUrl)
+            onMsg({ kind: 'ok', text: 'Signature loaded — click Save secretary to apply it.' })
+        }
+        img.onerror = () => { URL.revokeObjectURL(url); onMsg({ kind: 'err', text: 'Could not read that image file.' }) }
+        img.src = url
+    }
+
     return (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
             <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-3 p-4 text-left">
@@ -280,8 +307,23 @@ function LetterSettings({ onMsg }: { onMsg: (m: { kind: 'ok' | 'err'; text: stri
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Signature image URL (optional — a styled typed name is used if blank)</label>
-                                <input value={sigUrl} onChange={e => setSigUrl(e.target.value)} placeholder="https://…/signature.png" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Signature image (optional — a styled typed name is used if none)</label>
+                                {sigUrl ? (
+                                    <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={sigUrl} alt="Signature preview" className="h-12 max-w-[220px] object-contain bg-white rounded border border-gray-100" />
+                                        <button type="button" onClick={() => setSigUrl('')} className="inline-flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700"><Trash2 className="w-3.5 h-3.5" /> Remove</button>
+                                    </div>
+                                ) : (
+                                    <label className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-4 py-2.5 rounded-lg text-xs cursor-pointer">
+                                        <Plus className="w-3.5 h-3.5" /> Upload signature image
+                                        <input
+                                            type="file" accept="image/*" className="hidden"
+                                            onChange={e => { const f = e.target.files?.[0]; if (f) onSignatureFile(f); e.target.value = '' }}
+                                        />
+                                    </label>
+                                )}
+                                <p className="text-[10px] text-gray-400 mt-1">A photo or scan of the secretary&apos;s signature — ideally a PNG with a clear background. It&apos;s resized automatically.</p>
                             </div>
                             <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2 rounded-lg text-sm disabled:opacity-50">
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save secretary
