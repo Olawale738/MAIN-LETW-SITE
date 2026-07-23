@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import {
     Loader2, Plus, Save, Trash2, Calendar, CheckCircle, XCircle, AlertCircle, MapPin, Users, FileText, Copy,
 } from 'lucide-react'
-import { sanctuaryApi, type SanctuaryRoom, type SanctuaryBooking } from '@/lib/api'
+import { sanctuaryApi, ministryContentApi, type SanctuaryRoom, type SanctuaryBooking } from '@/lib/api'
 
 export default function SanctuaryAdmin() {
     const [tab, setTab] = useState<'rooms' | 'bookings'>('rooms')
@@ -157,6 +157,8 @@ function BookingsTab({ bookings, rooms, onSaved, onMsg }: { bookings: SanctuaryB
     }
 
     return (
+      <div className="space-y-4">
+        <LetterSettings onMsg={onMsg} />
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm divide-y divide-gray-100">
             {bookings.length === 0 && <p className="p-6 text-center text-gray-400 text-sm">No bookings yet.</p>}
             {bookings.map(b => (
@@ -210,6 +212,84 @@ function BookingsTab({ bookings, rooms, onSaved, onMsg }: { bookings: SanctuaryB
                     </div>
                 </div>
             ))}
+        </div>
+      </div>
+    )
+}
+
+function LetterSettings({ onMsg }: { onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void }) {
+    const [content, setContent] = useState<Record<string, any>>({})
+    const [name, setName] = useState('')
+    const [title, setTitle] = useState('Church Secretary')
+    const [sigUrl, setSigUrl] = useState('')
+    const [loading, setLoading] = useState(true)
+    const [saving, setSaving] = useState(false)
+    const [open, setOpen] = useState(false)
+
+    useEffect(() => {
+        ministryContentApi.get('sanctuary-page')
+            .then(r => {
+                const c = (r.content || {}) as Record<string, any>
+                setContent(c)
+                setName(c.secretary_name || '')
+                setTitle(c.secretary_title || 'Church Secretary')
+                setSigUrl(c.secretary_signature_image || '')
+            })
+            .catch(() => { /* defaults */ })
+            .finally(() => setLoading(false))
+    }, [])
+
+    const save = async () => {
+        setSaving(true)
+        try {
+            // Merge onto existing content so the page hero text isn't wiped
+            // (the backend replaces the whole content object on save).
+            await ministryContentApi.update('sanctuary-page', {
+                ...content,
+                secretary_name: name.trim(),
+                secretary_title: title.trim() || 'Church Secretary',
+                secretary_signature_image: sigUrl.trim(),
+            })
+            onMsg({ kind: 'ok', text: 'Saved — this name now appears on every permission letter.' })
+        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setSaving(false) }
+    }
+
+    return (
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+            <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-3 p-4 text-left">
+                <FileText className="w-5 h-5 text-[#f5bb00]" />
+                <div className="flex-1">
+                    <p className="font-black text-[#140152]">Church secretary (permission letter)</p>
+                    <p className="text-xs text-gray-500">{name ? `Currently signing as: ${name}` : 'Set the name that signs every approved-booking letter.'}</p>
+                </div>
+                <span className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
+            </button>
+            {open && (
+                <div className="px-4 pb-4 border-t border-gray-50 pt-3 space-y-3">
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin text-[#140152]" /> : (
+                        <>
+                            <div className="grid md:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Secretary name (shown on the letter)</label>
+                                    <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Grace Adeyemi" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Title</label>
+                                    <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Church Secretary" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Signature image URL (optional — a styled typed name is used if blank)</label>
+                                <input value={sigUrl} onChange={e => setSigUrl(e.target.value)} placeholder="https://…/signature.png" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                            </div>
+                            <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2 rounded-lg text-sm disabled:opacity-50">
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save secretary
+                            </button>
+                        </>
+                    )}
+                </div>
+            )}
         </div>
     )
 }
