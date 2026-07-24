@@ -30,7 +30,7 @@ export default function AuthLayout({ children, title, subtitle, imageSrc }: Auth
                 </div>
 
                 {/* Decorative Elements */}
-                <div className="absolute top-0 left-0 w-full h-full z-10 bg-[url('/noise.png')] opacity-20 pointer-events-none"></div>
+                <div className="absolute top-0 left-0 w-full h-full z-10 opacity-20 pointer-events-none" style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px)", backgroundSize: "3px 3px" }}></div>
                 <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#f5bb00] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
                 <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#4f46e5] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 

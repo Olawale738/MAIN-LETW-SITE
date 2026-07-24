@@ -126,7 +126,7 @@ export default function YouthProgramDetailPage() {
     const schedule = program.schedule || []
     const outcomes = program.outcomes || []
     const audience = program.who_its_for || []
-    const heroImg = program.hero_image_url || '/youth-hero.jpg'
+    const heroImg = program.hero_image_url || '/Youth.png'
 
     return (
         <div className="min-h-screen bg-white">

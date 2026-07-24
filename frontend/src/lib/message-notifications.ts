@@ -97,8 +97,8 @@ class MessageNotificationManager {
     try {
       const notification = new Notification(options.title, {
         body: options.body,
-        icon: options.icon || '/icon-192x192.png',
-        badge: options.badge || '/badge.png',
+        icon: options.icon || '/logo.png',
+        badge: options.badge || '/logo.png',
         tag: options.tag,
       })
 

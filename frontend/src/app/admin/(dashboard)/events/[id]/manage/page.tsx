@@ -239,6 +239,12 @@ export default function ManageEventPage() {
   const [loading, setLoading] = useState<boolean>(true)
   const [loadError, setLoadError] = useState<string>('')
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
+  // Honour ?tab=… so links (e.g. "N going" on the events list) open the right tab.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const t = new URLSearchParams(window.location.search).get('tab')
+    if (t && TABS.some((x) => x.key === t)) setActiveTab(t as TabKey)
+  }, [])
 
   const [banner, setBanner] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const notifyOk = useCallback((m: string) => setBanner({ message: m, type: 'success' }), [])
@@ -613,8 +619,11 @@ function RegistrationsTab({ id, onOk, onError }: TabProps) {
                     key={r.id}
                     className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span className="font-medium text-gray-900">{name}</span>
+                      {r.guest_email ? (
+                        <a href={`mailto:${r.guest_email}`} className="text-xs text-[#140152] hover:underline">{r.guest_email}</a>
+                      ) : null}
                       <StatusBadge status={r.status} />
                       {r.plus_ones > 0 ? (
                         <span className="text-xs text-gray-500">+{r.plus_ones} guest{r.plus_ones > 1 ? 's' : ''}</span>

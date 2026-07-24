@@ -458,6 +458,9 @@ export default function AdminEventsPage() {
                                                 {event.registration_required && (
                                                     <span className="ml-2 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-600 rounded">RSVP</span>
                                                 )}
+                                                <NextLink href={`/admin/events/${event.id}/manage?tab=registrations`} title="View who's registered" className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 text-xs bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100">
+                                                    <Users className="w-3 h-3" /> {event.registered_count || 0} going
+                                                </NextLink>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">

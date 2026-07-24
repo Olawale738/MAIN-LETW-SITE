@@ -541,7 +541,7 @@ export default function YouthProgramEditor() {
                             <label className="block text-sm font-bold text-gray-700 mb-1">Leader photo</label>
                             <div className="flex items-center gap-3">
                                 {leaderPhoto && <img src={leaderPhoto} alt="Leader" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />}
-                                <Input value={leaderPhoto} onChange={(e) => setLeaderPhoto(e.target.value)} placeholder="/photo.png or https://..." className="text-gray-900 flex-1" />
+                                <Input value={leaderPhoto} onChange={(e) => setLeaderPhoto(e.target.value)} placeholder="https://…/photo.jpg" className="text-gray-900 flex-1" />
                                 <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg text-xs font-bold text-gray-700">
                                     <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], setLeaderPhoto)} />
                                     {uploading ? 'Uploading…' : 'Upload'}

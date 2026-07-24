@@ -93,7 +93,7 @@ export default function BibleReadingPage() {
                     backgroundPosition: 'center'
                 }}
             >
-                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)", backgroundSize: "40px 40px" }}></div>
                 
                 <div className="container mx-auto px-4 relative z-10">
                     <motion.div
