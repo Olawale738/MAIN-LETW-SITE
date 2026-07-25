@@ -99,18 +99,39 @@ export default function PermissionLetterPage() {
                         </div>
                     )}
 
-                    {/* Signature + QR */}
-                    <div className="flex items-end justify-between gap-6 mt-10 pt-6 border-t border-gray-100">
-                        <div>
-                            {data.secretary_signature_image
-                                ? <img src={data.secretary_signature_image} alt="Signature" className="h-16 object-contain mb-1" />
-                                : <div className="h-16 flex items-end"><span className="font-[cursive] text-2xl text-[#140152]">{data.secretary_name}</span></div>}
-                            <div className="border-t border-gray-400 pt-1 w-56">
-                                <p className="font-black text-[#140152] text-sm">{data.secretary_name}</p>
-                                <p className="text-xs text-gray-500">{data.secretary_title}</p>
-                                <p className="text-[10px] text-gray-400 mt-0.5">For and on behalf of LETW</p>
+                    {/* Signatures + seal + QR */}
+                    <div className="relative flex items-end justify-between gap-6 mt-10 pt-6 border-t border-gray-100">
+                        <div className="flex flex-wrap items-end gap-x-10 gap-y-6">
+                            {/* Church secretary */}
+                            <div>
+                                {data.secretary_signature_image
+                                    ? <img src={data.secretary_signature_image} alt="Secretary signature" className="h-16 object-contain mb-1" />
+                                    : <div className="h-16 flex items-end"><span className="font-[cursive] text-2xl text-[#140152]">{data.secretary_name}</span></div>}
+                                <div className="border-t border-gray-400 pt-1 w-52">
+                                    <p className="font-black text-[#140152] text-sm">{data.secretary_name}</p>
+                                    <p className="text-xs text-gray-500">{data.secretary_title}</p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">For and on behalf of LETW</p>
+                                </div>
                             </div>
+
+                            {/* Senior pastor — only when a name is set */}
+                            {data.pastor_name && (
+                                <div>
+                                    {data.pastor_signature_image
+                                        ? <img src={data.pastor_signature_image} alt="Pastor signature" className="h-16 object-contain mb-1" />
+                                        : <div className="h-16 flex items-end"><span className="font-[cursive] text-2xl text-[#140152]">{data.pastor_name}</span></div>}
+                                    <div className="border-t border-gray-400 pt-1 w-52">
+                                        <p className="font-black text-[#140152] text-sm">{data.pastor_name}</p>
+                                        <p className="text-xs text-gray-500">{data.pastor_title}</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
+
+                        {/* Church seal / stamp — overlaid over the signature area */}
+                        {data.seal_image && (
+                            <img src={data.seal_image} alt="Church seal" className="pointer-events-none absolute left-[42%] -translate-x-1/2 bottom-0 w-28 h-28 object-contain opacity-80 mix-blend-multiply" />
+                        )}
 
                         <div className="text-center shrink-0">
                             {/* eslint-disable-next-line @next/next/no-img-element */}

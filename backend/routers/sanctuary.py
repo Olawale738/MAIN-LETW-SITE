@@ -425,6 +425,10 @@ async def booking_permission_letter(booking_id: str, db: AsyncSession = Depends(
         "secretary_name": cfg.get("secretary_name") or "Church Secretary",
         "secretary_title": cfg.get("secretary_title") or "Church Secretary",
         "secretary_signature_image": cfg.get("secretary_signature_image") or "",
+        "pastor_name": cfg.get("pastor_name") or "",
+        "pastor_title": cfg.get("pastor_title") or "Senior Pastor",
+        "pastor_signature_image": cfg.get("pastor_signature_image") or "",
+        "seal_image": cfg.get("seal_image") or "",
         "watermark_image": cfg.get("watermark_image") or "/logo.png",
         "letter_intro": cfg.get("letter_intro") or "",
         # Verification

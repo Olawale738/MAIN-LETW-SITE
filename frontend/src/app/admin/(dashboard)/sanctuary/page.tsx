@@ -217,11 +217,69 @@ function BookingsTab({ bookings, rooms, onSaved, onMsg }: { bookings: SanctuaryB
     )
 }
 
+// Reads an image file, downscales it, and returns a PNG data-URL. Data-URLs
+// render in <img> on screen and in print, so the letter needs no hosting.
+function imageToDataUrl(file: File, maxW: number): Promise<string> {
+    return new Promise((resolve, reject) => {
+        if (!file.type.startsWith('image/')) { reject(new Error('Please choose an image file (PNG or JPG).')); return }
+        const img = new Image()
+        const url = URL.createObjectURL(file)
+        img.onload = () => {
+            URL.revokeObjectURL(url)
+            const scale = Math.min(1, maxW / img.width)
+            const canvas = document.createElement('canvas')
+            canvas.width = Math.round(img.width * scale)
+            canvas.height = Math.round(img.height * scale)
+            const ctx = canvas.getContext('2d')
+            if (!ctx) { reject(new Error('Could not read the image.')); return }
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+            const dataUrl = canvas.toDataURL('image/png')
+            if (dataUrl.length > 700_000) { reject(new Error('That image is too large even after resizing — use a smaller/simpler image.')); return }
+            resolve(dataUrl)
+        }
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read that image file.')) }
+        img.src = url
+    })
+}
+
+function ImageField({ label, hint, value, onChange, onMsg, round }: {
+    label: string; hint: string; value: string; onChange: (v: string) => void
+    onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void; round?: boolean
+}) {
+    return (
+        <div>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">{label}</label>
+            {value ? (
+                <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={value} alt="preview" className={`h-14 max-w-[200px] object-contain bg-white border border-gray-100 ${round ? 'rounded-full w-14' : 'rounded'}`} />
+                    <button type="button" onClick={() => onChange('')} className="inline-flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700"><Trash2 className="w-3.5 h-3.5" /> Remove</button>
+                </div>
+            ) : (
+                <label className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-4 py-2.5 rounded-lg text-xs cursor-pointer">
+                    <Plus className="w-3.5 h-3.5" /> Upload image
+                    <input type="file" accept="image/*" className="hidden"
+                        onChange={async e => {
+                            const f = e.target.files?.[0]; e.target.value = ''
+                            if (!f) return
+                            try { onChange(await imageToDataUrl(f, round ? 500 : 800)) } catch (err) { onMsg({ kind: 'err', text: (err as Error).message }) }
+                        }} />
+                </label>
+            )}
+            <p className="text-[10px] text-gray-400 mt-1">{hint}</p>
+        </div>
+    )
+}
+
 function LetterSettings({ onMsg }: { onMsg: (m: { kind: 'ok' | 'err'; text: string }) => void }) {
     const [content, setContent] = useState<Record<string, any>>({})
     const [name, setName] = useState('')
     const [title, setTitle] = useState('Church Secretary')
     const [sigUrl, setSigUrl] = useState('')
+    const [pastorName, setPastorName] = useState('')
+    const [pastorTitle, setPastorTitle] = useState('Senior Pastor')
+    const [pastorSigUrl, setPastorSigUrl] = useState('')
+    const [sealUrl, setSealUrl] = useState('')
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [open, setOpen] = useState(false)
@@ -234,6 +292,10 @@ function LetterSettings({ onMsg }: { onMsg: (m: { kind: 'ok' | 'err'; text: stri
                 setName(c.secretary_name || '')
                 setTitle(c.secretary_title || 'Church Secretary')
                 setSigUrl(c.secretary_signature_image || '')
+                setPastorName(c.pastor_name || '')
+                setPastorTitle(c.pastor_title || 'Senior Pastor')
+                setPastorSigUrl(c.pastor_signature_image || '')
+                setSealUrl(c.seal_image || '')
             })
             .catch(() => { /* defaults */ })
             .finally(() => setLoading(false))
@@ -249,37 +311,14 @@ function LetterSettings({ onMsg }: { onMsg: (m: { kind: 'ok' | 'err'; text: stri
                 secretary_name: name.trim(),
                 secretary_title: title.trim() || 'Church Secretary',
                 secretary_signature_image: sigUrl.trim(),
+                pastor_name: pastorName.trim(),
+                pastor_title: pastorTitle.trim() || 'Senior Pastor',
+                pastor_signature_image: pastorSigUrl.trim(),
+                seal_image: sealUrl.trim(),
             })
-            onMsg({ kind: 'ok', text: 'Saved — this name now appears on every permission letter.' })
+            onMsg({ kind: 'ok', text: 'Saved — these now appear on every permission letter.' })
         } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
         finally { setSaving(false) }
-    }
-
-    // Signature file → downscaled data-URL stored in the same field. Data-URLs
-    // render in <img> on screen and in print, so the letter needs no changes
-    // and nothing extra has to be hosted.
-    const onSignatureFile = (file: File) => {
-        if (!file.type.startsWith('image/')) { onMsg({ kind: 'err', text: 'Please choose an image file (PNG or JPG).' }); return }
-        const img = new Image()
-        const url = URL.createObjectURL(file)
-        img.onload = () => {
-            URL.revokeObjectURL(url)
-            const maxW = 800
-            const scale = Math.min(1, maxW / img.width)
-            const canvas = document.createElement('canvas')
-            canvas.width = Math.round(img.width * scale)
-            canvas.height = Math.round(img.height * scale)
-            const ctx = canvas.getContext('2d')
-            if (!ctx) { onMsg({ kind: 'err', text: 'Could not read the image.' }); return }
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-            // PNG keeps transparent backgrounds (typical for signatures).
-            const dataUrl = canvas.toDataURL('image/png')
-            if (dataUrl.length > 500_000) { onMsg({ kind: 'err', text: 'That image is too large even after resizing — use a smaller/simpler signature image.' }); return }
-            setSigUrl(dataUrl)
-            onMsg({ kind: 'ok', text: 'Signature loaded — click Save secretary to apply it.' })
-        }
-        img.onerror = () => { URL.revokeObjectURL(url); onMsg({ kind: 'err', text: 'Could not read that image file.' }) }
-        img.src = url
     }
 
     return (
@@ -287,46 +326,55 @@ function LetterSettings({ onMsg }: { onMsg: (m: { kind: 'ok' | 'err'; text: stri
             <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-3 p-4 text-left">
                 <FileText className="w-5 h-5 text-[#f5bb00]" />
                 <div className="flex-1">
-                    <p className="font-black text-[#140152]">Church secretary (permission letter)</p>
-                    <p className="text-xs text-gray-500">{name ? `Currently signing as: ${name}` : 'Set the name that signs every approved-booking letter.'}</p>
+                    <p className="font-black text-[#140152]">Permission letter — signatures &amp; seal</p>
+                    <p className="text-xs text-gray-500">{name || pastorName ? `Signed by ${[name, pastorName].filter(Boolean).join(' & ')}` : 'Set who signs every approved-booking letter, plus the church seal.'}</p>
                 </div>
                 <span className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
             </button>
             {open && (
-                <div className="px-4 pb-4 border-t border-gray-50 pt-3 space-y-3">
+                <div className="px-4 pb-4 border-t border-gray-50 pt-3 space-y-5">
                     {loading ? <Loader2 className="w-5 h-5 animate-spin text-[#140152]" /> : (
                         <>
-                            <div className="grid md:grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Secretary name (shown on the letter)</label>
-                                    <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Grace Adeyemi" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Title</label>
-                                    <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Church Secretary" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Signature image (optional — a styled typed name is used if none)</label>
-                                {sigUrl ? (
-                                    <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg p-3">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={sigUrl} alt="Signature preview" className="h-12 max-w-[220px] object-contain bg-white rounded border border-gray-100" />
-                                        <button type="button" onClick={() => setSigUrl('')} className="inline-flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700"><Trash2 className="w-3.5 h-3.5" /> Remove</button>
+                            {/* Secretary */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#140152]">Church secretary</p>
+                                <div className="grid md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Name</label>
+                                        <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Grace Adeyemi" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
                                     </div>
-                                ) : (
-                                    <label className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-4 py-2.5 rounded-lg text-xs cursor-pointer">
-                                        <Plus className="w-3.5 h-3.5" /> Upload signature image
-                                        <input
-                                            type="file" accept="image/*" className="hidden"
-                                            onChange={e => { const f = e.target.files?.[0]; if (f) onSignatureFile(f); e.target.value = '' }}
-                                        />
-                                    </label>
-                                )}
-                                <p className="text-[10px] text-gray-400 mt-1">A photo or scan of the secretary&apos;s signature — ideally a PNG with a clear background. It&apos;s resized automatically.</p>
+                                    <div>
+                                        <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Title</label>
+                                        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Church Secretary" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                                    </div>
+                                </div>
+                                <ImageField label="Secretary signature (optional)" hint="A PNG with a clear background works best. Resized automatically." value={sigUrl} onChange={setSigUrl} onMsg={onMsg} />
                             </div>
+
+                            {/* Senior pastor */}
+                            <div className="space-y-3 border-t border-gray-100 pt-4">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#140152]">Senior pastor (optional — shown only if a name is set)</p>
+                                <div className="grid md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Name</label>
+                                        <input value={pastorName} onChange={e => setPastorName(e.target.value)} placeholder="e.g. Pastor John Okafor" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Title</label>
+                                        <input value={pastorTitle} onChange={e => setPastorTitle(e.target.value)} placeholder="Senior Pastor" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                                    </div>
+                                </div>
+                                <ImageField label="Pastor signature (optional)" hint="A PNG with a clear background works best." value={pastorSigUrl} onChange={setPastorSigUrl} onMsg={onMsg} />
+                            </div>
+
+                            {/* Seal */}
+                            <div className="space-y-3 border-t border-gray-100 pt-4">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#140152]">Church seal / stamp (optional)</p>
+                                <ImageField label="Seal image" hint="A round stamp/seal — a transparent PNG looks best; it's overlaid over the signature area." value={sealUrl} onChange={setSealUrl} onMsg={onMsg} round />
+                            </div>
+
                             <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-5 py-2 rounded-lg text-sm disabled:opacity-50">
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save secretary
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save letter signatures
                             </button>
                         </>
                     )}

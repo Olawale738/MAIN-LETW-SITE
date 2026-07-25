@@ -4377,6 +4377,8 @@ export interface SanctuaryPermissionLetter {
     purpose: string; contact_name: string; attendees: number
     starts_at: string; ends_at: string; admin_note: string | null; issued_at: string
     secretary_name: string; secretary_title: string; secretary_signature_image: string
+    pastor_name: string; pastor_title: string; pastor_signature_image: string
+    seal_image: string
     watermark_image: string; letter_intro: string
     fingerprint: string; verify_url: string
 }
