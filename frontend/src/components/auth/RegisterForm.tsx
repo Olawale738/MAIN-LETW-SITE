@@ -12,7 +12,7 @@ export default function RegisterForm() {
     const searchParams = useSearchParams()
     const redirectPath = searchParams.get('redirect') || '/dashboard'
 
-    const [formData, setFormData] = useState({ name: '', email: '' })
+    const [formData, setFormData] = useState({ name: '', email: '', phone: '' })
     const [continent, setContinent] = useState<Continent | ''>('')
     const [countryCode, setCountryCode] = useState('')
     const [loading, setLoading] = useState(false)
@@ -34,6 +34,7 @@ export default function RegisterForm() {
             await authApi.register({
                 name: formData.name,
                 email: formData.email,
+                phone: formData.phone || undefined,
                 country_code: countryCode,
                 country_name: country?.name,
                 continent: continent,
@@ -81,6 +82,17 @@ export default function RegisterForm() {
                         placeholder="you@example.com"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-700">Phone number <span className="text-gray-400 font-normal">(for SMS updates)</span></label>
+                    <input
+                        type="tel"
+                        className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#140152] focus:border-transparent transition-all"
+                        placeholder="e.g. 0803 123 4567"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     />
                 </div>
 

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, Search, Loader2, Mail, Shield, CheckCircle, Clock, XCircle, MoreVertical, Pencil, Trash2, AlertTriangle } from 'lucide-react'
+import { Users, Search, Loader2, Mail, Phone, Shield, CheckCircle, Clock, XCircle, MoreVertical, Pencil, Trash2, AlertTriangle, Download } from 'lucide-react'
 import { dashboardApi, AdminUser } from '@/lib/api'
 import {
     Dialog,
@@ -105,16 +105,37 @@ export default function AdminUsersPage() {
 
     const filteredUsers = users.filter(u =>
         u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchQuery.toLowerCase())
+        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (u.phone || '').toLowerCase().includes(searchQuery.toLowerCase())
     )
+
+    const withPhone = users.filter(u => (u.phone || '').trim())
+
+    const exportCsv = () => {
+        const rows = [['Name', 'Email', 'Phone', 'Country', 'Status', 'Role', 'Joined']]
+        filteredUsers.forEach(u => rows.push([
+            u.name, u.email, u.phone || '', u.country_name || '', u.status, u.role,
+            u.created_at ? new Date(u.created_at).toLocaleDateString() : '',
+        ]))
+        const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = `letw-members-${new Date().toISOString().slice(0, 10)}.csv`
+        a.click()
+        URL.revokeObjectURL(a.href)
+    }
 
     return (
         <div className="max-w-6xl mx-auto space-y-6">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-[#140152]">Users</h1>
-                    <p className="text-gray-500 text-sm">Manage registered users ({total} total)</p>
+                    <p className="text-gray-500 text-sm">Manage registered users ({total} total · {withPhone.length} with phone)</p>
                 </div>
+                <Button variant="outline" size="sm" onClick={exportCsv} title="Export the current list (incl. phone numbers) as CSV">
+                    <Download className="w-4 h-4 mr-1.5" /> Export CSV
+                </Button>
             </div>
 
             {/* Filters */}
@@ -123,7 +144,7 @@ export default function AdminUsersPage() {
                     <Search className="w-4 h-4 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Search by name or email..."
+                        placeholder="Search by name, email or phone..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         className="bg-transparent border-none outline-none text-sm flex-1"
@@ -191,6 +212,11 @@ export default function AdminUsersPage() {
                                                     <div className="text-xs text-gray-500 flex items-center gap-1">
                                                         <Mail className="w-3 h-3" /> {user.email}
                                                     </div>
+                                                    {user.phone && (
+                                                        <a href={`tel:${user.phone}`} className="text-xs text-gray-500 flex items-center gap-1 hover:text-[#140152]">
+                                                            <Phone className="w-3 h-3" /> {user.phone}
+                                                        </a>
+                                                    )}
                                                 </div>
                                             </div>
                                         </td>

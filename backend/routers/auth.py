@@ -41,6 +41,7 @@ async def register(
     auth_service = AuthService(db)
     success, message, user = await auth_service.register_user(
         request.name, request.email,
+        phone=request.phone,
         country_code=request.country_code,
         country_name=request.country_name,
         continent=request.continent,

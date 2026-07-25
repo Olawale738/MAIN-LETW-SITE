@@ -209,6 +209,10 @@ app.include_router(payments.router)
 from routers import email_admin
 app.include_router(email_admin.router)
 
+# SMS provider config (admin)
+from routers import sms
+app.include_router(sms.router)
+
 # Daily Verse rotation (homepage widget)
 from routers import daily_verse
 app.include_router(daily_verse.router)

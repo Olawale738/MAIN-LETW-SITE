@@ -32,6 +32,7 @@ export async function wakeBackend(maxMs = 60_000): Promise<boolean> {
 export interface RegisterRequest {
     name: string;
     email: string;
+    phone?: string;
     country_code?: string;
     country_name?: string;
     continent?: string;
@@ -1145,6 +1146,7 @@ export interface AdminUser {
     id: string;
     name: string;
     email: string;
+    phone?: string | null;
     status: string;
     role: string;
     created_at: string;
@@ -4524,6 +4526,29 @@ export const marriagePrepApi = {
     // Re-send the completion email (certificate link + next steps) to both partners.
     resendCertificate: (couple_id: string) =>
         fetchApi<{ ok: boolean; emails_sent: number; certificate_url: string }>(`/marriage-prep/admin/couples/${couple_id}/resend-certificate`, { method: 'POST' }),
+}
+
+// ─── SMS provider config (admin) ─────────────────────────────────────────────
+export interface SmsProvider {
+    id: string; provider: 'termii' | 'twilio' | 'africastalking' | 'custom'; name: string
+    api_key: string | null; api_secret: string | null; sender_id: string | null
+    base_url: string | null; config: Record<string, any>; is_active: boolean
+    created_at?: string | null
+}
+export const smsApi = {
+    status: () => fetchApi<{ configured: boolean; provider: string | null; sender_id: string | null }>('/sms/status'),
+    list: () => fetchApi<SmsProvider[]>('/sms/providers'),
+    create: (b: Omit<SmsProvider, 'id' | 'created_at'>) =>
+        fetchApi<SmsProvider>('/sms/providers', { method: 'POST', body: JSON.stringify(b) }),
+    update: (id: string, b: Omit<SmsProvider, 'id' | 'created_at'>) =>
+        fetchApi<SmsProvider>(`/sms/providers/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    remove: (id: string) => fetchApi<{ deleted: number }>(`/sms/providers/${id}`, { method: 'DELETE' }),
+    test: (to: string, message?: string) =>
+        fetchApi<{ sent: boolean; detail: string }>('/sms/test', { method: 'POST', body: JSON.stringify({ to, ...(message ? { message } : {}) }) }),
+    audience: (status?: 'all' | 'active') =>
+        fetchApi<{ count: number }>(`/sms/audience${status === 'active' ? '?status=active' : ''}`),
+    broadcast: (message: string, audience: 'all' | 'active') =>
+        fetchApi<{ recipients: number; sent: number; failed: number }>('/sms/broadcast', { method: 'POST', body: JSON.stringify({ message, audience }) }),
 }
 
 // ─── Email delivery diagnostics (admin) ──────────────────────────────────────
