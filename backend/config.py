@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     # JWT Authentication
     JWT_SECRET: str = "your-super-secret-key-change-in-production"
     JWT_ALGORITHM: str = "HS256"
+
+    # Partner-system integration (sharepoints.letw.org). Server-to-server shared
+    # secret — set the SAME value here and on the partner. Empty = integration off.
+    SHAREPOINTS_API_KEY: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     

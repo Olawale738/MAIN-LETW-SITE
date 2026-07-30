@@ -19,6 +19,7 @@ import { marriagePrepApi, ministryContentApi } from '@/lib/api'
 
 interface CertificateData {
     id: string
+    certificate_number?: string | null
     partner_a_name: string
     partner_b_name: string
     wedding_date: string | null
@@ -201,6 +202,9 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
                                 </div>
                                 <p className="text-[8px] uppercase tracking-[0.25em] font-black text-gray-500 mt-2">Scan to verify</p>
                                 <p className="font-mono text-[10px] font-bold text-[#140152] mt-0.5">{cert.fingerprint}</p>
+                                {cert.certificate_number && (
+                                    <p className="text-[9px] text-gray-500 mt-0.5">Cert No: <span className="font-mono font-bold text-[#140152]">{cert.certificate_number}</span></p>
+                                )}
                             </div>
 
                             <div className="text-right sm:text-left">
@@ -232,6 +236,22 @@ export default function MarriagePrepCompletePage({ params }: { params: Promise<{
                     </button>
                     <p className="text-xs text-gray-500">Ctrl / ⌘ + P works too — wait for the QR to finish loading first.</p>
                 </div>
+
+                {/* Marriage certificate — issued by the partner system using this cert number */}
+                {cert.certificate_number && (
+                    <div className="max-w-xl mx-auto mt-6 bg-[#140152] text-white rounded-2xl p-5 text-center print:hidden">
+                        <p className="text-[10px] uppercase tracking-[0.3em] font-black text-[#f5bb00]">Your marriage certificate</p>
+                        <p className="text-sm text-white/80 mt-2">Use your training certificate number to obtain your official marriage certificate.</p>
+                        <p className="font-mono text-lg font-black mt-2">{cert.certificate_number}</p>
+                        <a
+                            href={`https://sharepoints.letw.org/marriage-certificate?cert=${encodeURIComponent(cert.certificate_number)}`}
+                            target="_blank" rel="noreferrer"
+                            className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-300 text-[#140152] font-black px-6 py-3 rounded-full text-sm mt-3"
+                        >
+                            Get marriage certificate →
+                        </a>
+                    </div>
+                )}
             </section>
 
             {/* Next steps */}

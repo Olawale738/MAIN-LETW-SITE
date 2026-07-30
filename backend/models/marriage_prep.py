@@ -63,6 +63,10 @@ class MarriagePrepCouple(Base):
     pastor_signed_at:   Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     pastor_signature:   Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     pastor_note:        Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Human-facing training-certificate number, minted at sign-off. Partner
+    # systems (e.g. sharepoints.letw.org) use it to look up the couple and
+    # issue the marriage certificate.
+    certificate_number: Mapped[Optional[str]] = mapped_column(String(40), nullable=True, index=True)
     # Pastor-proposed video/meeting session — the couple is emailed a calendar
     # invite when this is set. NULL = nothing scheduled.
     session_at:         Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

@@ -65,6 +65,7 @@ allowed_origins = [
     "https://www.letw.org",  # Production domain (with www)
     "http://letw.org",  # HTTP fallback
     "http://www.letw.org",  # HTTP fallback with www
+    "https://sharepoints.letw.org",  # Partner system (marriage certificate)
 ]
 
 # Remove duplicates and empty strings
@@ -212,6 +213,10 @@ app.include_router(email_admin.router)
 # SMS provider config (admin)
 from routers import sms
 app.include_router(sms.router)
+
+# Partner-system integrations (sharepoints.letw.org)
+from routers import integrations
+app.include_router(integrations.router)
 
 # Daily Verse rotation (homepage widget)
 from routers import daily_verse

@@ -199,6 +199,8 @@ async def init_db():
                 # Marriage-prep pastor-proposed session (calendar invite)
                 ("marriage_prep_couples", "session_at",   "TIMESTAMP"),
                 ("marriage_prep_couples", "session_note", "TEXT"),
+                # Training-certificate number for partner-system (sharepoints) lookup
+                ("marriage_prep_couples", "certificate_number", "VARCHAR(40)"),
                 # Sanctuary paid bookings
                 ("sanctuary_rooms",    "price",             "NUMERIC(12,2) NOT NULL DEFAULT 0"),
                 ("sanctuary_rooms",    "currency",          "VARCHAR(10) NOT NULL DEFAULT 'NGN'"),

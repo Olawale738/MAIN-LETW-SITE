@@ -533,6 +533,8 @@ async def pastor_sign_off(
     c.pastor_note      = body.pastor_note
     c.assigned_pastor_user_id = pastor.id
     c.status = "completed"
+    if not c.certificate_number:
+        c.certificate_number = _make_cert_number(c.id)
     await db.commit()
     await db.refresh(c)
 
@@ -564,6 +566,12 @@ async def pastor_sign_off(
 #    email addresses, no pastor's private note. Used by
 #    /marriage-prep/complete/{id} on the frontend so the couple can
 #    view + print their certificate.
+def _make_cert_number(couple_id: str) -> str:
+    """Stable, human-facing training-certificate number derived from the couple
+    UUID: LETW-MP-XXXXXXXX. Partner systems look the couple up by this."""
+    return "LETW-MP-" + couple_id.replace("-", "")[:8].upper()
+
+
 def _cert_signature(c: MarriagePrepCouple) -> str:
     """HMAC-SHA256 over the certificate's immutable facts, keyed with the
     server secret. Anyone can RE-VERIFY via /verify (server recomputes);
@@ -609,9 +617,14 @@ async def get_certificate(couple_id: str, db: AsyncSession = Depends(get_db)):
         # Not signed off yet — don't expose a "certificate" for an
         # unfinished couple. Frontend can decide what to render.
         raise HTTPException(404, "Certificate not yet issued")
+    # Backfill a certificate number for couples signed off before this feature.
+    if not c.certificate_number:
+        c.certificate_number = _make_cert_number(c.id)
+        await db.commit()
     sig = _cert_signature(c)
     return {
         "id":                c.id,
+        "certificate_number": c.certificate_number,
         "partner_a_name":    c.partner_a_name,
         "partner_b_name":    c.partner_b_name,
         "wedding_date":      c.intended_wedding_date.isoformat() if c.intended_wedding_date else None,
