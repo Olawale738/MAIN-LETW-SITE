@@ -26,41 +26,121 @@ from utils.dependencies import get_admin_user
 router = APIRouter(prefix="/api/integrations", tags=["Integrations"])
 
 
+async def _settings_row(db: AsyncSession):
+    return (await db.execute(select(IntegrationSettings).where(IntegrationSettings.id == "default"))).scalar_one_or_none()
+
+
 async def _effective_key(db: AsyncSession) -> str:
     """The active shared secret: admin-set (DB) value wins, else the env var."""
-    row = (await db.execute(select(IntegrationSettings).where(IntegrationSettings.id == "default"))).scalar_one_or_none()
+    row = await _settings_row(db)
     if row and (row.sharepoints_api_key or "").strip():
         return row.sharepoints_api_key.strip()
     return (settings.SHAREPOINTS_API_KEY or "").strip()
 
 
+def _couple_payload(c) -> dict:
+    """The completed-couple record sent to the partner (same shape as the lookup)."""
+    from routers.marriage_prep import _cert_signature, _fingerprint
+    sig = _cert_signature(c)
+    return {
+        "training_verified": True,
+        "certificate_number": c.certificate_number,
+        "couple_id": c.id,
+        "partner_a_name": c.partner_a_name,
+        "partner_b_name": c.partner_b_name,
+        "partner_a_email": c.partner_a_email,
+        "partner_b_email": c.partner_b_email,
+        "intended_wedding_date": c.intended_wedding_date.isoformat() if c.intended_wedding_date else None,
+        "completed_at": c.pastor_signed_at.isoformat() if c.pastor_signed_at else None,
+        "pastor_signature": c.pastor_signature,
+        "fingerprint": _fingerprint(sig),
+        "issuer": "letw.org",
+    }
+
+
+async def push_marriage_completion(db: AsyncSession, c) -> None:
+    """On pastor sign-off, hand the completed couple to the partner system:
+    a webhook POST to sharepoints (if a URL is set) and an email to the marriage
+    office (if set) with a one-click generate link. Best-effort — never blocks
+    sign-off."""
+    row = await _settings_row(db)
+    if not row:
+        return
+    key = await _effective_key(db)
+    payload = _couple_payload(c)
+    cert_no = c.certificate_number or ""
+    generate_url = f"https://sharepoints.letw.org/marriage-certificate?cert={cert_no}"
+
+    # 1) Webhook push (server-to-server) so sharepoints can auto-ingest.
+    if (row.sharepoints_webhook_url or "").strip():
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=15) as cli:
+                await cli.post(row.sharepoints_webhook_url.strip(), json=payload,
+                               headers={"X-API-Key": key} if key else {})
+        except Exception as e:
+            print(f"[integrations] sharepoints webhook push failed: {type(e).__name__}: {e}", flush=True)
+
+    # 2) Email the marriage-certificate office with the couple + generate link.
+    if (row.marriage_office_email or "").strip():
+        try:
+            from services.email_service import send_email
+            html = (
+                '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1f2937">'
+                '<h2 style="color:#140152">Couple ready for a marriage certificate</h2>'
+                f'<p><strong>{c.partner_a_name} &amp; {c.partner_b_name}</strong> have completed marriage '
+                f'preparation and been signed off.</p>'
+                f'<p><strong>Training certificate:</strong> {cert_no}<br>'
+                f'<strong>Intended wedding:</strong> {c.intended_wedding_date.strftime("%B %d, %Y") if c.intended_wedding_date else "—"}</p>'
+                f'<p style="margin-top:18px"><a href="{generate_url}" '
+                'style="background:#140152;color:#fff;text-decoration:none;font-weight:bold;padding:11px 20px;border-radius:999px">'
+                'Generate marriage certificate</a></p>'
+                '<p style="font-size:12px;color:#6b7280">Light Encounter Tabernacle Worldwide</p></div>'
+            )
+            await send_email(row.marriage_office_email.strip(), f"Marriage certificate ready — {c.partner_a_name} & {c.partner_b_name}", html)
+        except Exception as e:
+            print(f"[integrations] marriage-office email failed: {type(e).__name__}: {e}", flush=True)
+
+
 # ── Admin: manage the shared secret from the dashboard ──────────────────────
 
 class KeyIn(BaseModel):
-    sharepoints_api_key: str
+    sharepoints_api_key: Optional[str] = None
+    sharepoints_webhook_url: Optional[str] = None
+    marriage_office_email: Optional[str] = None
 
 
 @router.get("/admin/settings")
 async def get_settings(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     key = await _effective_key(db)
+    row = await _settings_row(db)
     return {
         "configured": bool(key),
         # Masked preview only — never return the full secret.
         "key_preview": (key[:4] + "…" + key[-4:]) if len(key) >= 10 else ("•" * len(key)),
         "lookup_url": "https://letw-backend.onrender.com/api/integrations/marriage/couple",
+        "sharepoints_webhook_url": (row.sharepoints_webhook_url if row else None) or "",
+        "marriage_office_email": (row.marriage_office_email if row else None) or "",
     }
 
 
 @router.put("/admin/settings")
 async def set_settings(body: KeyIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
-    key = (body.sharepoints_api_key or "").strip()
-    if len(key) < 12:
-        raise HTTPException(400, "Use a longer secret (at least 12 characters).")
-    row = (await db.execute(select(IntegrationSettings).where(IntegrationSettings.id == "default"))).scalar_one_or_none()
+    row = await _settings_row(db)
     if not row:
         row = IntegrationSettings(id="default")
         db.add(row)
-    row.sharepoints_api_key = key
+    # Only update the key when a real (non-masked, long-enough) value is sent.
+    if body.sharepoints_api_key is not None:
+        key = body.sharepoints_api_key.strip()
+        if key and "…" not in key:
+            if len(key) < 12:
+                raise HTTPException(400, "Use a longer secret (at least 12 characters).")
+            row.sharepoints_api_key = key
+    if body.sharepoints_webhook_url is not None:
+        row.sharepoints_webhook_url = body.sharepoints_webhook_url.strip() or None
+    if body.marriage_office_email is not None:
+        row.marriage_office_email = body.marriage_office_email.strip() or None
     await db.commit()
     return {"ok": True}
 

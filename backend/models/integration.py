@@ -16,4 +16,8 @@ class IntegrationSettings(Base):
     # Fixed single row.
     id: Mapped[str] = mapped_column(String(20), primary_key=True, default="default")
     sharepoints_api_key: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    # On pastor sign-off, letw.org PUSHES the completed couple: a webhook POST to
+    # sharepoints (if set) and/or an email to the marriage-certificate office.
+    sharepoints_webhook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    marriage_office_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

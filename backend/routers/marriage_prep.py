@@ -538,6 +538,14 @@ async def pastor_sign_off(
     await db.commit()
     await db.refresh(c)
 
+    # Hand the completed couple to the partner system (sharepoints) so the
+    # marriage certificate can be issued — webhook + office email. Best-effort.
+    try:
+        from routers.integrations import push_marriage_completion
+        await push_marriage_completion(db, c)
+    except Exception as e:
+        print(f"[marriage-prep] partner push failed: {type(e).__name__}: {e}", flush=True)
+
     # Notify both partners with a link to their certificate + next steps.
     # Best-effort — a mail hiccup must not roll back the sign-off itself.
     try:

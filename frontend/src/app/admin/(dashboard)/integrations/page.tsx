@@ -9,14 +9,17 @@ import { Loader2, Link2, CheckCircle, AlertCircle, Copy, RefreshCw, Save, Eye } 
 import { integrationsApi } from '@/lib/api'
 
 export default function AdminIntegrationsPage() {
-    const [status, setStatus] = useState<{ configured: boolean; key_preview: string; lookup_url: string } | null>(null)
+    const [status, setStatus] = useState<{ configured: boolean; key_preview: string; lookup_url: string; sharepoints_webhook_url: string; marriage_office_email: string } | null>(null)
     const [keyInput, setKeyInput] = useState('')
     const [revealed, setRevealed] = useState('')   // full key shown once after generate
+    const [webhookUrl, setWebhookUrl] = useState('')
+    const [officeEmail, setOfficeEmail] = useState('')
+    const [savingTargets, setSavingTargets] = useState(false)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
 
-    const refresh = () => integrationsApi.getSettings().then(setStatus).catch(() => setStatus(null)).finally(() => setLoading(false))
+    const refresh = () => integrationsApi.getSettings().then(s => { setStatus(s); setWebhookUrl(s.sharepoints_webhook_url || ''); setOfficeEmail(s.marriage_office_email || '') }).catch(() => setStatus(null)).finally(() => setLoading(false))
     useEffect(() => { refresh() }, [])
     useEffect(() => { if (msg) { const t = setTimeout(() => setMsg(null), 6000); return () => clearTimeout(t) } }, [msg])
 
@@ -34,6 +37,12 @@ export default function AdminIntegrationsPage() {
         finally { setSaving(false) }
     }
     const copy = (v: string) => navigator.clipboard.writeText(v).then(() => setMsg({ kind: 'ok', text: 'Copied.' })).catch(() => {})
+    const saveTargets = async () => {
+        setSavingTargets(true)
+        try { await integrationsApi.saveTargets(webhookUrl.trim(), officeEmail.trim()); setMsg({ kind: 'ok', text: 'Saved. Approved couples are now auto-sent on sign-off.' }); refresh() }
+        catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setSavingTargets(false) }
+    }
 
     return (
         <div className="p-4 sm:p-6 max-w-3xl mx-auto pb-32">
@@ -71,6 +80,25 @@ export default function AdminIntegrationsPage() {
                             </button>
                             <button onClick={generate} disabled={saving} className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-bold px-4 py-2.5 rounded-lg text-sm disabled:opacity-50">
                                 <RefreshCw className="w-4 h-4" /> Generate
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Auto-send on approval */}
+                    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+                        <h2 className="font-black text-[#140152] mb-1">Auto-send on approval</h2>
+                        <p className="text-xs text-gray-500 mb-3">When a pastor signs off a couple, letw.org immediately hands them to sharepoints — a webhook push and/or an email to your marriage-certificate office with a one-click generate link. Leave a field blank to skip that channel.</p>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Sharepoints webhook URL (optional)</label>
+                                <input value={webhookUrl} onChange={e => setWebhookUrl(e.target.value)} placeholder="https://sharepoints.letw.org/api/letw-marriage/incoming" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Marriage-certificate office email (optional)</label>
+                                <input type="email" value={officeEmail} onChange={e => setOfficeEmail(e.target.value)} placeholder="marriage@letw.org" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                            </div>
+                            <button onClick={saveTargets} disabled={savingTargets} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-4 py-2.5 rounded-lg text-sm disabled:opacity-50">
+                                {savingTargets ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save auto-send
                             </button>
                         </div>
                     </div>
