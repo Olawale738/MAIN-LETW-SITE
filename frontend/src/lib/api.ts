@@ -4551,6 +4551,14 @@ export const smsApi = {
         fetchApi<{ recipients: number; sent: number; failed: number }>('/sms/broadcast', { method: 'POST', body: JSON.stringify({ message, audience }) }),
 }
 
+// ─── Partner integrations (admin) ────────────────────────────────────────────
+export const integrationsApi = {
+    getSettings: () => fetchApi<{ configured: boolean; key_preview: string; lookup_url: string }>('/integrations/admin/settings'),
+    setKey: (sharepoints_api_key: string) =>
+        fetchApi<{ ok: boolean }>('/integrations/admin/settings', { method: 'PUT', body: JSON.stringify({ sharepoints_api_key }) }),
+    generateKey: () => fetchApi<{ sharepoints_api_key: string }>('/integrations/admin/settings/generate', { method: 'POST' }),
+}
+
 // ─── Email delivery diagnostics (admin) ──────────────────────────────────────
 export const emailAdminApi = {
     status: () => fetchApi<{ email_enabled: boolean; provider: string; from_name: string; from_address: string; smtp_host: string | null; resend_configured: boolean }>('/admin/email/status'),

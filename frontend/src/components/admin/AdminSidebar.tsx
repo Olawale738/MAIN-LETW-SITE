@@ -22,6 +22,7 @@ const sidebarItems: SidebarItem[] = [
     { title: 'Announcements', href: '/admin/announcements', icon: Megaphone },
     { title: 'Newsletter', href: '/admin/newsletter', icon: Mail },
     { title: 'SMS Notifications', href: '/admin/sms', icon: MessageCircle },
+    { title: 'Partner Integrations', href: '/admin/integrations', icon: Globe },
     { title: 'Sermons', href: '/admin/sermons', icon: Video },
     { title: 'Events', href: '/admin/events', icon: Calendar },
     { title: 'Users', href: '/admin/users', icon: Users },
