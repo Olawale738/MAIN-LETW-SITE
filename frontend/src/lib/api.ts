@@ -4552,10 +4552,16 @@ export const smsApi = {
 }
 
 // ─── Partner integrations (admin) ────────────────────────────────────────────
+export interface IntegrationTargets {
+    sharepoints_webhook_url: string; marriage_office_email: string
+    baptism_webhook_url: string; baptism_office_email: string
+}
 export const integrationsApi = {
-    getSettings: () => fetchApi<{ configured: boolean; key_preview: string; lookup_url: string }>('/integrations/admin/settings'),
+    getSettings: () => fetchApi<{ configured: boolean; key_preview: string; lookup_url: string } & IntegrationTargets>('/integrations/admin/settings'),
     setKey: (sharepoints_api_key: string) =>
         fetchApi<{ ok: boolean }>('/integrations/admin/settings', { method: 'PUT', body: JSON.stringify({ sharepoints_api_key }) }),
+    saveTargets: (t: IntegrationTargets) =>
+        fetchApi<{ ok: boolean }>('/integrations/admin/settings', { method: 'PUT', body: JSON.stringify(t) }),
     generateKey: () => fetchApi<{ sharepoints_api_key: string }>('/integrations/admin/settings/generate', { method: 'POST' }),
 }
 

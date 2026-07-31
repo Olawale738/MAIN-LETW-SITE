@@ -204,6 +204,10 @@ async def init_db():
                 # Partner push targets (sharepoints handshake)
                 ("integration_settings", "sharepoints_webhook_url", "VARCHAR(500)"),
                 ("integration_settings", "marriage_office_email",   "VARCHAR(255)"),
+                ("integration_settings", "baptism_webhook_url",     "VARCHAR(500)"),
+                ("integration_settings", "baptism_office_email",    "VARCHAR(255)"),
+                # Baptism certificate number on life-event requests
+                ("life_event_requests", "certificate_number", "VARCHAR(40)"),
                 # Sanctuary paid bookings
                 ("sanctuary_rooms",    "price",             "NUMERIC(12,2) NOT NULL DEFAULT 0"),
                 ("sanctuary_rooms",    "currency",          "VARCHAR(10) NOT NULL DEFAULT 'NGN'"),

@@ -20,4 +20,7 @@ class IntegrationSettings(Base):
     # sharepoints (if set) and/or an email to the marriage-certificate office.
     sharepoints_webhook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     marriage_office_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    # Baptism push targets (parallel to marriage).
+    baptism_webhook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    baptism_office_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

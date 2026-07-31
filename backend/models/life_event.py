@@ -27,5 +27,7 @@ class LifeEventRequest(Base):
     status: Mapped[str] = mapped_column(String(20), default="pending", index=True)  # pending/approved/declined/completed
     admin_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     approved_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    # Baptism certificate number, minted on approval so sharepoints can issue it.
+    certificate_number: Mapped[Optional[str]] = mapped_column(String(40), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

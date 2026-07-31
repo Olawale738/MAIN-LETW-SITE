@@ -44,6 +44,7 @@ class RequestOut(BaseModel):
     status: str
     admin_notes: Optional[str]
     approved_date: Optional[date]
+    certificate_number: Optional[str] = None
     created_at: datetime
 
 
@@ -117,8 +118,20 @@ async def update_request(rid: str, body: RequestUpdate, db: AsyncSession = Depen
         raise HTTPException(404, "Not found")
     for k, v in body.model_dump(exclude_unset=True).items():
         setattr(r, k, v)
+    # A baptism that becomes approved/completed gets a certificate number and is
+    # pushed to the partner system (sharepoints) to issue the baptism certificate.
+    if r.kind == "baptism" and r.status in ("approved", "completed") and not r.certificate_number:
+        from routers.integrations import _make_baptism_number
+        r.certificate_number = _make_baptism_number(r.id)
     await db.commit()
     await db.refresh(r)
+
+    if r.kind == "baptism" and body.status in ("approved", "completed") and r.certificate_number:
+        try:
+            from routers.integrations import push_baptism_completion
+            await push_baptism_completion(db, r)
+        except Exception as e:
+            print(f"[life-events] baptism partner push failed: {type(e).__name__}: {e}", flush=True)
 
     # Fan out decision emails on approve / decline transitions only.
     if body.status in {"approved", "declined"} and r.requester_email:

@@ -108,6 +108,8 @@ class KeyIn(BaseModel):
     sharepoints_api_key: Optional[str] = None
     sharepoints_webhook_url: Optional[str] = None
     marriage_office_email: Optional[str] = None
+    baptism_webhook_url: Optional[str] = None
+    baptism_office_email: Optional[str] = None
 
 
 @router.get("/admin/settings")
@@ -121,6 +123,8 @@ async def get_settings(db: AsyncSession = Depends(get_db), _: User = Depends(get
         "lookup_url": "https://letw-backend.onrender.com/api/integrations/marriage/couple",
         "sharepoints_webhook_url": (row.sharepoints_webhook_url if row else None) or "",
         "marriage_office_email": (row.marriage_office_email if row else None) or "",
+        "baptism_webhook_url": (row.baptism_webhook_url if row else None) or "",
+        "baptism_office_email": (row.baptism_office_email if row else None) or "",
     }
 
 
@@ -141,6 +145,10 @@ async def set_settings(body: KeyIn, db: AsyncSession = Depends(get_db), _: User 
         row.sharepoints_webhook_url = body.sharepoints_webhook_url.strip() or None
     if body.marriage_office_email is not None:
         row.marriage_office_email = body.marriage_office_email.strip() or None
+    if body.baptism_webhook_url is not None:
+        row.baptism_webhook_url = body.baptism_webhook_url.strip() or None
+    if body.baptism_office_email is not None:
+        row.baptism_office_email = body.baptism_office_email.strip() or None
     await db.commit()
     return {"ok": True}
 
@@ -157,6 +165,85 @@ async def generate_key(db: AsyncSession = Depends(get_db), _: User = Depends(get
     row.sharepoints_api_key = key
     await db.commit()
     return {"sharepoints_api_key": key}
+
+
+def _make_baptism_number(rid: str) -> str:
+    return "LETW-BAP-" + rid.replace("-", "")[:8].upper()
+
+
+def _baptism_payload(r) -> dict:
+    return {
+        "baptism_verified": True,
+        "certificate_number": r.certificate_number,
+        "record_id": r.id,
+        "candidate_name": r.requester_name,
+        "requester_email": r.requester_email,
+        "requester_phone": r.requester_phone,
+        "baptism_date": (r.approved_date or r.preferred_date).isoformat() if (r.approved_date or r.preferred_date) else None,
+        "approved_date": r.approved_date.isoformat() if r.approved_date else None,
+        "details": r.details or {},
+        "issuer": "letw.org",
+    }
+
+
+async def push_baptism_completion(db: AsyncSession, r) -> None:
+    """On baptism approval, hand the record to sharepoints (webhook) and/or the
+    baptism office (email w/ generate link). Best-effort."""
+    row = await _settings_row(db)
+    if not row:
+        return
+    key = await _effective_key(db)
+    cert_no = r.certificate_number or ""
+    generate_url = f"https://sharepoints.letw.org/baptism-certificate?cert={cert_no}"
+    if (row.baptism_webhook_url or "").strip():
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=15) as cli:
+                await cli.post(row.baptism_webhook_url.strip(), json=_baptism_payload(r),
+                               headers={"X-API-Key": key} if key else {})
+        except Exception as e:
+            print(f"[integrations] baptism webhook push failed: {type(e).__name__}: {e}", flush=True)
+    if (row.baptism_office_email or "").strip():
+        try:
+            from services.email_service import send_email
+            when = (r.approved_date or r.preferred_date)
+            html = (
+                '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1f2937">'
+                '<h2 style="color:#140152">Baptism ready for a certificate</h2>'
+                f'<p><strong>{r.requester_name}</strong>&apos;s baptism has been approved.</p>'
+                f'<p><strong>Reference:</strong> {cert_no}<br>'
+                f'<strong>Date:</strong> {when.strftime("%B %d, %Y") if when else "—"}</p>'
+                f'<p style="margin-top:18px"><a href="{generate_url}" '
+                'style="background:#140152;color:#fff;text-decoration:none;font-weight:bold;padding:11px 20px;border-radius:999px">'
+                'Generate baptism certificate</a></p>'
+                '<p style="font-size:12px;color:#6b7280">Light Encounter Tabernacle Worldwide</p></div>'
+            )
+            await send_email(row.baptism_office_email.strip(), f"Baptism certificate ready — {r.requester_name}", html)
+        except Exception as e:
+            print(f"[integrations] baptism-office email failed: {type(e).__name__}: {e}", flush=True)
+
+
+@router.get("/baptism/record")
+async def lookup_baptism_by_cert(
+    cert_no: str,
+    x_api_key: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return an approved baptism record's details for the partner to issue the
+    baptism certificate. Only approved/completed baptisms resolve."""
+    expected = await _effective_key(db)
+    if not expected:
+        raise HTTPException(503, "Partner integration is not configured yet.")
+    if not x_api_key or not hmac.compare_digest(x_api_key.strip(), expected):
+        raise HTTPException(401, "Invalid or missing X-API-Key.")
+    from models.life_event import LifeEventRequest
+    ref = (cert_no or "").strip().upper()
+    if not ref:
+        raise HTTPException(400, "cert_no is required.")
+    r = (await db.execute(select(LifeEventRequest).where(LifeEventRequest.certificate_number == ref))).scalar_one_or_none()
+    if not r or r.kind != "baptism" or r.status not in ("approved", "completed"):
+        raise HTTPException(404, "No approved baptism matches that number.")
+    return _baptism_payload(r)
 
 
 @router.get("/marriage/couple")
