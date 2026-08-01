@@ -10,6 +10,7 @@ must live on the partner's SERVER, never in a browser.
 
 import hmac
 import secrets
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
