@@ -4109,6 +4109,41 @@ export const blogApi = {
     delete: (id: string) => fetchApi<{ deleted: number }>(`/blog/admin/posts/${id}`, { method: 'DELETE' }),
 };
 
+// ─── Evangelism leaflets ─────────────────────────────────────────────────────
+export interface Leaflet {
+    id: string;
+    title: string;
+    headline: string;
+    subheadline: string | null;
+    body_html: string;
+    scripture_ref: string | null;
+    scripture_text: string | null;
+    cta_text: string | null;
+    cta_detail: string | null;
+    accent_color: string;
+    logo_url: string | null;
+    image_url: string | null;
+    layout: string;
+    church_name: string;
+    contact_phone: string | null;
+    contact_website: string | null;
+    contact_address: string | null;
+    service_times: string | null;
+    footer_note: string | null;
+    status: string;
+    is_public: boolean;
+    created_at: string;
+    updated_at: string;
+}
+export const leafletsApi = {
+    adminList: () => fetchApi<Leaflet[]>('/evangelism/admin/leaflets'),
+    adminGet: (id: string) => fetchApi<Leaflet>(`/evangelism/admin/leaflets/${id}`),
+    publicGet: (id: string) => fetchApi<Leaflet>(`/evangelism/leaflets/${id}`),
+    create: (b: Partial<Leaflet>) => fetchApi<Leaflet>('/evangelism/admin/leaflets', { method: 'POST', body: JSON.stringify(b) }),
+    update: (id: string, b: Partial<Leaflet>) => fetchApi<Leaflet>(`/evangelism/admin/leaflets/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    delete: (id: string) => fetchApi<{ deleted: number }>(`/evangelism/admin/leaflets/${id}`, { method: 'DELETE' }),
+};
+
 // ─── Newsletter ────────────────────────────────────────────────────────────
 export const newsletterApi = {
     subscribe: (email: string, source = 'blog', name?: string) =>

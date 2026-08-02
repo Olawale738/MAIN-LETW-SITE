@@ -59,6 +59,7 @@ from models.ai_config import AiConfig
 
 from models.message import Conversation, Message, ConversationStatus
 from models.evangelism import EvangelismInterest
+from models.leaflet import EvangelismLeaflet
 from models.newsletter import NewsletterSubscriber, NewsletterBroadcast
 from models.chat_extensions import (
     MessageReaction, MessageAttachment, MessageReply, MessageMention,

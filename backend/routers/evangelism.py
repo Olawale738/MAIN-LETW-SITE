@@ -4,14 +4,16 @@ Evangelism API
 - Admin only:       GET  /api/evangelism/interests  — list all sign-ups
 """
 
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, desc
 
 from database import get_db
 from models.evangelism import EvangelismInterest
+from models.leaflet import EvangelismLeaflet
 from models.user import User
 from utils.dependencies import get_admin_user
 
@@ -109,3 +111,105 @@ async def delete_interest(
     await db.delete(record)
     await db.commit()
     return {"message": "Deleted."}
+
+
+# ─── Evangelism leaflets (admin-authored, ministry-branded, printable) ─────────
+
+class LeafletIn(BaseModel):
+    title: str = "Untitled leaflet"
+    headline: str = "God Loves You"
+    subheadline: Optional[str] = None
+    body_html: str = ""
+    scripture_ref: Optional[str] = None
+    scripture_text: Optional[str] = None
+    cta_text: Optional[str] = None
+    cta_detail: Optional[str] = None
+    accent_color: str = "#f5bb00"
+    logo_url: Optional[str] = None
+    image_url: Optional[str] = None
+    layout: str = "flyer"
+    church_name: str = "Light Encounter Tabernacle Worldwide"
+    contact_phone: Optional[str] = None
+    contact_website: Optional[str] = "letw.org"
+    contact_address: Optional[str] = None
+    service_times: Optional[str] = None
+    footer_note: Optional[str] = None
+    status: str = "draft"
+    is_public: bool = False
+
+
+class LeafletOut(LeafletIn):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/leaflets/{leaflet_id}", response_model=LeafletOut)
+async def public_leaflet(leaflet_id: str, db: AsyncSession = Depends(get_db)):
+    """Public read — only leaflets the admin has published + marked shareable."""
+    res = await db.execute(select(EvangelismLeaflet).where(EvangelismLeaflet.id == leaflet_id))
+    lf = res.scalar_one_or_none()
+    if not lf or lf.status != "published" or not lf.is_public:
+        raise HTTPException(404, "Leaflet not found.")
+    return lf
+
+
+@router.get("/admin/leaflets", response_model=List[LeafletOut])
+async def admin_list_leaflets(
+    db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)
+):
+    res = await db.execute(select(EvangelismLeaflet).order_by(desc(EvangelismLeaflet.updated_at)))
+    return res.scalars().all()
+
+
+@router.get("/admin/leaflets/{leaflet_id}", response_model=LeafletOut)
+async def admin_get_leaflet(
+    leaflet_id: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)
+):
+    res = await db.execute(select(EvangelismLeaflet).where(EvangelismLeaflet.id == leaflet_id))
+    lf = res.scalar_one_or_none()
+    if not lf:
+        raise HTTPException(404, "Leaflet not found.")
+    return lf
+
+
+@router.post("/admin/leaflets", response_model=LeafletOut, status_code=201)
+async def admin_create_leaflet(
+    body: LeafletIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)
+):
+    lf = EvangelismLeaflet(**body.model_dump())
+    db.add(lf)
+    await db.commit()
+    await db.refresh(lf)
+    return lf
+
+
+@router.put("/admin/leaflets/{leaflet_id}", response_model=LeafletOut)
+async def admin_update_leaflet(
+    leaflet_id: str, body: LeafletIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)
+):
+    res = await db.execute(select(EvangelismLeaflet).where(EvangelismLeaflet.id == leaflet_id))
+    lf = res.scalar_one_or_none()
+    if not lf:
+        raise HTTPException(404, "Leaflet not found.")
+    for k, v in body.model_dump().items():
+        setattr(lf, k, v)
+    await db.commit()
+    await db.refresh(lf)
+    return lf
+
+
+@router.delete("/admin/leaflets/{leaflet_id}")
+async def admin_delete_leaflet(
+    leaflet_id: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)
+):
+    res = await db.execute(select(EvangelismLeaflet).where(EvangelismLeaflet.id == leaflet_id))
+    lf = res.scalar_one_or_none()
+    if not lf:
+        return {"deleted": 0}
+    await db.delete(lf)
+    await db.commit()
+    return {"deleted": 1}

@@ -89,6 +89,7 @@ const sidebarItems: SidebarItem[] = [
     // Universal page editor (lists every public page)
     { title: 'All Pages', href: '/admin/pages', icon: FileText },
     { title: 'Evangelism Sign-Ups', href: '/admin/evangelism-signups', icon: HandHeart },
+    { title: 'Evangelism Leaflets', href: '/admin/evangelism-leaflets', icon: Megaphone },
     // Ministries group
     {
         title: 'Ministries',
