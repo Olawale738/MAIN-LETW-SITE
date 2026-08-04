@@ -127,6 +127,8 @@ class LeafletIn(BaseModel):
     accent_color: str = "#f5bb00"
     logo_url: Optional[str] = None
     image_url: Optional[str] = None
+    qr_url: Optional[str] = None
+    qr_caption: Optional[str] = None
     layout: str = "flyer"
     church_name: str = "Light Encounter Tabernacle Worldwide"
     contact_phone: Optional[str] = None

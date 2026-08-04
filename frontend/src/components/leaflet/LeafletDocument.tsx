@@ -7,6 +7,7 @@
  * message, and a refined prayer band. All content is admin-authored; the accent
  * colour is admin-chosen.
  */
+import { QRCodeSVG } from 'qrcode.react'
 import type { Leaflet } from '@/lib/api'
 
 const DEFAULT_LOGO = '/NewLETWlogo.png'
@@ -135,6 +136,23 @@ export default function LeafletDocument({ data }: { data: Partial<Leaflet> }) {
                             {data.cta_detail}
                         </p>
                     )}
+                </div>
+            )}
+
+            {/* ── QR (scan to connect) ─────────────────────────────────────── */}
+            {data.qr_url && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '18px 26px 4px', background: '#fdfbf5' }}>
+                    <div style={{ padding: 6, background: '#fff', border: `1px solid ${accent}66`, borderRadius: 6, lineHeight: 0 }}>
+                        <QRCodeSVG value={data.qr_url} size={72} level="M" bgColor="#ffffff" fgColor={NAVY} />
+                    </div>
+                    <div style={{ textAlign: 'left', maxWidth: 150 }}>
+                        <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 14, color: NAVY, lineHeight: 1.2 }}>
+                            {data.qr_caption || 'Scan to connect with us'}
+                        </div>
+                        <div style={{ fontSize: 10.5, color: accentDeep, marginTop: 3, wordBreak: 'break-all' }}>
+                            {(data.qr_url || '').replace(/^https?:\/\//, '')}
+                        </div>
+                    </div>
                 </div>
             )}
 

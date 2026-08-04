@@ -40,6 +40,10 @@ class EvangelismLeaflet(Base):
     # ── Branding ───────────────────────────────────────────────────────────────
     accent_color: Mapped[str] = mapped_column(String(20), nullable=False, default="#f5bb00")
     logo_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # URL or uploaded data-URL
+
+    # ── QR code (scan to connect) ──────────────────────────────────────────────
+    qr_url: Mapped[Optional[str]] = mapped_column(String(600), nullable=True)  # what the QR links to
+    qr_caption: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # data-URL or link
     layout: Mapped[str] = mapped_column(String(30), nullable=False, default="flyer")  # flyer | tri-fold
 

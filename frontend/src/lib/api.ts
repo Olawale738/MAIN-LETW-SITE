@@ -4123,6 +4123,8 @@ export interface Leaflet {
     accent_color: string;
     logo_url: string | null;
     image_url: string | null;
+    qr_url: string | null;
+    qr_caption: string | null;
     layout: string;
     church_name: string;
     contact_phone: string | null;
