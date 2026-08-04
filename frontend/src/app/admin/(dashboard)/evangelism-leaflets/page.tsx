@@ -11,6 +11,7 @@ import {
     AlertCircle, Image as ImageIcon, Megaphone,
 } from 'lucide-react'
 import { leafletsApi, type Leaflet } from '@/lib/api'
+import LeafletDocument from '@/components/leaflet/LeafletDocument'
 
 const DEFAULT_LOGO = '/NewLETWlogo.png'
 
@@ -40,17 +41,6 @@ function blank(): Partial<Leaflet> {
         status: 'draft',
         is_public: false,
     }
-}
-
-/** Turn plain text (with blank-line paragraphs) into HTML, but leave real HTML alone. */
-function toHtml(s: string): string {
-    const t = (s || '').trim()
-    if (!t) return ''
-    if (t.includes('<')) return t
-    return t
-        .split(/\n{2,}/)
-        .map(p => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
-        .join('')
 }
 
 export default function LeafletsPage() {
@@ -104,26 +94,28 @@ export default function LeafletsPage() {
         } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
     }
 
-    const onImage = (file: File) => {
+    // Downscale an uploaded image to a data-URL. Logos keep transparency (PNG);
+    // photos compress as JPEG.
+    const downscale = (file: File, max: number, mime: 'image/png' | 'image/jpeg', done: (url: string) => void) => {
         const reader = new FileReader()
         reader.onload = () => {
             const img = new window.Image()
             img.onload = () => {
-                const max = 1000
                 const scale = Math.min(1, max / Math.max(img.width, img.height))
                 const canvas = document.createElement('canvas')
                 canvas.width = Math.round(img.width * scale)
                 canvas.height = Math.round(img.height * scale)
                 const ctx = canvas.getContext('2d')
-                if (ctx) { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); set({ image_url: canvas.toDataURL('image/jpeg', 0.82) }) }
+                if (ctx) { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); done(mime === 'image/png' ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.82)) }
             }
             img.src = reader.result as string
         }
         reader.readAsDataURL(file)
     }
+    const onImage = (file: File) => downscale(file, 1000, 'image/jpeg', url => set({ image_url: url }))
+    const onLogo = (file: File) => downscale(file, 400, 'image/png', url => set({ logo_url: url }))
 
     const accent = cur.accent_color || '#f5bb00'
-    const logo = cur.logo_url || DEFAULT_LOGO
 
     return (
         <div className="p-4 sm:p-6 max-w-7xl mx-auto pb-32">
@@ -191,8 +183,17 @@ export default function LeafletsPage() {
                                 ))}
                             </div>
                         </div>
-                        <Label>Logo URL (leave blank for ministry logo)</Label>
-                        <Text value={cur.logo_url || ''} onChange={v => set({ logo_url: v })} placeholder={DEFAULT_LOGO} />
+                        <Label>Logo (leave blank for the ministry logo)</Label>
+                        <div className="flex items-center gap-2 mb-2">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={cur.logo_url || DEFAULT_LOGO} alt="" className="h-9 w-9 object-contain rounded bg-[#140152] p-0.5" />
+                            <label className="inline-flex items-center gap-1.5 cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-3 py-2 rounded-lg text-xs">
+                                <ImageIcon className="w-4 h-4" /> Upload logo
+                                <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && onLogo(e.target.files[0])} />
+                            </label>
+                            {cur.logo_url && <button onClick={() => set({ logo_url: '' })} className="text-xs text-red-500 font-semibold">Reset</button>}
+                        </div>
+                        <Text value={cur.logo_url && cur.logo_url.startsWith('data:') ? '' : (cur.logo_url || '')} onChange={v => set({ logo_url: v })} placeholder={`or paste a URL — default ${DEFAULT_LOGO}`} />
                         <Label>Illustration image (optional)</Label>
                         <div className="flex items-center gap-2">
                             <label className="inline-flex items-center gap-1.5 cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-3 py-2 rounded-lg text-xs">
@@ -247,62 +248,13 @@ export default function LeafletsPage() {
                 {/* ── Live preview / printed leaflet ─────────────────────── */}
                 <div className="lg:sticky lg:top-4 self-start w-full">
                     <p className="print:hidden text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> Live preview</p>
-                    <div id="leaflet" className="mx-auto bg-white shadow-xl overflow-hidden" style={{ maxWidth: 480 }}>
-                        {/* Top accent band + logo */}
-                        <div style={{ background: accent }} className="px-6 py-3 flex items-center gap-3">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={logo} alt="" className="h-10 w-auto object-contain" />
-                            <span className="text-[11px] font-black uppercase tracking-wider text-[#140152]">{cur.church_name}</span>
-                        </div>
-
-                        {/* Hero */}
-                        <div className="px-6 pt-7 pb-6 text-center" style={{ background: `linear-gradient(180deg, ${accent}22, #ffffff)` }}>
-                            <h2 className="text-3xl font-black leading-tight text-[#140152]">{cur.headline}</h2>
-                            {cur.subheadline && <p className="mt-1 text-sm font-semibold" style={{ color: accent === '#f5bb00' ? '#b8860b' : accent }}>{cur.subheadline}</p>}
-                        </div>
-
-                        {cur.image_url && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={cur.image_url} alt="" className="w-full max-h-56 object-cover" />
-                        )}
-
-                        {/* Message */}
-                        {toHtml(cur.body_html || '') && (
-                            <div className="px-6 py-5 text-[13px] leading-relaxed text-gray-700 leaflet-body" dangerouslySetInnerHTML={{ __html: toHtml(cur.body_html || '') }} />
-                        )}
-
-                        {/* Scripture card */}
-                        {(cur.scripture_text || cur.scripture_ref) && (
-                            <div className="mx-6 mb-5 rounded-xl p-4 text-center" style={{ background: `${accent}18`, borderLeft: `4px solid ${accent}` }}>
-                                {cur.scripture_text && <p className="text-[13px] italic text-[#140152] leading-relaxed">“{cur.scripture_text}”</p>}
-                                {cur.scripture_ref && <p className="mt-1 text-[11px] font-black uppercase tracking-wider" style={{ color: accent === '#f5bb00' ? '#b8860b' : accent }}>{cur.scripture_ref}</p>}
-                            </div>
-                        )}
-
-                        {/* CTA band */}
-                        {(cur.cta_text || cur.cta_detail) && (
-                            <div style={{ background: '#140152' }} className="px-6 py-5 text-center text-white">
-                                {cur.cta_text && <p className="text-base font-black" style={{ color: accent }}>{cur.cta_text}</p>}
-                                {cur.cta_detail && <p className="mt-2 text-[12px] leading-relaxed text-white/90">{cur.cta_detail}</p>}
-                            </div>
-                        )}
-
-                        {/* Footer */}
-                        <div className="px-6 py-4 text-center text-[11px] text-gray-500 border-t border-gray-100">
-                            {cur.footer_note && <p className="mb-1 text-gray-600">{cur.footer_note}</p>}
-                            {cur.service_times && <p className="font-semibold text-[#140152]">{cur.service_times}</p>}
-                            <p className="mt-1">
-                                {[cur.contact_phone, cur.contact_website].filter(Boolean).join('  ·  ')}
-                            </p>
-                            {cur.contact_address && <p>{cur.contact_address}</p>}
-                        </div>
-                        <div style={{ background: accent }} className="h-2" />
+                    <div id="leaflet" className="mx-auto shadow-2xl overflow-hidden" style={{ maxWidth: 420 }}>
+                        <LeafletDocument data={cur} />
                     </div>
                 </div>
             </div>
 
             <style jsx global>{`
-                .leaflet-body p { margin: 0 0 0.7em; }
                 @media print {
                     body { background: white !important; }
                     body * { visibility: hidden !important; }

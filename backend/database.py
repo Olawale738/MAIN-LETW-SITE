@@ -243,6 +243,21 @@ async def init_db():
                     # Log and continue — never let migration crash startup
                     print(f"[init_db] WARN: ALTER {table}.{column} skipped: {type(col_err).__name__}: {col_err}", flush=True)
 
+            # Widen columns that may hold uploaded data-URLs (bigger than their
+            # original VARCHAR limit). Idempotent — TYPE TEXT is a no-op if already text.
+            widen_columns: list[tuple[str, str]] = [
+                ("evangelism_leaflets", "logo_url"),
+            ]
+            for table, column in widen_columns:
+                try:
+                    await conn.execute(text(
+                        f'ALTER TABLE IF EXISTS public."{table}" ALTER COLUMN {column} TYPE TEXT'
+                    ))
+                    await conn.commit()
+                    print(f"[init_db] widened column {table}.{column} to TEXT", flush=True)
+                except Exception as widen_err:
+                    print(f"[init_db] WARN: widen {table}.{column} skipped: {type(widen_err).__name__}: {widen_err}", flush=True)
+
         print("[init_db] Database tables initialised successfully", flush=True)
 
         # Idempotent seed — if the blog has zero published posts, drop one in so
