@@ -8,7 +8,6 @@
  * display headline anchors the top; and a two-column body places the QR + "Join
  * us" panel on the left with the message, scripture and prayer on the right.
  */
-import { QRCodeSVG } from 'qrcode.react'
 import type { Leaflet } from '@/lib/api'
 
 const DEFAULT_LOGO = '/NewLETWlogo.png'
@@ -42,7 +41,7 @@ export default function LeafletDocument({ data }: { data: Partial<Leaflet> }) {
     const accentDeep = accent.toLowerCase() === '#f5bb00' ? '#b8860b' : accent
     const bodyHtml = toHtml(data.body_html || '')
     const contactLines = [data.contact_phone, data.contact_website, data.contact_address].filter(Boolean)
-    const hasLeft = !!(data.qr_url || data.service_times || contactLines.length)
+    const hasLeft = !!(data.service_times || contactLines.length)
 
     return (
         <div className="leaflet-doc" style={{ position: 'relative', background: CREAM, fontFamily: "'Lora', Georgia, serif", color: '#2c2b28', overflow: 'hidden' }}>
@@ -101,17 +100,6 @@ export default function LeafletDocument({ data }: { data: Partial<Leaflet> }) {
 
                     {hasLeft && (
                         <div style={{ width: 138, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            {data.qr_url && (
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{ display: 'inline-block', padding: 7, background: '#fff', border: `1px solid ${accent}`, borderRadius: 8, lineHeight: 0, boxShadow: '0 1px 4px rgba(20,1,82,.08)' }}>
-                                        <QRCodeSVG value={data.qr_url} size={104} level="M" bgColor="#ffffff" fgColor={NAVY} />
-                                    </div>
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: NAVY, marginTop: 6, lineHeight: 1.25 }}>
-                                        {data.qr_caption || 'Scan to connect'}
-                                    </div>
-                                </div>
-                            )}
-
                             <div style={{ background: NAVY, color: '#fff', padding: '13px 13px 15px', borderRadius: 8, textAlign: 'center' }}>
                                 <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 15, color: accent, letterSpacing: '0.02em' }}>Join us</div>
                                 <div aria-hidden="true" style={{ height: 2, width: 26, background: accent, margin: '7px auto 9px' }} />

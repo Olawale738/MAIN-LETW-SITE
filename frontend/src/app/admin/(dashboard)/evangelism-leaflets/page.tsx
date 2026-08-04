@@ -31,8 +31,6 @@ function blank(): Partial<Leaflet> {
         accent_color: '#f5bb00',
         logo_url: '',
         image_url: '',
-        qr_url: 'https://letw.org',
-        qr_caption: 'Scan to connect with us',
         layout: 'flyer',
         church_name: 'Light Encounter Tabernacle Worldwide',
         contact_phone: '',
@@ -204,20 +202,6 @@ export default function LeafletsPage() {
                             </label>
                             {cur.image_url && <button onClick={() => set({ image_url: '' })} className="text-xs text-red-500 font-semibold">Remove</button>}
                         </div>
-                    </Card>
-
-                    <Card title="QR code (scan to connect)">
-                        <p className="text-[11px] text-gray-500 mb-2">People who take the leaflet can scan this to reach you instantly. Leave the link blank to hide the QR.</p>
-                        <Label>Link the QR opens</Label>
-                        <Text value={cur.qr_url || ''} onChange={v => set({ qr_url: v })} placeholder="https://letw.org" />
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                            <button onClick={() => set({ qr_url: 'https://letw.org' })} className="text-[11px] font-semibold bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded">Church website</button>
-                            <button onClick={() => set({ qr_url: 'https://letw.org/give' })} className="text-[11px] font-semibold bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded">Give / donate</button>
-                            <button onClick={() => set({ qr_url: 'https://letw.org/evangelism' })} className="text-[11px] font-semibold bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded">I want to know Jesus</button>
-                            <button onClick={() => set({ qr_url: '' })} className="text-[11px] font-semibold text-red-500 hover:bg-red-50 px-2 py-1 rounded">No QR</button>
-                        </div>
-                        <Label>Caption beside the QR</Label>
-                        <Text value={cur.qr_caption || ''} onChange={v => set({ qr_caption: v })} placeholder="Scan to connect with us" />
                     </Card>
 
                     <Card title="Church & contact (footer)">
