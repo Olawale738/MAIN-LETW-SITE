@@ -1,17 +1,19 @@
 'use client'
 /**
  * LeafletDocument — the shared, print-ready visual for an evangelism leaflet.
- * Used by both the admin live-preview and the public /leaflet/[id] page so the
- * two never drift. Elegant "gospel pamphlet" styling: display serif headings,
- * a navy hero with rays of light, an ornately framed scripture, a drop-cap
- * message, and a refined prayer band. All content is admin-authored; the accent
- * colour is admin-chosen.
+ * Used by both the admin live-preview and the public /leaflet/[id] page.
+ *
+ * A single, graphical, poster-style page: the ministry logo sits as a faint
+ * full-page watermark; an elegant gold-framed border wraps everything; a strong
+ * display headline anchors the top; and a two-column body places the QR + "Join
+ * us" panel on the left with the message, scripture and prayer on the right.
  */
 import { QRCodeSVG } from 'qrcode.react'
 import type { Leaflet } from '@/lib/api'
 
 const DEFAULT_LOGO = '/NewLETWlogo.png'
 const NAVY = '#140152'
+const CREAM = '#fbf9f2'
 
 /** Plain text (blank-line paragraphs) → HTML; leave real HTML untouched. */
 export function toHtml(s: string): string {
@@ -21,14 +23,15 @@ export function toHtml(s: string): string {
     return t.split(/\n{2,}/).map(p => `<p>${p.replace(/\n/g, '<br/>')}</p>`).join('')
 }
 
-function Ornament({ color }: { color: string }) {
+function Flourish({ color }: { color: string }) {
     return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '0 auto' }}>
-            <span style={{ height: 1, width: 44, background: `linear-gradient(90deg, transparent, ${color})` }} />
-            <svg width="12" height="16" viewBox="0 0 12 16" fill="none" aria-hidden="true">
-                <path d="M6 0v16M1 5h10" stroke={color} strokeWidth="1.4" strokeLinecap="round" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '10px auto 0' }}>
+            <span style={{ height: 1, width: 54, background: `linear-gradient(90deg, transparent, ${color})` }} />
+            <svg width="14" height="18" viewBox="0 0 14 18" fill="none" aria-hidden="true">
+                <path d="M7 0v18M2 6h10" stroke={color} strokeWidth="1.4" strokeLinecap="round" />
+                <circle cx="7" cy="6" r="2.2" fill={color} />
             </svg>
-            <span style={{ height: 1, width: 44, background: `linear-gradient(90deg, ${color}, transparent)` }} />
+            <span style={{ height: 1, width: 54, background: `linear-gradient(90deg, ${color}, transparent)` }} />
         </div>
     )
 }
@@ -36,155 +39,149 @@ function Ornament({ color }: { color: string }) {
 export default function LeafletDocument({ data }: { data: Partial<Leaflet> }) {
     const accent = data.accent_color || '#f5bb00'
     const logo = data.logo_url || DEFAULT_LOGO
-    const accentDeep = accent.toLowerCase() === '#f5bb00' ? '#c98a00' : accent
+    const accentDeep = accent.toLowerCase() === '#f5bb00' ? '#b8860b' : accent
     const bodyHtml = toHtml(data.body_html || '')
+    const contactLines = [data.contact_phone, data.contact_website, data.contact_address].filter(Boolean)
+    const hasLeft = !!(data.qr_url || data.service_times || contactLines.length)
 
     return (
-        <div className="leaflet-doc" style={{ width: '100%', background: '#fdfbf5', fontFamily: "'Lora', Georgia, serif", color: '#2a2a28' }}>
+        <div className="leaflet-doc" style={{ position: 'relative', background: CREAM, fontFamily: "'Lora', Georgia, serif", color: '#2c2b28', overflow: 'hidden' }}>
             <link
                 rel="stylesheet"
-                href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800;900&family=Cormorant+Garamond:ital,wght@0,600;1,500;1,600&family=Lora:ital,wght@0,400;0,500;1,400&display=swap"
+                href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800;900&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Lora:ital,wght@0,400;0,500;1,400&display=swap"
             />
 
-            {/* ── Hero ─────────────────────────────────────────────────────── */}
-            <div
-                style={{
-                    position: 'relative',
-                    background: `radial-gradient(120% 90% at 50% -10%, ${accent}44 0%, ${NAVY} 55%, #0d0138 100%)`,
-                    color: '#fff',
-                    padding: '22px 26px 30px',
-                    textAlign: 'center',
-                    overflow: 'hidden',
-                }}
-            >
-                {/* rays of light */}
-                <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: `conic-gradient(from 180deg at 50% 0%, transparent 0deg, ${accent}22 12deg, transparent 24deg, ${accent}18 40deg, transparent 60deg, ${accent}22 80deg, transparent 100deg)`, opacity: 0.5, pointerEvents: 'none' }} />
+            {/* Watermark — the ministry logo, faint, behind everything */}
+            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 0, pointerEvents: 'none' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logo} alt="" style={{ width: '92%', maxWidth: 420, opacity: 0.06 }} />
+            </div>
 
-                <div style={{ position: 'relative' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 14 }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={logo} alt="" style={{ height: 34, width: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,.4))' }} />
-                        <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: accent, fontFamily: "'Lora', serif" }}>
-                            {data.church_name || 'Light Encounter Tabernacle Worldwide'}
-                        </span>
+            {/* Elegant double frame */}
+            <div aria-hidden="true" style={{ position: 'absolute', inset: 9, border: `2px solid ${accent}`, zIndex: 2, pointerEvents: 'none' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', inset: 14, border: `1px solid ${NAVY}33`, zIndex: 2, pointerEvents: 'none' }} />
+
+            {/* ── Content ──────────────────────────────────────────────────── */}
+            <div style={{ position: 'relative', zIndex: 1, padding: '26px 24px 22px' }}>
+
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={logo} alt="" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
+                    <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: accentDeep, maxWidth: 180, lineHeight: 1.3 }}>
+                        {data.church_name || 'Light Encounter Tabernacle Worldwide'}
+                    </span>
+                </div>
+
+                {/* Hero */}
+                <div style={{ textAlign: 'center', margin: '16px 0 6px' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.28em', textTransform: 'uppercase', color: accentDeep, marginBottom: 6 }}>
+                        A message of hope for you
                     </div>
-
-                    <Ornament color={accent} />
-
-                    <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 800, fontSize: 38, lineHeight: 1.06, margin: '14px 0 0', color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,.35)' }}>
+                    <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 900, fontSize: 46, lineHeight: 1.02, letterSpacing: '-0.01em', margin: 0, color: NAVY }}>
                         {data.headline || 'God Loves You'}
                     </h1>
                     {data.subheadline && (
-                        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 17, margin: '8px 0 14px', color: accent }}>
+                        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 600, fontSize: 19, margin: '8px 0 0', color: accentDeep }}>
                             {data.subheadline}
                         </p>
                     )}
-                    <Ornament color={accent} />
+                    <Flourish color={accent} />
                 </div>
-            </div>
 
-            {data.image_url && (
-                <div style={{ position: 'relative' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={data.image_url} alt="" style={{ width: '100%', maxHeight: 220, objectFit: 'cover', display: 'block' }} />
-                    <div aria-hidden="true" style={{ position: 'absolute', inset: 0, boxShadow: `inset 0 0 0 1px ${accent}55` }} />
-                </div>
-            )}
-
-            {/* ── Message ──────────────────────────────────────────────────── */}
-            {bodyHtml && (
-                <div
-                    className="leaflet-body"
-                    style={{ padding: '26px 28px 8px', fontSize: 14.5, lineHeight: 1.72, color: '#33322f' }}
-                    dangerouslySetInnerHTML={{ __html: bodyHtml }}
-                />
-            )}
-
-            {/* ── Scripture ────────────────────────────────────────────────── */}
-            {(data.scripture_text || data.scripture_ref) && (
-                <div style={{ margin: '14px 26px 24px', position: 'relative', padding: '22px 20px 18px', textAlign: 'center', background: `${accent}12`, border: `1px solid ${accent}55` }}>
-                    <span aria-hidden="true" style={{ position: 'absolute', top: -14, left: 14, fontFamily: "'Playfair Display', serif", fontSize: 56, lineHeight: 1, color: accent, opacity: 0.5 }}>&ldquo;</span>
-                    {/* corner ticks */}
-                    <span aria-hidden="true" style={{ position: 'absolute', top: 6, right: 6, width: 14, height: 14, borderTop: `2px solid ${accent}`, borderRight: `2px solid ${accent}` }} />
-                    <span aria-hidden="true" style={{ position: 'absolute', bottom: 6, left: 6, width: 14, height: 14, borderBottom: `2px solid ${accent}`, borderLeft: `2px solid ${accent}` }} />
-                    {data.scripture_text && (
-                        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 500, fontSize: 18, lineHeight: 1.5, color: NAVY, margin: 0 }}>
-                            {data.scripture_text}
-                        </p>
-                    )}
-                    {data.scripture_ref && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 12 }}>
-                            <span style={{ height: 1, width: 22, background: accentDeep }} />
-                            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: accentDeep }}>{data.scripture_ref}</span>
-                            <span style={{ height: 1, width: 22, background: accentDeep }} />
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* ── Call to action / prayer ──────────────────────────────────── */}
-            {(data.cta_text || data.cta_detail) && (
-                <div style={{ background: NAVY, color: '#fff', padding: '24px 26px 26px', textAlign: 'center', position: 'relative' }}>
-                    <div aria-hidden="true" style={{ height: 3, width: 46, background: accent, margin: '0 auto 14px' }} />
-                    {data.cta_text && (
-                        <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 21, lineHeight: 1.2, margin: 0, color: accent }}>
-                            {data.cta_text}
-                        </h2>
-                    )}
-                    {data.cta_detail && (
-                        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 16, lineHeight: 1.6, margin: '14px auto 0', maxWidth: 320, color: 'rgba(255,255,255,.92)', padding: '14px 16px', border: '1px solid rgba(255,255,255,.22)' }}>
-                            {data.cta_detail}
-                        </p>
-                    )}
-                </div>
-            )}
-
-            {/* ── QR (scan to connect) ─────────────────────────────────────── */}
-            {data.qr_url && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '18px 26px 4px', background: '#fdfbf5' }}>
-                    <div style={{ padding: 6, background: '#fff', border: `1px solid ${accent}66`, borderRadius: 6, lineHeight: 0 }}>
-                        <QRCodeSVG value={data.qr_url} size={72} level="M" bgColor="#ffffff" fgColor={NAVY} />
-                    </div>
-                    <div style={{ textAlign: 'left', maxWidth: 150 }}>
-                        <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 14, color: NAVY, lineHeight: 1.2 }}>
-                            {data.qr_caption || 'Scan to connect with us'}
-                        </div>
-                        <div style={{ fontSize: 10.5, color: accentDeep, marginTop: 3, wordBreak: 'break-all' }}>
-                            {(data.qr_url || '').replace(/^https?:\/\//, '')}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ── Footer ───────────────────────────────────────────────────── */}
-            <div style={{ padding: '18px 26px 20px', textAlign: 'center', background: '#fdfbf5' }}>
-                <Ornament color={accent} />
-                {data.footer_note && <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 14, color: '#5a5852', margin: '12px 0 8px' }}>{data.footer_note}</p>}
-                {data.service_times && (
-                    <div style={{ display: 'inline-block', background: `${accent}1c`, border: `1px solid ${accent}66`, borderRadius: 999, padding: '5px 14px', fontSize: 11.5, fontWeight: 700, letterSpacing: '0.03em', color: NAVY, margin: '4px 0 10px' }}>
-                        {data.service_times}
+                {data.image_url && (
+                    <div style={{ margin: '12px 0 4px', position: 'relative' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={data.image_url} alt="" style={{ width: '100%', maxHeight: 150, objectFit: 'cover', display: 'block', border: `1px solid ${accent}66` }} />
                     </div>
                 )}
-                <div style={{ fontSize: 11.5, color: '#4a4844', lineHeight: 1.7 }}>
-                    {[data.contact_phone, data.contact_website].filter(Boolean).join('  ·  ')}
-                    {data.contact_address && <div>{data.contact_address}</div>}
+
+                {/* Two columns: QR + Join us (left) · message/scripture/prayer (right) */}
+                <div style={{ display: 'flex', gap: 15, marginTop: 14, alignItems: 'flex-start' }}>
+
+                    {hasLeft && (
+                        <div style={{ width: 138, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {data.qr_url && (
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ display: 'inline-block', padding: 7, background: '#fff', border: `1px solid ${accent}`, borderRadius: 8, lineHeight: 0, boxShadow: '0 1px 4px rgba(20,1,82,.08)' }}>
+                                        <QRCodeSVG value={data.qr_url} size={104} level="M" bgColor="#ffffff" fgColor={NAVY} />
+                                    </div>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: NAVY, marginTop: 6, lineHeight: 1.25 }}>
+                                        {data.qr_caption || 'Scan to connect'}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div style={{ background: NAVY, color: '#fff', padding: '13px 13px 15px', borderRadius: 8, textAlign: 'center' }}>
+                                <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 15, color: accent, letterSpacing: '0.02em' }}>Join us</div>
+                                <div aria-hidden="true" style={{ height: 2, width: 26, background: accent, margin: '7px auto 9px' }} />
+                                {data.service_times && (
+                                    <div style={{ fontSize: 11.5, fontWeight: 500, lineHeight: 1.5, marginBottom: contactLines.length ? 9 : 0 }}>{data.service_times}</div>
+                                )}
+                                {contactLines.map((line, i) => (
+                                    <div key={i} style={{ fontSize: 10.5, lineHeight: 1.5, color: 'rgba(255,255,255,.9)', wordBreak: 'break-word' }}>{line}</div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        {bodyHtml && (
+                            <div
+                                className="leaflet-body"
+                                style={{ fontSize: 13, lineHeight: 1.65, color: '#33322f', textAlign: 'justify' }}
+                                dangerouslySetInnerHTML={{ __html: bodyHtml }}
+                            />
+                        )}
+
+                        {(data.scripture_text || data.scripture_ref) && (
+                            <div style={{ position: 'relative', margin: '14px 0', padding: '16px 14px 12px', textAlign: 'center', background: `${accent}12`, borderTop: `2px solid ${accent}`, borderBottom: `2px solid ${accent}` }}>
+                                <span aria-hidden="true" style={{ position: 'absolute', top: -10, left: 10, fontFamily: "'Playfair Display', serif", fontSize: 46, lineHeight: 1, color: accent, opacity: 0.55 }}>&ldquo;</span>
+                                {data.scripture_text && (
+                                    <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontWeight: 600, fontSize: 16.5, lineHeight: 1.45, color: NAVY, margin: 0 }}>
+                                        {data.scripture_text}
+                                    </p>
+                                )}
+                                {data.scripture_ref && (
+                                    <div style={{ marginTop: 9, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: accentDeep }}>{data.scripture_ref}</div>
+                                )}
+                            </div>
+                        )}
+
+                        {(data.cta_text || data.cta_detail) && (
+                            <div style={{ background: NAVY, color: '#fff', padding: '14px 15px', borderRadius: 8, textAlign: 'center' }}>
+                                {data.cta_text && (
+                                    <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 17, lineHeight: 1.2, margin: 0, color: accent }}>{data.cta_text}</h2>
+                                )}
+                                {data.cta_detail && (
+                                    <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 14, lineHeight: 1.55, margin: '9px 0 0', color: 'rgba(255,255,255,.92)' }}>{data.cta_detail}</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <div style={{ marginTop: 8, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: accentDeep }}>
-                    {data.church_name || 'Light Encounter Tabernacle Worldwide'}
+
+                {/* Footer */}
+                <div style={{ marginTop: 16, textAlign: 'center' }}>
+                    <Flourish color={accent} />
+                    {data.footer_note && <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 13.5, color: '#5a5852', margin: '10px 0 4px' }}>{data.footer_note}</p>}
+                    <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: accentDeep, marginTop: 4 }}>
+                        {data.church_name || 'Light Encounter Tabernacle Worldwide'}
+                    </div>
                 </div>
             </div>
-            <div style={{ height: 8, background: accent }} />
 
             <style jsx global>{`
-                .leaflet-body p { margin: 0 0 0.8em; }
+                .leaflet-body p { margin: 0 0 0.7em; }
+                .leaflet-body p:last-child { margin-bottom: 0; }
                 .leaflet-body p:first-of-type::first-letter {
                     font-family: 'Playfair Display', Georgia, serif;
-                    font-size: 3.2em;
+                    font-size: 3em;
                     font-weight: 800;
                     float: left;
-                    line-height: 0.82;
-                    margin: 4px 8px 0 0;
-                    color: ${NAVY};
+                    line-height: 0.8;
+                    margin: 4px 7px 0 0;
+                    color: ${accent};
                 }
             `}</style>
         </div>
