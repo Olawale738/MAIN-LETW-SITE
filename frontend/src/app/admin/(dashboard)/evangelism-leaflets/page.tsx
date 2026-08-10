@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { leafletsApi, type Leaflet } from '@/lib/api'
 import LeafletDocument from '@/components/leaflet/LeafletDocument'
+import { LEAFLET_TEMPLATES } from '@/components/leaflet/templates'
 
 const DEFAULT_LOGO = '/NewLETWlogo.png'
 
@@ -63,6 +64,14 @@ export default function LeafletsPage() {
     const set = (patch: Partial<Leaflet>) => setCur(c => ({ ...c, ...patch }))
 
     const newLeaflet = () => { setCur(blank()); setSelectedId(null); setMsg(null) }
+
+    const applyTemplate = (id: string) => {
+        const t = LEAFLET_TEMPLATES.find(x => x.id === id)
+        if (!t) return
+        setCur({ ...blank(), ...t.content })
+        setSelectedId(null)
+        setMsg({ kind: 'ok', text: `Loaded the “${t.name}” template — edit the words and save.` })
+    }
 
     const open = async (id: string) => {
         setMsg(null)
@@ -137,7 +146,19 @@ export default function LeafletsPage() {
                             <button onClick={() => del(l.id)} className="p-1 text-gray-300 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
                         </span>
                     ))}
-                    {!loading && list.length === 0 && <span className="text-xs text-gray-400">No leaflets yet — start with “New leaflet”.</span>}
+                    {!loading && list.length === 0 && <span className="text-xs text-gray-400">No leaflets yet — start with “New leaflet” or a template below.</span>}
+                </div>
+
+                {/* Start from a template */}
+                <div className="mb-5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Start from a template</p>
+                    <div className="flex flex-wrap gap-2">
+                        {LEAFLET_TEMPLATES.map(t => (
+                            <button key={t.id} onClick={() => applyTemplate(t.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white hover:border-[#140152] hover:bg-[#140152]/5 px-3 py-2 text-xs font-semibold text-[#140152]">
+                                <span>{t.emoji}</span> {t.name}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -219,6 +240,14 @@ export default function LeafletsPage() {
                         <Text value={cur.footer_note || ''} onChange={v => set({ footer_note: v })} />
                     </Card>
 
+                    <Card title="Format">
+                        <div className="flex gap-2">
+                            <button onClick={() => set({ layout: 'flyer' })} className={`flex-1 rounded-lg border px-3 py-2 text-xs font-bold ${(cur.layout || 'flyer') === 'flyer' ? 'border-[#140152] bg-[#140152] text-white' : 'border-gray-200 text-gray-600'}`}>Single flyer · A5</button>
+                            <button onClick={() => set({ layout: 'tri-fold' })} className={`flex-1 rounded-lg border px-3 py-2 text-xs font-bold ${cur.layout === 'tri-fold' ? 'border-[#140152] bg-[#140152] text-white' : 'border-gray-200 text-gray-600'}`}>Tri-fold · A4 landscape</button>
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-2">Tri-fold prints 3 panels across a landscape page — fold into a classic pocket tract.</p>
+                    </Card>
+
                     <Card title="Publish">
                         <div className="flex flex-wrap items-center gap-4">
                             <select value={cur.status || 'draft'} onChange={e => set({ status: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm">
@@ -248,7 +277,7 @@ export default function LeafletsPage() {
                 {/* ── Live preview / printed leaflet ─────────────────────── */}
                 <div className="lg:sticky lg:top-4 self-start w-full">
                     <p className="print:hidden text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> Live preview</p>
-                    <div id="leaflet" className="mx-auto shadow-2xl overflow-hidden" style={{ maxWidth: 420 }}>
+                    <div id="leaflet" className="mx-auto shadow-2xl overflow-hidden" style={{ maxWidth: cur.layout === 'tri-fold' ? 780 : 420 }}>
                         <LeafletDocument data={cur} />
                     </div>
                 </div>
@@ -260,7 +289,7 @@ export default function LeafletsPage() {
                     body * { visibility: hidden !important; }
                     #leaflet, #leaflet * { visibility: visible !important; }
                     #leaflet { position: absolute !important; left: 0; top: 0; width: 100% !important; max-width: 100% !important; box-shadow: none !important; }
-                    @page { size: A5 portrait; margin: 0; }
+                    @page { size: ${cur.layout === 'tri-fold' ? 'A4 landscape' : 'A5 portrait'}; margin: 0; }
                 }
             `}</style>
         </div>
