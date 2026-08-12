@@ -11,7 +11,7 @@ import {
     AlertCircle, Image as ImageIcon, Megaphone,
 } from 'lucide-react'
 import { leafletsApi, type Leaflet } from '@/lib/api'
-import LeafletDocument from '@/components/leaflet/LeafletDocument'
+import LeafletCanvas from '@/components/leaflet/LeafletCanvas'
 import { LEAFLET_TEMPLATES } from '@/components/leaflet/templates'
 
 const DEFAULT_LOGO = '/NewLETWlogo.png'
@@ -277,8 +277,8 @@ export default function LeafletsPage() {
                 {/* ── Live preview / printed leaflet ─────────────────────── */}
                 <div className="lg:sticky lg:top-4 self-start w-full">
                     <p className="print:hidden text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> Live preview</p>
-                    <div id="leaflet" className="mx-auto shadow-2xl overflow-hidden" style={{ maxWidth: cur.layout === 'tri-fold' ? 780 : 420 }}>
-                        <LeafletDocument data={cur} />
+                    <div className="mx-auto" style={{ maxWidth: cur.layout === 'tri-fold' ? 640 : 420 }}>
+                        <LeafletCanvas data={cur} />
                     </div>
                 </div>
             </div>
@@ -288,7 +288,8 @@ export default function LeafletsPage() {
                     body { background: white !important; }
                     body * { visibility: hidden !important; }
                     #leaflet, #leaflet * { visibility: visible !important; }
-                    #leaflet { position: absolute !important; left: 0; top: 0; width: 100% !important; max-width: 100% !important; box-shadow: none !important; }
+                    #leaflet { position: absolute !important; left: 0 !important; top: 0 !important; transform: none !important; }
+                    .leaflet-canvas-box { width: auto !important; height: auto !important; margin: 0 !important; box-shadow: none !important; }
                     @page { size: ${cur.layout === 'tri-fold' ? 'A4 landscape' : 'A5 portrait'}; margin: 0; }
                 }
             `}</style>

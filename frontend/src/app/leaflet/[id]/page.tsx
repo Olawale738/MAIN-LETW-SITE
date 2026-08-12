@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Printer, Loader2, Download, Share2, Link as LinkIcon } from 'lucide-react'
 import { leafletsApi, type Leaflet } from '@/lib/api'
-import LeafletDocument from '@/components/leaflet/LeafletDocument'
+import LeafletCanvas from '@/components/leaflet/LeafletCanvas'
 
 export default function PublicLeafletPage() {
     const { id } = useParams<{ id: string }>()
@@ -29,9 +29,10 @@ export default function PublicLeafletPage() {
     const shareText = lf ? `${lf.headline}${lf.subheadline ? ' — ' + lf.subheadline : ''}` : 'God loves you'
 
     const makePng = async (): Promise<Blob | null> => {
-        if (!nodeRef.current) return null
+        const node = nodeRef.current?.querySelector('.leaflet-doc') as HTMLElement | null
+        if (!node) return null
         const { toBlob } = await import('html-to-image')
-        return toBlob(nodeRef.current, { pixelRatio: 2, cacheBust: true, backgroundColor: '#fbf9f2' })
+        return toBlob(node, { pixelRatio: 2, cacheBust: true, backgroundColor: '#fbf9f2' })
     }
 
     const download = async () => {
@@ -73,7 +74,7 @@ export default function PublicLeafletPage() {
     if (!lf) return <main className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#140152]" /></main>
 
     const trifold = lf.layout === 'tri-fold'
-    const maxW = trifold ? 780 : 420
+    const maxW = trifold ? 680 : 420
 
     return (
         <main className="min-h-screen bg-gray-100 py-8 px-4">
@@ -87,8 +88,8 @@ export default function PublicLeafletPage() {
             </div>
             {toast && <p className="print:hidden text-center text-sm text-[#140152] mb-3">{toast}</p>}
 
-            <div ref={nodeRef} id="leaflet" className="mx-auto shadow-2xl overflow-hidden print:shadow-none" style={{ maxWidth: maxW }}>
-                <LeafletDocument data={lf} />
+            <div ref={nodeRef} className="mx-auto" style={{ maxWidth: maxW }}>
+                <LeafletCanvas data={lf} />
             </div>
 
             <style jsx global>{`
@@ -96,7 +97,8 @@ export default function PublicLeafletPage() {
                     body { background: white !important; }
                     body * { visibility: hidden !important; }
                     #leaflet, #leaflet * { visibility: visible !important; }
-                    #leaflet { position: absolute !important; left: 0; top: 0; width: 100% !important; max-width: 100% !important; box-shadow: none !important; }
+                    #leaflet { position: absolute !important; left: 0 !important; top: 0 !important; transform: none !important; }
+                    .leaflet-canvas-box { width: auto !important; height: auto !important; margin: 0 !important; box-shadow: none !important; }
                     @page { size: ${trifold ? 'A4 landscape' : 'A5 portrait'}; margin: 0; }
                 }
             `}</style>
