@@ -211,7 +211,8 @@ async def init_db():
                 # Evangelism leaflet QR code
                 ("evangelism_leaflets", "qr_url",     "VARCHAR(600)"),
                 ("evangelism_leaflets", "qr_caption", "VARCHAR(120)"),
-                ("evangelism_leaflets", "design",     "VARCHAR(30) DEFAULT 'classic'"),
+                ("evangelism_leaflets", "design",         "VARCHAR(30) DEFAULT 'classic'"),
+                ("evangelism_leaflets", "show_watermark", "BOOLEAN DEFAULT TRUE"),
                 # Custom ministries — ensure every model column exists (later model
                 # expansions were never migrated, so SELECT * was 500-ing).
                 ("custom_ministries", "tagline",                    "VARCHAR(300)"),
@@ -331,6 +332,44 @@ async def init_db():
                     print(f"[init_db] widened column {table}.{column} to TEXT", flush=True)
                 except Exception as widen_err:
                     print(f"[init_db] WARN: widen {table}.{column} skipped: {type(widen_err).__name__}: {widen_err}", flush=True)
+
+            # ── Auto-sync: ensure EVERY mapped model column exists in the DB ────
+            # Reflect each existing table and ADD any column the model defines but
+            # the table lacks (nullable, type only). This permanently prevents the
+            # "column does not exist" 500 class (e.g. the ministries outage) when a
+            # model gains a field without a hand-written migration. Best-effort and
+            # fully idempotent; never crashes startup.
+            try:
+                from sqlalchemy import inspect as sa_inspect
+
+                def _collect_missing(sync_conn):
+                    insp = sa_inspect(sync_conn)
+                    present = set(insp.get_table_names())
+                    out = []
+                    for tname, tbl in Base.metadata.tables.items():
+                        if tname not in present:
+                            continue
+                        have = {col["name"] for col in insp.get_columns(tname)}
+                        for col in tbl.columns:
+                            if col.name not in have:
+                                try:
+                                    ctype = col.type.compile(dialect=sync_conn.dialect)
+                                except Exception:
+                                    continue  # unmappable type — skip rather than fail
+                                out.append((tname, col.name, ctype))
+                    return out
+
+                for tname, cname, ctype in await conn.run_sync(_collect_missing):
+                    try:
+                        await conn.execute(text(
+                            f'ALTER TABLE public."{tname}" ADD COLUMN IF NOT EXISTS "{cname}" {ctype}'
+                        ))
+                        await conn.commit()
+                        print(f"[init_db] auto-added missing column {tname}.{cname} ({ctype})", flush=True)
+                    except Exception as add_err:
+                        print(f"[init_db] WARN: auto-add {tname}.{cname} skipped: {type(add_err).__name__}: {add_err}", flush=True)
+            except Exception as sync_err:
+                print(f"[init_db] WARN: column auto-sync skipped: {type(sync_err).__name__}: {sync_err}", flush=True)
 
         print("[init_db] Database tables initialised successfully", flush=True)
 

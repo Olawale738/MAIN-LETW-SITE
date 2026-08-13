@@ -33,6 +33,7 @@ export interface LeafletDesign {
     name: string
     inset: number
     baseBg: string
+    dark?: boolean // background is dark — watermark uses a light silhouette
     background: (c: DesignCtx) => ReactNode
     content: (c: DesignCtx) => ReactNode
 }
@@ -113,9 +114,6 @@ const classic: LeafletDesign = {
     id: 'classic', name: 'Classic', inset: 24, baseBg: CREAM,
     background: c => (
         <>
-            <div aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <img src={c.logo} alt="" style={{ width: '86%', maxWidth: 420, opacity: 0.06 }} />
-            </div>
             <div aria-hidden style={{ position: 'absolute', inset: 9, border: `2px solid ${c.accent}` }} />
             <div aria-hidden style={{ position: 'absolute', inset: 14, border: `1px solid ${NAVY}33` }} />
         </>
@@ -205,7 +203,7 @@ const minimal: LeafletDesign = {
 }
 
 const bold: LeafletDesign = {
-    id: 'bold', name: 'Bold', inset: 18, baseBg: NAVY,
+    id: 'bold', name: 'Bold', inset: 18, baseBg: NAVY, dark: true,
     background: c => (
         <>
             <div aria-hidden style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, ${c.accent} 0%, ${c.accentDeep} 100%)` }} />

@@ -32,6 +32,7 @@ function blank(): Partial<Leaflet> {
             'Pray: "Lord Jesus, I believe You died for me and rose again. Forgive my sins and come into my heart. I receive You as my Lord and Saviour. Amen."',
         accent_color: '#f5bb00',
         design: 'classic',
+        show_watermark: true,
         logo_url: '',
         image_url: '',
         layout: 'flyer',
@@ -226,6 +227,10 @@ export default function LeafletsPage() {
                             {cur.logo_url && <button onClick={() => set({ logo_url: '' })} className="text-xs text-red-500 font-semibold">Reset</button>}
                         </div>
                         <Text value={cur.logo_url && cur.logo_url.startsWith('data:') ? '' : (cur.logo_url || '')} onChange={v => set({ logo_url: v })} placeholder={`or paste a URL — default ${DEFAULT_LOGO}`} />
+                        <label className="mt-3 flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <input type="checkbox" checked={cur.show_watermark !== false} onChange={e => set({ show_watermark: e.target.checked })} />
+                            Show church logo as a background watermark
+                        </label>
                         <Label>Illustration image (optional)</Label>
                         <div className="flex items-center gap-2">
                             <label className="inline-flex items-center gap-1.5 cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-3 py-2 rounded-lg text-xs">

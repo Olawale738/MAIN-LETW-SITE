@@ -126,6 +126,7 @@ class LeafletIn(BaseModel):
     cta_detail: Optional[str] = None
     accent_color: str = "#f5bb00"
     design: str = "classic"
+    show_watermark: bool = True
     logo_url: Optional[str] = None
     image_url: Optional[str] = None
     qr_url: Optional[str] = None

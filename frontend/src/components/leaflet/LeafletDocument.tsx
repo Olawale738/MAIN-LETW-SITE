@@ -55,6 +55,14 @@ export default function LeafletDocument({ data }: { data: Partial<Leaflet> }) {
             {/* Full-bleed background (never scaled) */}
             <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>{design.background(ctx)}</div>
 
+            {/* Church-logo watermark (toggleable) */}
+            {data.show_watermark !== false && (
+                <div aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 0, pointerEvents: 'none' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={ctx.logo} alt="" style={{ width: '80%', maxWidth: 420, opacity: design.dark ? 0.13 : 0.06, filter: design.dark ? 'brightness(0) invert(1)' : 'none' }} />
+                </div>
+            )}
+
             {/* Auto-fit content */}
             <div ref={boxRef} style={{ position: 'absolute', inset: design.inset, zIndex: 1, overflow: 'hidden' }}>
                 <div ref={colRef} style={{ height: '100%', width: '100%', transform: `scale(${scale})`, transformOrigin: 'top center' }}>
