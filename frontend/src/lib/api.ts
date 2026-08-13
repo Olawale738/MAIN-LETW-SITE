@@ -4121,6 +4121,7 @@ export interface Leaflet {
     cta_text: string | null;
     cta_detail: string | null;
     accent_color: string;
+    design: string;
     logo_url: string | null;
     image_url: string | null;
     qr_url: string | null;

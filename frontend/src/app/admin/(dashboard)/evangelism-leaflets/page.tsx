@@ -13,6 +13,7 @@ import {
 import { leafletsApi, type Leaflet } from '@/lib/api'
 import LeafletCanvas from '@/components/leaflet/LeafletCanvas'
 import { LEAFLET_TEMPLATES } from '@/components/leaflet/templates'
+import { DESIGN_OPTIONS } from '@/components/leaflet/leafletDesigns'
 
 const DEFAULT_LOGO = '/NewLETWlogo.png'
 
@@ -30,6 +31,7 @@ function blank(): Partial<Leaflet> {
         cta_detail:
             'Pray: "Lord Jesus, I believe You died for me and rose again. Forgive my sins and come into my heart. I receive You as my Lord and Saviour. Amen."',
         accent_color: '#f5bb00',
+        design: 'classic',
         logo_url: '',
         image_url: '',
         layout: 'flyer',
@@ -193,6 +195,15 @@ export default function LeafletsPage() {
                         <textarea value={cur.cta_detail || ''} onChange={e => set({ cta_detail: e.target.value })} rows={3} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
                     </Card>
 
+                    <Card title="Design">
+                        <p className="text-[11px] text-gray-500 mb-2">Each design is a different professional layout — the colour below tints it.</p>
+                        <div className="grid grid-cols-4 gap-2">
+                            {DESIGN_OPTIONS.map(d => (
+                                <button key={d.id} onClick={() => set({ design: d.id })} className={`rounded-lg border px-2 py-2 text-xs font-bold ${(cur.design || 'classic') === d.id ? 'border-[#140152] bg-[#140152] text-white' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>{d.name}</button>
+                            ))}
+                        </div>
+                    </Card>
+
                     <Card title="Branding">
                         <Label>Accent colour</Label>
                         <div className="flex items-center gap-2">
@@ -240,14 +251,6 @@ export default function LeafletsPage() {
                         <Text value={cur.footer_note || ''} onChange={v => set({ footer_note: v })} />
                     </Card>
 
-                    <Card title="Format">
-                        <div className="flex gap-2">
-                            <button onClick={() => set({ layout: 'flyer' })} className={`flex-1 rounded-lg border px-3 py-2 text-xs font-bold ${(cur.layout || 'flyer') === 'flyer' ? 'border-[#140152] bg-[#140152] text-white' : 'border-gray-200 text-gray-600'}`}>Single flyer · A5</button>
-                            <button onClick={() => set({ layout: 'tri-fold' })} className={`flex-1 rounded-lg border px-3 py-2 text-xs font-bold ${cur.layout === 'tri-fold' ? 'border-[#140152] bg-[#140152] text-white' : 'border-gray-200 text-gray-600'}`}>Tri-fold · A4 landscape</button>
-                        </div>
-                        <p className="text-[11px] text-gray-400 mt-2">Tri-fold prints 3 panels across a landscape page — fold into a classic pocket tract.</p>
-                    </Card>
-
                     <Card title="Publish">
                         <div className="flex flex-wrap items-center gap-4">
                             <select value={cur.status || 'draft'} onChange={e => set({ status: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm">
@@ -277,7 +280,7 @@ export default function LeafletsPage() {
                 {/* ── Live preview / printed leaflet ─────────────────────── */}
                 <div className="lg:sticky lg:top-4 self-start w-full">
                     <p className="print:hidden text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> Live preview</p>
-                    <div className="mx-auto" style={{ maxWidth: cur.layout === 'tri-fold' ? 640 : 420 }}>
+                    <div className="mx-auto" style={{ maxWidth: 420 }}>
                         <LeafletCanvas data={cur} />
                     </div>
                 </div>
@@ -290,7 +293,7 @@ export default function LeafletsPage() {
                     #leaflet, #leaflet * { visibility: visible !important; }
                     #leaflet { position: absolute !important; left: 0 !important; top: 0 !important; transform: none !important; }
                     .leaflet-canvas-box { width: auto !important; height: auto !important; margin: 0 !important; box-shadow: none !important; }
-                    @page { size: ${cur.layout === 'tri-fold' ? 'A4 landscape' : 'A5 portrait'}; margin: 0; }
+                    @page { size: A5 portrait; margin: 0; }
                 }
             `}</style>
         </div>

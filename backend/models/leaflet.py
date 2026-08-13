@@ -39,6 +39,7 @@ class EvangelismLeaflet(Base):
 
     # ── Branding ───────────────────────────────────────────────────────────────
     accent_color: Mapped[str] = mapped_column(String(20), nullable=False, default="#f5bb00")
+    design: Mapped[str] = mapped_column(String(30), nullable=False, default="classic")  # classic | modern | minimal | bold
     logo_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # URL or uploaded data-URL
 
     # ── QR code (scan to connect) ──────────────────────────────────────────────

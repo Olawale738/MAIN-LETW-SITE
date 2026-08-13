@@ -12,8 +12,7 @@ import type { Leaflet } from '@/lib/api'
 const PX_PER_MM = 96 / 25.4 // 3.7795
 
 export default function LeafletCanvas({ data }: { data: Partial<Leaflet> }) {
-    const isTrifold = data.layout === 'tri-fold'
-    const wpx = Math.round((isTrifold ? 297 : 148) * PX_PER_MM)
+    const wpx = Math.round(148 * PX_PER_MM) // A5 portrait
     const hpx = Math.round(210 * PX_PER_MM)
 
     const ref = useRef<HTMLDivElement>(null)

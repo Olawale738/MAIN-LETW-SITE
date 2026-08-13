@@ -73,8 +73,7 @@ export default function PublicLeafletPage() {
     if (err) return <main className="min-h-screen flex items-center justify-center p-6 text-center text-gray-500">This leaflet is not available.</main>
     if (!lf) return <main className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#140152]" /></main>
 
-    const trifold = lf.layout === 'tri-fold'
-    const maxW = trifold ? 680 : 420
+    const maxW = 420
 
     return (
         <main className="min-h-screen bg-gray-100 py-8 px-4">
@@ -99,7 +98,7 @@ export default function PublicLeafletPage() {
                     #leaflet, #leaflet * { visibility: visible !important; }
                     #leaflet { position: absolute !important; left: 0 !important; top: 0 !important; transform: none !important; }
                     .leaflet-canvas-box { width: auto !important; height: auto !important; margin: 0 !important; box-shadow: none !important; }
-                    @page { size: ${trifold ? 'A4 landscape' : 'A5 portrait'}; margin: 0; }
+                    @page { size: A5 portrait; margin: 0; }
                 }
             `}</style>
         </main>

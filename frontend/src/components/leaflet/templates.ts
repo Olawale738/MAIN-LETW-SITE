@@ -28,6 +28,7 @@ export const LEAFLET_TEMPLATES: LeafletTemplate[] = [
         content: {
             ...COMMON,
             title: 'Salvation — God Loves You',
+            design: 'classic',
             headline: 'God Loves You',
             subheadline: 'And has a wonderful plan for your life',
             body_html:
@@ -49,6 +50,7 @@ export const LEAFLET_TEMPLATES: LeafletTemplate[] = [
         content: {
             ...COMMON,
             title: 'Healing — By His Stripes',
+            design: 'minimal',
             headline: 'There Is Healing',
             subheadline: 'Jesus still heals today',
             body_html:
@@ -70,6 +72,7 @@ export const LEAFLET_TEMPLATES: LeafletTemplate[] = [
         content: {
             ...COMMON,
             title: 'Invitation — You Are Welcome',
+            design: 'modern',
             headline: 'You Are Welcome Home',
             subheadline: 'Come and encounter God with us',
             body_html:
@@ -89,6 +92,7 @@ export const LEAFLET_TEMPLATES: LeafletTemplate[] = [
         content: {
             ...COMMON,
             title: 'Christmas — Unto Us a Child',
+            design: 'bold',
             headline: 'Unto Us a Child Is Born',
             subheadline: 'The reason for the season is Jesus',
             body_html:
@@ -109,6 +113,7 @@ export const LEAFLET_TEMPLATES: LeafletTemplate[] = [
         content: {
             ...COMMON,
             title: 'Easter — He Is Risen',
+            design: 'modern',
             headline: 'He Is Risen',
             subheadline: 'Death could not hold Him',
             body_html:
@@ -128,6 +133,7 @@ export const LEAFLET_TEMPLATES: LeafletTemplate[] = [
         content: {
             ...COMMON,
             title: 'Comfort — In Times of Loss',
+            design: 'minimal',
             headline: 'You Are Not Alone',
             subheadline: 'God is near to the broken-hearted',
             body_html:
@@ -147,6 +153,7 @@ export const LEAFLET_TEMPLATES: LeafletTemplate[] = [
         content: {
             ...COMMON,
             title: 'Youth — Find Your Purpose',
+            design: 'bold',
             headline: 'Find Your Purpose',
             subheadline: 'You were made for more',
             body_html:

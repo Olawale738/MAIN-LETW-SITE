@@ -211,6 +211,7 @@ async def init_db():
                 # Evangelism leaflet QR code
                 ("evangelism_leaflets", "qr_url",     "VARCHAR(600)"),
                 ("evangelism_leaflets", "qr_caption", "VARCHAR(120)"),
+                ("evangelism_leaflets", "design",     "VARCHAR(30) DEFAULT 'classic'"),
                 # Custom ministries — ensure every model column exists (later model
                 # expansions were never migrated, so SELECT * was 500-ing).
                 ("custom_ministries", "tagline",                    "VARCHAR(300)"),
