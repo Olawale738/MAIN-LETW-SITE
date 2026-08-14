@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Heart, AlertCircle, CheckCircle, Trash2, Calendar, Save } from 'lucide-react'
 import { lifeEventApi, type LifeEventRequest } from '@/lib/api'
+import CertPhotoUpload from '@/components/admin/CertPhotoUpload'
 
 const KIND_LABEL: Record<string, string> = { wedding: 'Wedding', baptism: 'Baptism', dedication: 'Dedication' }
 const KIND_COLOR: Record<string, string> = {
@@ -29,6 +30,10 @@ export default function AdminLifeEventsPage() {
     }
     const saveNotes = async (id: string, admin_notes: string) => {
         try { await lifeEventApi.update(id, { admin_notes }); setMsg({ kind: 'ok', text: 'Notes saved.' }); await load() }
+        catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+    }
+    const savePhoto = async (id: string, photo_url: string | null) => {
+        try { await lifeEventApi.update(id, { photo_url }); setMsg({ kind: 'ok', text: photo_url ? 'Photo saved.' : 'Photo removed.' }); await load() }
         catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
     }
     const remove = async (id: string) => {
@@ -62,14 +67,14 @@ export default function AdminLifeEventsPage() {
             <div className="space-y-4">
                 {requests.length === 0 && <p className="text-center text-gray-400 py-12">No requests {filter && `with status "${filter}"`}.</p>}
                 {requests.map(r => (
-                    <RequestCard key={r.id} r={r} onStatus={updateStatus} onSaveNotes={saveNotes} onDelete={remove} />
+                    <RequestCard key={r.id} r={r} onStatus={updateStatus} onSaveNotes={saveNotes} onDelete={remove} onPhoto={savePhoto} />
                 ))}
             </div>
         </div>
     )
 }
 
-function RequestCard({ r, onStatus, onSaveNotes, onDelete }: { r: LifeEventRequest; onStatus: (id: string, s: string, d?: string) => void; onSaveNotes: (id: string, n: string) => void; onDelete: (id: string) => void }) {
+function RequestCard({ r, onStatus, onSaveNotes, onDelete, onPhoto }: { r: LifeEventRequest; onStatus: (id: string, s: string, d?: string) => void; onSaveNotes: (id: string, n: string) => void; onDelete: (id: string) => void; onPhoto: (id: string, d: string | null) => void }) {
     const [notes, setNotes] = useState(r.admin_notes || '')
     const [approvedDate, setApprovedDate] = useState(r.approved_date || r.preferred_date)
     return (
@@ -93,6 +98,13 @@ function RequestCard({ r, onStatus, onSaveNotes, onDelete }: { r: LifeEventReque
                 {r.details && Object.keys(r.details).length > 0 && (
                     <div className="text-xs text-gray-600 bg-gray-50 rounded-lg p-3 mb-3">
                         {Object.entries(r.details).map(([k, v]) => <div key={k}><span className="font-bold capitalize">{k}:</span> {String(v)}</div>)}
+                    </div>
+                )}
+                {r.kind === 'baptism' && (
+                    <div className="mb-3 bg-sky-50/60 border border-sky-100 rounded-lg p-3">
+                        <label className="text-xs font-bold uppercase text-gray-500 block mb-1.5">Candidate photo</label>
+                        <CertPhotoUpload value={r.photo_url} onChange={d => onPhoto(r.id, d)} label="Candidate photo" />
+                        <p className="text-[10px] text-gray-400 mt-1">Sent to sharepoints with the candidate for the baptism certificate.</p>
                     </div>
                 )}
                 <label className="text-xs font-bold uppercase text-gray-500 block mb-1">Internal notes</label>

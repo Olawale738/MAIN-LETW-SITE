@@ -3865,7 +3865,8 @@ export const counsellingApi = {
 export interface LifeEventRequest {
     id: string; kind: string; requester_name: string; requester_email: string;
     requester_phone: string | null; preferred_date: string; alternate_date: string | null;
-    details: any; status: string; admin_notes: string | null; approved_date: string | null; created_at: string;
+    details: any; status: string; admin_notes: string | null; approved_date: string | null;
+    certificate_number?: string | null; photo_url?: string | null; created_at: string;
 }
 export const lifeEventApi = {
     submit: (b: { kind: string; requester_name: string; requester_email: string; requester_phone?: string; preferred_date: string; alternate_date?: string; details?: any }) =>
@@ -3877,7 +3878,7 @@ export const lifeEventApi = {
         const s = qs.toString();
         return fetchApi<LifeEventRequest[]>(`/life-events/${s ? `?${s}` : ''}`);
     },
-    update: (id: string, b: { status?: string; admin_notes?: string; approved_date?: string }) =>
+    update: (id: string, b: { status?: string; admin_notes?: string; approved_date?: string; photo_url?: string | null }) =>
         fetchApi<LifeEventRequest>(`/life-events/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
     delete: (id: string) => fetchApi<{ deleted: number }>(`/life-events/${id}`, { method: 'DELETE' }),
 };
@@ -4476,6 +4477,8 @@ export interface MarriagePrepCouple {
     pastor_signature: string | null; pastor_note: string | null
     assigned_pastor_name?: string | null
     session_at?: string | null; session_note?: string | null
+    certificate_number?: string | null
+    photo_url?: string | null
     created_at: string
 }
 export interface MarriagePrepPastor { id: string; name: string; email: string }
@@ -4550,7 +4553,7 @@ export const marriagePrepApi = {
         fetchApi<MarriagePrepCouple>(`/marriage-prep/admin/couples/${couple_id}/sign-off`, { method: 'POST', body: JSON.stringify({ pastor_signature, pastor_note }) }),
     updateCouple: (couple_id: string, body: Partial<Pick<MarriagePrepCouple,
         'partner_a_name' | 'partner_a_email' | 'partner_b_name' | 'partner_b_email' |
-        'intended_wedding_date' | 'status' | 'pastor_signature' | 'pastor_note'>>) =>
+        'intended_wedding_date' | 'status' | 'pastor_signature' | 'pastor_note' | 'photo_url'>>) =>
         fetchApi<MarriagePrepCouple>(`/marriage-prep/admin/couples/${couple_id}`, { method: 'PUT', body: JSON.stringify(body) }),
     deleteCouple: (couple_id: string) =>
         fetchApi<{ deleted: number }>(`/marriage-prep/admin/couples/${couple_id}`, { method: 'DELETE' }),

@@ -45,6 +45,7 @@ class RequestOut(BaseModel):
     admin_notes: Optional[str]
     approved_date: Optional[date]
     certificate_number: Optional[str] = None
+    photo_url: Optional[str] = None
     created_at: datetime
 
 
@@ -108,6 +109,7 @@ class RequestUpdate(BaseModel):
     status: Optional[str] = None
     admin_notes: Optional[str] = None
     approved_date: Optional[date] = None
+    photo_url: Optional[str] = None
 
 
 @router.put("/{rid}", response_model=RequestOut)

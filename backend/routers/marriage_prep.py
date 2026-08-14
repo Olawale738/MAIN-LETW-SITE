@@ -409,6 +409,7 @@ class CoupleUpdateIn(BaseModel):
     status:                Optional[str] = None      # enrolled | in_progress | completed | withdrew
     pastor_signature:      Optional[str] = None
     pastor_note:           Optional[str] = None
+    photo_url:             Optional[str] = None       # couple photo for the certificate
 
 
 @router.put("/admin/couples/{couple_id}")
@@ -777,6 +778,8 @@ def _couple(c: MarriagePrepCouple, pastor_name: Optional[str] = None) -> dict[st
         "pastor_signature": c.pastor_signature, "pastor_note": c.pastor_note,
         "session_at": c.session_at.isoformat() if c.session_at else None,
         "session_note": c.session_note,
+        "certificate_number": c.certificate_number,
+        "photo_url": getattr(c, "photo_url", None),
         "created_at": c.created_at.isoformat(),
     }
 

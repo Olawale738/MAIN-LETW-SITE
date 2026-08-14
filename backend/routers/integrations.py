@@ -54,6 +54,7 @@ def _couple_payload(c) -> dict:
         "intended_wedding_date": c.intended_wedding_date.isoformat() if c.intended_wedding_date else None,
         "completed_at": c.pastor_signed_at.isoformat() if c.pastor_signed_at else None,
         "pastor_signature": c.pastor_signature,
+        "couple_photo": getattr(c, "photo_url", None),
         "fingerprint": _fingerprint(sig),
         "issuer": "letw.org",
     }
@@ -178,6 +179,7 @@ def _baptism_payload(r) -> dict:
         "certificate_number": r.certificate_number,
         "record_id": r.id,
         "candidate_name": r.requester_name,
+        "candidate_photo": getattr(r, "photo_url", None),
         "requester_email": r.requester_email,
         "requester_phone": r.requester_phone,
         "baptism_date": (r.approved_date or r.preferred_date).isoformat() if (r.approved_date or r.preferred_date) else None,
@@ -285,6 +287,7 @@ async def lookup_couple_by_cert(
         "intended_wedding_date": c.intended_wedding_date.isoformat() if c.intended_wedding_date else None,
         "completed_at": c.pastor_signed_at.isoformat() if c.pastor_signed_at else None,
         "pastor_signature": c.pastor_signature,
+        "couple_photo": getattr(c, "photo_url", None),
         "fingerprint": _fingerprint(sig),
         "issuer": "letw.org",
     }

@@ -29,5 +29,8 @@ class LifeEventRequest(Base):
     approved_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     # Baptism certificate number, minted on approval so sharepoints can issue it.
     certificate_number: Mapped[Optional[str]] = mapped_column(String(40), nullable=True, index=True)
+    # Candidate photo (uploaded data-URL or link) — travels with the handshake so
+    # the partner system can print it on the baptism certificate.
+    photo_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

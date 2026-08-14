@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { marriagePrepApi, ministryContentApi, authApi, type MarriagePrepModule, type MarriagePrepModuleResource, type MarriagePrepCouple, type MarriagePrepPastor } from '@/lib/api'
 import { marriagePrepRoom } from '@/components/JitsiMeet'
+import CertPhotoUpload from '@/components/admin/CertPhotoUpload'
 
 export default function MarriagePrepAdmin() {
     const [tab, setTab] = useState<'modules' | 'couples'>('modules')
@@ -345,6 +346,14 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
         } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
     }
 
+    const savePhoto = async (c: MarriagePrepCouple, dataUrl: string | null) => {
+        try {
+            await marriagePrepApi.updateCouple(c.id, { photo_url: dataUrl })
+            onMsg({ kind: 'ok', text: dataUrl ? 'Couple photo saved.' : 'Photo removed.' })
+            onSaved()
+        } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
+    }
+
     const signOff = async (c: MarriagePrepCouple) => {
         const sig = prompt(`Sign off on ${c.partner_a_name} & ${c.partner_b_name}? Enter your name as signature:`)
         if (!sig) return
@@ -401,6 +410,10 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
                                     <option value="">— Unassigned —</option>
                                     {pastors.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                 </select>
+                            </div>
+                            <div className="mt-2">
+                                <CertPhotoUpload value={c.photo_url} onChange={d => savePhoto(c, d)} label="Couple photo" />
+                                <p className="text-[10px] text-gray-400 mt-1">Sent to sharepoints with the couple for the marriage certificate.</p>
                             </div>
                             {c.pastor_signed_off && c.pastor_signature && (
                                 <p className="text-xs text-emerald-700 mt-1 inline-flex items-center gap-1">

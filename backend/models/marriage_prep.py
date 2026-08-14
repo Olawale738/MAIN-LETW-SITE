@@ -67,6 +67,9 @@ class MarriagePrepCouple(Base):
     # systems (e.g. sharepoints.letw.org) use it to look up the couple and
     # issue the marriage certificate.
     certificate_number: Mapped[Optional[str]] = mapped_column(String(40), nullable=True, index=True)
+    # Couple photo (uploaded data-URL or link) — travels with the handshake so
+    # the partner system can print it on the marriage certificate.
+    photo_url:          Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # Pastor-proposed video/meeting session — the couple is emailed a calendar
     # invite when this is set. NULL = nothing scheduled.
     session_at:         Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

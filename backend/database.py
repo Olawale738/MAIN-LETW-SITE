@@ -208,6 +208,9 @@ async def init_db():
                 ("integration_settings", "baptism_office_email",    "VARCHAR(255)"),
                 # Baptism certificate number on life-event requests
                 ("life_event_requests", "certificate_number", "VARCHAR(40)"),
+                # Couple / candidate photo that travels with the cert handshake
+                ("life_event_requests",   "photo_url", "TEXT"),
+                ("marriage_prep_couples", "photo_url", "TEXT"),
                 # Evangelism leaflet QR code
                 ("evangelism_leaflets", "qr_url",     "VARCHAR(600)"),
                 ("evangelism_leaflets", "qr_caption", "VARCHAR(120)"),
