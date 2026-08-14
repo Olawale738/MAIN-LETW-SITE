@@ -4481,7 +4481,7 @@ export interface MarriagePrepCouple {
     photo_url?: string | null
     created_at: string
 }
-export interface MarriagePrepPastor { id: string; name: string; email: string }
+export interface MarriagePrepPastor { id: string; name: string; email: string; role?: string }
 export const marriagePrepApi = {
     modules: () => fetchApi<MarriagePrepModule[]>('/marriage-prep/modules'),
     enrol: (b: Omit<MarriagePrepCouple, 'id' | 'assigned_pastor_user_id' | 'status' | 'pastor_signed_off' | 'pastor_signed_at' | 'pastor_signature' | 'pastor_note' | 'created_at'>) =>
@@ -4562,7 +4562,7 @@ export const marriagePrepApi = {
     scheduleSession: (couple_id: string, session_at: string | null, note?: string) =>
         fetchApi<MarriagePrepCouple>(`/marriage-prep/admin/couples/${couple_id}/schedule`, { method: 'POST', body: JSON.stringify({ session_at, note: note || null }) }),
     // Assignable pastors (admins/moderators) + assign one to a couple (null clears).
-    listPastors: () => fetchApi<MarriagePrepPastor[]>('/marriage-prep/admin/pastors'),
+    listPastors: (q?: string) => fetchApi<MarriagePrepPastor[]>(`/marriage-prep/admin/pastors${q && q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''}`),
     assignPastor: (couple_id: string, pastor_user_id: string | null) =>
         fetchApi<MarriagePrepCouple>(`/marriage-prep/admin/couples/${couple_id}/assign-pastor`, { method: 'POST', body: JSON.stringify({ pastor_user_id }) }),
     // Re-send the completion email (certificate link + next steps) to both partners.

@@ -320,17 +320,27 @@ async def stream_module_resource_file(resource_id: str, db: AsyncSession = Depen
 
 
 @router.get("/admin/pastors")
-async def list_pastors(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
-    """Staff who can be assigned to shepherd a couple — admins and moderators
-    with active accounts. Assignment is a label; only admins can sign off."""
+async def list_pastors(q: Optional[str] = None, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Counselors/pastors who can be assigned to shepherd a couple. With no
+    search, returns the default staff pool (admins, moderators, mentors). With a
+    search query the admin can assign ANY active member as a counselor —
+    assignment is just a label; only admins can sign off."""
     from models.user import UserRole, UserStatus
-    res = await db.execute(
-        select(User).where(
-            User.role.in_([UserRole.ADMIN, UserRole.MODERATOR]),
+    from sqlalchemy import or_, func as sql_func
+    term = (q or "").strip().lower()
+    if len(term) >= 2:
+        like = f"%{term}%"
+        query = select(User).where(
+            User.status == UserStatus.ACTIVE,
+            or_(sql_func.lower(User.name).like(like), sql_func.lower(User.email).like(like)),
+        ).order_by(User.name).limit(30)
+    else:
+        query = select(User).where(
+            User.role.in_([UserRole.ADMIN, UserRole.MODERATOR, UserRole.MENTOR]),
             User.status == UserStatus.ACTIVE,
         ).order_by(User.name)
-    )
-    return [{"id": u.id, "name": u.name, "email": u.email} for u in res.scalars().all()]
+    res = await db.execute(query)
+    return [{"id": u.id, "name": u.name, "email": u.email, "role": u.role.value if hasattr(u.role, "value") else str(u.role)} for u in res.scalars().all()]
 
 
 async def _pastor_names(db: AsyncSession, ids: list[str]) -> dict[str, str]:

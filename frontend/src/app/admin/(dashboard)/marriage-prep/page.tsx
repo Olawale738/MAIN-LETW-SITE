@@ -330,10 +330,14 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
 
     const [scheduling, setScheduling] = useState<MarriagePrepCouple | null>(null)
     const [pastors, setPastors] = useState<MarriagePrepPastor[]>([])
+    const [pastorSearch, setPastorSearch] = useState('')
     // "My couples" filter — show only couples assigned to the signed-in pastor.
     const [myId, setMyId] = useState<string | null>(null)
     const [mineOnly, setMineOnly] = useState(false)
-    useEffect(() => { marriagePrepApi.listPastors().then(setPastors).catch(() => { /* none */ }) }, [])
+    useEffect(() => {
+        const t = setTimeout(() => { marriagePrepApi.listPastors(pastorSearch).then(setPastors).catch(() => { /* none */ }) }, 250)
+        return () => clearTimeout(t)
+    }, [pastorSearch])
     useEffect(() => { authApi.getCurrentUser().then(u => setMyId(u.id)).catch(() => { /* not critical */ }) }, [])
 
     const visibleCouples = mineOnly && myId ? couples.filter(c => c.assigned_pastor_user_id === myId) : couples
@@ -380,12 +384,23 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
 
     return (
         <>
-            {myId && (
-                <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm mb-3">
-                    <button onClick={() => setMineOnly(false)} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${!mineOnly ? 'bg-[#140152] text-white' : 'text-gray-600 hover:bg-gray-50'}`}>All couples ({couples.length})</button>
-                    <button onClick={() => setMineOnly(true)} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${mineOnly ? 'bg-[#140152] text-white' : 'text-gray-600 hover:bg-gray-50'}`}>My couples ({couples.filter(c => c.assigned_pastor_user_id === myId).length})</button>
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+                {myId && (
+                    <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
+                        <button onClick={() => setMineOnly(false)} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${!mineOnly ? 'bg-[#140152] text-white' : 'text-gray-600 hover:bg-gray-50'}`}>All couples ({couples.length})</button>
+                        <button onClick={() => setMineOnly(true)} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${mineOnly ? 'bg-[#140152] text-white' : 'text-gray-600 hover:bg-gray-50'}`}>My couples ({couples.filter(c => c.assigned_pastor_user_id === myId).length})</button>
+                    </div>
+                )}
+                <div className="flex items-center gap-2">
+                    <input
+                        value={pastorSearch}
+                        onChange={e => setPastorSearch(e.target.value)}
+                        placeholder="Find a counsellor to assign (name or email)…"
+                        className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white min-w-[260px]"
+                    />
+                    <span className="text-[10px] text-gray-400">{pastorSearch.trim().length >= 2 ? `${pastors.length} match` : 'staff + mentors'}</span>
                 </div>
-            )}
+            </div>
             <div className="bg-white border border-gray-100 rounded-2xl shadow-sm divide-y divide-gray-100">
                 {visibleCouples.length === 0 && <p className="p-6 text-center text-gray-400 text-sm">{mineOnly ? 'No couples assigned to you yet.' : 'No couples enrolled yet.'}</p>}
                 {visibleCouples.map(c => (
@@ -401,14 +416,18 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
                                 </p>
                             )}
                             <div className="mt-2 flex items-center gap-2">
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Pastor</label>
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Counsellor</label>
                                 <select
                                     value={c.assigned_pastor_user_id || ''}
                                     onChange={e => assign(c, e.target.value)}
-                                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-[#140152] font-semibold max-w-[200px]"
+                                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-[#140152] font-semibold max-w-[220px]"
                                 >
                                     <option value="">— Unassigned —</option>
-                                    {pastors.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    {/* Keep the current assignee selectable even when it isn't in the search results */}
+                                    {c.assigned_pastor_user_id && !pastors.some(p => p.id === c.assigned_pastor_user_id) && (
+                                        <option value={c.assigned_pastor_user_id}>{c.assigned_pastor_name || 'Currently assigned'}</option>
+                                    )}
+                                    {pastors.map(p => <option key={p.id} value={p.id}>{p.name}{p.role && p.role !== 'user' ? ` (${p.role})` : ''}</option>)}
                                 </select>
                             </div>
                             <div className="mt-2">
