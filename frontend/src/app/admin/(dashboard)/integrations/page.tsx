@@ -5,7 +5,7 @@
  * here (no server env needed); paste the same value on the sharepoints side.
  */
 import { useEffect, useState } from 'react'
-import { Loader2, Link2, CheckCircle, AlertCircle, Copy, RefreshCw, Save, Eye } from 'lucide-react'
+import { Loader2, Link2, CheckCircle, AlertCircle, Copy, RefreshCw, Save, Eye, Image as ImageIcon } from 'lucide-react'
 import { integrationsApi } from '@/lib/api'
 
 export default function AdminIntegrationsPage() {
@@ -16,6 +16,8 @@ export default function AdminIntegrationsPage() {
     const [officeEmail, setOfficeEmail] = useState('')
     const [bapWebhookUrl, setBapWebhookUrl] = useState('')
     const [bapOfficeEmail, setBapOfficeEmail] = useState('')
+    const [sealUrl, setSealUrl] = useState('')
+    const [savingSeal, setSavingSeal] = useState(false)
     const [savingTargets, setSavingTargets] = useState(false)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -25,6 +27,7 @@ export default function AdminIntegrationsPage() {
         setStatus(s)
         setWebhookUrl(s.sharepoints_webhook_url || ''); setOfficeEmail(s.marriage_office_email || '')
         setBapWebhookUrl(s.baptism_webhook_url || ''); setBapOfficeEmail(s.baptism_office_email || '')
+        setSealUrl(s.marriage_seal_url || '')
     }).catch(() => setStatus(null)).finally(() => setLoading(false))
     useEffect(() => { refresh() }, [])
     useEffect(() => { if (msg) { const t = setTimeout(() => setMsg(null), 6000); return () => clearTimeout(t) } }, [msg])
@@ -48,6 +51,28 @@ export default function AdminIntegrationsPage() {
         try { await integrationsApi.saveTargets({ sharepoints_webhook_url: webhookUrl.trim(), marriage_office_email: officeEmail.trim(), baptism_webhook_url: bapWebhookUrl.trim(), baptism_office_email: bapOfficeEmail.trim() }); setMsg({ kind: 'ok', text: 'Saved. Approved couples & baptisms are now auto-sent on sign-off.' }); refresh() }
         catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
         finally { setSavingTargets(false) }
+    }
+    const onSealFile = (file: File) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+            const img = new window.Image()
+            img.onload = () => {
+                const max = 400
+                const scale = Math.min(1, max / Math.max(img.width, img.height))
+                const canvas = document.createElement('canvas')
+                canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale)
+                const ctx = canvas.getContext('2d')
+                if (ctx) { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); setSealUrl(canvas.toDataURL('image/png')) }
+            }
+            img.src = reader.result as string
+        }
+        reader.readAsDataURL(file)
+    }
+    const saveSeal = async () => {
+        setSavingSeal(true)
+        try { await integrationsApi.saveSeal(sealUrl); setMsg({ kind: 'ok', text: 'Church seal saved — it will print on new certificates.' }); refresh() }
+        catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setSavingSeal(false) }
     }
 
     return (
@@ -120,6 +145,32 @@ export default function AdminIntegrationsPage() {
                             <button onClick={saveTargets} disabled={savingTargets} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-4 py-2.5 rounded-lg text-sm disabled:opacity-50">
                                 {savingTargets ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save auto-send
                             </button>
+                        </div>
+                    </div>
+
+                    {/* Church seal — printed on the certificates */}
+                    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+                        <h2 className="font-black text-[#140152] mb-1">Church seal</h2>
+                        <p className="text-xs text-gray-500 mb-3">Upload the official church seal (PNG with transparency looks best). It prints on the marriage certificate — on letw.org and on sharepoints via the handshake. Leave blank for the default gold seal.</p>
+                        <div className="flex items-center gap-3">
+                            {sealUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={sealUrl} alt="" className="h-16 w-16 object-contain rounded border border-gray-200 bg-gray-50 p-1" />
+                            ) : (
+                                <div className="h-16 w-16 rounded-full border-[3px] border-[#b8860b] flex items-center justify-center text-[9px] font-black text-[#b8860b] text-center" style={{ background: 'radial-gradient(circle,#fff8e6,#f7e9c0)' }}>LETW<br />SEAL</div>
+                            )}
+                            <div className="flex flex-col gap-2">
+                                <label className="inline-flex items-center gap-1.5 cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-3 py-2 rounded-lg text-xs w-fit">
+                                    <ImageIcon className="w-4 h-4" /> {sealUrl ? 'Change seal' : 'Upload seal'}
+                                    <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && onSealFile(e.target.files[0])} />
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    {sealUrl && <button onClick={() => setSealUrl('')} className="text-xs text-red-500 font-semibold">Reset to default</button>}
+                                    <button onClick={saveSeal} disabled={savingSeal} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-4 py-2 rounded-lg text-xs disabled:opacity-50">
+                                        {savingSeal ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save seal
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

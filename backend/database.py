@@ -206,6 +206,7 @@ async def init_db():
                 ("integration_settings", "marriage_office_email",   "VARCHAR(255)"),
                 ("integration_settings", "baptism_webhook_url",     "VARCHAR(500)"),
                 ("integration_settings", "baptism_office_email",    "VARCHAR(255)"),
+                ("integration_settings", "marriage_seal_url",       "TEXT"),
                 # Baptism certificate number on life-event requests
                 ("life_event_requests", "certificate_number", "VARCHAR(40)"),
                 # Couple / candidate photo that travels with the cert handshake

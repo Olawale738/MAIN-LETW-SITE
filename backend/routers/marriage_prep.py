@@ -631,6 +631,15 @@ async def get_certificate(couple_id: str, db: AsyncSession = Depends(get_db)):
         c.certificate_number = _make_cert_number(c.id)
         await db.commit()
     sig = _cert_signature(c)
+    # Admin-adjustable church seal (shared with the sharepoints handshake).
+    seal_url = None
+    try:
+        from models.integration import IntegrationSettings
+        row = (await db.execute(select(IntegrationSettings).where(IntegrationSettings.id == "default"))).scalar_one_or_none()
+        seal_url = (row.marriage_seal_url or None) if row else None
+    except Exception:
+        seal_url = None
+    base = _public_base()
     return {
         "id":                c.id,
         "certificate_number": c.certificate_number,
@@ -639,12 +648,16 @@ async def get_certificate(couple_id: str, db: AsyncSession = Depends(get_db)):
         "wedding_date":      c.intended_wedding_date.isoformat() if c.intended_wedding_date else None,
         "pastor_signature":  c.pastor_signature,
         "pastor_signed_at":  c.pastor_signed_at.isoformat() if c.pastor_signed_at else None,
+        "photo_url":         getattr(c, "photo_url", None),
         "status":            c.status,
         # Cryptographic identity — QR encodes verify_url; fingerprint is the
         # short human-checkable form printed under the chip.
         "signature":         sig,
         "fingerprint":       _fingerprint(sig),
-        "verify_url":        f"{_public_base()}/verify/cert/{c.id}?sig={_short_sig(sig)}",
+        "verify_url":        f"{base}/verify/cert/{c.id}?sig={_short_sig(sig)}",
+        "qr_svg_url":        f"/api/marriage-prep/certificate/{c.id}/qr.svg",
+        "seal_url":          seal_url,
+        "logo_url":          f"{base}/NewLETWlogo.png",
     }
 
 

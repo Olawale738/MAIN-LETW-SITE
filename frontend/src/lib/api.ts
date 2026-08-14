@@ -4599,11 +4599,13 @@ export interface IntegrationTargets {
     baptism_webhook_url: string; baptism_office_email: string
 }
 export const integrationsApi = {
-    getSettings: () => fetchApi<{ configured: boolean; key_preview: string; lookup_url: string } & IntegrationTargets>('/integrations/admin/settings'),
+    getSettings: () => fetchApi<{ configured: boolean; key_preview: string; lookup_url: string; marriage_seal_url: string } & IntegrationTargets>('/integrations/admin/settings'),
     setKey: (sharepoints_api_key: string) =>
         fetchApi<{ ok: boolean }>('/integrations/admin/settings', { method: 'PUT', body: JSON.stringify({ sharepoints_api_key }) }),
     saveTargets: (t: IntegrationTargets) =>
         fetchApi<{ ok: boolean }>('/integrations/admin/settings', { method: 'PUT', body: JSON.stringify(t) }),
+    saveSeal: (marriage_seal_url: string) =>
+        fetchApi<{ ok: boolean }>('/integrations/admin/settings', { method: 'PUT', body: JSON.stringify({ marriage_seal_url }) }),
     generateKey: () => fetchApi<{ sharepoints_api_key: string }>('/integrations/admin/settings/generate', { method: 'POST' }),
 }
 

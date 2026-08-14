@@ -39,10 +39,17 @@ async def _effective_key(db: AsyncSession) -> str:
     return (settings.SHAREPOINTS_API_KEY or "").strip()
 
 
-def _couple_payload(c) -> dict:
-    """The completed-couple record sent to the partner (same shape as the lookup)."""
-    from routers.marriage_prep import _cert_signature, _fingerprint
+BACKEND_QR_BASE = "https://letw-backend.onrender.com/api"
+
+
+def _couple_payload(c, seal_url: str | None = None) -> dict:
+    """The completed-couple record sent to the partner (same shape as the lookup).
+    Carries the cryptographic verify URL + QR so the marriage certificate issued
+    by sharepoints is verifiable at letw.org, plus the admin seal and the LETW
+    logo for the certificate design."""
+    from routers.marriage_prep import _cert_signature, _fingerprint, _short_sig, _public_base
     sig = _cert_signature(c)
+    base = _public_base()
     return {
         "training_verified": True,
         "certificate_number": c.certificate_number,
@@ -56,6 +63,12 @@ def _couple_payload(c) -> dict:
         "pastor_signature": c.pastor_signature,
         "couple_photo": getattr(c, "photo_url", None),
         "fingerprint": _fingerprint(sig),
+        # Cryptographic verification (anchored on letw.org) — both platforms can
+        # verify the certificate number via this URL / QR.
+        "verify_url": f"{base}/verify/cert/{c.id}?sig={_short_sig(sig)}",
+        "qr_svg_url": f"{BACKEND_QR_BASE}/marriage-prep/certificate/{c.id}/qr.svg",
+        "logo_url": f"{base}/NewLETWlogo.png",
+        "seal_url": seal_url,
         "issuer": "letw.org",
     }
 
@@ -69,7 +82,7 @@ async def push_marriage_completion(db: AsyncSession, c) -> None:
     if not row:
         return
     key = await _effective_key(db)
-    payload = _couple_payload(c)
+    payload = _couple_payload(c, (row.marriage_seal_url or None) if row else None)
     cert_no = c.certificate_number or ""
     generate_url = f"https://sharepoints.letw.org/marriage-certificate?cert={cert_no}"
 
@@ -112,6 +125,7 @@ class KeyIn(BaseModel):
     marriage_office_email: Optional[str] = None
     baptism_webhook_url: Optional[str] = None
     baptism_office_email: Optional[str] = None
+    marriage_seal_url: Optional[str] = None
 
 
 @router.get("/admin/settings")
@@ -127,6 +141,7 @@ async def get_settings(db: AsyncSession = Depends(get_db), _: User = Depends(get
         "marriage_office_email": (row.marriage_office_email if row else None) or "",
         "baptism_webhook_url": (row.baptism_webhook_url if row else None) or "",
         "baptism_office_email": (row.baptism_office_email if row else None) or "",
+        "marriage_seal_url": (row.marriage_seal_url if row else None) or "",
     }
 
 
@@ -151,6 +166,8 @@ async def set_settings(body: KeyIn, db: AsyncSession = Depends(get_db), _: User 
         row.baptism_webhook_url = body.baptism_webhook_url.strip() or None
     if body.baptism_office_email is not None:
         row.baptism_office_email = body.baptism_office_email.strip() or None
+    if body.marriage_seal_url is not None:
+        row.marriage_seal_url = body.marriage_seal_url.strip() or None
     await db.commit()
     return {"ok": True}
 
@@ -272,22 +289,7 @@ async def lookup_couple_by_cert(
     if not c or not c.pastor_signed_off:
         # Do not leak which of the two conditions failed.
         raise HTTPException(404, "No completed training certificate matches that number.")
-    # Recompute the tamper-evident fingerprint so the partner can cross-check
-    # against the training certificate the couple presents.
-    from routers.marriage_prep import _cert_signature, _fingerprint
-    sig = _cert_signature(c)
-    return {
-        "training_verified": True,
-        "certificate_number": c.certificate_number,
-        "couple_id": c.id,
-        "partner_a_name": c.partner_a_name,
-        "partner_b_name": c.partner_b_name,
-        "partner_a_email": c.partner_a_email,
-        "partner_b_email": c.partner_b_email,
-        "intended_wedding_date": c.intended_wedding_date.isoformat() if c.intended_wedding_date else None,
-        "completed_at": c.pastor_signed_at.isoformat() if c.pastor_signed_at else None,
-        "pastor_signature": c.pastor_signature,
-        "couple_photo": getattr(c, "photo_url", None),
-        "fingerprint": _fingerprint(sig),
-        "issuer": "letw.org",
-    }
+    # Same shape (incl. tamper-evident fingerprint, verify URL/QR, seal, logo)
+    # as the auto-push, so a manual lookup issues an identical certificate.
+    row = await _settings_row(db)
+    return _couple_payload(c, (row.marriage_seal_url or None) if row else None)

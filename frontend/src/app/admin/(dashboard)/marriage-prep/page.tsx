@@ -428,6 +428,11 @@ function CouplesTab({ couples, onSaved, onMsg }: { couples: MarriagePrepCouple[]
                                         target="_blank"
                                         className="underline text-[#140152] ml-1"
                                     >View their page ↗</Link>
+                                    <Link
+                                        href={`/marriage-certificate/${c.id}`}
+                                        target="_blank"
+                                        className="underline text-[#140152] ml-2 font-semibold"
+                                    >Print marriage certificate ↗</Link>
                                 </p>
                             )}
                         </div>

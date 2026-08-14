@@ -5,7 +5,7 @@ can manage them from the dashboard instead of server env vars.
 
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, DateTime
+from sqlalchemy import String, DateTime, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from database import Base
 
@@ -23,4 +23,7 @@ class IntegrationSettings(Base):
     # Baptism push targets (parallel to marriage).
     baptism_webhook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     baptism_office_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    # Admin-adjustable church seal image (uploaded data-URL or link) printed on
+    # the marriage/baptism certificates; flows to sharepoints via the handshake.
+    marriage_seal_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
