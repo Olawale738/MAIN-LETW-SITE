@@ -4604,6 +4604,22 @@ export const smsApi = {
 }
 
 // ─── Partner integrations (admin) ────────────────────────────────────────────
+// ─── Analytics Command Center ────────────────────────────────────────────────
+export interface SeriesPoint { month: string; value: number }
+export interface LabelValue { label: string; value: number }
+export interface AnalyticsOverview {
+    generated_at: string
+    kpis: Record<string, number | { currency: string; total: number; count: number }[]>
+    series: Record<string, SeriesPoint[]>
+    breakdowns: Record<string, LabelValue[] | { fund: string; currency: string; total: number; count: number }[]>
+    highlights: string[]
+    _errors: string[]
+}
+export const analyticsApi = {
+    overview: () => fetchApi<AnalyticsOverview>('/analytics/overview'),
+    insight: () => fetchApi<{ source: string; text: string; highlights: string[] }>('/analytics/insight'),
+}
+
 export interface IntegrationTargets {
     sharepoints_webhook_url: string; marriage_office_email: string
     baptism_webhook_url: string; baptism_office_email: string

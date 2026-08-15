@@ -15,6 +15,7 @@ type SidebarItem = SimpleItem | GroupItem
 
 const sidebarItems: SidebarItem[] = [
     { title: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { title: 'Analytics', href: '/admin/analytics', icon: BarChart },
     { title: 'Live Stream', href: '/admin/live-stream', icon: Radio },
     { title: 'Pending Approvals', href: '/admin/approvals', icon: Bell },
     { title: 'Service Requests', href: '/admin/service-requests', icon: ClipboardList },
