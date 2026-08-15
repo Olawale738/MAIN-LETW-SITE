@@ -5,9 +5,9 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PremiumButton from '@/components/ui/PremiumButton'
-import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, MessageSquare, Megaphone, Send, HandHeart, CheckCircle2, Phone, CalendarDays, Bell, X, ChevronRight, ArrowRight, Sparkles } from 'lucide-react'
+import { Briefcase, TrendingUp, Users, Loader2, Clock, BookOpen, Music, Heart, GraduationCap, MessageCircle, MessageSquare, Megaphone, Send, HandHeart, CheckCircle2, Phone, CalendarDays, Bell, X, ChevronRight, ArrowRight, Sparkles, HeartHandshake } from 'lucide-react'
 import ServiceCard from '@/components/shared/ServiceCard'
-import { serviceRequestApi, notificationApi, paymentsApi, Notification, ServiceRequest } from '@/lib/api'
+import { serviceRequestApi, notificationApi, paymentsApi, marriagePrepApi, Notification, ServiceRequest } from '@/lib/api'
 import { checkMembership, type Department } from '@/lib/dept-api'
 import { Spotlight } from '@/components/ui/spotlight'
 
@@ -153,6 +153,12 @@ export default function UserDashboard() {
     const [giving, setGiving] = useState<Awaited<ReturnType<typeof paymentsApi.myGiving>> | null>(null)
     const [showNotifications, setShowNotifications] = useState(false)
     const [notificationsLoading, setNotificationsLoading] = useState(false)
+    const [counsellorCount, setCounsellorCount] = useState(0)
+
+    useEffect(() => {
+        // Show the counselling portal card only if this member has couples assigned.
+        marriagePrepApi.counsellorCouples().then(cs => setCounsellorCount(cs.length)).catch(() => setCounsellorCount(0))
+    }, [])
 
     useEffect(() => {
         const init = async () => {
@@ -431,6 +437,22 @@ export default function UserDashboard() {
                             </CardContent>
                         </Card>
                     </div>
+
+                    {/* ── Marriage counselling (only if couples are assigned to you) ── */}
+                    {counsellorCount > 0 && (
+                        <Link href="/marriage-prep/counsellor" className="block rounded-2xl p-5 shadow-sm border border-[#f5bb00]/40 bg-gradient-to-r from-[#140152] to-[#1d0175] text-white hover:shadow-md transition-all">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-[#f5bb00] flex items-center justify-center shrink-0">
+                                    <HeartHandshake className="w-6 h-6 text-[#140152]" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="font-black">Marriage Counselling</p>
+                                    <p className="text-xs text-white/80">{counsellorCount} couple{counsellorCount > 1 ? 's' : ''} assigned to you — schedule sessions and open the video room.</p>
+                                </div>
+                                <ArrowRight className="w-5 h-5 text-[#f5bb00] shrink-0" />
+                            </div>
+                        </Link>
+                    )}
 
                     {/* ── Quick Actions ── */}
                     <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
