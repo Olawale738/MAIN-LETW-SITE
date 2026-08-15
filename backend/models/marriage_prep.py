@@ -70,6 +70,13 @@ class MarriagePrepCouple(Base):
     # Couple photo (uploaded data-URL or link) — travels with the handshake so
     # the partner system can print it on the marriage certificate.
     photo_url:          Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Marriage-certificate details captured on letw.org and pushed through the
+    # handshake so sharepoints issues an identical certificate (incl. witnesses).
+    marriage_date:      Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    marriage_venue:     Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    officiant_name:     Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    witness_1:          Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    witness_2:          Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     # Pastor-proposed video/meeting session — the couple is emailed a calendar
     # invite when this is set. NULL = nothing scheduled.
     session_at:         Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

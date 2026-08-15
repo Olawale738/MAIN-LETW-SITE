@@ -7,7 +7,8 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Printer, Loader2 } from 'lucide-react'
+import { Printer, Loader2, Save } from 'lucide-react'
+import { marriagePrepApi } from '@/lib/api'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://letw-backend.onrender.com/api'
 const DEFAULT_LOGO = '/NewLETWlogo.png'
@@ -20,6 +21,11 @@ type Cert = {
     wedding_date: string | null
     pastor_signature: string | null
     photo_url: string | null
+    marriage_date: string | null
+    marriage_venue: string | null
+    officiant_name: string | null
+    witness_1: string | null
+    witness_2: string | null
     fingerprint: string
     verify_url: string
     seal_url: string | null
@@ -41,6 +47,8 @@ export default function LetwMarriageCertificatePage() {
     const [officiant, setOfficiant] = useState('')
     const [witness1, setWitness1] = useState('')
     const [witness2, setWitness2] = useState('')
+    const [saving, setSaving] = useState(false)
+    const [saved, setSaved] = useState('')
 
     const load = useCallback(async () => {
         try {
@@ -48,11 +56,27 @@ export default function LetwMarriageCertificatePage() {
             if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Certificate not available.')
             const c = (await res.json()) as Cert
             setCert(c)
-            if (c.wedding_date) setMarriageDate(c.wedding_date.slice(0, 10))
-            if (c.pastor_signature) setOfficiant(c.pastor_signature)
+            setMarriageDate((c.marriage_date || c.wedding_date || '').slice(0, 10))
+            setVenue(c.marriage_venue || '')
+            setOfficiant(c.officiant_name || c.pastor_signature || '')
+            setWitness1(c.witness_1 || '')
+            setWitness2(c.witness_2 || '')
         } catch (e) { setErr((e as Error).message) }
     }, [coupleId])
     useEffect(() => { if (coupleId) load() }, [coupleId, load])
+
+    const saveDetails = async () => {
+        setSaving(true); setSaved('')
+        try {
+            await marriagePrepApi.updateCouple(coupleId, {
+                marriage_date: marriageDate ? new Date(marriageDate).toISOString() : null,
+                marriage_venue: venue || null, officiant_name: officiant || null,
+                witness_1: witness1 || null, witness_2: witness2 || null,
+            })
+            setSaved('Saved — these details (incl. witnesses) now travel to sharepoints.')
+        } catch (e) { setSaved((e as Error).message) }
+        finally { setSaving(false) }
+    }
 
     if (err) return <main className="min-h-screen flex items-center justify-center p-6 text-center text-gray-500">{err}</main>
     if (!cert) return <main className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#140152]" /></main>
@@ -72,10 +96,12 @@ export default function LetwMarriageCertificatePage() {
                     <F label="Officiating minister" value={officiant} onChange={setOfficiant} placeholder="Rev. …" />
                     <F label="Witness 1" value={witness1} onChange={setWitness1} />
                     <F label="Witness 2" value={witness2} onChange={setWitness2} />
-                    <div className="flex items-end">
-                        <button onClick={() => window.print()} className="rounded-full bg-[#f5bb00] px-6 py-3 text-sm font-black text-[#140152] inline-flex items-center gap-2"><Printer className="w-4 h-4" /> Print / Save as PDF</button>
+                    <div className="flex items-end gap-2">
+                        <button onClick={saveDetails} disabled={saving} className="rounded-full bg-[#140152] px-5 py-3 text-sm font-bold text-white inline-flex items-center gap-2 disabled:opacity-50">{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save details</button>
+                        <button onClick={() => window.print()} className="rounded-full bg-[#f5bb00] px-6 py-3 text-sm font-black text-[#140152] inline-flex items-center gap-2"><Printer className="w-4 h-4" /> Print / PDF</button>
                     </div>
                 </div>
+                {saved && <p className="mt-2 text-xs text-[#140152] font-semibold">{saved}</p>}
             </div>
 
             {/* Certificate */}

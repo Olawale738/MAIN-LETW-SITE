@@ -420,6 +420,11 @@ class CoupleUpdateIn(BaseModel):
     pastor_signature:      Optional[str] = None
     pastor_note:           Optional[str] = None
     photo_url:             Optional[str] = None       # couple photo for the certificate
+    marriage_date:         Optional[datetime] = None
+    marriage_venue:        Optional[str] = None
+    officiant_name:        Optional[str] = None
+    witness_1:             Optional[str] = None
+    witness_2:             Optional[str] = None
 
 
 @router.put("/admin/couples/{couple_id}")
@@ -659,6 +664,11 @@ async def get_certificate(couple_id: str, db: AsyncSession = Depends(get_db)):
         "pastor_signature":  c.pastor_signature,
         "pastor_signed_at":  c.pastor_signed_at.isoformat() if c.pastor_signed_at else None,
         "photo_url":         getattr(c, "photo_url", None),
+        "marriage_date":     c.marriage_date.isoformat() if getattr(c, "marriage_date", None) else None,
+        "marriage_venue":    getattr(c, "marriage_venue", None),
+        "officiant_name":    getattr(c, "officiant_name", None),
+        "witness_1":         getattr(c, "witness_1", None),
+        "witness_2":         getattr(c, "witness_2", None),
         "status":            c.status,
         # Cryptographic identity — QR encodes verify_url; fingerprint is the
         # short human-checkable form printed under the chip.
@@ -803,6 +813,11 @@ def _couple(c: MarriagePrepCouple, pastor_name: Optional[str] = None) -> dict[st
         "session_note": c.session_note,
         "certificate_number": c.certificate_number,
         "photo_url": getattr(c, "photo_url", None),
+        "marriage_date": c.marriage_date.isoformat() if getattr(c, "marriage_date", None) else None,
+        "marriage_venue": getattr(c, "marriage_venue", None),
+        "officiant_name": getattr(c, "officiant_name", None),
+        "witness_1": getattr(c, "witness_1", None),
+        "witness_2": getattr(c, "witness_2", None),
         "created_at": c.created_at.isoformat(),
     }
 

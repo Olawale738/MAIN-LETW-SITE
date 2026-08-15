@@ -212,6 +212,12 @@ async def init_db():
                 # Couple / candidate photo that travels with the cert handshake
                 ("life_event_requests",   "photo_url", "TEXT"),
                 ("marriage_prep_couples", "photo_url", "TEXT"),
+                # Marriage-certificate details (incl. witnesses) captured on letw.org
+                ("marriage_prep_couples", "marriage_date",  "TIMESTAMP"),
+                ("marriage_prep_couples", "marriage_venue", "VARCHAR(300)"),
+                ("marriage_prep_couples", "officiant_name", "VARCHAR(200)"),
+                ("marriage_prep_couples", "witness_1",      "VARCHAR(200)"),
+                ("marriage_prep_couples", "witness_2",      "VARCHAR(200)"),
                 # Evangelism leaflet QR code
                 ("evangelism_leaflets", "qr_url",     "VARCHAR(600)"),
                 ("evangelism_leaflets", "qr_caption", "VARCHAR(120)"),

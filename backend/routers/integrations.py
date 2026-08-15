@@ -62,6 +62,12 @@ def _couple_payload(c, seal_url: str | None = None) -> dict:
         "completed_at": c.pastor_signed_at.isoformat() if c.pastor_signed_at else None,
         "pastor_signature": c.pastor_signature,
         "couple_photo": getattr(c, "photo_url", None),
+        # Marriage-certificate details captured on letw.org (incl. witnesses).
+        "marriage_date": c.marriage_date.isoformat() if getattr(c, "marriage_date", None) else None,
+        "marriage_venue": getattr(c, "marriage_venue", None),
+        "officiant": getattr(c, "officiant_name", None),
+        "witness_1": getattr(c, "witness_1", None),
+        "witness_2": getattr(c, "witness_2", None),
         "fingerprint": _fingerprint(sig),
         # Cryptographic verification (anchored on letw.org) — both platforms can
         # verify the certificate number via this URL / QR.

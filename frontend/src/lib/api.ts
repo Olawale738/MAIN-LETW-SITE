@@ -4479,6 +4479,11 @@ export interface MarriagePrepCouple {
     session_at?: string | null; session_note?: string | null
     certificate_number?: string | null
     photo_url?: string | null
+    marriage_date?: string | null
+    marriage_venue?: string | null
+    officiant_name?: string | null
+    witness_1?: string | null
+    witness_2?: string | null
     created_at: string
 }
 export interface MarriagePrepPastor { id: string; name: string; email: string; role?: string }
@@ -4553,7 +4558,8 @@ export const marriagePrepApi = {
         fetchApi<MarriagePrepCouple>(`/marriage-prep/admin/couples/${couple_id}/sign-off`, { method: 'POST', body: JSON.stringify({ pastor_signature, pastor_note }) }),
     updateCouple: (couple_id: string, body: Partial<Pick<MarriagePrepCouple,
         'partner_a_name' | 'partner_a_email' | 'partner_b_name' | 'partner_b_email' |
-        'intended_wedding_date' | 'status' | 'pastor_signature' | 'pastor_note' | 'photo_url'>>) =>
+        'intended_wedding_date' | 'status' | 'pastor_signature' | 'pastor_note' | 'photo_url' |
+        'marriage_date' | 'marriage_venue' | 'officiant_name' | 'witness_1' | 'witness_2'>>) =>
         fetchApi<MarriagePrepCouple>(`/marriage-prep/admin/couples/${couple_id}`, { method: 'PUT', body: JSON.stringify(body) }),
     deleteCouple: (couple_id: string) =>
         fetchApi<{ deleted: number }>(`/marriage-prep/admin/couples/${couple_id}`, { method: 'DELETE' }),
