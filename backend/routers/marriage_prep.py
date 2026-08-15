@@ -20,7 +20,7 @@ import io
 from database import get_db
 from models.user import User
 from models.marriage_prep import MarriagePrepModule, MarriagePrepCouple, MarriagePrepProgress, MarriagePrepModuleResource
-from utils.dependencies import get_admin_user
+from utils.dependencies import get_admin_user, get_current_active_user
 
 router = APIRouter(prefix="/api/marriage-prep", tags=["Marriage Prep"])
 
@@ -386,7 +386,7 @@ async def assign_pastor(couple_id: str, body: AssignPastorIn, db: AsyncSession =
         try:
             from services.email_service import send_email
             couple = f"{c.partner_a_name} & {c.partner_b_name}"
-            admin_url = f"{_public_base()}/admin/marriage-prep"
+            portal_url = f"{_public_base()}/marriage-prep/counsellor"
             body_html = f"""
             <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#1f2937">
               <div style="background:#140152;color:#fff;padding:20px;border-radius:14px 14px 0 0">
@@ -394,9 +394,9 @@ async def assign_pastor(couple_id: str, body: AssignPastorIn, db: AsyncSession =
               </div>
               <div style="border:1px solid #eee;border-top:none;padding:20px;border-radius:0 0 14px 14px">
                 <p>Hi {pastor.name},</p>
-                <p>You are now the pastor shepherding <strong>{couple}</strong> through Marriage Prep.</p>
-                <p style="margin:20px 0"><a href="{admin_url}" style="background:#140152;color:#fff;text-decoration:none;font-weight:bold;padding:11px 20px;border-radius:999px">Open Marriage Prep admin</a></p>
-                <p style="font-size:13px;color:#6b7280">From there you can schedule a session, start a video call, and sign off when they finish.</p>
+                <p>You are now the counsellor shepherding <strong>{couple}</strong> through Marriage Prep.</p>
+                <p style="margin:20px 0"><a href="{portal_url}" style="background:#140152;color:#fff;text-decoration:none;font-weight:bold;padding:11px 20px;border-radius:999px">Open your counselling portal</a></p>
+                <p style="font-size:13px;color:#6b7280">Sign in with your LETW account. From there you can schedule a video session (the couple is emailed an invite) and open the room. No admin access needed.</p>
               </div>
             </div>
             """
@@ -446,21 +446,14 @@ class SessionScheduleIn(BaseModel):
     note: Optional[str] = None
 
 
-@router.post("/admin/couples/{couple_id}/schedule")
-async def schedule_session(couple_id: str, body: SessionScheduleIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
-    """Pastor proposes (or clears) a session time. When a time is set, both
-    partners are emailed a calendar invite (.ics) with the couple's video-room
-    link. Best-effort email — a mail hiccup never blocks the schedule save."""
-    c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
-    if not c:
-        raise HTTPException(404, "Couple not found")
-    c.session_at = body.session_at
-    c.session_note = (body.note or None) if body.session_at else None
+async def _apply_schedule(c: MarriagePrepCouple, session_at, note, db: AsyncSession):
+    """Set/clear a couple's session and email both partners a calendar invite +
+    video-room link. Shared by the admin and counsellor endpoints."""
+    c.session_at = session_at
+    c.session_note = (note or None) if session_at else None
     await db.commit()
     await db.refresh(c)
-
     if c.session_at:
-        # Video-room link mirrors the portal/admin Jitsi rooms.
         jitsi_domain = "meet.jit.si"
         try:
             from models.ministry_content import MinistryContent
@@ -481,6 +474,40 @@ async def schedule_session(couple_id: str, body: SessionScheduleIn, db: AsyncSes
         except Exception as e:
             print(f"[marriage-prep] session email failed: {type(e).__name__}: {e}", flush=True)
 
+
+@router.post("/admin/couples/{couple_id}/schedule")
+async def schedule_session(couple_id: str, body: SessionScheduleIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Pastor proposes (or clears) a session time. When a time is set, both
+    partners are emailed a calendar invite (.ics) with the couple's video-room
+    link. Best-effort email — a mail hiccup never blocks the schedule save."""
+    c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
+    if not c:
+        raise HTTPException(404, "Couple not found")
+    await _apply_schedule(c, body.session_at, body.note, db)
+    return _couple(c)
+
+
+# ── Counsellor portal — for the member assigned to shepherd a couple ──────────
+# These endpoints need only a logged-in user, and are scoped to couples that
+# user is personally assigned to (assigned_pastor_user_id). This lets a
+# non-admin marriage counsellor run sessions without admin access.
+
+@router.get("/counsellor/couples")
+async def counsellor_couples(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_active_user)):
+    res = await db.execute(
+        select(MarriagePrepCouple)
+        .where(MarriagePrepCouple.assigned_pastor_user_id == user.id)
+        .order_by(desc(MarriagePrepCouple.created_at))
+    )
+    return [_couple(c, pastor_name=user.name) for c in res.scalars().all()]
+
+
+@router.post("/counsellor/couples/{couple_id}/schedule")
+async def counsellor_schedule(couple_id: str, body: SessionScheduleIn, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_active_user)):
+    c = (await db.execute(select(MarriagePrepCouple).where(MarriagePrepCouple.id == couple_id))).scalar_one_or_none()
+    if not c or c.assigned_pastor_user_id != user.id:
+        raise HTTPException(404, "Couple not found among the ones assigned to you.")
+    await _apply_schedule(c, body.session_at, body.note, db)
     return _couple(c)
 
 

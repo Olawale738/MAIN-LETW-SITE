@@ -4574,6 +4574,10 @@ export const marriagePrepApi = {
     // Re-send the completion email (certificate link + next steps) to both partners.
     resendCertificate: (couple_id: string) =>
         fetchApi<{ ok: boolean; emails_sent: number; certificate_url: string }>(`/marriage-prep/admin/couples/${couple_id}/resend-certificate`, { method: 'POST' }),
+    // Counsellor portal — the assigned (non-admin) counsellor's own couples.
+    counsellorCouples: () => fetchApi<MarriagePrepCouple[]>('/marriage-prep/counsellor/couples'),
+    counsellorSchedule: (couple_id: string, session_at: string | null, note?: string) =>
+        fetchApi<MarriagePrepCouple>(`/marriage-prep/counsellor/couples/${couple_id}/schedule`, { method: 'POST', body: JSON.stringify({ session_at, note: note || null }) }),
 }
 
 // ─── SMS provider config (admin) ─────────────────────────────────────────────
