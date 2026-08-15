@@ -69,7 +69,7 @@ export default function LetwMarriageCertificatePage() {
         setSaving(true); setSaved('')
         try {
             await marriagePrepApi.updateCouple(coupleId, {
-                marriage_date: marriageDate ? new Date(marriageDate).toISOString() : null,
+                marriage_date: marriageDate || null,
                 marriage_venue: venue || null, officiant_name: officiant || null,
                 witness_1: witness1 || null, witness_2: witness2 || null,
             })

@@ -433,9 +433,10 @@ async def update_couple(couple_id: str, body: CoupleUpdateIn, db: AsyncSession =
     if not c:
         raise HTTPException(404, "Couple not found")
     # Only apply keys the admin actually sent — model_dump(exclude_unset=True)
-    # so a blank field doesn't overwrite with None.
+    # so a blank field doesn't overwrite with None. Strip tz on datetimes so
+    # ISO '...Z' values from the browser fit the naive TIMESTAMP columns.
     for k, v in body.model_dump(exclude_unset=True).items():
-        setattr(c, k, v)
+        setattr(c, k, _naive(v) if isinstance(v, datetime) else v)
     await db.commit()
     await db.refresh(c)
     return _couple(c)
@@ -446,10 +447,16 @@ class SessionScheduleIn(BaseModel):
     note: Optional[str] = None
 
 
+def _naive(dt):
+    """Drop tzinfo so a tz-aware datetime (e.g. an ISO '...Z' from the browser)
+    can be stored in our naive TIMESTAMP columns without asyncpg erroring."""
+    return dt.replace(tzinfo=None) if (dt is not None and getattr(dt, "tzinfo", None) is not None) else dt
+
+
 async def _apply_schedule(c: MarriagePrepCouple, session_at, note, db: AsyncSession):
     """Set/clear a couple's session and email both partners a calendar invite +
     video-room link. Shared by the admin and counsellor endpoints."""
-    c.session_at = session_at
+    c.session_at = _naive(session_at)
     c.session_note = (note or None) if session_at else None
     await db.commit()
     await db.refresh(c)

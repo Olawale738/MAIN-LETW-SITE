@@ -71,7 +71,7 @@ function CoupleCard({ c, onMsg, onSaved }: { c: MarriagePrepCouple; onMsg: (m: {
     const save = async (clear = false) => {
         setSaving(true)
         try {
-            await marriagePrepApi.counsellorSchedule(c.id, clear ? null : (when ? new Date(when).toISOString() : null), clear ? undefined : note)
+            await marriagePrepApi.counsellorSchedule(c.id, clear ? null : (when || null), clear ? undefined : note)
             onMsg({ kind: 'ok', text: clear ? 'Session cleared.' : 'Session scheduled — the couple was emailed an invite with the video link.' })
             onSaved()
         } catch (e) { onMsg({ kind: 'err', text: (e as Error).message }) }
