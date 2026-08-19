@@ -79,8 +79,27 @@ SCOPES: list[dict] = [
     # Giving
     {"key": "donations",          "label": "Donations Log",         "group": "Giving"},
     {"key": "payments",           "label": "Payment Providers",     "group": "Giving"},
+
+    # Oversight & newer areas
+    {"key": "analytics",          "label": "Analytics Command Center", "group": "Oversight"},
+    {"key": "marriage_prep",      "label": "Marriage Prep",         "group": "Oversight"},
+    {"key": "evangelism_leaflets","label": "Evangelism Leaflets",   "group": "Oversight"},
+    {"key": "blog",               "label": "Blog / LETW TV",        "group": "Oversight"},
+    {"key": "sanctuary",          "label": "Sanctuary Booking",     "group": "Oversight"},
+    {"key": "sms",                "label": "SMS Broadcast",         "group": "Oversight"},
+    {"key": "integrations",       "label": "Partner Integrations",  "group": "Oversight"},
+    {"key": "users",              "label": "Members / Users",       "group": "Oversight"},
 ]
 SCOPE_KEYS = {s["key"] for s in SCOPES}
+
+# Deputy admins are admin-appointed seconds-in-command. Same grant mechanism as
+# moderators, but a distinct role so the admin can see who is a deputy.
+DEPUTY_ROLES = {
+    "deputy_admin_1": UserRole.DEPUTY_ADMIN_1,
+    "deputy_admin_2": UserRole.DEPUTY_ADMIN_2,
+    "deputy_admin_3": UserRole.DEPUTY_ADMIN_3,
+}
+GRANTABLE_ROLES = {UserRole.MODERATOR, *DEPUTY_ROLES.values()}
 
 
 # ─── Public scopes/me endpoints (any logged-in user) ─────────────────────────
@@ -100,12 +119,13 @@ async def my_permissions(
     sidebar to hide items the user has no grant for."""
     if current_user.role == UserRole.ADMIN:
         return {"role": "admin", "is_admin": True, "scopes": ["*"]}
-    if current_user.role != UserRole.MODERATOR:
+    if current_user.role not in GRANTABLE_ROLES:
         return {"role": current_user.role.value, "is_admin": False, "scopes": []}
     res = await db.execute(select(ModeratorGrant).where(ModeratorGrant.user_id == current_user.id))
     return {
-        "role": "moderator",
+        "role": current_user.role.value,
         "is_admin": False,
+        "is_deputy": current_user.role in DEPUTY_ROLES.values(),
         "scopes": [g.scope for g in res.scalars().all()],
     }
 
@@ -125,8 +145,8 @@ async def list_moderators(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_admin_user),
 ):
-    """Every user with role=MODERATOR (whether or not they have grants yet)."""
-    res = await db.execute(select(User).where(User.role == UserRole.MODERATOR))
+    """Every moderator AND deputy admin (whether or not they have grants yet)."""
+    res = await db.execute(select(User).where(User.role.in_(GRANTABLE_ROLES)))
     mods = list(res.scalars().all())
     if not mods:
         return []
@@ -150,7 +170,7 @@ async def list_candidates(
     _: User = Depends(get_admin_user),
 ):
     """Search users you could promote to moderator. Excludes existing moderators and admins."""
-    query = select(User).where(User.role.notin_([UserRole.ADMIN, UserRole.MODERATOR]))
+    query = select(User).where(User.role.notin_([UserRole.ADMIN, *GRANTABLE_ROLES]))
     if q:
         like = f"%{q.lower()}%"
         from sqlalchemy import func, or_
@@ -163,6 +183,7 @@ async def list_candidates(
 class PromoteIn(BaseModel):
     user_id: str
     scopes: List[str] = []
+    role: str = "moderator"   # moderator | deputy_admin_1 | deputy_admin_2 | deputy_admin_3
 
 
 @router.post("/promote", response_model=ModeratorOut, status_code=201)
@@ -178,7 +199,19 @@ async def promote_to_moderator(
         raise HTTPException(404, "User not found")
     if u.role == UserRole.ADMIN:
         raise HTTPException(400, "Admins already have every scope")
-    u.role = UserRole.MODERATOR
+    target_role = DEPUTY_ROLES.get(body.role, UserRole.MODERATOR)
+    # A deputy slot is single-occupancy: appointing a new person to Deputy N
+    # steps the previous holder down (and clears their grants).
+    if target_role in DEPUTY_ROLES.values():
+        prev = (await db.execute(select(User).where(User.role == target_role, User.id != u.id))).scalars().all()
+        for p_user in prev:
+            p_user.role = UserRole.USER
+            for g in (await db.execute(select(ModeratorGrant).where(ModeratorGrant.user_id == p_user.id))).scalars().all():
+                await db.delete(g)
+    u.role = target_role
+    # Replace any existing grants so the tick-list is the single source of truth.
+    for g in (await db.execute(select(ModeratorGrant).where(ModeratorGrant.user_id == u.id))).scalars().all():
+        await db.delete(g)
     invalid = [s for s in body.scopes if s not in SCOPE_KEYS]
     if invalid:
         raise HTTPException(400, f"Unknown scope(s): {invalid}")
@@ -214,8 +247,8 @@ async def set_grants(
     u = res.scalar_one_or_none()
     if not u:
         raise HTTPException(404, "User not found")
-    if u.role != UserRole.MODERATOR:
-        raise HTTPException(400, "User is not a moderator. Promote them first.")
+    if u.role not in GRANTABLE_ROLES:
+        raise HTTPException(400, "User is not a moderator or deputy admin. Appoint them first.")
     invalid = [s for s in body.scopes if s not in SCOPE_KEYS]
     if invalid:
         raise HTTPException(400, f"Unknown scope(s): {invalid}")

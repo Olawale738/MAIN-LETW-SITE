@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell, Heart, Sparkles, FileText, Tag, Plus, BarChart, ChevronRight, Mail, ShieldCheck, Image as ImageIcon, PenSquare, Share2, Database } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { tokenManager, chatApi, serviceRequestApi } from '@/lib/api'
-import { useState, useEffect } from 'react'
+import { tokenManager, chatApi, serviceRequestApi, moderatorsApi, type MyPermissions } from '@/lib/api'
+import { canAccess } from '@/lib/adminScopes'
+import { useState, useEffect, useMemo } from 'react'
 import { listMembers, adminPendingDeptRequests } from '@/lib/dept-api'
 
 // Section types: simple item or expandable group with sub-items
@@ -129,6 +130,7 @@ const sidebarItems: SidebarItem[] = [
     { title: 'Volunteer Rota (who serves which Sunday)', href: '/admin/volunteer-rota', icon: UserCheck },
     { title: 'Translations (multi-language UI)', href: '/admin/translations', icon: Globe },
     { title: 'Caption Operator', href: '/admin/live-captions', icon: Megaphone },
+    { title: 'Deputy Admins', href: '/admin/deputies', icon: ShieldCheck },
     { title: 'Moderators', href: '/admin/moderators', icon: ShieldCheck },
     { title: 'Database Backups', href: '/admin/backups', icon: Database },
     { title: 'Downloads', href: '/admin/downloads', icon: FileText },
@@ -186,6 +188,22 @@ const sidebarItems: SidebarItem[] = [
 export default function AdminSidebar() {
     const pathname = usePathname()
     const [mobileOpen, setMobileOpen] = useState(false)
+    // Permission-aware nav: admins see everything; moderators/deputy admins see
+    // only the sections an admin granted them (server also enforces per-scope).
+    const [perms, setPerms] = useState<MyPermissions | null>(null)
+    useEffect(() => { moderatorsApi.me().then(setPerms).catch(() => setPerms(null)) }, [])
+    const visibleItems = useMemo(() => {
+        if (!perms || perms.is_admin) return sidebarItems
+        const ok = (href: string) => canAccess(href, perms.is_admin, perms.scopes)
+        const out: SidebarItem[] = []
+        for (const it of sidebarItems) {
+            if ('items' in it) {
+                const kids = it.items.filter(k => ok(k.href))
+                if (kids.length) out.push({ ...it, items: kids })
+            } else if (ok(it.href)) out.push(it)
+        }
+        return out
+    }, [perms])
     const [chatUnread, setChatUnread] = useState(0)
     const [allPendingCount, setAllPendingCount] = useState(0)
     const [volunteerCount, setVolunteerCount] = useState(0)
@@ -248,7 +266,7 @@ export default function AdminSidebar() {
             </div>
 
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-                {sidebarItems.map((item, idx) => {
+                {visibleItems.map((item, idx) => {
                     const isGroup = 'items' in item
                     if (isGroup) {
                         const group = item as GroupItem

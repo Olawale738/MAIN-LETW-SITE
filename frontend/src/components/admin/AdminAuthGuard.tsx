@@ -24,12 +24,15 @@ export default function AdminAuthGuard({ children }: AdminAuthGuardProps) {
             }
 
             try {
-                // Verify user is admin via API
+                // Admins, moderators and deputy admins may open the dashboard.
+                // What they can SEE inside is filtered per-scope by the sidebar,
+                // and enforced server-side by require_scope on each endpoint.
                 const user = await authApi.getCurrentUser()
-                if (user.role !== 'admin') {
-                    // Not an admin, clear tokens and redirect
-                    tokenManager.clearTokens()
-                    window.location.href = '/auth/login'
+                const allowed = ['admin', 'moderator', 'deputy_admin_1', 'deputy_admin_2', 'deputy_admin_3']
+                if (!user.role || !allowed.includes(user.role)) {
+                    // Signed in but not staff — send them to their own dashboard.
+                    // (Do NOT clear tokens: they have a valid member session.)
+                    window.location.href = '/dashboard'
                     return
                 }
 

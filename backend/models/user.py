@@ -35,6 +35,11 @@ class UserRole(str, enum.Enum):
     USER                   = "user"
     ADMIN                  = "admin"
     MODERATOR              = "moderator"
+    # Deputy admins: admin-appointed seconds-in-command. They see the admin
+    # dashboard but only the sections the admin explicitly grants (scopes).
+    DEPUTY_ADMIN_1         = "deputy_admin_1"
+    DEPUTY_ADMIN_2         = "deputy_admin_2"
+    DEPUTY_ADMIN_3         = "deputy_admin_3"
     CHOIRMASTER            = "choirmaster"
     YOUTH_LEADER           = "youth_leader"
     CHILDREN_COORDINATOR   = "children_coordinator"

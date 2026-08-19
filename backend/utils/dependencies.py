@@ -102,13 +102,20 @@ def require_scope(scope: str):
     from models.user import UserRole
     from models.moderator_grant import ModeratorGrant
 
+    GRANTABLE_ROLES = {
+        UserRole.MODERATOR,
+        UserRole.DEPUTY_ADMIN_1, UserRole.DEPUTY_ADMIN_2, UserRole.DEPUTY_ADMIN_3,
+    }
+
     async def _dep(
         current_user: User = Depends(get_current_active_user),
         db: AsyncSession = Depends(get_db),
     ) -> User:
         if current_user.role == UserRole.ADMIN:
             return current_user
-        if current_user.role == UserRole.MODERATOR:
+        # Moderators AND deputy admins are grant-based: they may access exactly
+        # the scopes an admin has granted them.
+        if current_user.role in GRANTABLE_ROLES:
             res = await db.execute(
                 select(ModeratorGrant).where(
                     ModeratorGrant.user_id == current_user.id,
