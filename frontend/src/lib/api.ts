@@ -4615,9 +4615,15 @@ export interface AnalyticsOverview {
     highlights: string[]
     _errors: string[]
 }
+export interface MinistryRow {
+    id: string; name: string; slug: string; category: string; is_active: boolean
+    active_members: number; pending_members: number; total_requests: number
+    coordinators: number; series: SeriesPoint[]
+}
 export const analyticsApi = {
     overview: () => fetchApi<AnalyticsOverview>('/analytics/overview'),
     insight: () => fetchApi<{ source: string; text: string; highlights: string[] }>('/analytics/insight'),
+    ministries: () => fetchApi<{ generated_at: string; ministries: MinistryRow[] }>('/analytics/ministries'),
 }
 
 export interface IntegrationTargets {

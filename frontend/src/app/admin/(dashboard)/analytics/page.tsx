@@ -6,12 +6,24 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
     BarChart3, Loader2, RefreshCw, Users, HeartHandshake, HandCoins, Church,
-    Megaphone, Mail, CalendarDays, Sparkles, Baby, HandHeart, AlertCircle,
+    Megaphone, Mail, CalendarDays, Sparkles, HandHeart, AlertCircle,
 } from 'lucide-react'
-import { analyticsApi, type AnalyticsOverview, type SeriesPoint, type LabelValue } from '@/lib/api'
+import { analyticsApi, type AnalyticsOverview, type SeriesPoint, type LabelValue, type MinistryRow } from '@/lib/api'
 import { AreaLine, BarList, Donut } from '@/components/admin/charts'
 
 type Giving = { currency: string; total: number; count: number }
+
+type RangeKey = 'month' | 'quarter' | 'year'
+const RANGES: { key: RangeKey; label: string; months: number }[] = [
+    { key: 'month', label: 'This month', months: 1 },
+    { key: 'quarter', label: 'This quarter', months: 3 },
+    { key: 'year', label: 'This year', months: 12 },
+]
+/** The API returns a 12-month series; the control slices its tail. */
+function sliceRange(series: SeriesPoint[], range: RangeKey): SeriesPoint[] {
+    const n = RANGES.find(r => r.key === range)?.months ?? 12
+    return series.slice(-n)
+}
 
 export default function AnalyticsPage() {
     const [o, setO] = useState<AnalyticsOverview | null>(null)
@@ -19,6 +31,9 @@ export default function AnalyticsPage() {
     const [err, setErr] = useState<string | null>(null)
     const [insight, setInsight] = useState<{ source: string; text: string } | null>(null)
     const [insightLoading, setInsightLoading] = useState(false)
+    const [range, setRange] = useState<RangeKey>('year')
+    const [mins, setMins] = useState<MinistryRow[] | null>(null)
+    const [minsLoading, setMinsLoading] = useState(false)
 
     const load = useCallback(async () => {
         setLoading(true); setErr(null)
@@ -27,6 +42,14 @@ export default function AnalyticsPage() {
         finally { setLoading(false) }
     }, [])
     useEffect(() => { load() }, [load])
+
+    const loadMinistries = async () => {
+        if (mins || minsLoading) return
+        setMinsLoading(true)
+        try { setMins((await analyticsApi.ministries()).ministries) }
+        catch { setMins([]) }
+        finally { setMinsLoading(false) }
+    }
 
     const genInsight = async () => {
         setInsightLoading(true)
@@ -41,7 +64,7 @@ export default function AnalyticsPage() {
     const kpi = (k: string): number => (typeof o.kpis[k] === 'number' ? (o.kpis[k] as number) : 0)
     const giving = (o.kpis.giving as Giving[] | undefined) || []
     const givingLabel = giving.length ? giving.map(g => `${g.currency} ${g.total.toLocaleString()}`).join(' · ') : '—'
-    const s = (k: string): SeriesPoint[] => o.series[k] || []
+    const s = (k: string): SeriesPoint[] => sliceRange(o.series[k] || [], range)
     const b = (k: string): LabelValue[] => (o.breakdowns[k] as LabelValue[]) || []
 
     return (
@@ -50,7 +73,17 @@ export default function AnalyticsPage() {
                 <h1 className="text-3xl font-black text-[#140152] flex items-center gap-3"><BarChart3 className="w-7 h-7 text-[#f5bb00]" /> Analytics Command Center</h1>
                 <button onClick={load} className="inline-flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"><RefreshCw className="w-4 h-4" /> Refresh</button>
             </div>
-            <p className="text-gray-400 text-xs mb-5">Live across your whole platform · generated {new Date(o.generated_at).toLocaleString()}</p>
+            <p className="text-gray-400 text-xs mb-3">Live across your whole platform · generated {new Date(o.generated_at).toLocaleString()}</p>
+
+            {/* Date-range control — trends + period totals respect this */}
+            <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm mb-5">
+                {RANGES.map(r => (
+                    <button key={r.key} onClick={() => setRange(r.key)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${range === r.key ? 'bg-[#140152] text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+                        {r.label}
+                    </button>
+                ))}
+            </div>
 
             {/* AI / rule-based briefing */}
             <div className="mb-6 rounded-2xl bg-gradient-to-br from-[#140152] to-[#26026e] text-white p-5 shadow-lg">
@@ -83,7 +116,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Trends */}
-            <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 mb-3">12-month trends</h2>
+            <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 mb-3">Trends · {RANGES.find(r => r.key === range)?.label}</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 <Trend title="New members" series={s('members')} color="#4f46e5" />
                 <Trend title="Gifts received" series={s('giving_gifts')} color="#059669" />
@@ -91,6 +124,9 @@ export default function AnalyticsPage() {
                 <Trend title="Marriage-prep couples" series={s('couples')} color="#d97706" />
                 <Trend title="Evangelism sign-ups" series={s('evangelism')} color="#16a34a" />
                 <Trend title="Newsletter subscribers" series={s('subscribers')} color="#7c3aed" />
+                <Trend title="Life-event requests" series={s('life_events')} color="#0e7a5f" />
+                <Trend title="Ministry join requests" series={s('ministry_members')} color="#2563eb" />
+                <Trend title="Leaflets created" series={s('leaflets')} color="#b45309" />
             </div>
 
             {/* Breakdowns */}
@@ -102,6 +138,49 @@ export default function AnalyticsPage() {
                 <Card title="Prayer by status"><BarList data={b('prayer_by_status')} /></Card>
                 <Card title="Ministries by category"><BarList data={b('ministries_by_category')} /></Card>
                 <Card title="On-site now (children)"><div className="text-4xl font-black text-[#140152]">{kpi('children_on_site_now')}<span className="text-sm font-semibold text-gray-400 ml-2">checked in</span></div><p className="text-xs text-gray-400 mt-2">{kpi('children_checkins_total')} check-ins all-time</p></Card>
+            </div>
+
+            {/* Per-ministry drill-down */}
+            <div className="mt-8">
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-sm font-black uppercase tracking-widest text-gray-400">Ministry drill-down</h2>
+                    {!mins && <button onClick={loadMinistries} disabled={minsLoading} className="inline-flex items-center gap-2 bg-[#140152] text-white font-bold px-3 py-1.5 rounded-lg text-xs disabled:opacity-60">
+                        {minsLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Church className="w-3.5 h-3.5" />} Load ministries
+                    </button>}
+                </div>
+                {mins && (mins.length === 0 ? (
+                    <p className="text-xs text-gray-400 bg-white border border-dashed border-gray-200 rounded-2xl p-6 text-center">No ministries yet.</p>
+                ) : (
+                    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-gray-50 text-[10px] uppercase tracking-widest text-gray-400">
+                                        <th className="text-left font-bold px-4 py-2">Ministry</th>
+                                        <th className="text-right font-bold px-3 py-2">Active</th>
+                                        <th className="text-right font-bold px-3 py-2">Pending</th>
+                                        <th className="text-right font-bold px-3 py-2">Coords</th>
+                                        <th className="text-left font-bold px-3 py-2 w-32">Joins trend</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {mins.map(m => (
+                                        <tr key={m.id} className="hover:bg-gray-50/60">
+                                            <td className="px-4 py-2.5">
+                                                <p className="font-bold text-[#140152] leading-tight">{m.name}</p>
+                                                <p className="text-[10px] text-gray-400 capitalize">{m.category}{!m.is_active && ' · inactive'}</p>
+                                            </td>
+                                            <td className="px-3 py-2.5 text-right font-black text-[#140152] tabular-nums">{m.active_members}</td>
+                                            <td className="px-3 py-2.5 text-right tabular-nums text-gray-500">{m.pending_members || '—'}</td>
+                                            <td className="px-3 py-2.5 text-right tabular-nums text-gray-500">{m.coordinators || '—'}</td>
+                                            <td className="px-3 py-2.5"><div className="w-28"><AreaLine data={sliceRange(m.series, range)} color="#2563eb" height={30} /></div></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ))}
             </div>
 
             {o._errors?.length > 0 && (

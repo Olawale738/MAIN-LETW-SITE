@@ -163,12 +163,14 @@ async def analytics_overview(db: AsyncSession = Depends(get_db), _: User = Depen
         from models.leaflet import EvangelismLeaflet
         kpis["leaflets_total"] = await _count(db, select(func.count(EvangelismLeaflet.id)))
         kpis["leaflets_published"] = await _count(db, select(func.count(EvangelismLeaflet.id)).where(EvangelismLeaflet.status == "published"))
+        series["leaflets"] = await _month_counts(db, EvangelismLeaflet, EvangelismLeaflet.created_at)
     except Exception as e:
         errors.append(f"leaflets: {type(e).__name__}: {e}")
     try:
         from models.life_event import LifeEventRequest as LE
         kpis["life_events_total"] = await _count(db, select(func.count(LE.id)))
         kpis["life_events_pending"] = await _count(db, select(func.count(LE.id)).where(LE.status == "pending"))
+        series["life_events"] = await _month_counts(db, LE, LE.created_at)
         breakdowns["life_events_by_kind"] = await _group_counts(db, LE, LE.kind)
     except Exception as e:
         errors.append(f"life_events: {type(e).__name__}: {e}")
@@ -298,3 +300,54 @@ async def analytics_insight(db: AsyncSession = Depends(get_db), admin: User = De
     except Exception as e:
         print(f"[analytics] AI insight failed: {type(e).__name__}: {e}", flush=True)
     return {"source": "rules", "text": "\n".join(highlights), "highlights": highlights}
+
+
+# ── Per-ministry drill-down ───────────────────────────────────────────────────
+
+@router.get("/ministries")
+async def analytics_ministries(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Per-ministry engagement table: active/pending members, coordinators and
+    12-month join-request trend for each ministry, biggest first."""
+    from models.custom_ministry import CustomMinistry, CustomMinistryMember as MM
+
+    ministries = (await db.execute(
+        select(CustomMinistry.id, CustomMinistry.name, CustomMinistry.slug,
+               CustomMinistry.category, CustomMinistry.is_active)
+        .order_by(CustomMinistry.sort_order, CustomMinistry.name)
+    )).all()
+
+    # One grouped query each, then stitch — avoids N+1 round-trips.
+    counts = (await db.execute(
+        select(MM.ministry_id, MM.status, func.count()).group_by(MM.ministry_id, MM.status)
+    )).all()
+    by_min: dict[str, dict[str, int]] = {}
+    for mid, status, n in counts:
+        by_min.setdefault(mid, {})[str(getattr(status, "value", status))] = int(n or 0)
+
+    coords = dict((mid, int(n or 0)) for mid, n in (await db.execute(
+        select(MM.ministry_id, func.count()).where(MM.is_coordinator == True).group_by(MM.ministry_id)  # noqa: E712
+    )).all())
+
+    bucket = func.date_trunc("month", MM.requested_at)
+    trend_rows = (await db.execute(
+        select(MM.ministry_id, bucket, func.count()).group_by(MM.ministry_id, bucket).order_by(bucket)
+    )).all()
+    trends: dict[str, list[tuple]] = {}
+    for mid, m, n in trend_rows:
+        trends.setdefault(mid, []).append((m, n))
+
+    out = []
+    for mid, name, slug, category, is_active in ministries:
+        c = by_min.get(mid, {})
+        out.append({
+            "id": mid, "name": name, "slug": slug,
+            "category": category or "uncategorised",
+            "is_active": bool(is_active),
+            "active_members": c.get("active", 0),
+            "pending_members": c.get("pending", 0),
+            "total_requests": sum(c.values()),
+            "coordinators": coords.get(mid, 0),
+            "series": _series(trends.get(mid, [])),
+        })
+    out.sort(key=lambda r: r["active_members"], reverse=True)
+    return {"generated_at": datetime.utcnow().isoformat(), "ministries": out}
