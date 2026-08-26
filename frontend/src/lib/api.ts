@@ -4686,8 +4686,19 @@ export interface IntegrationTargets {
     sharepoints_webhook_url: string; marriage_office_email: string
     baptism_webhook_url: string; baptism_office_email: string
 }
+export interface SharepointsTest {
+    ok: boolean; reason?: string; service?: string; status?: string
+    capabilities?: string[]; endpoints?: Record<string, string>
+}
 export const integrationsApi = {
-    getSettings: () => fetchApi<{ configured: boolean; key_preview: string; lookup_url: string; marriage_seal_url: string } & IntegrationTargets>('/integrations/admin/settings'),
+    getSettings: () => fetchApi<{
+        configured: boolean; key_preview: string; lookup_url: string; marriage_seal_url: string
+        student_webhook_url: string; lms_base_url: string; lms_enrol_path: string
+        lms_key_set: boolean; theology_intake_default: string; handshake_url: string
+    } & IntegrationTargets>('/integrations/admin/settings'),
+    testSharepoints: () => fetchApi<SharepointsTest>('/integrations/admin/test-sharepoints'),
+    saveTheologyAndLms: (b: { student_webhook_url?: string; lms_base_url?: string; lms_api_key?: string; lms_enrol_path?: string }) =>
+        fetchApi<{ ok: boolean }>('/integrations/admin/settings', { method: 'PUT', body: JSON.stringify(b) }),
     setKey: (sharepoints_api_key: string) =>
         fetchApi<{ ok: boolean }>('/integrations/admin/settings', { method: 'PUT', body: JSON.stringify({ sharepoints_api_key }) }),
     saveTargets: (t: IntegrationTargets) =>

@@ -132,6 +132,12 @@ class KeyIn(BaseModel):
     baptism_webhook_url: Optional[str] = None
     baptism_office_email: Optional[str] = None
     marriage_seal_url: Optional[str] = None
+    # Theology School → sharepoints student/enrollment intake
+    student_webhook_url: Optional[str] = None
+    # Classroom (live.letw.org)
+    lms_base_url: Optional[str] = None
+    lms_api_key: Optional[str] = None
+    lms_enrol_path: Optional[str] = None
 
 
 @router.get("/admin/settings")
@@ -148,6 +154,12 @@ async def get_settings(db: AsyncSession = Depends(get_db), _: User = Depends(get
         "baptism_webhook_url": (row.baptism_webhook_url if row else None) or "",
         "baptism_office_email": (row.baptism_office_email if row else None) or "",
         "marriage_seal_url": (row.marriage_seal_url if row else None) or "",
+        "student_webhook_url": (row.student_webhook_url if row else None) or "",
+        "lms_base_url": (row.lms_base_url if row else None) or "",
+        "lms_enrol_path": (row.lms_enrol_path if row else None) or "",
+        "lms_key_set": bool((getattr(row, "lms_api_key", None) or "").strip()) if row else False,
+        "theology_intake_default": "https://sharepoints.letw.org/api/integrations/theology/enrollments",
+        "handshake_url": "https://sharepoints.letw.org/api/letw/handshake",
     }
 
 
@@ -174,6 +186,16 @@ async def set_settings(body: KeyIn, db: AsyncSession = Depends(get_db), _: User 
         row.baptism_office_email = body.baptism_office_email.strip() or None
     if body.marriage_seal_url is not None:
         row.marriage_seal_url = body.marriage_seal_url.strip() or None
+    if body.student_webhook_url is not None:
+        row.student_webhook_url = body.student_webhook_url.strip() or None
+    if body.lms_base_url is not None:
+        row.lms_base_url = body.lms_base_url.strip() or None
+    if body.lms_enrol_path is not None:
+        row.lms_enrol_path = body.lms_enrol_path.strip() or None
+    if body.lms_api_key is not None:
+        k = body.lms_api_key.strip()
+        if k and "…" not in k:
+            row.lms_api_key = k
     await db.commit()
     return {"ok": True}
 
@@ -299,3 +321,32 @@ async def lookup_couple_by_cert(
     # as the auto-push, so a manual lookup issues an identical certificate.
     row = await _settings_row(db)
     return _couple_payload(c, (row.marriage_seal_url or None) if row else None)
+
+
+@router.get("/admin/test-sharepoints")
+async def test_sharepoints(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Ask sharepoints what it supports, using the shared secret. Surfaces the
+    live capability list so an admin can see the link really works."""
+    key = await _effective_key(db)
+    if not key:
+        return {"ok": False, "reason": "No shared secret set yet."}
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=20) as cli:
+            r = await cli.get("https://sharepoints.letw.org/api/letw/handshake",
+                              headers={"X-API-Key": key})
+        if r.status_code == 401:
+            return {"ok": False, "reason": "sharepoints rejected the secret — make sure both sides match."}
+        if r.status_code >= 300:
+            return {"ok": False, "reason": f"sharepoints responded {r.status_code}."}
+        data = r.json() or {}
+        caps = data.get("capabilities") or {}
+        return {
+            "ok": True,
+            "service": data.get("service"),
+            "status": data.get("status"),
+            "capabilities": sorted(k for k, v in caps.items() if v),
+            "endpoints": data.get("endpoints") or {},
+        }
+    except Exception as e:
+        return {"ok": False, "reason": f"Could not reach sharepoints: {type(e).__name__}"}

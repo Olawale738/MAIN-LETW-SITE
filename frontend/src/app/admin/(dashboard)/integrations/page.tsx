@@ -6,7 +6,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Loader2, Link2, CheckCircle, AlertCircle, Copy, RefreshCw, Save, Eye, Image as ImageIcon } from 'lucide-react'
-import { integrationsApi } from '@/lib/api'
+import { integrationsApi, type SharepointsTest } from '@/lib/api'
 
 export default function AdminIntegrationsPage() {
     const [status, setStatus] = useState<{ configured: boolean; key_preview: string; lookup_url: string } | null>(null)
@@ -17,6 +17,15 @@ export default function AdminIntegrationsPage() {
     const [bapWebhookUrl, setBapWebhookUrl] = useState('')
     const [bapOfficeEmail, setBapOfficeEmail] = useState('')
     const [sealUrl, setSealUrl] = useState('')
+    const [studentUrl, setStudentUrl] = useState('')
+    const [lmsBase, setLmsBase] = useState('')
+    const [lmsKey, setLmsKey] = useState('')
+    const [lmsKeySet, setLmsKeySet] = useState(false)
+    const [lmsPath, setLmsPath] = useState('')
+    const [savingLinks, setSavingLinks] = useState(false)
+    const [testing, setTesting] = useState(false)
+    const [test, setTest] = useState<SharepointsTest | null>(null)
+    const [intakeDefault, setIntakeDefault] = useState('')
     const [savingSeal, setSavingSeal] = useState(false)
     const [savingTargets, setSavingTargets] = useState(false)
     const [loading, setLoading] = useState(true)
@@ -28,6 +37,9 @@ export default function AdminIntegrationsPage() {
         setWebhookUrl(s.sharepoints_webhook_url || ''); setOfficeEmail(s.marriage_office_email || '')
         setBapWebhookUrl(s.baptism_webhook_url || ''); setBapOfficeEmail(s.baptism_office_email || '')
         setSealUrl(s.marriage_seal_url || '')
+        setStudentUrl(s.student_webhook_url || ''); setLmsBase(s.lms_base_url || '')
+        setLmsPath(s.lms_enrol_path || ''); setLmsKeySet(!!s.lms_key_set)
+        setIntakeDefault(s.theology_intake_default || '')
     }).catch(() => setStatus(null)).finally(() => setLoading(false))
     useEffect(() => { refresh() }, [])
     useEffect(() => { if (msg) { const t = setTimeout(() => setMsg(null), 6000); return () => clearTimeout(t) } }, [msg])
@@ -52,6 +64,27 @@ export default function AdminIntegrationsPage() {
         catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
         finally { setSavingTargets(false) }
     }
+    const saveLinks = async () => {
+        setSavingLinks(true)
+        try {
+            await integrationsApi.saveTheologyAndLms({
+                student_webhook_url: studentUrl.trim(),
+                lms_base_url: lmsBase.trim(),
+                lms_enrol_path: lmsPath.trim(),
+                ...(lmsKey.trim() ? { lms_api_key: lmsKey.trim() } : {}),
+            })
+            setLmsKey('')
+            setMsg({ kind: 'ok', text: 'Saved.' }); refresh()
+        } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setSavingLinks(false) }
+    }
+    const runTest = async () => {
+        setTesting(true); setTest(null)
+        try { setTest(await integrationsApi.testSharepoints()) }
+        catch (e) { setTest({ ok: false, reason: (e as Error).message }) }
+        finally { setTesting(false) }
+    }
+
     const onSealFile = (file: File) => {
         const reader = new FileReader()
         reader.onload = () => {
@@ -171,6 +204,65 @@ export default function AdminIntegrationsPage() {
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Connection status */}
+                    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                            <h2 className="font-black text-[#140152]">Connection status</h2>
+                            <button onClick={runTest} disabled={testing} className="inline-flex items-center gap-2 bg-[#140152] text-white font-bold px-3 py-1.5 rounded-lg text-xs disabled:opacity-50">
+                                {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Test connection
+                            </button>
+                        </div>
+                        <p className="text-xs text-gray-500">Asks sharepoints what it can do, using your shared secret.</p>
+                        {test && (test.ok ? (
+                            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                                <p className="text-sm font-bold text-emerald-800 flex items-center gap-1.5"><CheckCircle className="w-4 h-4" /> Connected to {test.service}</p>
+                                {!!test.capabilities?.length && (
+                                    <ul className="mt-2 grid sm:grid-cols-2 gap-x-4 gap-y-1">
+                                        {test.capabilities.map(c => (
+                                            <li key={c} className="text-xs text-emerald-900 flex items-center gap-1.5">
+                                                <CheckCircle className="w-3 h-3 shrink-0" /> {c.replace(/([A-Z])/g, ' $1')}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800 flex items-start gap-2">
+                                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /><span>{test.reason}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Theology School + classroom */}
+                    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+                        <h2 className="font-black text-[#140152] mb-1">Theology School</h2>
+                        <p className="text-xs text-gray-500 mb-3">Where paid applications go for the official offer, admission letter and student ID. The classroom is separate and only runs lessons.</p>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Sharepoints student intake URL</label>
+                                <input value={studentUrl} onChange={e => setStudentUrl(e.target.value)} placeholder={intakeDefault} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
+                                {intakeDefault && !studentUrl && (
+                                    <button onClick={() => setStudentUrl(intakeDefault)} className="mt-1 text-[11px] font-bold text-[#140152] underline">Use the standard URL</button>
+                                )}
+                            </div>
+                            <div className="pt-3 border-t border-gray-100">
+                                <p className="text-[11px] font-black uppercase tracking-widest text-[#140152] mb-2">Classroom (live.letw.org)</p>
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">
+                                    LMS API key {lmsKeySet && <span className="text-emerald-600 normal-case tracking-normal">saved</span>}
+                                </label>
+                                <input value={lmsKey} onChange={e => setLmsKey(e.target.value)} type="password" placeholder={lmsKeySet ? 'leave blank to keep the saved key' : 'paste the classroom key'} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
+                                <p className="text-[11px] text-gray-400 mt-1">The classroom uses this to pull admitted students and to sign students in.</p>
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1 mt-3">Classroom base URL (optional)</label>
+                                <input value={lmsBase} onChange={e => setLmsBase(e.target.value)} placeholder="https://live.letw.org" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1 mt-3">Push enrolment path (optional)</label>
+                                <input value={lmsPath} onChange={e => setLmsPath(e.target.value)} placeholder="leave blank — the classroom pulls from us" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
+                            </div>
+                            <button onClick={saveLinks} disabled={savingLinks} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-4 py-2.5 rounded-lg text-sm disabled:opacity-50">
+                                {savingLinks ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save school and classroom
+                            </button>
                         </div>
                     </div>
 
