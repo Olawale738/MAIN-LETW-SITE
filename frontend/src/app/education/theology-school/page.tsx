@@ -192,6 +192,13 @@ export default function TheologySchoolPage() {
         final_primary_cta:    content.final_primary_cta    || 'Begin Your Application',
         final_secondary_cta:  content.final_secondary_cta  || 'Talk to Admissions',
         final_quote:          content.final_quote          || 'Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth. — 2 Timothy 2:15',
+        // Destinations — admin-editable. Applications and the student portal live
+        // on letw.org; live.letw.org is the classroom only.
+        apply_url:            content.apply_url            || '/theology-school/apply',
+        portal_url:           content.portal_url           || '/education/theology-school/portal',
+        classroom_url:        content.classroom_url        || 'https://live.letw.org/login',
+        portal_cta:           content.portal_cta           || 'Student Portal',
+        classroom_cta:        content.classroom_cta        || 'Enter Classroom',
     }
 
     useEffect(() => {
@@ -280,7 +287,7 @@ export default function TheologySchoolPage() {
                         <a href="#programs" className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-white text-[#140152] font-bold px-8 py-4 rounded-full transition-all hover:scale-105 shadow-2xl">
                             {c.hero_primary_cta} <ArrowRight className="w-4 h-4" />
                         </a>
-                        <a href="#apply" className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white font-bold px-8 py-4 rounded-full transition-all hover:scale-105">
+                        <a href={c.apply_url} className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white font-bold px-8 py-4 rounded-full transition-all hover:scale-105">
                             Apply Now
                         </a>
                     </motion.div>
@@ -599,7 +606,7 @@ export default function TheologySchoolPage() {
                                             ))}
                                         </ul>
 
-                                        <a href="#apply" className="inline-flex items-center gap-2 w-full justify-center bg-[#f5bb00] hover:bg-white text-[#140152] font-black px-6 py-3.5 rounded-full transition-all hover:scale-[1.02] shadow-lg">
+                                        <a href={c.apply_url} className="inline-flex items-center gap-2 w-full justify-center bg-[#f5bb00] hover:bg-white text-[#140152] font-black px-6 py-3.5 rounded-full transition-all hover:scale-[1.02] shadow-lg">
                                             Apply for {currentProgram.subtitle} <ArrowRight className="w-4 h-4" />
                                         </a>
                                     </aside>
@@ -720,9 +727,13 @@ export default function TheologySchoolPage() {
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                        <a href="https://live.letw.org" target="_blank" rel="noopener noreferrer"
+                        <a href={c.apply_url}
                             className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-white text-[#140152] font-bold px-8 py-4 rounded-full transition-all hover:scale-105 shadow-2xl">
                             {c.final_primary_cta} <ArrowRight className="w-4 h-4" />
+                        </a>
+                        <a href={c.portal_url}
+                            className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white font-bold px-8 py-4 rounded-full transition-all hover:scale-105">
+                            {c.portal_cta} <ArrowRight className="w-4 h-4" />
                         </a>
                         <Link href="/contact"
                             className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white font-bold px-8 py-4 rounded-full transition-all hover:scale-105">

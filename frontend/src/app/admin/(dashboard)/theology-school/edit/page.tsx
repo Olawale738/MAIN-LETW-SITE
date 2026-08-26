@@ -131,6 +131,15 @@ export default function TheologyContentEditorPage() {
         gains_eyebrow: 'By the End',
         gains_heading: "What You'll Walk Away With",
     })
+    // Where the page's buttons go. Applications + student portal stay on
+    // letw.org; live.letw.org is the classroom only.
+    const [links, setLinks] = useState({
+        apply_url: '/theology-school/apply',
+        portal_url: '/education/theology-school/portal',
+        classroom_url: 'https://live.letw.org/login',
+        portal_cta: 'Student Portal',
+        classroom_cta: 'Enter Classroom',
+    })
     const [final, setFinal] = useState({
         final_eyebrow: 'The Altar Is Open',
         final_title_line1: 'Step Into',
@@ -223,6 +232,13 @@ export default function TheologyContentEditorPage() {
                     final_secondary_cta:  set(prev, 'final_secondary_cta', prev.final_secondary_cta),
                     final_quote:          set(prev, 'final_quote', prev.final_quote),
                 }))
+                setLinks(prev => ({
+                    apply_url:     set(prev, 'apply_url', prev.apply_url),
+                    portal_url:    set(prev, 'portal_url', prev.portal_url),
+                    classroom_url: set(prev, 'classroom_url', prev.classroom_url),
+                    portal_cta:    set(prev, 'portal_cta', prev.portal_cta),
+                    classroom_cta: set(prev, 'classroom_cta', prev.classroom_cta),
+                }))
                 if (Array.isArray(c.stats) && c.stats.length > 0) setStats(c.stats)
                 if (Array.isArray(c.carousel) && c.carousel.length > 0) setCarousel(c.carousel)
                 if (Array.isArray(c.pillars) && c.pillars.length > 0) setPillars(c.pillars)
@@ -242,7 +258,7 @@ export default function TheologyContentEditorPage() {
         try {
             setSaving(true)
             const content: any = {
-                ...hero, ...sections, ...final,
+                ...hero, ...sections, ...final, ...links,
                 stats: stats.filter(s => s.value?.trim() || s.label?.trim()),
                 carousel: carousel.filter(c => c.value?.trim() || c.label?.trim()),
                 pillars: pillars.filter(p => p.title?.trim()),
@@ -514,6 +530,18 @@ export default function TheologyContentEditorPage() {
                         <Field label="Secondary CTA text" value={final.final_secondary_cta} onChange={v => setFinal({ ...final, final_secondary_cta: v })} />
                     </div>
                     <TextField label="Closing quote (small italic)" value={final.final_quote} onChange={v => setFinal({ ...final, final_quote: v })} rows={2} />
+
+                    <div className="mt-8 pt-6 border-t border-gray-200">
+                        <h3 className="font-black text-[#140152] mb-1">Destinations (where the buttons go)</h3>
+                        <p className="text-xs text-gray-500 mb-3">Applications and the student portal live on letw.org. live.letw.org is the classroom only.</p>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <Field label="Apply button → URL" value={links.apply_url} onChange={v => setLinks({ ...links, apply_url: v })} />
+                            <Field label="Student portal → URL" value={links.portal_url} onChange={v => setLinks({ ...links, portal_url: v })} />
+                            <Field label="Student portal button text" value={links.portal_cta} onChange={v => setLinks({ ...links, portal_cta: v })} />
+                            <Field label="Classroom (LMS) → URL" value={links.classroom_url} onChange={v => setLinks({ ...links, classroom_url: v })} />
+                            <Field label="Classroom button text" value={links.classroom_cta} onChange={v => setLinks({ ...links, classroom_cta: v })} />
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
