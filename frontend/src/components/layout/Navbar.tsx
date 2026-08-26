@@ -102,7 +102,17 @@ export default function Navbar() {
         }
         if (Array.isArray(c.main)       && c.main.length)       setNavLinks(c.main)
         if (Array.isArray(c.ministries) && c.ministries.length) setMinistriesLinks(c.ministries)
-        if (Array.isArray(c.education)  && c.education.length)  setEducationLinks(c.education)
+        if (Array.isArray(c.education)  && c.education.length)  {
+          // Saved nav content replaces the defaults, so a school that saved its
+          // menu before admissions existed would lose the entry points. Append
+          // any essential theology links the saved menu doesn't already carry —
+          // an admin's own entry for the same href always wins.
+          const saved = c.education
+          const essential = DEFAULT_EDUCATION.filter(d =>
+            (d.href === '/theology-school/apply' || d.href === '/education/theology-school/portal') &&
+            !saved.some(x => x.href === d.href))
+          setEducationLinks([...saved, ...essential])
+        }
         if (c.cta_label) setCtaLabel(c.cta_label)
         if (c.cta_href)  setCtaHref(c.cta_href)
         // Only accept custom dropdowns that have BOTH a label and at least
