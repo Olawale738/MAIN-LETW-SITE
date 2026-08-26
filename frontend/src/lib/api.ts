@@ -4636,7 +4636,7 @@ export const analyticsApi = {
 export interface TheologyProgram {
     id: string; name: string; slug: string; summary: string | null; description: string | null
     level: string; duration_months: number; tuition_amount: number; currency: string
-    is_open: boolean; capacity: number | null; sort_order: number; lms_course_code: string | null
+    is_open: boolean; capacity: number | null; sort_order: number; lms_course_code: string | null; program_code: string | null
 }
 export interface TheologyApplication {
     id: string; program_id: string; program_name: string | null

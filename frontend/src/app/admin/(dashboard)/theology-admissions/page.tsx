@@ -13,7 +13,7 @@ import { theologyApi, type TheologyProgram, type TheologyApplication } from '@/l
 
 const BLANK: Partial<TheologyProgram> = {
     name: '', summary: '', level: 'certificate', duration_months: 12,
-    tuition_amount: 0, currency: 'NGN', lms_course_code: '', is_open: true, sort_order: 0,
+    tuition_amount: 0, currency: 'NGN', lms_course_code: '', program_code: '', is_open: true, sort_order: 0,
 }
 
 export default function TheologyAdmissionsPage() {
@@ -182,6 +182,7 @@ export default function TheologyAdmissionsPage() {
                                 <F label="Currency" value={editing.currency || 'NGN'} onChange={v => setEditing({ ...editing, currency: v.toUpperCase() })} />
                             </div>
                             <F label="LMS course code (live.letw.org)" value={editing.lms_course_code || ''} onChange={v => setEditing({ ...editing, lms_course_code: v })} placeholder="e.g. THEO-101" />
+                            <F label="Sharepoints programme code *" value={editing.program_code || ''} onChange={v => setEditing({ ...editing, program_code: v })} placeholder="must match the code on sharepoints" />
                             <label className="flex items-center gap-2 text-sm text-gray-700">
                                 <input type="checkbox" checked={editing.is_open ?? true} onChange={e => setEditing({ ...editing, is_open: e.target.checked })} />
                                 Open for applications

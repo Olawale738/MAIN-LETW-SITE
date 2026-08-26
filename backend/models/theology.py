@@ -33,6 +33,8 @@ class TheologyProgram(Base):
     currency: Mapped[str] = mapped_column(String(10), nullable=False, default="NGN")
     # Course identifier on live.letw.org (LMS) that accepted students are enrolled into.
     lms_course_code: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    # Matches TheologySchoolProgram.code on sharepoints (the system of record).
+    program_code: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
     is_open: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     capacity: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -86,6 +88,14 @@ class TheologyApplication(Base):
     student_id_number: Mapped[Optional[str]] = mapped_column(String(60), nullable=True, index=True)
     student_id_issued_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     student_id_card_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # ── sharepoints enrollment bridge (system of record) ──────────────────────
+    offer_number: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    offer_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    admission_letter_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    bridge_enrollment_id: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    bridge_status: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    bridge_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     admin_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

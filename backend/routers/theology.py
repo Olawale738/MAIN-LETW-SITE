@@ -68,6 +68,7 @@ def _program_out(p: TheologyProgram) -> dict:
         "tuition_amount": float(p.tuition_amount or 0), "currency": p.currency,
         "is_open": p.is_open, "capacity": p.capacity, "sort_order": p.sort_order,
         "lms_course_code": p.lms_course_code,
+        "program_code": p.program_code,
     }
 
 
@@ -188,6 +189,68 @@ async def _issue_admission(db: AsyncSession, a: TheologyApplication, program: Th
         print(f"[theology] admission email failed: {type(e).__name__}: {e}", flush=True)
 
 
+SHAREPOINTS_THEOLOGY_INTAKE = "https://sharepoints.letw.org/api/integrations/theology/enrollments"
+
+
+async def _bridge_to_sharepoints(db: AsyncSession, a: TheologyApplication, program: TheologyProgram) -> None:
+    """Hand the PAID application to sharepoints, which is the system of record for
+    theology enrollment (offer number, admission letter, acceptance, student ID,
+    live.letw.org provisioning and account recovery all live there).
+
+    Best-effort: letw.org keeps its own admission as a fallback so a bridge
+    outage never blocks an applicant.
+    """
+    from routers.integrations import _effective_key
+    key = await _effective_key(db)
+    if not key:
+        a.bridge_status = "unconfigured"
+        a.bridge_error = "Shared secret not set (Admin → Integrations)."
+        await db.commit()
+        return
+    code = (program.program_code or "").strip()
+    if not code:
+        a.bridge_status = "unconfigured"
+        a.bridge_error = "Programme has no sharepoints programme code set."
+        await db.commit()
+        return
+    payload = {
+        "source": "letw.org",
+        "applicationId": a.id,
+        "applicantName": a.full_name,
+        "personalEmail": a.email.lower(),
+        "phone": a.phone or None,
+        "programCode": code,
+        "paymentProvider": "letw.org",
+        "paymentReference": a.payment_reference or a.id,
+        "paidAmount": f"{float(a.amount_paid or 0):.2f}",
+        "currency": (a.currency or program.currency or "NGN").upper()[:3],
+        "paymentStatus": "VERIFIED",
+        "paymentVerifiedAt": (a.paid_at or datetime.utcnow()).isoformat() + "Z",
+    }
+    if a.photo_url and str(a.photo_url).startswith("http"):
+        payload["photoUrl"] = a.photo_url
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=25) as cli:
+            r = await cli.post(SHAREPOINTS_THEOLOGY_INTAKE, json=payload, headers={"X-API-Key": key})
+        if 200 <= r.status_code < 300:
+            data = r.json() or {}
+            body = data.get("data") if isinstance(data.get("data"), dict) else data
+            a.bridge_enrollment_id = str(body.get("enrollmentId") or "") or None
+            a.offer_number = str(body.get("offerNumber") or "") or None
+            a.offer_url = str(body.get("offerUrl") or "") or None
+            a.admission_letter_url = str(body.get("admissionLetterUrl") or "") or None
+            a.bridge_status = "accepted"
+            a.bridge_error = None
+        else:
+            a.bridge_status = "failed"
+            a.bridge_error = f"sharepoints responded {r.status_code}: {r.text[:300]}"
+    except Exception as e:
+        a.bridge_status = "failed"
+        a.bridge_error = f"{type(e).__name__}: {e}"
+    await db.commit()
+
+
 class ConfirmPaymentIn(BaseModel):
     reference: str
 
@@ -224,9 +287,23 @@ async def confirm_payment(app_id: str, body: ConfirmPaymentIn, db: AsyncSession 
     a.status = "paid"
     await db.commit()
 
+    # sharepoints is the system of record — it mints the offer number and the
+    # official admission letter, and emails the applicant.
+    await _bridge_to_sharepoints(db, a, program)
+    await db.refresh(a)
+    if a.bridge_status == "accepted" and a.offer_url:
+        a.status = "admitted"
+        a.admission_number = a.offer_number or a.admission_number
+        a.admission_issued_at = datetime.utcnow()
+        await db.commit()
+        return {"status": a.status, "admission_number": a.admission_number,
+                "offer_url": a.offer_url, "admission_letter_url": a.admission_letter_url,
+                "source": "sharepoints"}
+    # Fallback: issue locally so the applicant is never stuck.
     await _issue_admission(db, a, program)
     return {"status": a.status, "admission_number": a.admission_number,
-            "offer_url": f"{_public_base()}/theology-school/offer/{a.acceptance_token}"}
+            "offer_url": f"{_public_base()}/theology-school/offer/{a.acceptance_token}",
+            "source": "letw.org"}
 
 
 # ── The offer: view / accept / decline ───────────────────────────────────────
@@ -521,6 +598,7 @@ class ProgramIn(BaseModel):
     tuition_amount: float = 0
     currency: str = "NGN"
     lms_course_code: Optional[str] = None
+    program_code: Optional[str] = None
     is_open: bool = True
     capacity: Optional[int] = None
     sort_order: int = 0

@@ -211,6 +211,13 @@ async def init_db():
                 ("integration_settings", "lms_api_key",         "VARCHAR(300)"),
                 ("integration_settings", "lms_enrol_path",      "VARCHAR(300)"),
                 ("integration_settings", "student_webhook_url", "VARCHAR(500)"),
+                ("theology_programs",     "program_code",         "VARCHAR(80)"),
+                ("theology_applications", "offer_number",         "VARCHAR(80)"),
+                ("theology_applications", "offer_url",            "TEXT"),
+                ("theology_applications", "admission_letter_url", "TEXT"),
+                ("theology_applications", "bridge_enrollment_id", "VARCHAR(80)"),
+                ("theology_applications", "bridge_status",        "VARCHAR(40)"),
+                ("theology_applications", "bridge_error",         "TEXT"),
                 # Baptism certificate number on life-event requests
                 ("life_event_requests", "certificate_number", "VARCHAR(40)"),
                 # Couple / candidate photo that travels with the cert handshake
