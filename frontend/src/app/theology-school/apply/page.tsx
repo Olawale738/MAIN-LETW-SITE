@@ -152,7 +152,8 @@ export default function ApplyPage() {
                             : list.length === 0 ? (
                                 <div className="bg-white border border-dashed border-gray-300 rounded-2xl p-8 text-center">
                                     <p className="text-gray-600 text-sm font-semibold">Applications are not open yet.</p>
-                                    <p className="text-gray-500 text-xs mt-1">Our programmes are listed on the <Link href="/education/theology-school" className="underline text-[#140152]">Theology School page</Link>. Admissions open shortly — please check back, or contact the school office.</p>
+                                    <p className="text-gray-500 text-xs mt-1">Admissions for the next cohort open shortly. Leave your details with the school office and we&apos;ll tell you the moment they do.</p>
+                                    <Link href="/contact" className="inline-block mt-3 bg-[#140152] text-white font-bold px-5 py-2.5 rounded-lg text-sm">Contact the school office</Link>
                                 </div>
                             ) : (
                                 <div className="grid sm:grid-cols-2 gap-3 mb-6">

@@ -433,6 +433,35 @@ async def init_db():
                     print("[init_db] seeded welcome blog post", flush=True)
         except Exception as seed_err:
             print(f"[init_db] WARN: blog seed skipped: {type(seed_err).__name__}: {seed_err}", flush=True)
+
+        # Idempotent seed — the Theology School's three programmes exist as soon
+        # as the table does, so an admin only has to set the fee and open them
+        # rather than hunting for an import button. Seeded CLOSED with no fee:
+        # tuition is a decision for the school, never a made-up default.
+        try:
+            from models.theology import TheologyProgram
+            async with AsyncSessionLocal() as db:
+                have = (await db.execute(select(TheologyProgram))).scalars().first()
+                if not have:
+                    ladder = [
+                        ("Certificate in Ministry", "Foundation Program", "certificate",
+                         "Build a strong foundation in biblical studies, theology and practical ministry."),
+                        ("Diploma in Ministry and Divinity", "Intermediate Program", "diploma",
+                         "Deepen your theological understanding and ministry competencies."),
+                        ("Advanced Diploma in Ministry and Divinity", "Advanced Program", "degree",
+                         "Advanced theological study and ministry leadership formation."),
+                    ]
+                    for i, (name, subtitle, level, desc) in enumerate(ladder):
+                        db.add(TheologyProgram(
+                            name=name, slug=name.lower().replace(" ", "-")[:120],
+                            summary=subtitle, description=desc, level=level,
+                            duration_months=12, tuition_amount=0, currency="NGN",
+                            is_open=False, sort_order=i,
+                        ))
+                    await db.commit()
+                    print("[init_db] seeded 3 theology programmes (closed until a fee is set)", flush=True)
+        except Exception as seed_err:
+            print(f"[init_db] WARN: theology seed skipped: {type(seed_err).__name__}: {seed_err}", flush=True)
     except Exception as e:
         # NEVER let a startup-time migration error crash the entire app.
         # An app that runs with stale column definitions is far better than

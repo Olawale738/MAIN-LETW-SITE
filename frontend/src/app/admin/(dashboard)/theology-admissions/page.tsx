@@ -70,6 +70,20 @@ export default function TheologyAdmissionsPage() {
 
             {msg && <div className={`mb-4 p-3 rounded-xl border flex items-start gap-2 text-sm ${msg.kind === 'ok' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>{msg.kind === 'ok' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}<span>{msg.text}</span></div>}
 
+            {!loading && programs.length > 0 && programs.every(p => !p.is_open) && (
+                <div className="mb-4 p-4 rounded-xl border border-amber-300 bg-amber-50 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="font-bold text-amber-900 text-sm">Applications are closed — two steps to open them</p>
+                        <p className="text-amber-800 text-xs mt-1">
+                            Your {programs.length} programmes are ready. For each one: <strong>Edit</strong> → set the
+                            exact fee and currency → tick <strong>Open for applications</strong> → Save.
+                            Until a programme is open, <span className="font-mono">/theology-school/apply</span> has nothing to show.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm mb-5">
                 <button onClick={() => setTab('programs')} className={`px-4 py-1.5 rounded-lg text-xs font-bold ${tab === 'programs' ? 'bg-[#140152] text-white' : 'text-gray-600'}`}>Programmes ({programs.length})</button>
                 <button onClick={() => setTab('applications')} className={`px-4 py-1.5 rounded-lg text-xs font-bold ${tab === 'applications' ? 'bg-[#140152] text-white' : 'text-gray-600'}`}>Applications ({apps.length})</button>
@@ -107,7 +121,11 @@ export default function TheologyAdmissionsPage() {
                                         </div>
                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.is_open ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>{p.is_open ? 'Open' : 'Closed'}</span>
                                     </div>
-                                    <p className="mt-2 font-bold text-[#b8860b]">{p.currency} {Number(p.tuition_amount).toLocaleString()}</p>
+                                    <p className="mt-2 font-bold text-[#b8860b]">
+                                        {Number(p.tuition_amount) > 0
+                                            ? `${p.currency} ${Number(p.tuition_amount).toLocaleString()}`
+                                            : <span className="text-amber-700">Fee not set yet</span>}
+                                    </p>
                                     {p.lms_course_code && <p className="text-[11px] text-gray-400 mt-1">LMS course: <span className="font-mono">{p.lms_course_code}</span></p>}
                                     <div className="flex gap-2 mt-3">
                                         <button onClick={() => setEditing(p)} className="text-xs font-bold text-[#140152] underline">Edit</button>
