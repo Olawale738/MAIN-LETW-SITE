@@ -464,8 +464,11 @@ async def _enrol_in_lms(db: AsyncSession, a: TheologyApplication, program: Optio
     """
     base, key, path = await _lms_settings(db)
     if not path:
-        a.lms_status = "pending"
-        a.lms_error = "LMS enrolment endpoint not configured yet (set it in Admin → Integrations)."
+        # Normal operation: the classroom (live.letw.org) pulls admitted students
+        # from /api/theology/lms/enrolments and creates the seat itself, then
+        # confirms back. Nothing to push — this is not an error.
+        a.lms_status = a.lms_status or "awaiting_classroom"
+        a.lms_error = None
         await db.commit()
         return
     payload = {
@@ -725,3 +728,151 @@ async def admin_reset_access(app_id: str, db: AsyncSession = Depends(get_db), _:
     except Exception as e:
         print(f"[theology] reset email failed: {type(e).__name__}: {e}", flush=True)
     return {"ok": True, "email": u.email, "lms_status": a.lms_status}
+
+
+# ── LMS-facing API: live.letw.org pulls and handles enrolment itself ─────────
+#
+# The classroom (live.letw.org) owns enrolment. Rather than letw.org pushing
+# into the LMS, the LMS calls these endpoints on its own schedule:
+#
+#   GET  /api/theology/lms/enrolments            who is admitted and needs a seat
+#   POST /api/theology/lms/enrolments/{adm}/confirm   report the seat was created
+#   POST /api/theology/lms/auth/verify           sign a student in with their
+#                                                letw.org email + password
+#
+# All three are machine-to-machine and require the shared LMS key in X-API-Key
+# (Admin → Integrations → LMS), so no LMS endpoint contract is needed here.
+
+async def _lms_key(db: AsyncSession) -> str:
+    from config import settings as cfg
+    try:
+        from models.integration import IntegrationSettings
+        row = (await db.execute(select(IntegrationSettings).where(IntegrationSettings.id == "default"))).scalar_one_or_none()
+        if row and (getattr(row, "lms_api_key", None) or "").strip():
+            return row.lms_api_key.strip()
+    except Exception:
+        pass
+    return (getattr(cfg, "LMS_API_KEY", "") or "").strip()
+
+
+async def _require_lms(db: AsyncSession, x_api_key: str) -> None:
+    expected = await _lms_key(db)
+    if not expected:
+        raise HTTPException(503, "LMS integration key is not configured yet (Admin → Integrations).")
+    if not x_api_key or not hmac.compare_digest(x_api_key.strip(), expected):
+        raise HTTPException(401, "Invalid or missing X-API-Key.")
+
+
+def _lms_student(a: TheologyApplication, program: Optional[TheologyProgram]) -> dict:
+    return {
+        "admission_number": a.admission_number,
+        "application_id": a.id,
+        "full_name": a.full_name,
+        "email": (a.email or "").lower(),          # the LMS username
+        "phone": a.phone,
+        "program": program.name if program else None,
+        "course_code": program.lms_course_code if program else None,
+        "program_code": program.program_code if program else None,
+        "duration_months": program.duration_months if program else None,
+        "accepted_at": a.accepted_at.isoformat() if a.accepted_at else None,
+        "enrolment_status": a.lms_status or "pending",
+        "student_id_number": a.student_id_number,
+        "issuer": "letw.org",
+    }
+
+
+@router.get("/lms/enrolments")
+async def lms_list_enrolments(
+    status: str = "pending",
+    limit: int = 200,
+    x_api_key: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Students the classroom should enrol.
+
+    `status=pending` (default) returns everyone who has accepted their offer but
+    has no confirmed seat yet. `status=all` returns every accepted student.
+    """
+    await _require_lms(db, x_api_key)
+    q = select(TheologyApplication).where(TheologyApplication.status.in_(["accepted", "enrolled"]))
+    if status == "pending":
+        q = q.where((TheologyApplication.lms_status.is_(None)) | (TheologyApplication.lms_status != "enrolled"))
+    rows = (await db.execute(q.order_by(desc(TheologyApplication.accepted_at)).limit(min(max(limit, 1), 500)))).scalars().all()
+    out = []
+    for a in rows:
+        out.append(_lms_student(a, await _get_program(db, a.program_id)))
+    return {"count": len(out), "students": out}
+
+
+class LmsConfirmIn(BaseModel):
+    enrolled: bool = True
+    lms_user_id: Optional[str] = None
+    course_code: Optional[str] = None
+    note: Optional[str] = None
+
+
+@router.post("/lms/enrolments/{admission_number}/confirm")
+async def lms_confirm_enrolment(
+    admission_number: str,
+    body: LmsConfirmIn,
+    x_api_key: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """The classroom reports that it created (or failed to create) the seat."""
+    await _require_lms(db, x_api_key)
+    ref = (admission_number or "").strip()
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.admission_number == ref))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "No student matches that admission number.")
+    if body.enrolled:
+        a.lms_status = "enrolled"
+        a.lms_enrolled_at = datetime.utcnow()
+        a.lms_error = None
+        if a.status == "accepted":
+            a.status = "enrolled"
+    else:
+        a.lms_status = "failed"
+        a.lms_error = (body.note or "The classroom reported an enrolment failure.")[:1000]
+    await db.commit()
+    return {"ok": True, "admission_number": ref, "enrolment_status": a.lms_status}
+
+
+class LmsAuthIn(BaseModel):
+    email: EmailStr
+    password: str
+
+
+@router.post("/lms/auth/verify")
+async def lms_verify_student(
+    body: LmsAuthIn,
+    x_api_key: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Sign a student in to the classroom using their letw.org credentials.
+
+    Returns the student's profile only when the password is correct AND they
+    hold an accepted/enrolled place — so the classroom never has to store or
+    manage passwords of its own.
+    """
+    await _require_lms(db, x_api_key)
+    from utils.security import verify_password
+    from models.user import UserStatus
+
+    email = (body.email or "").strip().lower()
+    u = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
+    generic = {"authenticated": False, "reason": "Invalid email or password."}
+    if not u or not u.password_hash or not verify_password(body.password, u.password_hash):
+        return generic
+    if u.status != UserStatus.ACTIVE:
+        return {"authenticated": False, "reason": "This account is not active."}
+
+    a = (await db.execute(
+        select(TheologyApplication)
+        .where(TheologyApplication.email == email,
+               TheologyApplication.status.in_(["accepted", "enrolled"]))
+        .order_by(desc(TheologyApplication.accepted_at))
+    )).scalars().first()
+    if not a:
+        return {"authenticated": False, "reason": "No active theology enrolment for this account."}
+
+    return {"authenticated": True, "student": _lms_student(a, await _get_program(db, a.program_id))}
