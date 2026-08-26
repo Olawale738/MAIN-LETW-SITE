@@ -26,4 +26,11 @@ class IntegrationSettings(Base):
     # Admin-adjustable church seal image (uploaded data-URL or link) printed on
     # the marriage/baptism certificates; flows to sharepoints via the handshake.
     marriage_seal_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # live.letw.org (LMS) connection — bespoke PHP app, so the enrolment path is
+    # admin-configurable rather than hard-coded.
+    lms_base_url: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    lms_api_key: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    lms_enrol_path: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    # sharepoints student-ID intake
+    student_webhook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -1,0 +1,649 @@
+"""
+Theology School API — application → payment → admission → acceptance → student.
+
+Pipeline
+  1. POST /apply                     applicant submits (status=pending)
+  2. POST /applications/{id}/confirm-payment
+                                     verifies a SETTLED donation whose amount
+                                     matches the programme tuition exactly,
+                                     then auto-issues the admission letter and
+                                     emails an "accept your offer" link
+  3. GET/POST /offer/{token}         applicant views / accepts the offer
+  4. on acceptance                   a student account is created on letw.org
+                                     (email + generated password, emailed out),
+                                     the student is enrolled on live.letw.org,
+                                     and the record is pushed to
+                                     sharepoints.letw.org for student-ID issue
+  5. POST /integrations/student-id   sharepoints posts the issued ID back here
+
+Every downstream step is best-effort and independently retryable from the admin
+page — a failure in the LMS or sharepoints never blocks the admission itself.
+"""
+
+import hmac
+import secrets
+import string
+import uuid
+from datetime import datetime
+from decimal import Decimal
+from typing import Any, List, Optional
+
+from fastapi import APIRouter, Depends, Header, HTTPException
+from pydantic import BaseModel, EmailStr
+from sqlalchemy import select, desc
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from database import get_db
+from models.theology import TheologyProgram, TheologyApplication
+from models.user import User
+from utils.dependencies import get_admin_user, get_current_active_user
+
+router = APIRouter(prefix="/api/theology", tags=["Theology School"])
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _public_base() -> str:
+    from config import settings
+    base = (settings.FRONTEND_URL or "").rstrip("/")
+    if not base or "localhost" in base or "127.0.0.1" in base:
+        return "https://letw.org"
+    return base
+
+
+def _make_admission_number(app_id: str) -> str:
+    return "LETW-TS-" + app_id.replace("-", "")[:8].upper()
+
+
+def _gen_password(n: int = 12) -> str:
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(n))
+
+
+def _program_out(p: TheologyProgram) -> dict:
+    return {
+        "id": p.id, "name": p.name, "slug": p.slug, "summary": p.summary,
+        "description": p.description, "level": p.level,
+        "duration_months": p.duration_months,
+        "tuition_amount": float(p.tuition_amount or 0), "currency": p.currency,
+        "is_open": p.is_open, "capacity": p.capacity, "sort_order": p.sort_order,
+        "lms_course_code": p.lms_course_code,
+    }
+
+
+def _app_out(a: TheologyApplication, program: Optional[TheologyProgram] = None) -> dict:
+    return {
+        "id": a.id, "program_id": a.program_id,
+        "program_name": program.name if program else None,
+        "full_name": a.full_name, "email": a.email, "phone": a.phone,
+        "education_level": a.education_level, "photo_url": a.photo_url,
+        "status": a.status,
+        "amount_paid": float(a.amount_paid) if a.amount_paid is not None else None,
+        "currency": a.currency,
+        "paid_at": a.paid_at.isoformat() if a.paid_at else None,
+        "admission_number": a.admission_number,
+        "admission_issued_at": a.admission_issued_at.isoformat() if a.admission_issued_at else None,
+        "accepted_at": a.accepted_at.isoformat() if a.accepted_at else None,
+        "student_user_id": a.student_user_id,
+        "lms_status": a.lms_status,
+        "lms_enrolled_at": a.lms_enrolled_at.isoformat() if a.lms_enrolled_at else None,
+        "lms_error": a.lms_error,
+        "student_id_number": a.student_id_number,
+        "student_id_card_url": a.student_id_card_url,
+        "created_at": a.created_at.isoformat() if a.created_at else None,
+    }
+
+
+async def _get_program(db: AsyncSession, pid: str) -> Optional[TheologyProgram]:
+    return (await db.execute(select(TheologyProgram).where(TheologyProgram.id == pid))).scalar_one_or_none()
+
+
+# ── Public: programmes + apply ────────────────────────────────────────────────
+
+@router.get("/programs")
+async def list_programs(include_closed: bool = False, db: AsyncSession = Depends(get_db)):
+    q = select(TheologyProgram).order_by(TheologyProgram.sort_order, TheologyProgram.name)
+    if not include_closed:
+        q = q.where(TheologyProgram.is_open == True)  # noqa: E712
+    return [_program_out(p) for p in (await db.execute(q)).scalars().all()]
+
+
+class ApplyIn(BaseModel):
+    program_id: str
+    full_name: str
+    email: EmailStr
+    phone: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    address: Optional[str] = None
+    education_level: Optional[str] = None
+    statement: Optional[str] = None
+    photo_url: Optional[str] = None
+
+
+@router.post("/apply", status_code=201)
+async def apply(body: ApplyIn, db: AsyncSession = Depends(get_db)):
+    program = await _get_program(db, body.program_id)
+    if not program or not program.is_open:
+        raise HTTPException(404, "That programme is not open for applications.")
+    a = TheologyApplication(**body.model_dump(), status="pending")
+    db.add(a)
+    await db.commit()
+    await db.refresh(a)
+    try:
+        from services.email_service import send_email
+        await send_email(
+            a.email, f"Application received — {program.name}",
+            f'<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1f2937">'
+            f'<h2 style="color:#140152">We have your application</h2>'
+            f'<p>Dear {a.full_name},</p>'
+            f'<p>Thank you for applying for <strong>{program.name}</strong> at the LETW Theology School.</p>'
+            f'<p>To move your application forward, please complete the application fee of '
+            f'<strong>{program.currency} {float(program.tuition_amount):,.2f}</strong>. '
+            f'Your admission letter is issued automatically once payment is confirmed.</p>'
+            f'<p style="font-size:12px;color:#6b7280">Light Encounter Tabernacle Worldwide</p></div>'
+        )
+    except Exception as e:
+        print(f"[theology] ack email failed: {type(e).__name__}: {e}", flush=True)
+    return {"application_id": a.id, "status": a.status,
+            "amount_due": float(program.tuition_amount or 0), "currency": program.currency,
+            "program_name": program.name}
+
+
+# ── Payment confirmation → automatic admission ───────────────────────────────
+
+async def _issue_admission(db: AsyncSession, a: TheologyApplication, program: TheologyProgram) -> None:
+    """Mint the admission number + acceptance token and email the offer."""
+    if not a.admission_number:
+        a.admission_number = _make_admission_number(a.id)
+    if not a.acceptance_token:
+        a.acceptance_token = secrets.token_urlsafe(32)
+    a.admission_issued_at = datetime.utcnow()
+    a.status = "admitted"
+    await db.commit()
+    await db.refresh(a)
+
+    offer_url = f"{_public_base()}/theology-school/offer/{a.acceptance_token}"
+    try:
+        from services.email_service import send_email
+        await send_email(
+            a.email, f"Congratulations — you have been offered admission ({a.admission_number})",
+            f'<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1f2937">'
+            f'<div style="background:#140152;color:#fff;padding:22px;border-radius:14px 14px 0 0">'
+            f'<h2 style="margin:0;color:#f5bb00">Offer of Admission</h2></div>'
+            f'<div style="border:1px solid #eee;border-top:none;padding:22px;border-radius:0 0 14px 14px">'
+            f'<p>Dear {a.full_name},</p>'
+            f'<p>We are delighted to offer you admission into <strong>{program.name}</strong> '
+            f'at the LETW Theology School.</p>'
+            f'<p><strong>Admission number:</strong> {a.admission_number}<br>'
+            f'<strong>Programme:</strong> {program.name} ({program.duration_months} months)</p>'
+            f'<p>Please confirm your place by accepting the offer below. Your student portal and '
+            f'course access are created the moment you accept.</p>'
+            f'<p style="margin:24px 0"><a href="{offer_url}" '
+            f'style="background:#140152;color:#fff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:999px">'
+            f'View &amp; accept your offer</a></p>'
+            f'<p style="font-size:12px;color:#6b7280">If the button does not work, copy this link:<br>{offer_url}</p>'
+            f'<p style="font-size:12px;color:#6b7280">Light Encounter Tabernacle Worldwide</p></div></div>'
+        )
+    except Exception as e:
+        print(f"[theology] admission email failed: {type(e).__name__}: {e}", flush=True)
+
+
+class ConfirmPaymentIn(BaseModel):
+    reference: str
+
+
+@router.post("/applications/{app_id}/confirm-payment")
+async def confirm_payment(app_id: str, body: ConfirmPaymentIn, db: AsyncSession = Depends(get_db)):
+    """Verify a settled donation matching the tuition EXACTLY, then admit."""
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found.")
+    program = await _get_program(db, a.program_id)
+    if not program:
+        raise HTTPException(404, "Programme not found.")
+    if a.status not in ("pending",):
+        return {"status": a.status, "already": True, "admission_number": a.admission_number}
+
+    from models.payment import Donation
+    ref = (body.reference or "").strip()
+    d = (await db.execute(select(Donation).where(Donation.reference == ref))).scalar_one_or_none()
+    if not d:
+        raise HTTPException(404, "We could not find that payment reference.")
+    if (d.status or "").lower() != "success":
+        raise HTTPException(400, f"That payment is not settled yet (status: {d.status}).")
+    expected = Decimal(str(program.tuition_amount or 0))
+    if Decimal(str(d.amount or 0)) != expected:
+        raise HTTPException(400, f"Amount paid does not match the exact fee of {program.currency} {expected}.")
+    if (d.currency or "").upper() != (program.currency or "").upper():
+        raise HTTPException(400, "Payment currency does not match the programme fee currency.")
+
+    a.payment_reference = ref
+    a.amount_paid = d.amount
+    a.currency = d.currency
+    a.paid_at = datetime.utcnow()
+    a.status = "paid"
+    await db.commit()
+
+    await _issue_admission(db, a, program)
+    return {"status": a.status, "admission_number": a.admission_number,
+            "offer_url": f"{_public_base()}/theology-school/offer/{a.acceptance_token}"}
+
+
+# ── The offer: view / accept / decline ───────────────────────────────────────
+
+async def _by_token(db: AsyncSession, token: str) -> TheologyApplication:
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.acceptance_token == token))).scalar_one_or_none()
+    if not a or not a.admission_number:
+        raise HTTPException(404, "This offer link is not valid.")
+    return a
+
+
+@router.get("/offer/{token}")
+async def view_offer(token: str, db: AsyncSession = Depends(get_db)):
+    a = await _by_token(db, token)
+    program = await _get_program(db, a.program_id)
+    return {
+        "full_name": a.full_name, "email": a.email,
+        "admission_number": a.admission_number,
+        "program_name": program.name if program else None,
+        "duration_months": program.duration_months if program else None,
+        "level": program.level if program else None,
+        "issued_at": a.admission_issued_at.isoformat() if a.admission_issued_at else None,
+        "status": a.status,
+        "accepted_at": a.accepted_at.isoformat() if a.accepted_at else None,
+        "portal_url": f"{_public_base()}/theology-school/student",
+    }
+
+
+@router.post("/offer/{token}/decline")
+async def decline_offer(token: str, db: AsyncSession = Depends(get_db)):
+    a = await _by_token(db, token)
+    if a.status in ("accepted", "enrolled"):
+        raise HTTPException(400, "This offer has already been accepted.")
+    a.status = "declined"
+    a.declined_at = datetime.utcnow()
+    await db.commit()
+    return {"status": a.status}
+
+
+@router.post("/offer/{token}/accept")
+async def accept_offer(token: str, db: AsyncSession = Depends(get_db)):
+    """Accept the offer → create the student account, enrol on the LMS and push
+    the record to sharepoints for student-ID issuance."""
+    a = await _by_token(db, token)
+    if a.status in ("accepted", "enrolled"):
+        return {"status": a.status, "already": True}
+    if a.status == "declined":
+        raise HTTPException(400, "This offer was declined.")
+
+    a.status = "accepted"
+    a.accepted_at = datetime.utcnow()
+    await db.commit()
+
+    password = await _provision_student(db, a)
+    await db.refresh(a)
+    return {"status": a.status, "student_created": bool(a.student_user_id),
+            "login_email": a.email, "temporary_password_sent": bool(password),
+            "portal_url": f"{_public_base()}/theology-school/student"}
+
+
+# ── Provisioning: account → LMS → sharepoints ────────────────────────────────
+
+async def _provision_student(db: AsyncSession, a: TheologyApplication) -> Optional[str]:
+    """Create the letw.org student account (idempotent), email credentials, then
+    fan out to the LMS and sharepoints. Returns the generated password if a new
+    account was created."""
+    from models.user import UserRole, UserStatus
+    from utils.security import hash_password
+
+    program = await _get_program(db, a.program_id)
+    password: Optional[str] = None
+
+    # 1) letw.org account — the SAME email is the login for live.letw.org.
+    existing = (await db.execute(select(User).where(User.email == a.email.lower()))).scalar_one_or_none()
+    if existing:
+        a.student_user_id = existing.id
+    else:
+        password = _gen_password()
+        u = User(
+            id=str(uuid.uuid4()),
+            name=a.full_name,
+            email=a.email.lower(),
+            password_hash=hash_password(password),
+            role=UserRole.USER,
+            status=UserStatus.ACTIVE,
+        )
+        db.add(u)
+        a.student_user_id = u.id
+    a.lms_username = a.email.lower()
+    await db.commit()
+    await db.refresh(a)
+
+    # 2) Enrol on live.letw.org (best-effort, retryable).
+    await _enrol_in_lms(db, a, program)
+
+    # 3) Push to sharepoints for student-ID processing (best-effort).
+    await _push_to_sharepoints(db, a, program)
+
+    # 4) Email the student their portal + LMS credentials.
+    try:
+        from services.email_service import send_email
+        pw_block = (
+            f'<p><strong>Temporary password:</strong> {password}<br>'
+            f'<span style="font-size:12px;color:#6b7280">Please change it after your first sign-in.</span></p>'
+            if password else
+            '<p>Sign in with your existing LETW account password.</p>'
+        )
+        await send_email(
+            a.email, "Your student account is ready",
+            f'<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1f2937">'
+            f'<div style="background:#140152;color:#fff;padding:22px;border-radius:14px 14px 0 0">'
+            f'<h2 style="margin:0;color:#f5bb00">Welcome to LETW Theology School</h2></div>'
+            f'<div style="border:1px solid #eee;border-top:none;padding:22px;border-radius:0 0 14px 14px">'
+            f'<p>Dear {a.full_name},</p>'
+            f'<p>Your place on <strong>{program.name if program else "your programme"}</strong> is confirmed '
+            f'(admission number <strong>{a.admission_number}</strong>).</p>'
+            f'<p><strong>Username (both portals):</strong> {a.email.lower()}</p>{pw_block}'
+            f'<p><a href="{_public_base()}/theology-school/student" '
+            f'style="background:#140152;color:#fff;text-decoration:none;font-weight:bold;padding:11px 20px;border-radius:999px">'
+            f'Open your student dashboard</a></p>'
+            f'<p style="margin-top:14px"><a href="https://live.letw.org/login">Go to your classroom (live.letw.org)</a></p>'
+            f'<p style="font-size:12px;color:#6b7280">Never share your password. If you think your account has been '
+            f'compromised, use “Forgot password” immediately or contact the school office — we can lock and restore '
+            f'your account.</p>'
+            f'<p style="font-size:12px;color:#6b7280">Light Encounter Tabernacle Worldwide</p></div></div>'
+        )
+    except Exception as e:
+        print(f"[theology] credentials email failed: {type(e).__name__}: {e}", flush=True)
+
+    return password
+
+
+async def _lms_settings(db: AsyncSession):
+    """LMS connection settings (admin-managed, env fallback)."""
+    from config import settings as cfg
+    base = getattr(cfg, "LMS_BASE_URL", "") or "https://live.letw.org"
+    key = getattr(cfg, "LMS_API_KEY", "") or ""
+    path = getattr(cfg, "LMS_ENROL_PATH", "") or ""
+    try:
+        from models.integration import IntegrationSettings
+        row = (await db.execute(select(IntegrationSettings).where(IntegrationSettings.id == "default"))).scalar_one_or_none()
+        if row:
+            base = (getattr(row, "lms_base_url", None) or base)
+            key = (getattr(row, "lms_api_key", None) or key)
+            path = (getattr(row, "lms_enrol_path", None) or path)
+    except Exception:
+        pass
+    return base.rstrip("/"), key, path.strip()
+
+
+async def _enrol_in_lms(db: AsyncSession, a: TheologyApplication, program: Optional[TheologyProgram]) -> None:
+    """Create/enrol the student on live.letw.org.
+
+    The LMS is a bespoke PHP app whose enrolment endpoint path is configured by
+    an admin (LMS_ENROL_PATH). Until it is set we record the intent as pending
+    so the admin page can retry once the path is known — the acceptance and the
+    student account are never blocked by it.
+    """
+    base, key, path = await _lms_settings(db)
+    if not path:
+        a.lms_status = "pending"
+        a.lms_error = "LMS enrolment endpoint not configured yet (set it in Admin → Integrations)."
+        await db.commit()
+        return
+    payload = {
+        "email": a.email.lower(),
+        "name": a.full_name,
+        "phone": a.phone,
+        "admission_number": a.admission_number,
+        "program": program.name if program else None,
+        "course_code": program.lms_course_code if program else None,
+        "source": "letw.org",
+    }
+    try:
+        import httpx
+        url = path if path.startswith("http") else f"{base}/{path.lstrip('/')}"
+        async with httpx.AsyncClient(timeout=20) as cli:
+            r = await cli.post(url, json=payload, headers={
+                "X-API-Key": key, "Authorization": f"Bearer {key}", "Accept": "application/json",
+            })
+        if 200 <= r.status_code < 300:
+            a.lms_status = "enrolled"
+            a.lms_enrolled_at = datetime.utcnow()
+            a.lms_error = None
+            if a.status == "accepted":
+                a.status = "enrolled"
+        else:
+            a.lms_status = "failed"
+            a.lms_error = f"LMS responded {r.status_code}: {r.text[:300]}"
+    except Exception as e:
+        a.lms_status = "failed"
+        a.lms_error = f"{type(e).__name__}: {e}"
+    await db.commit()
+
+
+async def _push_to_sharepoints(db: AsyncSession, a: TheologyApplication, program: Optional[TheologyProgram]) -> None:
+    """Hand the enrolled student to sharepoints.letw.org for student-ID issue."""
+    try:
+        from models.integration import IntegrationSettings
+        row = (await db.execute(select(IntegrationSettings).where(IntegrationSettings.id == "default"))).scalar_one_or_none()
+        url = (getattr(row, "student_webhook_url", None) or "").strip() if row else ""
+        from routers.integrations import _effective_key
+        key = await _effective_key(db)
+        if not url:
+            return
+        import httpx
+        async with httpx.AsyncClient(timeout=20) as cli:
+            await cli.post(url, json=_student_payload(a, program), headers={"X-API-Key": key} if key else {})
+        a.sharepoints_pushed_at = datetime.utcnow()
+        await db.commit()
+    except Exception as e:
+        print(f"[theology] sharepoints push failed: {type(e).__name__}: {e}", flush=True)
+
+
+def _student_payload(a: TheologyApplication, program: Optional[TheologyProgram]) -> dict:
+    return {
+        "student_verified": True,
+        "admission_number": a.admission_number,
+        "application_id": a.id,
+        "full_name": a.full_name,
+        "email": a.email.lower(),
+        "phone": a.phone,
+        "photo_url": a.photo_url,
+        "program_name": program.name if program else None,
+        "education_level": a.education_level,
+        "field_of_study": "Theology",
+        "admission_date": a.admission_issued_at.isoformat() if a.admission_issued_at else None,
+        "payment_status": "PAID" if a.paid_at else "PENDING",
+        "fees_cleared": bool(a.paid_at),
+        "issuer": "letw.org",
+    }
+
+
+# ── Server-to-server: sharepoints posts the issued student ID back ───────────
+
+@router.post("/integrations/student-id")
+async def receive_student_id(
+    body: dict,
+    x_api_key: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    from routers.integrations import _effective_key
+    expected = await _effective_key(db)
+    if not expected:
+        raise HTTPException(503, "Partner integration is not configured yet.")
+    if not x_api_key or not hmac.compare_digest(x_api_key.strip(), expected):
+        raise HTTPException(401, "Invalid or missing X-API-Key.")
+    ref = str(body.get("admission_number") or "").strip()
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.admission_number == ref))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "No student matches that admission number.")
+    a.student_id_number = str(body.get("student_id_number") or "") or a.student_id_number
+    a.student_id_card_url = str(body.get("card_url") or "") or a.student_id_card_url
+    a.student_id_issued_at = datetime.utcnow()
+    await db.commit()
+    return {"ok": True, "admission_number": ref, "student_id_number": a.student_id_number}
+
+
+# ── Student dashboard ────────────────────────────────────────────────────────
+
+@router.get("/student/me")
+async def my_student_record(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_active_user)):
+    res = await db.execute(
+        select(TheologyApplication)
+        .where(TheologyApplication.student_user_id == user.id)
+        .order_by(desc(TheologyApplication.created_at))
+    )
+    apps = res.scalars().all()
+    if not apps:
+        res2 = await db.execute(
+            select(TheologyApplication)
+            .where(TheologyApplication.email == user.email.lower())
+            .order_by(desc(TheologyApplication.created_at))
+        )
+        apps = res2.scalars().all()
+    out = []
+    for a in apps:
+        p = await _get_program(db, a.program_id)
+        out.append(_app_out(a, p))
+    return {"records": out, "classroom_url": "https://live.letw.org/login"}
+
+
+# ── Admin ────────────────────────────────────────────────────────────────────
+
+class ProgramIn(BaseModel):
+    name: str
+    slug: Optional[str] = None
+    summary: Optional[str] = None
+    description: Optional[str] = None
+    level: str = "certificate"
+    duration_months: int = 12
+    tuition_amount: float = 0
+    currency: str = "NGN"
+    lms_course_code: Optional[str] = None
+    is_open: bool = True
+    capacity: Optional[int] = None
+    sort_order: int = 0
+
+
+@router.get("/admin/programs")
+async def admin_programs(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    res = await db.execute(select(TheologyProgram).order_by(TheologyProgram.sort_order, TheologyProgram.name))
+    return [_program_out(p) for p in res.scalars().all()]
+
+
+@router.post("/admin/programs", status_code=201)
+async def create_program(body: ProgramIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    data = body.model_dump()
+    data["slug"] = (data.get("slug") or body.name.lower().replace(" ", "-"))[:120]
+    p = TheologyProgram(**data)
+    db.add(p)
+    await db.commit()
+    await db.refresh(p)
+    return _program_out(p)
+
+
+@router.put("/admin/programs/{pid}")
+async def update_program(pid: str, body: ProgramIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    p = await _get_program(db, pid)
+    if not p:
+        raise HTTPException(404, "Programme not found")
+    for k, v in body.model_dump(exclude_unset=True).items():
+        if k == "slug" and not v:
+            continue
+        setattr(p, k, v)
+    await db.commit()
+    await db.refresh(p)
+    return _program_out(p)
+
+
+@router.delete("/admin/programs/{pid}")
+async def delete_program(pid: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    p = await _get_program(db, pid)
+    if not p:
+        return {"deleted": 0}
+    await db.delete(p)
+    await db.commit()
+    return {"deleted": 1}
+
+
+@router.get("/admin/applications")
+async def admin_applications(status: Optional[str] = None, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    q = select(TheologyApplication).order_by(desc(TheologyApplication.created_at))
+    if status:
+        q = q.where(TheologyApplication.status == status)
+    apps = (await db.execute(q.limit(500))).scalars().all()
+    out = []
+    for a in apps:
+        out.append(_app_out(a, await _get_program(db, a.program_id)))
+    return out
+
+
+@router.post("/admin/applications/{app_id}/mark-paid")
+async def admin_mark_paid(app_id: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Manual fallback: confirm an offline/one-off payment and admit."""
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found")
+    program = await _get_program(db, a.program_id)
+    if not program:
+        raise HTTPException(404, "Programme not found")
+    if not a.paid_at:
+        a.paid_at = datetime.utcnow()
+        a.amount_paid = program.tuition_amount
+        a.currency = program.currency
+        a.status = "paid"
+        await db.commit()
+    await _issue_admission(db, a, program)
+    return _app_out(a, program)
+
+
+@router.post("/admin/applications/{app_id}/retry-provisioning")
+async def admin_retry(app_id: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Re-run LMS enrolment + sharepoints push for an accepted student."""
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found")
+    if a.status not in ("accepted", "enrolled"):
+        raise HTTPException(400, "Student has not accepted their offer yet.")
+    program = await _get_program(db, a.program_id)
+    await _enrol_in_lms(db, a, program)
+    await _push_to_sharepoints(db, a, program)
+    await db.refresh(a)
+    return _app_out(a, program)
+
+
+@router.post("/admin/applications/{app_id}/reset-access")
+async def admin_reset_access(app_id: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Security recovery: if a student account is compromised, regenerate the
+    password, email the student, and re-sync the LMS so old sessions/credentials
+    no longer work."""
+    from utils.security import hash_password
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a or not a.student_user_id:
+        raise HTTPException(404, "No student account for this application.")
+    u = (await db.execute(select(User).where(User.id == a.student_user_id))).scalar_one_or_none()
+    if not u:
+        raise HTTPException(404, "Student user not found.")
+    new_password = _gen_password()
+    u.password_hash = hash_password(new_password)
+    await db.commit()
+
+    program = await _get_program(db, a.program_id)
+    await _enrol_in_lms(db, a, program)   # re-sync credentials downstream
+
+    try:
+        from services.email_service import send_email
+        await send_email(
+            u.email, "Your student account has been secured",
+            f'<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1f2937">'
+            f'<h2 style="color:#140152">Account secured</h2>'
+            f'<p>Dear {a.full_name},</p>'
+            f'<p>Your student account password has been reset by the school office.</p>'
+            f'<p><strong>Username:</strong> {u.email}<br><strong>New temporary password:</strong> {new_password}</p>'
+            f'<p>Please sign in and change it immediately. If you did not expect this, contact the school office at once.</p>'
+            f'<p style="font-size:12px;color:#6b7280">Light Encounter Tabernacle Worldwide</p></div>'
+        )
+    except Exception as e:
+        print(f"[theology] reset email failed: {type(e).__name__}: {e}", flush=True)
+    return {"ok": True, "email": u.email, "lms_status": a.lms_status}

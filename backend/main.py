@@ -141,6 +141,9 @@ app.include_router(evangelism.router)
 from routers import analytics
 app.include_router(analytics.router)
 
+from routers import theology
+app.include_router(theology.router)
+
 # Newsletter (subscribe + admin broadcast)
 from routers import newsletter
 app.include_router(newsletter.router)
