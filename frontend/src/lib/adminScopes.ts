@@ -66,6 +66,7 @@ export const ROUTE_SCOPES: Record<string, string> = {
     '/admin/sanctuary': 'sanctuary',
     '/admin/sms': 'sms',
     '/admin/integrations': 'integrations',
+    '/admin/theology-admissions': 'theology',
     '/admin/users': 'users',
 }
 

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell, Heart, Sparkles, FileText, Tag, Plus, BarChart, ChevronRight, Mail, ShieldCheck, Image as ImageIcon, PenSquare, Share2, Database } from 'lucide-react'
+import { GraduationCap, LayoutDashboard, Video, Calendar, Settings, LogOut, Users, Home, ClipboardList, Megaphone, Crown, ChevronDown, Menu, X, BookOpen, Target, HandHeart, Music, Book, Globe, Radio, Church, MessageCircle, Zap, Baby, UserCheck, Bell, Heart, Sparkles, FileText, Tag, Plus, BarChart, ChevronRight, Mail, ShieldCheck, Image as ImageIcon, PenSquare, Share2, Database } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tokenManager, chatApi, serviceRequestApi, moderatorsApi, type MyPermissions } from '@/lib/api'
 import { canAccess } from '@/lib/adminScopes'
@@ -106,6 +106,7 @@ const sidebarItems: SidebarItem[] = [
             { title: "Men's Ministry",        href: '/admin/men',                    icon: ShieldCheck },
             { title: "Women's Ministry",      href: '/admin/women',                  icon: Heart },
             { title: 'Theology School',       href: '/admin/theology-school',        icon: BookOpen },
+            { title: 'Theology Admissions',   href: '/admin/theology-admissions',    icon: GraduationCap },
             { title: 'Leadership Page',       href: '/admin/leadership-content',     icon: Crown },
             { title: 'Department Coords',     href: '/admin/coordinators',           icon: Users },
             { title: 'Volunteer Dashboard',   href: '/dashboard/volunteer',          icon: HandHeart },
