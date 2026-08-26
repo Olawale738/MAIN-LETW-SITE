@@ -77,12 +77,24 @@ export default function TheologyAdmissionsPage() {
 
             {loading ? <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-[#140152]" /></div> : tab === 'programs' ? (
                 <>
-                    <button onClick={() => setEditing({ ...BLANK })} className="inline-flex items-center gap-2 bg-[#140152] text-white font-bold px-4 py-2.5 rounded-lg text-sm mb-4">
-                        <Plus className="w-4 h-4" /> New programme
-                    </button>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                        <button onClick={() => setEditing({ ...BLANK })} className="inline-flex items-center gap-2 bg-[#140152] text-white font-bold px-4 py-2.5 rounded-lg text-sm">
+                            <Plus className="w-4 h-4" /> New programme
+                        </button>
+                        <button onClick={async () => {
+                            try {
+                                const r = await theologyApi.importPrograms()
+                                setMsg({ kind: 'ok', text: r.imported ? `Imported ${r.imported}: ${r.names.join(', ')}. ${r.note}` : 'Nothing new to import — they already exist.' })
+                                load()
+                            } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+                        }} className="inline-flex items-center gap-2 border border-gray-300 text-[#140152] font-bold px-4 py-2.5 rounded-lg text-sm hover:bg-gray-50">
+                            <RefreshCw className="w-4 h-4" /> Import from school page
+                        </button>
+                    </div>
                     {programs.length === 0 ? (
                         <div className="bg-white border border-dashed border-gray-300 rounded-2xl p-10 text-center">
-                            <p className="text-gray-500 text-sm">No programmes yet. Create one and it appears instantly on <span className="font-mono text-[#140152]">/theology-school/apply</span>.</p>
+                            <p className="text-gray-500 text-sm mb-1">No applyable programmes yet.</p>
+                            <p className="text-gray-400 text-xs">The programmes shown on the public school page are page content. Click <strong>Import from school page</strong> to turn them into real programmes people can apply and pay for — then set each exact fee and switch it to Open.</p>
                         </div>
                     ) : (
                         <div className="grid sm:grid-cols-2 gap-3">

@@ -876,3 +876,67 @@ async def lms_verify_student(
         return {"authenticated": False, "reason": "No active theology enrolment for this account."}
 
     return {"authenticated": True, "student": _lms_student(a, await _get_program(db, a.program_id))}
+
+
+# ── Import the programmes shown on the public page into applyable programmes ──
+
+@router.post("/admin/programs/import")
+async def import_programs_from_page(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Create applyable programmes from the ones displayed on
+    /education/theology-school, so the page and the application form agree.
+
+    Uses the admin-edited page content when present, otherwise the page's
+    built-in three-programme ladder. Existing programmes (matched by name) are
+    left untouched, so this is safe to run more than once. Fees start at 0 —
+    set the exact amount on each programme afterwards.
+    """
+    page_programs: list[dict] = []
+    try:
+        from models.ministry_content import MinistryContent
+        row = (await db.execute(select(MinistryContent).where(MinistryContent.key == "theology"))).scalar_one_or_none()
+        if row and isinstance(row.content, dict):
+            maybe = row.content.get("programs")
+            if isinstance(maybe, list):
+                page_programs = [p for p in maybe if isinstance(p, dict) and (p.get("title") or "").strip()]
+    except Exception:
+        page_programs = []
+
+    if not page_programs:
+        page_programs = [
+            {"title": "Certificate in Ministry", "subtitle": "Foundation Program", "level": "certificate",
+             "description": "Build a strong foundation in biblical studies, theology, and practical ministry."},
+            {"title": "Diploma in Ministry and Divinity", "subtitle": "Intermediate Program", "level": "diploma",
+             "description": "Deepen your theological understanding and ministry competencies."},
+            {"title": "Advanced Diploma in Ministry and Divinity", "subtitle": "Advanced Program", "level": "degree",
+             "description": "Advanced theological study and ministry leadership formation."},
+        ]
+
+    existing = {(p.name or "").strip().lower() for p in (await db.execute(select(TheologyProgram))).scalars().all()}
+    created = []
+    for i, p in enumerate(page_programs):
+        name = str(p.get("title") or "").strip()
+        if not name or name.lower() in existing:
+            continue
+        lvl = str(p.get("level") or "").strip().lower()
+        if lvl not in ("certificate", "diploma", "degree", "masters"):
+            lvl = "certificate" if i == 0 else ("diploma" if i == 1 else "degree")
+        prog = TheologyProgram(
+            name=name,
+            slug=name.lower().replace(" ", "-")[:120],
+            summary=str(p.get("subtitle") or p.get("tag") or "")[:2000] or None,
+            description=str(p.get("description") or "")[:5000] or None,
+            level=lvl,
+            duration_months=12,
+            tuition_amount=0,
+            currency="NGN",
+            is_open=False,   # opens once the admin sets the exact fee
+            sort_order=i,
+        )
+        db.add(prog)
+        created.append(name)
+    await db.commit()
+    return {
+        "imported": len(created),
+        "names": created,
+        "note": "Set the exact fee on each programme, then switch it to Open so applicants can apply.",
+    }

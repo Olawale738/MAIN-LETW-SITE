@@ -4668,6 +4668,7 @@ export const theologyApi = {
     myRecords: () => fetchApi<{ records: TheologyApplication[]; classroom_url: string }>('/theology/student/me'),
     // admin
     adminPrograms: () => fetchApi<TheologyProgram[]>('/theology/admin/programs'),
+    importPrograms: () => fetchApi<{ imported: number; names: string[]; note: string }>('/theology/admin/programs/import', { method: 'POST' }),
     createProgram: (b: Partial<TheologyProgram>) => fetchApi<TheologyProgram>('/theology/admin/programs', { method: 'POST', body: JSON.stringify(b) }),
     updateProgram: (id: string, b: Partial<TheologyProgram>) => fetchApi<TheologyProgram>(`/theology/admin/programs/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
     deleteProgram: (id: string) => fetchApi<{ deleted: number }>(`/theology/admin/programs/${id}`, { method: 'DELETE' }),

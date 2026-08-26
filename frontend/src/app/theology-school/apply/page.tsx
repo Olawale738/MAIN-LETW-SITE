@@ -101,7 +101,10 @@ export default function ApplyPage() {
                         <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 mb-2">Choose a programme</h2>
                         {loading ? <div className="flex justify-center py-10"><Loader2 className="w-7 h-7 animate-spin text-[#140152]" /></div>
                             : list.length === 0 ? (
-                                <p className="bg-white border border-dashed border-gray-300 rounded-2xl p-8 text-center text-gray-500 text-sm">No programmes are open for application right now. Please check back soon.</p>
+                                <div className="bg-white border border-dashed border-gray-300 rounded-2xl p-8 text-center">
+                                    <p className="text-gray-600 text-sm font-semibold">Applications are not open yet.</p>
+                                    <p className="text-gray-500 text-xs mt-1">Our programmes are listed on the <Link href="/education/theology-school" className="underline text-[#140152]">Theology School page</Link>. Admissions open shortly — please check back, or contact the school office.</p>
+                                </div>
                             ) : (
                                 <div className="grid sm:grid-cols-2 gap-3 mb-6">
                                     {list.map(p => (
