@@ -92,6 +92,7 @@ const sidebarItems: SidebarItem[] = [
     { title: 'All Pages', href: '/admin/pages', icon: FileText },
     { title: 'Evangelism Sign-Ups', href: '/admin/evangelism-signups', icon: HandHeart },
     { title: 'Evangelism Leaflets', href: '/admin/evangelism-leaflets', icon: Megaphone },
+    { title: 'Theology Admissions', href: '/admin/theology-admissions', icon: GraduationCap },
     // Ministries group
     {
         title: 'Ministries',
@@ -106,7 +107,6 @@ const sidebarItems: SidebarItem[] = [
             { title: "Men's Ministry",        href: '/admin/men',                    icon: ShieldCheck },
             { title: "Women's Ministry",      href: '/admin/women',                  icon: Heart },
             { title: 'Theology School',       href: '/admin/theology-school',        icon: BookOpen },
-            { title: 'Theology Admissions',   href: '/admin/theology-admissions',    icon: GraduationCap },
             { title: 'Leadership Page',       href: '/admin/leadership-content',     icon: Crown },
             { title: 'Department Coords',     href: '/admin/coordinators',           icon: Users },
             { title: 'Volunteer Dashboard',   href: '/dashboard/volunteer',          icon: HandHeart },

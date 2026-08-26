@@ -21,12 +21,32 @@ export default function ApplyPage() {
     const [created, setCreated] = useState<{ application_id: string; amount_due: number; currency: string; program_name: string } | null>(null)
     const [reference, setReference] = useState('')
     const [confirming, setConfirming] = useState(false)
+    const [providers, setProviders] = useState<Array<{ id: string; name: string; currency: string }>>([])
+    const [paying, setPaying] = useState('')
     const [done, setDone] = useState<{ admission_number: string } | null>(null)
     const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
 
     useEffect(() => {
         theologyApi.programs().then(p => { setPrograms(p); if (p.length === 1) setSel(p[0]) })
             .catch(() => setPrograms([])).finally(() => setLoading(false))
+        theologyApi.providers().then(setProviders).catch(() => setProviders([]))
+        // Coming back from the payment provider: pick the application back up
+        // and confirm it automatically.
+        try {
+            const saved = localStorage.getItem('letw-theology-application')
+            if (saved) {
+                const v = JSON.parse(saved)
+                if (v?.application_id) {
+                    setCreated(v)
+                    if (v.reference) {
+                        setReference(v.reference)
+                        theologyApi.confirmPayment(v.application_id, v.reference)
+                            .then(r => { setDone({ admission_number: r.admission_number }); localStorage.removeItem('letw-theology-application') })
+                            .catch(() => { /* not settled yet — they can retry below */ })
+                    }
+                }
+            }
+        } catch { /* ignore */ }
     }, [])
 
     const submit = async () => {
@@ -36,6 +56,7 @@ export default function ApplyPage() {
         try {
             const r = await theologyApi.apply({ program_id: sel.id, ...form })
             setCreated(r)
+            try { localStorage.setItem('letw-theology-application', JSON.stringify(r)) } catch { /* ignore */ }
         } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
         finally { setSubmitting(false) }
     }
@@ -48,6 +69,19 @@ export default function ApplyPage() {
             setDone({ admission_number: r.admission_number })
         } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
         finally { setConfirming(false) }
+    }
+
+    const pay = async (providerId: string) => {
+        if (!created) return
+        setPaying(providerId); setMsg(null)
+        try {
+            const r = await theologyApi.checkout(created.application_id, providerId)
+            if (r.already_paid) { setMsg({ kind: 'ok', text: 'This application is already paid.' }); return }
+            try { localStorage.setItem('letw-theology-application', JSON.stringify({ ...created, reference: r.reference })) } catch { /* ignore */ }
+            if (r.checkout_url) window.location.href = r.checkout_url
+            else { setReference(r.reference); setMsg({ kind: 'ok', text: 'Payment started. Confirm below once it completes.' }) }
+        } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setPaying('') }
     }
 
     const list = programs
@@ -80,12 +114,27 @@ export default function ApplyPage() {
                             <p className="text-3xl font-black text-[#f5bb00]">{created.currency} {created.amount_due.toLocaleString()}</p>
                             <p className="text-xs text-white/70 mt-1">The amount must match exactly for automatic admission.</p>
                         </div>
-                        <Link href="/give" target="_blank" className="inline-flex items-center gap-2 bg-[#f5bb00] text-[#140152] font-black px-5 py-3 rounded-full text-sm mb-5">
-                            Make payment <ArrowRight className="w-4 h-4" />
-                        </Link>
+                        {providers.length > 0 ? (
+                            <div className="mb-5">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Pay the exact fee</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {providers.map(pv => (
+                                        <button key={pv.id} onClick={() => pay(pv.id)} disabled={!!paying}
+                                            className="inline-flex items-center gap-2 bg-[#f5bb00] hover:bg-amber-400 text-[#140152] font-black px-5 py-3 rounded-full text-sm disabled:opacity-50">
+                                            {paying === pv.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />} Pay with {pv.name}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-[11px] text-gray-400 mt-2">You&apos;ll be returned here automatically and your admission letter issued.</p>
+                            </div>
+                        ) : (
+                            <Link href="/give" target="_blank" className="inline-flex items-center gap-2 bg-[#f5bb00] text-[#140152] font-black px-5 py-3 rounded-full text-sm mb-5">
+                                Make payment <ArrowRight className="w-4 h-4" />
+                            </Link>
+                        )}
                         <div className="border-t border-gray-100 pt-4">
                             <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Payment reference</label>
-                            <p className="text-xs text-gray-500 mb-2">After paying, paste the reference from your receipt to confirm and receive your admission letter instantly.</p>
+                            <p className="text-xs text-gray-500 mb-2">Already paid, or paid another way? Paste the reference from your receipt to confirm and receive your admission letter instantly.</p>
                             <div className="flex flex-wrap gap-2">
                                 <input value={reference} onChange={e => setReference(e.target.value)} placeholder="e.g. LETW-XXXXXXXX" className="flex-1 min-w-[200px] border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-mono" />
                                 <button onClick={confirm} disabled={confirming || !reference.trim()} className="inline-flex items-center gap-2 bg-[#140152] text-white font-bold px-5 py-2.5 rounded-lg text-sm disabled:opacity-50">

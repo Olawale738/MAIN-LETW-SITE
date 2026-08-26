@@ -36,6 +36,8 @@ const DEFAULT_EDUCATION: NavLink[] = [
   { name: 'Secondary School', href: '/education/secondary-school' },
   { name: 'University', href: '/education/university' },
   { name: 'Theology School', href: '/education/theology-school' },
+  { name: 'Apply — Theology School', href: '/theology-school/apply' },
+  { name: 'Student Portal', href: '/education/theology-school/portal' },
 ]
 
 // Connect entries (Small Groups / Family / Grow / Tour / Voice / Downloads)

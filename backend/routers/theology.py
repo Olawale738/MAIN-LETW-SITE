@@ -28,7 +28,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -940,3 +940,61 @@ async def import_programs_from_page(db: AsyncSession = Depends(get_db), _: User 
         "names": created,
         "note": "Set the exact fee on each programme, then switch it to Open so applicants can apply.",
     }
+
+
+# ── One-click tuition checkout ───────────────────────────────────────────────
+
+@router.get("/payment-providers")
+async def theology_providers(db: AsyncSession = Depends(get_db)):
+    """Active payment providers an applicant can pay the tuition with."""
+    from models.payment import PaymentProvider
+    rows = (await db.execute(
+        select(PaymentProvider)
+        .where(PaymentProvider.is_active == True)  # noqa: E712
+        .order_by(PaymentProvider.sort_order, PaymentProvider.name)
+    )).scalars().all()
+    return [{"id": p.id, "slug": p.slug, "name": p.name, "currency": p.currency} for p in rows]
+
+
+class TuitionCheckoutIn(BaseModel):
+    provider_id: str
+
+
+@router.post("/applications/{app_id}/checkout")
+async def tuition_checkout(app_id: str, body: TuitionCheckoutIn, request: Request, db: AsyncSession = Depends(get_db)):
+    """Start payment for an application with the EXACT tuition pre-filled.
+
+    The applicant never types an amount or copies a reference: we create the
+    charge for the precise fee, remember the reference on the application, and
+    hand back the provider's checkout URL.
+    """
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found.")
+    if a.paid_at:
+        return {"already_paid": True, "reference": a.payment_reference}
+    program = await _get_program(db, a.program_id)
+    if not program:
+        raise HTTPException(404, "Programme not found.")
+    if float(program.tuition_amount or 0) <= 0:
+        raise HTTPException(400, "This programme has no fee set yet — please contact the school office.")
+
+    from routers.payments import checkout as payments_checkout, CheckoutIn
+    result = await payments_checkout(
+        CheckoutIn(
+            provider_id=body.provider_id,
+            amount=float(program.tuition_amount),
+            currency=program.currency,
+            fund="Theology Tuition",
+            payer_name=a.full_name,
+            payer_email=a.email,
+            message=f"Theology application {a.id} — {program.name}",
+        ),
+        request, db,
+    )
+    ref = (result or {}).get("reference")
+    if ref:
+        a.payment_reference = ref
+        await db.commit()
+    return {"checkout_url": (result or {}).get("checkout_url"), "reference": ref,
+            "amount": float(program.tuition_amount), "currency": program.currency}

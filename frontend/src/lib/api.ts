@@ -4661,6 +4661,10 @@ export const theologyApi = {
     confirmPayment: (appId: string, reference: string) =>
         fetchApi<{ status: string; admission_number: string; offer_url: string }>(
             `/theology/applications/${appId}/confirm-payment`, { method: 'POST', body: JSON.stringify({ reference }) }),
+    providers: () => fetchApi<Array<{ id: string; slug: string; name: string; currency: string }>>('/theology/payment-providers'),
+    checkout: (appId: string, provider_id: string) =>
+        fetchApi<{ checkout_url: string; reference: string; amount: number; currency: string; already_paid?: boolean }>(
+            `/theology/applications/${appId}/checkout`, { method: 'POST', body: JSON.stringify({ provider_id }) }),
     offer: (token: string) => fetchApi<TheologyOffer>(`/theology/offer/${token}`),
     accept: (token: string) => fetchApi<{ status: string; login_email: string; portal_url: string; temporary_password_sent: boolean }>(
         `/theology/offer/${token}/accept`, { method: 'POST' }),
