@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
     GraduationCap, Loader2, Plus, Save, Trash2, CheckCircle, AlertCircle,
-    RefreshCw, ShieldAlert, IdCard, X, UploadCloud, Send, FileText,
+    RefreshCw, ShieldAlert, IdCard, X, UploadCloud, Send, FileText, Undo2,
 } from 'lucide-react'
 import Link from 'next/link'
 import { theologyApi, type TheologyProgram, type TheologyApplication, type TheologyBridgeStatus } from '@/lib/api'
@@ -238,6 +238,12 @@ export default function TheologyAdmissionsPage() {
                                                 {busyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />} Send to SharePoints
                                             </button>
                                         )}
+                                        {a.paid_at && a.bridge_status === 'accepted' && (
+                                            <button onClick={() => { if (confirm(`Report ${a.full_name}'s tuition payment as refunded?\n\nSharePoints will treat the admission as no longer paid for.`)) act(a.id, () => theologyApi.reportRefund(a.id, 'REFUND'), 'Refund reported to SharePoints.') }} disabled={busyId === a.id}
+                                                className="inline-flex items-center gap-1 border border-gray-300 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-gray-50">
+                                                <Undo2 className="w-3 h-3" /> Report refund
+                                            </button>
+                                        )}
                                         {a.acceptance_token && a.admission_number && (
                                             <a href={`/theology-school/offer/${a.acceptance_token}/letter`} target="_blank" rel="noreferrer"
                                                 className="inline-flex items-center gap-1 border border-gray-300 text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-gray-50">
@@ -256,10 +262,15 @@ export default function TheologyAdmissionsPage() {
                                                     className="inline-flex items-center gap-1 bg-[#140152] text-white text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50">
                                                     <RefreshCw className="w-3 h-3" /> Retry setup
                                                 </button>
-                                                <button onClick={() => { if (confirm(`Reset ${a.full_name}'s account access? A new password is emailed to them.`)) act(a.id, () => theologyApi.resetAccess(a.id), 'Access reset — new password emailed.') }} disabled={busyId === a.id}
+                                                <button onClick={() => { if (confirm(`Reset ${a.full_name}'s letw.org password? A new one is emailed to them.\n\nThis covers letw.org only. If the account was actually compromised, use "Secure everywhere" instead — that also signs them out of SharePoints and secures the classroom.`)) act(a.id, () => theologyApi.resetAccess(a.id), 'Access reset — new password emailed.') }} disabled={busyId === a.id}
                                                     className="inline-flex items-center gap-1 text-red-500 hover:bg-red-50 text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50">
-                                                    <ShieldAlert className="w-3 h-3" /> Reset access
+                                                    <ShieldAlert className="w-3 h-3" /> Reset password
                                                 </button>
+                                                <a href="https://sharepoints.letw.org/theology/recovery" target="_blank" rel="noreferrer"
+                                                    title="Protected recovery on SharePoints — signs the student out everywhere, forces a new password and secures their classroom account"
+                                                    className="inline-flex items-center gap-1 border border-red-300 text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-50">
+                                                    <ShieldAlert className="w-3 h-3" /> Secure everywhere
+                                                </a>
                                             </>
                                         )}
                                         {a.student_id_card_url && (

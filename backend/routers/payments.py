@@ -434,6 +434,19 @@ async def _mark_donation(db: AsyncSession, reference: str, status: str, raw: Any
             await confirm_booking_payment(db, reference)
         except Exception as e:
             print(f"[payments] booking-payment hook failed: {type(e).__name__}: {e}", flush=True)
+    # If money is taken back on a theology tuition payment, sharepoints has to
+    # hear about it — its admission is gated on that exact payment.
+    if status in ("refunded", "failed"):
+        try:
+            from routers.theology import notify_payment_lifecycle
+            await notify_payment_lifecycle(
+                db, reference,
+                "REFUND" if status == "refunded" else "PAYMENT_FAILED",
+                amount=d.amount, currency=d.currency,
+                reason=f"The payment provider reported this payment as {status}.",
+            )
+        except Exception as e:
+            print(f"[payments] theology lifecycle hook failed: {type(e).__name__}: {e}", flush=True)
 
 
 @router.post("/webhook/paystack")

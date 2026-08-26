@@ -4690,6 +4690,7 @@ export const theologyApi = {
     bridgeStatus: () => fetchApi<TheologyBridgeStatus>('/theology/admin/bridge-status'),
     publishProgram: (id: string) => fetchApi<{ ok: boolean; code?: string; reason?: string }>(`/theology/admin/programs/${id}/publish`, { method: 'POST' }),
     publishAllPrograms: () => fetchApi<{ published: number; total: number; results: { name: string; ok: boolean; code?: string; reason?: string }[] }>('/theology/admin/programs/publish-all', { method: 'POST' }),
+    reportRefund: (id: string, event_type = 'REFUND') => fetchApi<{ ok: boolean; status?: number; event?: string }>(`/theology/admin/applications/${id}/report-refund?event_type=${encodeURIComponent(event_type)}`, { method: 'POST' }),
     resendToSharepoints: (id: string) => fetchApi<{ bridge_status: string; bridge_error?: string | null; offer_number?: string | null; offer_url?: string | null; admission_letter_url?: string | null; status: string }>(`/theology/admin/applications/${id}/resend-to-sharepoints`, { method: 'POST' }),
 }
 

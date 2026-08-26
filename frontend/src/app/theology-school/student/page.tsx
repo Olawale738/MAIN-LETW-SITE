@@ -101,9 +101,16 @@ export default function StudentDashboard() {
                                 </Card>
 
                                 <Card icon={ShieldAlert} title="Account security" tone="#fdf2f8" ic="#db2777">
-                                    <p className="text-xs text-gray-600">Never share your password. If you suspect your account was accessed by someone else:</p>
+                                    <p className="text-xs text-gray-600">Never share your password. If someone else has used your account, start a protected recovery — it signs you out everywhere, forces a new password, and secures your classroom access at the same time.</p>
+                                    <a href="https://sharepoints.letw.org/theology/recovery" target="_blank" rel="noreferrer"
+                                        className="inline-flex items-center gap-1.5 mt-2 bg-[#db2777] text-white font-bold px-3 py-2 rounded-lg text-xs">
+                                        Secure my account <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
+                                    <p className="text-[11px] text-gray-500 mt-2">
+                                        You&apos;ll need your student ID number{r.student_id_number ? <> (<strong className="text-[#140152]">{r.student_id_number}</strong>)</> : null} and the email you applied with.
+                                    </p>
                                     <div className="flex flex-wrap gap-2 mt-2">
-                                        <Link href="/auth/forgot-password" className="text-xs font-bold text-[#140152] underline">Reset password</Link>
+                                        <Link href="/auth/forgot-password" className="text-xs font-bold text-[#140152] underline">Just reset my password</Link>
                                         <Link href="/contact" className="text-xs font-bold text-[#140152] underline">Tell the school office</Link>
                                     </div>
                                 </Card>

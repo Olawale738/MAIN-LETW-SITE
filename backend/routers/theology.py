@@ -503,8 +503,9 @@ async def _provision_student(db: AsyncSession, a: TheologyApplication) -> Option
     # 2) Enrol on live.letw.org (best-effort, retryable).
     await _enrol_in_lms(db, a, program)
 
-    # 3) Push to sharepoints for student-ID processing (best-effort).
-    await _push_to_sharepoints(db, a, program)
+    # 3) The student ID is minted by sharepoints inside its own offer-acceptance
+    #    transaction and pushed back to us at /integrations/student-id — there is
+    #    nothing for us to push, and pushing one would fight its record.
 
     # 4) Email the student their portal + LMS credentials.
     try:
@@ -606,44 +607,6 @@ async def _enrol_in_lms(db: AsyncSession, a: TheologyApplication, program: Optio
     await db.commit()
 
 
-async def _push_to_sharepoints(db: AsyncSession, a: TheologyApplication, program: Optional[TheologyProgram]) -> None:
-    """Hand the enrolled student to sharepoints.letw.org for student-ID issue."""
-    try:
-        from models.integration import IntegrationSettings
-        row = (await db.execute(select(IntegrationSettings).where(IntegrationSettings.id == "default"))).scalar_one_or_none()
-        url = (getattr(row, "student_webhook_url", None) or "").strip() if row else ""
-        from routers.integrations import _effective_key
-        key = await _effective_key(db)
-        if not url:
-            return
-        import httpx
-        async with httpx.AsyncClient(timeout=20) as cli:
-            await cli.post(url, json=_student_payload(a, program), headers={"X-API-Key": key} if key else {})
-        a.sharepoints_pushed_at = datetime.utcnow()
-        await db.commit()
-    except Exception as e:
-        print(f"[theology] sharepoints push failed: {type(e).__name__}: {e}", flush=True)
-
-
-def _student_payload(a: TheologyApplication, program: Optional[TheologyProgram]) -> dict:
-    return {
-        "student_verified": True,
-        "admission_number": a.admission_number,
-        "application_id": a.id,
-        "full_name": a.full_name,
-        "email": a.email.lower(),
-        "phone": a.phone,
-        "photo_url": a.photo_url,
-        "program_name": program.name if program else None,
-        "education_level": a.education_level,
-        "field_of_study": "Theology",
-        "admission_date": a.admission_issued_at.isoformat() if a.admission_issued_at else None,
-        "payment_status": "PAID" if a.paid_at else "PENDING",
-        "fees_cleared": bool(a.paid_at),
-        "issuer": "letw.org",
-    }
-
-
 # ── Server-to-server: sharepoints posts the issued student ID back ───────────
 
 @router.post("/integrations/student-id")
@@ -658,15 +621,118 @@ async def receive_student_id(
         raise HTTPException(503, "Partner integration is not configured yet.")
     if not x_api_key or not hmac.compare_digest(x_api_key.strip(), expected):
         raise HTTPException(401, "Invalid or missing X-API-Key.")
-    ref = str(body.get("admission_number") or "").strip()
-    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.admission_number == ref))).scalar_one_or_none()
+    def pick(*keys: str) -> str:
+        """sharepoints speaks camelCase; earlier drafts of this endpoint spoke
+        snake_case. Accept either so a redeploy on one side never breaks it."""
+        for k in keys:
+            v = body.get(k)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+        return ""
+
+    app_id = pick("applicationId", "application_id")
+    offer_no = pick("offerNumber", "offer_number", "admission_number")
+    a = None
+    if app_id:
+        a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a and offer_no:
+        a = (await db.execute(select(TheologyApplication).where(
+            TheologyApplication.admission_number == offer_no))).scalar_one_or_none()
+        if not a:
+            a = (await db.execute(select(TheologyApplication).where(
+                TheologyApplication.offer_number == offer_no))).scalar_one_or_none()
     if not a:
-        raise HTTPException(404, "No student matches that admission number.")
-    a.student_id_number = str(body.get("student_id_number") or "") or a.student_id_number
-    a.student_id_card_url = str(body.get("card_url") or "") or a.student_id_card_url
+        raise HTTPException(404, "No student matches that application or offer number.")
+
+    number = pick("studentIdNumber", "student_id_number")
+    if not number:
+        raise HTTPException(422, "studentIdNumber is required.")
+    a.student_id_number = number
+    # The verification page is the card as far as letw.org is concerned — it is
+    # the link the student and the office open to prove the ID is genuine.
+    a.student_id_card_url = pick("verificationUrl", "cardUrl", "card_url") or a.student_id_card_url
     a.student_id_issued_at = datetime.utcnow()
+    if not a.offer_number and offer_no:
+        a.offer_number = offer_no
+    if a.status == "accepted":
+        a.status = "enrolled"
     await db.commit()
-    return {"ok": True, "admission_number": ref, "student_id_number": a.student_id_number}
+    return {"ok": True, "application_id": a.id, "admission_number": a.admission_number,
+            "student_id_number": a.student_id_number}
+
+
+async def notify_payment_lifecycle(db: AsyncSession, reference: str, event_type: str,
+                                  amount=None, currency: Optional[str] = None,
+                                  reason: Optional[str] = None) -> Optional[dict]:
+    """Tell sharepoints that a settled theology payment was taken back.
+
+    SharePoints gates admission on an exact, verified payment, so a refund or
+    chargeback after admission has to reach it — otherwise the student keeps the
+    offer, the student ID and classroom access for money the church no longer
+    holds. No-ops when the reference is not a theology payment.
+    """
+    ref = (reference or "").strip()
+    if not ref:
+        return None
+    a = (await db.execute(select(TheologyApplication).where(
+        TheologyApplication.payment_reference == ref))).scalar_one_or_none()
+    if not a:
+        return None
+    program = await _get_program(db, a.program_id)
+    if not program:
+        return None
+    from routers.integrations import _effective_key
+    key = await _effective_key(db)
+    if not key:
+        return {"ok": False, "reason": "Shared secret not set."}
+
+    payload = {
+        "eventId": f"{event_type.lower()}:{ref}",
+        "source": "letw.org",
+        "applicationId": a.id,
+        "paymentReference": ref,
+        "programCode": _derive_code(program),
+        "eventType": event_type,
+        "amount": f"{float(amount if amount is not None else (a.amount_paid or 0)):.2f}",
+        "currency": (currency or a.currency or program.currency or "NGN").upper()[:3],
+        "reason": (reason or "Reported by letw.org from the payment provider.")[:1000],
+        "occurredAt": datetime.utcnow().isoformat() + "Z",
+    }
+    url = (await _intake_url(db)).rstrip("/").rsplit("/", 1)[0] + "/payments"
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=20) as cli:
+            r = await cli.post(url, json=payload, headers={"X-API-Key": key})
+        ok = 200 <= r.status_code < 300
+        if not ok:
+            print(f"[theology] payment lifecycle {event_type} for {ref} -> {r.status_code}: {r.text[:200]}", flush=True)
+        return {"ok": ok, "status": r.status_code, "event": event_type}
+    except Exception as e:
+        print(f"[theology] payment lifecycle push failed: {type(e).__name__}: {e}", flush=True)
+        return {"ok": False, "reason": f"{type(e).__name__}: {e}"}
+
+
+@router.post("/admin/applications/{app_id}/report-refund")
+async def admin_report_refund(app_id: str, event_type: str = "REFUND",
+                              db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Report a refund/chargeback to sharepoints by hand, for money taken back
+    outside the payment webhooks (a bank reversal, a manual transfer)."""
+    allowed = {"REFUND", "CHARGEBACK", "REVERSAL", "PAYMENT_FAILED", "PAYMENT_CORRECTED"}
+    event_type = (event_type or "REFUND").upper()
+    if event_type not in allowed:
+        raise HTTPException(400, f"event_type must be one of {', '.join(sorted(allowed))}.")
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found.")
+    if not a.payment_reference:
+        raise HTTPException(400, "This application has no payment reference to report.")
+    r = await notify_payment_lifecycle(db, a.payment_reference, event_type,
+                                       reason="Reported by an administrator on letw.org.")
+    if not r:
+        raise HTTPException(400, "Could not match that payment to a theology application.")
+    if not r.get("ok"):
+        raise HTTPException(502, r.get("reason") or f"sharepoints responded {r.get('status')}.")
+    return r
 
 
 # ── Student dashboard ────────────────────────────────────────────────────────
@@ -793,7 +859,6 @@ async def admin_retry(app_id: str, db: AsyncSession = Depends(get_db), _: User =
         raise HTTPException(400, "Student has not accepted their offer yet.")
     program = await _get_program(db, a.program_id)
     await _enrol_in_lms(db, a, program)
-    await _push_to_sharepoints(db, a, program)
     await db.refresh(a)
     return _app_out(a, program)
 
