@@ -247,7 +247,10 @@ async def _publish_program(db: AsyncSession, program: TheologyProgram) -> dict:
     payload = {
         "source": "letw.org",
         "externalProgramId": program.id,
-        "revision": 1,
+        # sharepoints treats "same revision, different content" as a CONFLICT and
+        # refuses the update, so every publish must carry a higher revision than
+        # the last. A second-resolution stamp is monotonic and fits its int32.
+        "revision": int(datetime.utcnow().timestamp()),
         "code": code,
         "title": (program.name or code)[:180],
         "educationLevel": (program.level or "certificate")[:120],
