@@ -4632,6 +4632,51 @@ export const analyticsApi = {
     ministries: () => fetchApi<{ generated_at: string; ministries: MinistryRow[] }>('/analytics/ministries'),
 }
 
+// ─── Theology School ─────────────────────────────────────────────────────────
+export interface TheologyProgram {
+    id: string; name: string; slug: string; summary: string | null; description: string | null
+    level: string; duration_months: number; tuition_amount: number; currency: string
+    is_open: boolean; capacity: number | null; sort_order: number; lms_course_code: string | null
+}
+export interface TheologyApplication {
+    id: string; program_id: string; program_name: string | null
+    full_name: string; email: string; phone: string | null
+    education_level: string | null; photo_url: string | null
+    status: string; amount_paid: number | null; currency: string | null; paid_at: string | null
+    admission_number: string | null; admission_issued_at: string | null; accepted_at: string | null
+    student_user_id: string | null; lms_status: string | null; lms_enrolled_at: string | null
+    lms_error: string | null; student_id_number: string | null; student_id_card_url: string | null
+    created_at: string | null
+}
+export interface TheologyOffer {
+    full_name: string; email: string; admission_number: string; program_name: string | null
+    duration_months: number | null; level: string | null; issued_at: string | null
+    status: string; accepted_at: string | null; portal_url: string
+}
+export const theologyApi = {
+    programs: () => fetchApi<TheologyProgram[]>('/theology/programs'),
+    apply: (b: Record<string, unknown>) =>
+        fetchApi<{ application_id: string; status: string; amount_due: number; currency: string; program_name: string }>(
+            '/theology/apply', { method: 'POST', body: JSON.stringify(b) }),
+    confirmPayment: (appId: string, reference: string) =>
+        fetchApi<{ status: string; admission_number: string; offer_url: string }>(
+            `/theology/applications/${appId}/confirm-payment`, { method: 'POST', body: JSON.stringify({ reference }) }),
+    offer: (token: string) => fetchApi<TheologyOffer>(`/theology/offer/${token}`),
+    accept: (token: string) => fetchApi<{ status: string; login_email: string; portal_url: string; temporary_password_sent: boolean }>(
+        `/theology/offer/${token}/accept`, { method: 'POST' }),
+    decline: (token: string) => fetchApi<{ status: string }>(`/theology/offer/${token}/decline`, { method: 'POST' }),
+    myRecords: () => fetchApi<{ records: TheologyApplication[]; classroom_url: string }>('/theology/student/me'),
+    // admin
+    adminPrograms: () => fetchApi<TheologyProgram[]>('/theology/admin/programs'),
+    createProgram: (b: Partial<TheologyProgram>) => fetchApi<TheologyProgram>('/theology/admin/programs', { method: 'POST', body: JSON.stringify(b) }),
+    updateProgram: (id: string, b: Partial<TheologyProgram>) => fetchApi<TheologyProgram>(`/theology/admin/programs/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+    deleteProgram: (id: string) => fetchApi<{ deleted: number }>(`/theology/admin/programs/${id}`, { method: 'DELETE' }),
+    adminApplications: (status?: string) => fetchApi<TheologyApplication[]>(`/theology/admin/applications${status ? `?status=${status}` : ''}`),
+    markPaid: (id: string) => fetchApi<TheologyApplication>(`/theology/admin/applications/${id}/mark-paid`, { method: 'POST' }),
+    retryProvisioning: (id: string) => fetchApi<TheologyApplication>(`/theology/admin/applications/${id}/retry-provisioning`, { method: 'POST' }),
+    resetAccess: (id: string) => fetchApi<{ ok: boolean; email: string }>(`/theology/admin/applications/${id}/reset-access`, { method: 'POST' }),
+}
+
 export interface IntegrationTargets {
     sharepoints_webhook_url: string; marriage_office_email: string
     baptism_webhook_url: string; baptism_office_email: string
