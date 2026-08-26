@@ -7,9 +7,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
     GraduationCap, Loader2, Plus, Save, Trash2, CheckCircle, AlertCircle,
-    RefreshCw, ShieldAlert, IdCard, X,
+    RefreshCw, ShieldAlert, IdCard, X, UploadCloud, Send, FileText,
 } from 'lucide-react'
-import { theologyApi, type TheologyProgram, type TheologyApplication } from '@/lib/api'
+import Link from 'next/link'
+import { theologyApi, type TheologyProgram, type TheologyApplication, type TheologyBridgeStatus } from '@/lib/api'
 
 const BLANK: Partial<TheologyProgram> = {
     name: '', summary: '', level: 'certificate', duration_months: 12,
@@ -25,12 +26,15 @@ export default function TheologyAdmissionsPage() {
     const [editing, setEditing] = useState<Partial<TheologyProgram> | null>(null)
     const [saving, setSaving] = useState(false)
     const [busyId, setBusyId] = useState('')
+    const [bridge, setBridge] = useState<TheologyBridgeStatus | null>(null)
+    const [publishing, setPublishing] = useState(false)
 
     const load = useCallback(async () => {
         setLoading(true)
         try {
             const [p, a] = await Promise.all([theologyApi.adminPrograms(), theologyApi.adminApplications()])
             setPrograms(p); setApps(a)
+            theologyApi.bridgeStatus().then(setBridge).catch(() => setBridge(null))
         } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
         finally { setLoading(false) }
     }, [])
@@ -52,6 +56,19 @@ export default function TheologyAdmissionsPage() {
         if (!confirm(`Delete "${p.name}"?`)) return
         try { await theologyApi.deleteProgram(p.id); setMsg({ kind: 'ok', text: 'Deleted.' }); load() }
         catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+    }
+
+    const publishAll = async () => {
+        setPublishing(true)
+        try {
+            const r = await theologyApi.publishAllPrograms()
+            const failed = r.results.filter(x => !x.ok)
+            setMsg(failed.length
+                ? { kind: 'err', text: `Registered ${r.published} of ${r.total}. ${failed[0].name}: ${failed[0].reason}` }
+                : { kind: 'ok', text: `Registered ${r.published} programme${r.published === 1 ? '' : 's'} with SharePoints. Admissions can now be issued.` })
+            load()
+        } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setPublishing(false) }
     }
 
     const act = async (id: string, fn: () => Promise<unknown>, ok: string) => {
@@ -83,6 +100,41 @@ export default function TheologyAdmissionsPage() {
                     </div>
                 </div>
             )}
+
+            {bridge && (() => {
+                const unpublished = bridge.programs.filter(p => !p.published)
+                const stuck = bridge.stuck.length
+                const healthy = bridge.secret_set && unpublished.length === 0 && stuck === 0
+                return (
+                    <div className={`mb-4 rounded-xl border p-4 ${healthy ? 'border-emerald-200 bg-emerald-50' : 'border-amber-300 bg-amber-50'}`}>
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <p className={`font-bold text-sm flex items-center gap-2 ${healthy ? 'text-emerald-900' : 'text-amber-900'}`}>
+                                    {healthy ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                                    SharePoints admissions {healthy ? 'are flowing' : 'need attention'}
+                                </p>
+                                <ul className="mt-1.5 space-y-0.5 text-xs text-gray-700">
+                                    {!bridge.secret_set && (
+                                        <li>· No shared secret yet — set one in <Link href="/admin/integrations" className="font-bold underline">Integrations</Link>.</li>
+                                    )}
+                                    {unpublished.length > 0 && (
+                                        <li>· {unpublished.length} programme{unpublished.length === 1 ? ' is' : 's are'} not registered with SharePoints yet, so it cannot issue their admission letters.</li>
+                                    )}
+                                    {stuck > 0 && (
+                                        <li>· {stuck} paid application{stuck === 1 ? '' : 's'} never reached SharePoints — open the Applications tab to resend.</li>
+                                    )}
+                                    {healthy && <li>· Every programme is registered and every paid application has been handed over.</li>}
+                                </ul>
+                            </div>
+                            <button onClick={publishAll} disabled={publishing || !bridge.secret_set}
+                                className="inline-flex items-center gap-2 bg-[#140152] text-white font-bold px-4 py-2 rounded-lg text-xs disabled:opacity-50 shrink-0">
+                                {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
+                                Register programmes with SharePoints
+                            </button>
+                        </div>
+                    </div>
+                )
+            })()}
 
             <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm mb-5">
                 <button onClick={() => setTab('programs')} className={`px-4 py-1.5 rounded-lg text-xs font-bold ${tab === 'programs' ? 'bg-[#140152] text-white' : 'text-gray-600'}`}>Programmes ({programs.length})</button>
@@ -127,8 +179,20 @@ export default function TheologyAdmissionsPage() {
                                             : <span className="text-amber-700">Fee not set yet</span>}
                                     </p>
                                     {p.lms_course_code && <p className="text-[11px] text-gray-400 mt-1">LMS course: <span className="font-mono">{p.lms_course_code}</span></p>}
-                                    <div className="flex gap-2 mt-3">
+                                    <p className="text-[11px] mt-1">
+                                        {p.program_code
+                                            ? <span className="text-gray-400">SharePoints code: <span className="font-mono text-emerald-700">{p.program_code}</span></span>
+                                            : <span className="text-amber-700 font-bold">Not registered with SharePoints yet</span>}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 mt-3">
                                         <button onClick={() => setEditing(p)} className="text-xs font-bold text-[#140152] underline">Edit</button>
+                                        <button onClick={() => act(p.id, async () => {
+                                            const r = await theologyApi.publishProgram(p.id)
+                                            if (!r.ok) throw new Error(r.reason || 'SharePoints rejected the programme.')
+                                        }, 'Registered with SharePoints.')} disabled={busyId === p.id}
+                                            className="text-xs font-bold text-[#140152] underline disabled:opacity-50">
+                                            {busyId === p.id ? 'Registering…' : 'Register with SharePoints'}
+                                        </button>
                                         <button onClick={() => removeProgram(p)} className="text-xs font-bold text-red-500 underline">Delete</button>
                                     </div>
                                 </div>
@@ -152,6 +216,11 @@ export default function TheologyAdmissionsPage() {
                                             {a.student_id_number ? <> · ID {a.student_id_number}</> : null}
                                         </p>
                                         {a.lms_error && <p className="text-[11px] text-amber-700 mt-1">{a.lms_error}</p>}
+                                        {a.status !== 'pending' && (
+                                            a.bridge_status === 'accepted'
+                                                ? <p className="text-[11px] text-emerald-700 mt-1">SharePoints issued {a.offer_number || 'the offer'}.</p>
+                                                : <p className="text-[11px] text-amber-700 mt-1">Not with SharePoints yet{a.bridge_error ? ` — ${a.bridge_error}` : ''}.</p>
+                                        )}
                                     </div>
                                     <div className="flex flex-wrap gap-1.5">
                                         {!a.paid_at && (
@@ -159,6 +228,27 @@ export default function TheologyAdmissionsPage() {
                                                 className="inline-flex items-center gap-1 bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50">
                                                 {busyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />} Mark paid
                                             </button>
+                                        )}
+                                        {a.status !== 'pending' && a.bridge_status !== 'accepted' && (
+                                            <button onClick={() => act(a.id, async () => {
+                                                const r = await theologyApi.resendToSharepoints(a.id)
+                                                if (r.bridge_status !== 'accepted') throw new Error(r.bridge_error || 'SharePoints did not accept it.')
+                                            }, 'Sent to SharePoints — admission letter issued.')} disabled={busyId === a.id}
+                                                className="inline-flex items-center gap-1 bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50">
+                                                {busyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />} Send to SharePoints
+                                            </button>
+                                        )}
+                                        {a.acceptance_token && a.admission_number && (
+                                            <a href={`/theology-school/offer/${a.acceptance_token}/letter`} target="_blank" rel="noreferrer"
+                                                className="inline-flex items-center gap-1 border border-gray-300 text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-gray-50">
+                                                <FileText className="w-3 h-3" /> Letter
+                                            </a>
+                                        )}
+                                        {a.admission_letter_url && (
+                                            <a href={a.admission_letter_url} target="_blank" rel="noreferrer"
+                                                className="inline-flex items-center gap-1 border border-emerald-300 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-50">
+                                                <FileText className="w-3 h-3" /> Official letter
+                                            </a>
                                         )}
                                         {(a.status === 'accepted' || a.status === 'enrolled') && (
                                             <>

@@ -4647,11 +4647,17 @@ export interface TheologyApplication {
     student_user_id: string | null; lms_status: string | null; lms_enrolled_at: string | null
     lms_error: string | null; student_id_number: string | null; student_id_card_url: string | null
     created_at: string | null
+    bridge_status?: string | null; bridge_error?: string | null
+    offer_number?: string | null; offer_url?: string | null
+    admission_letter_url?: string | null; acceptance_token?: string | null
 }
 export interface TheologyOffer {
     full_name: string; email: string; admission_number: string; program_name: string | null
     duration_months: number | null; level: string | null; issued_at: string | null
     status: string; accepted_at: string | null; portal_url: string
+    offer_number?: string | null; offer_url?: string | null
+    admission_letter_url?: string | null; letter_url?: string | null
+    tuition_amount?: number | null; currency?: string | null
 }
 export const theologyApi = {
     programs: () => fetchApi<TheologyProgram[]>('/theology/programs'),
@@ -4680,6 +4686,19 @@ export const theologyApi = {
     markPaid: (id: string) => fetchApi<TheologyApplication>(`/theology/admin/applications/${id}/mark-paid`, { method: 'POST' }),
     retryProvisioning: (id: string) => fetchApi<TheologyApplication>(`/theology/admin/applications/${id}/retry-provisioning`, { method: 'POST' }),
     resetAccess: (id: string) => fetchApi<{ ok: boolean; email: string }>(`/theology/admin/applications/${id}/reset-access`, { method: 'POST' }),
+    // sharepoints hand-over
+    bridgeStatus: () => fetchApi<TheologyBridgeStatus>('/theology/admin/bridge-status'),
+    publishProgram: (id: string) => fetchApi<{ ok: boolean; code?: string; reason?: string }>(`/theology/admin/programs/${id}/publish`, { method: 'POST' }),
+    publishAllPrograms: () => fetchApi<{ published: number; total: number; results: { name: string; ok: boolean; code?: string; reason?: string }[] }>('/theology/admin/programs/publish-all', { method: 'POST' }),
+    resendToSharepoints: (id: string) => fetchApi<{ bridge_status: string; bridge_error?: string | null; offer_number?: string | null; offer_url?: string | null; admission_letter_url?: string | null; status: string }>(`/theology/admin/applications/${id}/resend-to-sharepoints`, { method: 'POST' }),
+}
+
+export interface TheologyBridgeStatus {
+    secret_set: boolean
+    intake_url: string
+    programs: { id: string; name: string; code: string; derived_code: string; published: boolean; fee_set: boolean; is_open: boolean }[]
+    applications: Record<string, number>
+    stuck: { id: string; name: string; status: string; bridge_status?: string | null; bridge_error?: string | null }[]
 }
 
 export interface IntegrationTargets {

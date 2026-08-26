@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { GraduationCap, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { GraduationCap, Loader2, CheckCircle, AlertCircle, FileText } from 'lucide-react'
 import { theologyApi, type TheologyOffer } from '@/lib/api'
 
 export default function OfferPage() {
@@ -55,6 +55,7 @@ export default function OfferPage() {
                     </div>
                     <p className="text-xs text-gray-500 mt-4">We have emailed your sign-in details. Use the same email and password for your student portal and your classroom on live.letw.org.</p>
                     <div className="mt-5 flex flex-wrap gap-2 justify-center">
+                        <Link href={`/theology-school/offer/${token}/letter`} className="border border-gray-300 text-[#140152] font-bold px-5 py-2.5 rounded-full text-sm inline-flex items-center gap-2"><FileText className="w-4 h-4" /> Admission letter</Link>
                         <Link href="/theology-school/student" className="bg-[#140152] text-white font-bold px-5 py-2.5 rounded-full text-sm">Open student dashboard</Link>
                         <a href="https://live.letw.org/login" target="_blank" rel="noreferrer" className="bg-[#f5bb00] text-[#140152] font-bold px-5 py-2.5 rounded-full text-sm">Go to classroom</a>
                     </div>
@@ -91,6 +92,11 @@ export default function OfferPage() {
                         <p className="text-gray-700 mt-5 leading-relaxed">
                             Please confirm your place below. Accepting creates your student dashboard, your classroom access on
                             live.letw.org, and begins processing of your student ID.
+                        </p>
+                        <p className="mt-4">
+                            <Link href={`/theology-school/offer/${token}/letter`} className="inline-flex items-center gap-2 text-sm font-bold text-[#140152] underline">
+                                <FileText className="w-4 h-4" /> View &amp; print your admission letter
+                            </Link>
                         </p>
                         <div className="mt-6 flex flex-wrap gap-2">
                             <button onClick={accept} disabled={busy} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-black px-6 py-3 rounded-full text-sm disabled:opacity-50">

@@ -21,6 +21,7 @@ page — a failure in the LMS or sharepoints never blocks the admission itself.
 """
 
 import hmac
+import re
 import secrets
 import string
 import uuid
@@ -92,6 +93,13 @@ def _app_out(a: TheologyApplication, program: Optional[TheologyProgram] = None) 
         "student_id_number": a.student_id_number,
         "student_id_card_url": a.student_id_card_url,
         "created_at": a.created_at.isoformat() if a.created_at else None,
+        # sharepoints hand-over — the official offer and printable letter.
+        "bridge_status": a.bridge_status,
+        "bridge_error": a.bridge_error,
+        "offer_number": a.offer_number,
+        "offer_url": a.offer_url,
+        "admission_letter_url": a.admission_letter_url,
+        "acceptance_token": a.acceptance_token,
     }
 
 
@@ -190,6 +198,90 @@ async def _issue_admission(db: AsyncSession, a: TheologyApplication, program: Th
 
 
 SHAREPOINTS_THEOLOGY_INTAKE = "https://sharepoints.letw.org/api/integrations/theology/enrollments"
+SHAREPOINTS_THEOLOGY_PROGRAMS = "https://sharepoints.letw.org/api/integrations/theology/programs"
+
+
+async def _intake_url(db: AsyncSession) -> str:
+    """Where paid applications are handed over. Admin-set value wins."""
+    from routers.integrations import _settings_row
+    row = await _settings_row(db)
+    return ((row.student_webhook_url or "").strip() if row else "") or SHAREPOINTS_THEOLOGY_INTAKE
+
+
+def _programs_url(intake: str) -> str:
+    """The programme registry sits beside the enrolment intake."""
+    return intake.rstrip("/").rsplit("/", 1)[0] + "/programs" if intake.rstrip("/").endswith("enrollments") \
+        else SHAREPOINTS_THEOLOGY_PROGRAMS
+
+
+def _derive_code(program: TheologyProgram) -> str:
+    """A stable programme code sharepoints will accept ([A-Za-z0-9_-]{2,80}).
+
+    Prefer what the admin set; otherwise build one from the slug so a programme
+    is never stuck unpublished just because nobody typed a code.
+    """
+    for candidate in ((program.program_code or ""), (program.lms_course_code or ""), (program.slug or ""), (program.name or "")):
+        code = re.sub(r"[^A-Za-z0-9_-]", "-", candidate.strip()).strip("-").upper()
+        code = re.sub(r"-{2,}", "-", code)[:80]
+        if len(code) >= 2:
+            return code
+    return "LETW-PROGRAM"
+
+
+async def _publish_program(db: AsyncSession, program: TheologyProgram) -> dict:
+    """Register/refresh the programme in sharepoints. Nothing can be enrolled
+    against a programme sharepoints has never heard of, so this runs before the
+    first hand-over and whenever an admin edits the programme."""
+    from routers.integrations import _effective_key
+    key = await _effective_key(db)
+    if not key:
+        return {"ok": False, "reason": "Shared secret not set (Admin → Integrations)."}
+
+    code = _derive_code(program)
+    if (program.program_code or "") != code:
+        program.program_code = code
+        await db.commit()
+
+    # sharepoints requires at least one course. letw.org does not model courses
+    # yet, so seed a single study unit the school office can expand there.
+    payload = {
+        "source": "letw.org",
+        "externalProgramId": program.id,
+        "revision": 1,
+        "code": code,
+        "title": (program.name or code)[:180],
+        "educationLevel": (program.level or "certificate")[:120],
+        "description": (program.description or program.summary or None),
+        "requiredAmount": f"{float(program.tuition_amount or 0):.2f}",
+        "currency": (program.currency or "NGN").upper()[:3],
+        "active": bool(program.is_open),
+        "courses": [{
+            "externalCourseId": f"{program.id}-core",
+            "courseCode": (code + "-101")[:50],
+            "courseTitle": (program.name or code)[:180],
+            "sequence": 1,
+            "required": True,
+            "active": True,
+            "durationWeeks": max(1, min(520, int((program.duration_months or 12) * 4))),
+        }],
+    }
+    if program.lms_course_code:
+        payload["liveProgramSlug"] = program.lms_course_code[:180]
+
+    url = _programs_url(await _intake_url(db))
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=25) as cli:
+            r = await cli.post(url, json=payload, headers={"X-API-Key": key})
+        if 200 <= r.status_code < 300:
+            body = r.json() or {}
+            data = body.get("data") if isinstance(body.get("data"), dict) else body
+            return {"ok": True, "code": code, "program_id": data.get("programId"),
+                    "courses": data.get("courseCount"), "duplicate": bool(data.get("duplicate"))}
+        return {"ok": False, "code": code, "reason": f"sharepoints responded {r.status_code}: {r.text[:300]}"}
+    except Exception as e:
+        return {"ok": False, "code": code, "reason": f"{type(e).__name__}: {e}"}
+
 
 
 async def _bridge_to_sharepoints(db: AsyncSession, a: TheologyApplication, program: TheologyProgram) -> None:
@@ -207,12 +299,7 @@ async def _bridge_to_sharepoints(db: AsyncSession, a: TheologyApplication, progr
         a.bridge_error = "Shared secret not set (Admin → Integrations)."
         await db.commit()
         return
-    code = (program.program_code or "").strip()
-    if not code:
-        a.bridge_status = "unconfigured"
-        a.bridge_error = "Programme has no sharepoints programme code set."
-        await db.commit()
-        return
+    code = _derive_code(program)
     payload = {
         "source": "letw.org",
         "applicationId": a.id,
@@ -229,10 +316,18 @@ async def _bridge_to_sharepoints(db: AsyncSession, a: TheologyApplication, progr
     }
     if a.photo_url and str(a.photo_url).startswith("http"):
         payload["photoUrl"] = a.photo_url
+    url = await _intake_url(db)
     try:
         import httpx
         async with httpx.AsyncClient(timeout=25) as cli:
-            r = await cli.post(SHAREPOINTS_THEOLOGY_INTAKE, json=payload, headers={"X-API-Key": key})
+            r = await cli.post(url, json=payload, headers={"X-API-Key": key})
+            # sharepoints rejects a programme it has never been told about.
+            # Register it and try once more, so the first applicant of a new
+            # programme is not the one who pays for the oversight.
+            if r.status_code in (404, 422):
+                pub = await _publish_program(db, program)
+                if pub.get("ok"):
+                    r = await cli.post(url, json=payload, headers={"X-API-Key": key})
         if 200 <= r.status_code < 300:
             data = r.json() or {}
             body = data.get("data") if isinstance(data.get("data"), dict) else data
@@ -329,6 +424,12 @@ async def view_offer(token: str, db: AsyncSession = Depends(get_db)):
         "status": a.status,
         "accepted_at": a.accepted_at.isoformat() if a.accepted_at else None,
         "portal_url": f"{_public_base()}/theology-school/student",
+        "offer_number": a.offer_number,
+        "offer_url": a.offer_url,
+        "admission_letter_url": a.admission_letter_url,
+        "letter_url": f"{_public_base()}/theology-school/offer/{token}/letter",
+        "tuition_amount": float(program.tuition_amount or 0) if program else None,
+        "currency": (program.currency if program else None) or "NGN",
     }
 
 
@@ -879,6 +980,77 @@ async def lms_verify_student(
 
 
 # ── Import the programmes shown on the public page into applyable programmes ──
+
+@router.post("/admin/programs/{pid}/publish")
+async def admin_publish_program(pid: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Register one programme with sharepoints so admissions can be issued."""
+    program = await _get_program(db, pid)
+    if not program:
+        raise HTTPException(404, "Programme not found.")
+    return await _publish_program(db, program)
+
+
+@router.post("/admin/programs/publish-all")
+async def admin_publish_all(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    rows = (await db.execute(select(TheologyProgram))).scalars().all()
+    results = []
+    for program in rows:
+        r = await _publish_program(db, program)
+        results.append({"name": program.name, **r})
+    return {"published": sum(1 for r in results if r.get("ok")), "total": len(results), "results": results}
+
+
+@router.post("/admin/applications/{app_id}/resend-to-sharepoints")
+async def admin_resend_bridge(app_id: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Re-run the hand-over for a paid application that never reached sharepoints."""
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found.")
+    if a.status == "pending":
+        raise HTTPException(400, "This application has not been paid for yet.")
+    program = await _get_program(db, a.program_id)
+    if not program:
+        raise HTTPException(404, "Programme not found.")
+    await _bridge_to_sharepoints(db, a, program)
+    await db.refresh(a)
+    if a.bridge_status == "accepted" and a.offer_url:
+        if a.status == "paid":
+            a.status = "admitted"
+            a.admission_issued_at = datetime.utcnow()
+        a.admission_number = a.offer_number or a.admission_number
+        await db.commit()
+    return {"bridge_status": a.bridge_status, "bridge_error": a.bridge_error,
+            "offer_number": a.offer_number, "offer_url": a.offer_url,
+            "admission_letter_url": a.admission_letter_url, "status": a.status}
+
+
+@router.get("/admin/bridge-status")
+async def admin_bridge_status(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Everything an admin needs to see why admissions are or aren't flowing."""
+    from routers.integrations import _effective_key
+    key = await _effective_key(db)
+    programs = (await db.execute(select(TheologyProgram))).scalars().all()
+    apps = (await db.execute(select(TheologyApplication))).scalars().all()
+    counts: dict = {}
+    for a in apps:
+        counts[a.bridge_status or "not_sent"] = counts.get(a.bridge_status or "not_sent", 0) + 1
+    return {
+        "secret_set": bool(key),
+        "intake_url": await _intake_url(db),
+        "programs": [{
+            "id": p.id, "name": p.name, "code": p.program_code or "",
+            "derived_code": _derive_code(p),
+            "published": bool(p.program_code),
+            "fee_set": float(p.tuition_amount or 0) > 0,
+            "is_open": bool(p.is_open),
+        } for p in programs],
+        "applications": counts,
+        "stuck": [{
+            "id": a.id, "name": a.full_name, "status": a.status,
+            "bridge_status": a.bridge_status, "bridge_error": a.bridge_error,
+        } for a in apps if a.status != "pending" and a.bridge_status != "accepted"],
+    }
+
 
 @router.post("/admin/programs/import")
 async def import_programs_from_page(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
