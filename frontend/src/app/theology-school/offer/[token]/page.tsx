@@ -14,7 +14,7 @@ export default function OfferPage() {
     const [offer, setOffer] = useState<TheologyOffer | null>(null)
     const [err, setErr] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
-    const [accepted, setAccepted] = useState<{ login_email: string; portal_url: string; setup_url?: string | null } | null>(null)
+    const [accepted, setAccepted] = useState<{ login_email: string; portal_url: string; setup_url?: string | null; initial_password?: string | null } | null>(null)
 
     const load = useCallback(async () => {
         try { setOffer(await theologyApi.offer(token)) }
@@ -26,7 +26,7 @@ export default function OfferPage() {
         setBusy(true)
         try {
             const r = await theologyApi.accept(token)
-            setAccepted({ login_email: r.login_email, portal_url: r.portal_url, setup_url: r.setup_url })
+            setAccepted({ login_email: r.login_email, portal_url: r.portal_url, setup_url: r.setup_url, initial_password: r.initial_password })
         } catch (e) { setErr((e as Error).message) }
         finally { setBusy(false) }
     }
@@ -53,6 +53,17 @@ export default function OfferPage() {
                         <p className="text-gray-600 mt-1"><strong>Programme:</strong> {offer.program_name}</p>
                         <p className="text-gray-600 mt-1"><strong>Sign-in email:</strong> {accepted?.login_email || offer.email}</p>
                     </div>
+                    {accepted?.initial_password && (
+                        <div className="mt-5 text-left rounded-xl border-2 border-[#f5bb00] bg-amber-50 p-4">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-800">Your sign-in details — write these down now</p>
+                            <p className="text-xs text-gray-700 mt-2"><strong>Email:</strong> <span className="font-mono">{accepted.login_email}</span></p>
+                            <p className="text-xs text-gray-700 mt-1"><strong>Password:</strong> <span className="font-mono text-[15px] font-black text-[#140152] tracking-wide">{accepted.initial_password}</span></p>
+                            <p className="text-[11px] text-amber-800 mt-2">
+                                These work on your student portal and on your classroom at live.letw.org.
+                                This password is shown once — change it after you sign in.
+                            </p>
+                        </div>
+                    )}
                     <p className="text-xs text-gray-500 mt-4">Choose your password using the button below — you do not need to wait for an email. Use the same email and password for your student portal and your classroom on live.letw.org.</p>
                     <div className="mt-5 flex flex-wrap gap-2 justify-center">
                         <Link href={`/theology-school/offer/${token}/letter`} className="border border-gray-300 text-[#140152] font-bold px-5 py-2.5 rounded-full text-sm inline-flex items-center gap-2"><FileText className="w-4 h-4" /> Admission letter</Link>

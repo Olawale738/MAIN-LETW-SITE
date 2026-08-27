@@ -222,6 +222,9 @@ async def init_db():
                 ("integration_settings", "active_signatory",               "VARCHAR(20)"),
                 # Documents sharepoints issues back (ID card, certificates)
                 ("theology_applications", "documents",                "JSONB DEFAULT '[]'::jsonb"),
+                ("theology_applications", "initial_password",        "VARCHAR(64)"),
+                ("theology_applications", "initial_password_set_at", "TIMESTAMP"),
+                ("theology_applications", "first_login_at",          "TIMESTAMP"),
                 ("theology_applications", "setup_token",             "VARCHAR(80)"),
                 ("theology_applications", "setup_token_expires_at",  "TIMESTAMP"),
                 ("theology_applications", "admission_email_sent_at",  "TIMESTAMP"),

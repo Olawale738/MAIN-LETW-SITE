@@ -235,6 +235,16 @@ export default function TheologyAdmissionsPage() {
                                             {a.student_id_number ? <> · ID {a.student_id_number}</> : null}
                                         </p>
                                         {a.lms_error && <p className="text-[11px] text-amber-700 mt-1">{a.lms_error}</p>}
+                                        {a.initial_password && (
+                                            <p className="text-[11px] mt-1 inline-flex flex-wrap items-center gap-1.5">
+                                                <span className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">First password</span>
+                                                <button onClick={() => navigator.clipboard.writeText(a.initial_password!).then(() => setMsg({ kind: 'ok', text: 'Password copied.' })).catch(() => {})}
+                                                    className="font-mono font-black text-[#140152] bg-amber-50 border border-amber-300 rounded px-1.5 py-0.5 hover:bg-amber-100">
+                                                    {a.initial_password}
+                                                </button>
+                                                <span className="text-gray-400">— disappears once they sign in</span>
+                                            </p>
+                                        )}
                                         {a.status !== 'pending' && !a.admission_email_sent_at && (
                                             <p className="text-[11px] text-amber-700 mt-1 font-bold">Admission letter has never been emailed.</p>
                                         )}
@@ -271,6 +281,24 @@ export default function TheologyAdmissionsPage() {
                                                 title={a.admission_email_sent_at ? `Last sent ${new Date(a.admission_email_sent_at).toLocaleString()}` : 'Never sent'}
                                                 className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border ${a.admission_email_sent_at ? 'border-gray-300 text-[#140152] hover:bg-gray-50' : 'border-amber-400 bg-amber-50 text-amber-800'} disabled:opacity-50`}>
                                                 <Mail className="w-3 h-3" /> {a.admission_email_sent_at ? 'Resend letter' : 'Email letter'}
+                                            </button>
+                                        )}
+                                        {(a.status === 'accepted' || a.status === 'enrolled') && !a.initial_password && (
+                                            <button onClick={async () => {
+                                                if (!confirm(`Issue a new first password for ${a.full_name}?
+
+This replaces their current one — anyone already signed in with the old password is locked out.`)) return
+                                                setBusyId(a.id)
+                                                try {
+                                                    const r = await theologyApi.reissuePassword(a.id)
+                                                    await navigator.clipboard.writeText(r.initial_password).catch(() => {})
+                                                    setMsg({ kind: 'ok', text: `New password ${r.initial_password} copied — give it to ${r.email}.` })
+                                                    load()
+                                                } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+                                                finally { setBusyId('') }
+                                            }} disabled={busyId === a.id}
+                                                className="inline-flex items-center gap-1 border border-gray-300 text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                                                <KeyRound className="w-3 h-3" /> New password
                                             </button>
                                         )}
                                         {(a.status === 'accepted' || a.status === 'enrolled') && (

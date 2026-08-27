@@ -64,6 +64,30 @@ def _gen_password(n: int = 12) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(n))
 
 
+def _initial_password() -> str:
+    """The first password a student is given.
+
+    Read aloud over a phone or copied off a screen as often as it is pasted, so
+    it avoids characters that are ambiguous in print — no O/0, l/1, I — while
+    staying random. Never derived from the admission number or the name: a
+    predictable first password is every account at once.
+    """
+    letters = "ABCDEFGHJKLMNPQRSTUVWXYZ"
+    digits = "23456789"
+    block = "".join(secrets.choice(letters) for _ in range(4))
+    tail = "".join(secrets.choice(digits) for _ in range(4))
+    return f"LETW-{block}-{tail}"
+
+
+async def _clear_initial_password(db: AsyncSession, a: TheologyApplication) -> None:
+    """Once a student has signed in, the handover note has served its purpose."""
+    if a.initial_password or not a.first_login_at:
+        a.initial_password = None
+        if not a.first_login_at:
+            a.first_login_at = datetime.utcnow()
+        await db.commit()
+
+
 def _program_out(p: TheologyProgram) -> dict:
     return {
         "id": p.id, "name": p.name, "slug": p.slug, "summary": p.summary,
@@ -103,6 +127,8 @@ def _app_out(a: TheologyApplication, program: Optional[TheologyProgram] = None) 
         "offer_url": a.offer_url,
         "admission_letter_url": a.admission_letter_url,
         "acceptance_token": a.acceptance_token,
+        "initial_password": a.initial_password,
+        "first_login_at": a.first_login_at.isoformat() if a.first_login_at else None,
         "documents": list(a.documents or []),
         "admission_email_sent_at": a.admission_email_sent_at.isoformat() if a.admission_email_sent_at else None,
         "student_id_email_sent_at": a.student_id_email_sent_at.isoformat() if a.student_id_email_sent_at else None,
@@ -922,11 +948,42 @@ async def complete_setup(token: str, body: SetupIn, db: AsyncSession = Depends(g
     # Single use — the link cannot be replayed to take the account later.
     a.setup_token = None
     a.setup_token_expires_at = None
+    a.initial_password = None
+    if not a.first_login_at:
+        a.first_login_at = datetime.utcnow()
     await db.commit()
 
     return {"ok": True, "email": email,
             "portal_url": f"{_public_base()}/theology-school/student",
             **create_tokens(u.id, email)}
+
+
+@router.post("/admin/applications/{app_id}/reissue-password")
+async def admin_reissue_password(app_id: str, db: AsyncSession = Depends(get_db),
+                                 _: User = Depends(get_admin_user)):
+    """Issue a fresh first password for a student who never received theirs.
+
+    Replaces whatever they had, so use it only when the student cannot get in —
+    it locks out anyone already signed in with the old one.
+    """
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found.")
+    if a.status not in ("accepted", "enrolled"):
+        raise HTTPException(400, "This candidate has not accepted their offer yet.")
+    u = (await db.execute(select(User).where(User.email == a.email.lower()))).scalar_one_or_none()
+    if not u:
+        raise HTTPException(404, "No student account exists for this candidate yet.")
+
+    from utils.security import hash_password
+    pw = _initial_password()
+    u.password_hash = hash_password(pw)
+    a.initial_password = pw
+    a.initial_password_set_at = datetime.utcnow()
+    a.first_login_at = None
+    await db.commit()
+    return {"ok": True, "email": a.email.lower(), "initial_password": pw,
+            "note": "Works on letw.org and on live.letw.org. It disappears once the student signs in."}
 
 
 @router.post("/admin/applications/{app_id}/setup-link")
@@ -1139,6 +1196,7 @@ async def accept_offer(token: str, db: AsyncSession = Depends(get_db)):
     await db.refresh(a)
     return {"status": a.status, "student_created": bool(a.student_user_id),
             "letter": letter, "setup_url": _setup_url(a) if a.setup_token else None,
+            "initial_password": a.initial_password,
             "login_email": a.email, "temporary_password_sent": bool(password),
             "student_id_number": a.student_id_number,
             "registry_synced": bool(reg),
@@ -1161,8 +1219,15 @@ async def _provision_student(db: AsyncSession, a: TheologyApplication) -> Option
     existing = (await db.execute(select(User).where(User.email == a.email.lower()))).scalar_one_or_none()
     if existing:
         a.student_user_id = existing.id
+        # An applicant who already had a letw.org account keeps their own
+        # password — we must never overwrite a credential they are using
+        # elsewhere on the site.
+        if not existing.password_hash:
+            from utils.security import hash_password as _hp
+            password = _initial_password()
+            existing.password_hash = _hp(password)
     else:
-        password = _gen_password()
+        password = _initial_password()
         u = User(
             id=str(uuid.uuid4()),
             name=a.full_name,
@@ -1174,6 +1239,9 @@ async def _provision_student(db: AsyncSession, a: TheologyApplication) -> Option
         db.add(u)
         a.student_user_id = u.id
     a.lms_username = a.email.lower()
+    if password:
+        a.initial_password = password
+        a.initial_password_set_at = datetime.utcnow()
     await db.commit()
     await db.refresh(a)
 
@@ -1933,6 +2001,9 @@ async def lms_verify_student(
     if not a:
         return {"authenticated": False, "reason": "No active theology enrolment for this account."}
 
+    # Signing in on the classroom counts as a first sign-in: the handover note
+    # has done its job and should not linger in the database.
+    await _clear_initial_password(db, a)
     return {"authenticated": True, "student": _lms_student(a, await _get_program(db, a.program_id))}
 
 

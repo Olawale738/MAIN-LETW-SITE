@@ -98,6 +98,12 @@ class TheologyApplication(Base):
     # Deliberately NOT the acceptance token: that one appears in the admission
     # letter URL, which a candidate may reasonably share, and sharing a letter
     # must never hand over the account.
+    # The first password, held in readable form only until the student first
+    # signs in, so the office can pass it on when email is unavailable. Cleared
+    # on first use — it is a handover note, not a stored credential.
+    initial_password: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    initial_password_set_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    first_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     setup_token: Mapped[Optional[str]] = mapped_column(String(80), nullable=True, index=True)
     setup_token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     admission_email_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
