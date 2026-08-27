@@ -274,6 +274,62 @@ async def send_email_with_ics(to_email: str, subject: str, html_content: str,
         return False
 
 
+async def send_email_with_pdf(to_email: str, subject: str, html_content: str,
+                              pdf_bytes: bytes, filename: str = "document.pdf") -> bool:
+    """Send an email carrying a PDF. Resend when configured (base64 attachment),
+    else SMTP with a MIME attachment, else logs. Never raises.
+
+    Returns False in development mode rather than True: a caller attaching a
+    document needs to know whether it actually reached anyone.
+    """
+    import base64
+    if not settings.EMAIL_ENABLED:
+        print("=" * 60)
+        print("EMAIL+PDF (Development Mode - Not Actually Sent)")
+        print(f"TO: {to_email}")
+        print(f"SUBJECT: {subject}")
+        print(f"ATTACHMENT: {filename} ({len(pdf_bytes)} bytes)")
+        print("=" * 60)
+        return False
+    resend_api_key = getattr(settings, "RESEND_API_KEY", None)
+    try:
+        if resend_api_key and RESEND_AVAILABLE:
+            resend.api_key = resend_api_key
+            resend.Emails.send({
+                "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM_ADDRESS}>",
+                "to": [to_email], "subject": subject, "html": html_content,
+                "attachments": [{
+                    "filename": filename,
+                    "content": base64.b64encode(pdf_bytes).decode("ascii"),
+                    "content_type": "application/pdf",
+                }],
+            })
+            print(f"✅ Email+PDF sent via Resend to {to_email} ({filename})")
+            return True
+        from email.mime.base import MIMEBase
+        from email import encoders as _encoders
+        message = MIMEMultipart("mixed")
+        message["From"] = f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM_ADDRESS}>"
+        message["To"] = to_email
+        message["Subject"] = subject
+        message.attach(MIMEText(html_content, "html"))
+        part = MIMEBase("application", "pdf", name=filename)
+        part.set_payload(pdf_bytes)
+        _encoders.encode_base64(part)
+        part.add_header("Content-Disposition", f'attachment; filename="{filename}"')
+        message.attach(part)
+        await aiosmtplib.send(
+            message, hostname=settings.SMTP_HOST, port=settings.SMTP_PORT,
+            username=settings.SMTP_USER, password=settings.SMTP_PASSWORD,
+            use_tls=settings.SMTP_PORT == 465, start_tls=settings.SMTP_PORT == 587, timeout=45,
+        )
+        print(f"✅ Email+PDF sent via SMTP to {to_email} ({filename})")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send email+PDF to {to_email}: {e}")
+        return False
+
+
 async def send_marriage_prep_session_email(
     *, to_email: str, partner_a: str, partner_b: str,
     when, note: str, join_url: str,

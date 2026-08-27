@@ -54,3 +54,6 @@ imageio-ffmpeg>=0.5.1
 # QR chips on marriage-prep certificates. Pure-Python; the SVG image factory
 # needs no PIL, so this adds no native build steps on Render.
 qrcode>=7.4
+# Server-side admission letters. Pure-Python with prebuilt wheels, so it adds
+# no system packages to the Render image (unlike weasyprint/wkhtmltopdf).
+reportlab==4.2.5

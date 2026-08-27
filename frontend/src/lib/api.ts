@@ -4728,6 +4728,7 @@ export const theologyApi = {
         fd.append('file', file)
         return fetchApi<{ ok: boolean; photo_url: string }>(`/theology/admin/applications/${appId}/photo`, { method: 'POST', body: fd })
     },
+    sendLetter: (id: string) => fetchApi<{ ok: boolean; email: string; letter_url: string }>(`/theology/admin/applications/${id}/send-letter`, { method: 'POST' }),
     resendAdmissionEmail: (id: string) => fetchApi<{ ok: boolean; email: string; letter_url: string }>(`/theology/admin/applications/${id}/resend-admission-email`, { method: 'POST' }),
     getRegistrar: () => fetchApi<TheologyRegistrar>('/theology/admin/registrar'),
     saveRegistrar: (b: Partial<TheologyRegistrar>) => fetchApi<TheologyRegistrar>('/theology/admin/registrar', { method: 'PUT', body: JSON.stringify(b) }),
@@ -4739,6 +4740,7 @@ export const theologyApi = {
 export interface TheologyBridgeStatus {
     secret_set: boolean
     email?: { live: boolean; provider: string | null; reason: string | null }
+    signatory?: { name: string; title: string; signature_url: string; role: string }
     intake_url: string
     programs: { id: string; name: string; code: string; derived_code: string; published: boolean; fee_set: boolean; is_open: boolean }[]
     applications: Record<string, number>

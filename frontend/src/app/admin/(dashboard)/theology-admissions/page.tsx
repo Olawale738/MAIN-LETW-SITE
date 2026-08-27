@@ -115,7 +115,8 @@ export default function TheologyAdmissionsPage() {
                 const unpublished = bridge.programs.filter(p => !p.published)
                 const stuck = bridge.stuck.length
                 const mailDead = bridge.email && !bridge.email.live
-                const healthy = bridge.secret_set && unpublished.length === 0 && stuck === 0 && !mailDead
+                const noSignatory = bridge.signatory && !bridge.signatory.name?.trim()
+                const healthy = bridge.secret_set && unpublished.length === 0 && stuck === 0 && !mailDead && !noSignatory
                 return (
                     <div className={`mb-4 rounded-xl border p-4 ${healthy ? 'border-emerald-200 bg-emerald-50' : 'border-amber-300 bg-amber-50'}`}>
                         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -125,6 +126,9 @@ export default function TheologyAdmissionsPage() {
                                     SharePoints admissions {healthy ? 'are flowing' : 'need attention'}
                                 </p>
                                 <ul className="mt-1.5 space-y-0.5 text-xs text-gray-700">
+                                    {noSignatory && (
+                                        <li className="font-bold text-red-700">· No Registrar has been set, so admission letters are not being generated or sent. Set one under <button onClick={() => setTab('signatories')} className="underline">Signatories</button>.</li>
+                                    )}
                                     {mailDead && (
                                         <li className="font-bold text-red-700">· No email is being sent — {bridge.email!.reason} Candidates will not receive their admission letter.</li>
                                     )}
@@ -263,7 +267,7 @@ export default function TheologyAdmissionsPage() {
                                             </button>
                                         )}
                                         {a.status !== 'pending' && (
-                                            <button onClick={() => act(a.id, () => theologyApi.resendAdmissionEmail(a.id), 'Admission letter emailed again.')} disabled={busyId === a.id}
+                                            <button onClick={() => act(a.id, () => theologyApi.sendLetter(a.id), 'Signed letter generated and emailed.')} disabled={busyId === a.id}
                                                 title={a.admission_email_sent_at ? `Last sent ${new Date(a.admission_email_sent_at).toLocaleString()}` : 'Never sent'}
                                                 className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border ${a.admission_email_sent_at ? 'border-gray-300 text-[#140152] hover:bg-gray-50' : 'border-amber-400 bg-amber-50 text-amber-800'} disabled:opacity-50`}>
                                                 <Mail className="w-3 h-3" /> {a.admission_email_sent_at ? 'Resend letter' : 'Email letter'}

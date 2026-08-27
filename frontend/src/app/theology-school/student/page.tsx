@@ -10,6 +10,9 @@ import {
 } from 'lucide-react'
 import { theologyApi, type TheologyApplication } from '@/lib/api'
 
+// The PDF is served by the API, not the Next app.
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || 'https://letw-backend.onrender.com/api').replace(/\/$/, '')
+
 export default function StudentDashboard() {
     const [records, setRecords] = useState<TheologyApplication[] | null>(null)
     const [classroom, setClassroom] = useState('https://live.letw.org/login')
@@ -100,10 +103,17 @@ export default function StudentDashboard() {
                                     {r.paid_at && <p className="text-xs text-gray-500 mt-1">Fee paid: {r.currency} {Number(r.amount_paid || 0).toLocaleString()}</p>}
                                     <div className="flex flex-wrap gap-2 mt-2.5">
                                         {r.acceptance_token && (
-                                            <Link href={`/theology-school/offer/${r.acceptance_token}/letter`}
-                                                className="inline-flex items-center gap-1.5 bg-[#140152] text-white font-bold px-3 py-2 rounded-lg text-xs">
-                                                <FileText className="w-3.5 h-3.5" /> Admission letter
-                                            </Link>
+                                            <>
+                                                <a href={`${API_ORIGIN}/theology/offer/${r.acceptance_token}/letter.pdf`}
+                                                    target="_blank" rel="noreferrer"
+                                                    className="inline-flex items-center gap-1.5 bg-[#140152] text-white font-bold px-3 py-2 rounded-lg text-xs">
+                                                    <FileText className="w-3.5 h-3.5" /> Admission letter (PDF)
+                                                </a>
+                                                <Link href={`/theology-school/offer/${r.acceptance_token}/letter`}
+                                                    className="inline-flex items-center gap-1.5 border border-gray-300 text-[#140152] font-bold px-3 py-2 rounded-lg text-xs">
+                                                    View on screen
+                                                </Link>
+                                            </>
                                         )}
                                         {r.admission_letter_url && (
                                             <a href={r.admission_letter_url} target="_blank" rel="noreferrer"

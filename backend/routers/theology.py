@@ -187,6 +187,104 @@ def _email_delivery() -> dict:
             "reason": "EMAIL_ENABLED is on but neither RESEND_API_KEY nor SMTP_HOST is set."}
 
 
+async def _build_letter_pdf(db: AsyncSession, a: TheologyApplication,
+                            program: Optional[TheologyProgram]) -> Optional[bytes]:
+    """Render this candidate's admission letter.
+
+    The letter is a document of the school, signed by the appointed Registrar or
+    Deputy Registrar — never by whichever administrator happens to be logged in,
+    and carrying nothing from the dashboard it was triggered from.
+    """
+    who = await _signatory(db)
+    try:
+        from services.admission_letter import build_admission_letter
+        return build_admission_letter(
+            full_name=a.full_name,
+            email=a.email.lower(),
+            admission_number=a.offer_number or a.admission_number or "",
+            program_name=program.name if program else "your programme",
+            level=program.level if program else None,
+            duration_months=program.duration_months if program else None,
+            tuition_amount=float(a.amount_paid or (program.tuition_amount if program else 0) or 0),
+            currency=(a.currency or (program.currency if program else None) or "NGN"),
+            issued_at=a.admission_issued_at,
+            photo_url=a.photo_url,
+            logo_url=f"{_public_base()}/logo.png",
+            signatory=who,
+            verify_url=_admission_verify_url(a),
+            fingerprint=_admission_fingerprint(_admission_signature(a)),
+        )
+    except Exception as e:
+        print(f"[theology] letter render failed for {a.admission_number}: {type(e).__name__}: {e}", flush=True)
+        return None
+
+
+async def _signatory_ready(db: AsyncSession) -> tuple[bool, str]:
+    """Whether a letter can be signed. No signatory, no automatic letter — an
+    unsigned admission letter is worse than a late one."""
+    who = await _signatory(db)
+    if not (who.get("name") or "").strip():
+        role = "Deputy Registrar" if who.get("role") == "deputy" else "Registrar"
+        return False, (f"No {role} has been set. Admission letters are not being generated — "
+                       f"set the signatory under Theology School → Signatories.")
+    return True, ""
+
+
+async def _deliver_letter(db: AsyncSession, a: TheologyApplication,
+                          program: Optional[TheologyProgram]) -> dict:
+    """Generate the letter and email it to the candidate as a PDF.
+
+    Called the moment an offer is accepted, so the candidate receives the
+    signed document rather than a link to go and fetch one.
+    """
+    ready, why = await _signatory_ready(db)
+    if not ready:
+        print(f"[theology] letter not generated for {a.admission_number}: {why}", flush=True)
+        return {"generated": False, "sent": False, "reason": why}
+
+    pdf = await _build_letter_pdf(db, a, program)
+    if not pdf:
+        return {"generated": False, "sent": False,
+                "reason": "The letter could not be generated. Check the server log."}
+
+    filename = f"LETW-Admission-Letter-{(a.offer_number or a.admission_number or a.id)}.pdf"
+    u = _letter_urls(a)
+    pname = program.name if program else "your programme"
+    body = (
+        f'<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1f2937">'
+        f'<div style="background:#140152;color:#fff;padding:22px;border-radius:14px 14px 0 0">'
+        f'<h2 style="margin:0;color:#f5bb00">Your admission letter</h2></div>'
+        f'<div style="border:1px solid #eee;border-top:none;padding:22px;border-radius:0 0 14px 14px">'
+        f'<p>Dear {a.full_name},</p>'
+        f'<p>Thank you for accepting your place on <strong>{pname}</strong>. '
+        f'Your signed admission letter is attached to this email.</p>'
+        f'<p><strong>Admission number:</strong> {a.admission_number}</p>'
+        f'<p>You can also view, download and print it any time from your student portal:</p>'
+        f'<p style="margin:22px 0"><a href="{u["letter_url"]}" '
+        f'style="background:#140152;color:#fff;text-decoration:none;font-weight:bold;'
+        f'padding:12px 22px;border-radius:999px">Open my admission letter</a></p>'
+        f'<p style="font-size:12px;color:#6b7280">The letter carries a QR code. Anyone can scan it to '
+        f'confirm the document is genuine.</p>'
+        f'<p style="font-size:12px;color:#6b7280">Light Encounter Tabernacle Worldwide · School of Theology</p>'
+        f'</div></div>'
+    )
+    try:
+        from services.email_service import send_email_with_pdf
+        sent = await send_email_with_pdf(
+            a.email, f"Your admission letter — {a.admission_number}", body, pdf, filename)
+    except Exception as e:
+        print(f"[theology] letter email failed: {type(e).__name__}: {e}", flush=True)
+        sent = False
+
+    _add_document(a, "admission_letter", "Admission letter", u["letter_url"],
+                  a.offer_number or a.admission_number, source="letw.org")
+    if sent:
+        a.admission_email_sent_at = datetime.utcnow()
+    await db.commit()
+    return {"generated": True, "sent": bool(sent),
+            "reason": None if sent else _email_delivery()["reason"]}
+
+
 def _ensure_offer_identity(a: TheologyApplication) -> None:
     """Every admitted applicant needs an admission number and an acceptance
     token, whichever system issued the offer.
@@ -709,6 +807,47 @@ async def set_registrar(body: RegistrarIn, db: AsyncSession = Depends(get_db), _
     return await get_registrar(db, _)
 
 
+@router.get("/offer/{token}/letter.pdf")
+async def download_letter_pdf(token: str, db: AsyncSession = Depends(get_db)):
+    """The admission letter as a PDF, addressed by the candidate's own offer
+    token. The same document that was emailed — identical whoever asks."""
+    from fastapi.responses import Response
+    a = await _by_token(db, token)
+    program = await _get_program(db, a.program_id)
+    ready, why = await _signatory_ready(db)
+    if not ready:
+        raise HTTPException(409, why)
+    pdf = await _build_letter_pdf(db, a, program)
+    if not pdf:
+        raise HTTPException(500, "The letter could not be generated.")
+    name = f"LETW-Admission-Letter-{(a.offer_number or a.admission_number or a.id)}.pdf"
+    return Response(content=pdf, media_type="application/pdf", headers={
+        "Content-Disposition": f'inline; filename="{name}"',
+        "Cache-Control": "private, max-age=300",
+    })
+
+
+@router.post("/admin/applications/{app_id}/send-letter")
+async def admin_send_letter(app_id: str, db: AsyncSession = Depends(get_db),
+                            _: User = Depends(get_admin_user)):
+    """Generate and email the letter again — for a candidate who accepted before
+    a signatory was appointed, or who never received it."""
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found.")
+    if a.status == "pending":
+        raise HTTPException(400, "This applicant has not been admitted yet.")
+    _ensure_offer_identity(a)
+    await db.commit()
+    program = await _get_program(db, a.program_id)
+    r = await _deliver_letter(db, a, program)
+    if not r["generated"]:
+        raise HTTPException(409, r["reason"])
+    if not r["sent"]:
+        raise HTTPException(502, r["reason"] or "The letter was generated but could not be emailed.")
+    return {"ok": True, "email": a.email, **_letter_urls(a)}
+
+
 # ── Applicant photograph ─────────────────────────────────────────────────────
 
 MAX_PHOTO_BYTES = 6 * 1024 * 1024
@@ -891,9 +1030,13 @@ async def accept_offer(token: str, db: AsyncSession = Depends(get_db)):
                 a.student_id_issued_at = datetime.utcnow()
         await db.commit()
 
+    # The signed letter goes out now, on acceptance — not as a link to fetch.
+    letter = await _deliver_letter(db, a, program)
+
     password = await _provision_student(db, a)
     await db.refresh(a)
     return {"status": a.status, "student_created": bool(a.student_user_id),
+            "letter": letter,
             "login_email": a.email, "temporary_password_sent": bool(password),
             "student_id_number": a.student_id_number,
             "registry_synced": bool(reg),
@@ -1749,6 +1892,7 @@ async def admin_bridge_status(db: AsyncSession = Depends(get_db), _: User = Depe
     return {
         "secret_set": bool(key),
         "email": _email_delivery(),
+        "signatory": await _signatory(db),
         "intake_url": await _intake_url(db),
         "programs": [{
             "id": p.id, "name": p.name, "code": p.program_code or "",
