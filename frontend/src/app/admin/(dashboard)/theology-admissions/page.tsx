@@ -348,6 +348,15 @@ This replaces their current one — anyone already signed in with the old passwo
                                                 </a>
                                             </>
                                         )}
+                                        {(a.status === 'accepted' || a.status === 'enrolled') && (
+                                            <button onClick={() => act(a.id, async () => {
+                                                const r = await theologyApi.adminRefreshCredentials(a.id)
+                                                setMsg({ kind: 'ok', text: `SharePoints: ${r.student_id_number || 'no ID yet'}, ${r.certificates} certificate(s).` })
+                                            }, 'Credentials refreshed from SharePoints.')} disabled={busyId === a.id}
+                                                className="inline-flex items-center gap-1 border border-gray-300 text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                                                <RefreshCw className="w-3 h-3" /> Credentials
+                                            </button>
+                                        )}
                                         {a.student_id_card_url && (
                                             <a href={a.student_id_card_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 bg-[#f5bb00] text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg"><IdCard className="w-3 h-3" /> ID card</a>
                                         )}

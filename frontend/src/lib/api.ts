@@ -4738,6 +4738,8 @@ export const theologyApi = {
         fd.append('file', file)
         return fetchApi<{ ok: boolean; photo_url: string }>(`/theology/admin/applications/${appId}/photo`, { method: 'POST', body: fd })
     },
+    refreshCredentials: () => fetchApi<{ ok: boolean; reason?: string; student_id_number: string | null; certificates?: number; documents_list: TheologyDocument[] }>('/theology/student/credentials', { method: 'POST' }),
+    adminRefreshCredentials: (id: string) => fetchApi<{ ok: boolean; student_id_number: string | null; certificates: number; documents: number }>(`/theology/admin/applications/${id}/refresh-credentials`, { method: 'POST' }),
     classroom: () => fetchApi<{ classroom_url: string; login_email: string; admission_number: string | null; course_code: string | null; program_name: string | null; seat_status: string; seat_ready: boolean; note: string }>('/theology/student/classroom', { method: 'POST' }),
     setupDetails: (token: string) => fetchApi<TheologySetup>(`/theology/setup/${token}`),
     completeSetup: (token: string, password: string) =>

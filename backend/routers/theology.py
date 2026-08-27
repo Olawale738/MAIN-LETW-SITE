@@ -1604,6 +1604,128 @@ async def admin_resend_admission_email(app_id: str, db: AsyncSession = Depends(g
     return {"ok": True, "email": a.email, **_letter_urls(a)}
 
 
+async def _fetch_credentials(db: AsyncSession, a: TheologyApplication) -> dict:
+    """Pull this student's current ID and certificates from sharepoints.
+
+    Pulling matters as much as being pushed to: a webhook that never fires
+    leaves a student staring at "being processed" forever, and only sharepoints
+    knows when a certificate has been revoked or replaced. This is the
+    authoritative read, so what it returns replaces what we held.
+    """
+    ref = (a.offer_number or a.admission_number or "").strip()
+    if not ref:
+        return {"ok": False, "reason": "This student has no admission number yet."}
+    from routers.integrations import _effective_key
+    key = await _effective_key(db)
+    if not key:
+        return {"ok": False, "reason": "Shared secret not set (Admin -> Integrations)."}
+
+    base = (await _intake_url(db)).rstrip("/").rsplit("/", 1)[0]
+    url = f"{base}/credentials"
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=20) as cli:
+            r = await cli.get(url, params={"admission_number": ref}, headers={"X-API-Key": key})
+    except Exception as e:
+        print(f"[theology] credential pull failed for {ref}: {type(e).__name__}: {e}", flush=True)
+        return {"ok": False, "reason": f"{type(e).__name__}: {e}"}
+
+    if r.status_code == 404:
+        return {"ok": False, "not_found": True,
+                "reason": "sharepoints has no accepted student under that admission number yet."}
+    if not (200 <= r.status_code < 300):
+        return {"ok": False, "reason": f"sharepoints responded {r.status_code}: {r.text[:200]}"}
+
+    body = r.json() or {}
+    data = body.get("data") if isinstance(body.get("data"), dict) else body
+    reg = data.get("credentialRegistry") if isinstance(data, dict) else None
+    if not isinstance(reg, dict):
+        return {"ok": False, "reason": "sharepoints returned an unexpected credential payload."}
+
+    # ── Student ID ──────────────────────────────────────────────────────────
+    sid = reg.get("studentId") if isinstance(reg.get("studentId"), dict) else None
+    if sid and sid.get("number"):
+        a.student_id_number = str(sid["number"])
+        if sid.get("verificationUrl"):
+            a.student_id_card_url = str(sid["verificationUrl"])
+        if not a.student_id_issued_at:
+            a.student_id_issued_at = datetime.utcnow()
+
+    # ── Certificates ────────────────────────────────────────────────────────
+    # Rebuilt wholesale rather than merged: a certificate that has been revoked
+    # or replaced disappears from the registry, and it has to disappear from the
+    # student's portal too. Merging would leave a revoked one on display.
+    kept = [d for d in list(a.documents or []) if d.get("kind") != "certificate"]
+    live = 0
+    for cert in (reg.get("certificates") or []):
+        if not isinstance(cert, dict):
+            continue
+        if cert.get("revokedAt") or str(cert.get("status") or "").upper() in ("REVOKED", "REPLACED"):
+            continue
+        vurl = cert.get("verificationUrl")
+        if not vurl:
+            continue
+        kept.append({
+            "kind": "certificate",
+            "title": cert.get("title") or "Certificate",
+            # sharepoints marks the PDF SHAREPOINTS_AUTHORIZED, so the
+            # verification page is the only link we are entitled to hand out.
+            "url": str(vurl),
+            "number": cert.get("number"),
+            "source": "sharepoints.letw.org",
+            "issued_at": cert.get("issuedAt"),
+        })
+        live += 1
+
+    if sid and sid.get("number") and sid.get("verificationUrl"):
+        kept = [d for d in kept if d.get("kind") != "student_id_verification"]
+        kept.append({
+            "kind": "student_id_verification",
+            "title": "Student ID card",
+            "url": str(sid["verificationUrl"]),
+            "number": sid.get("number"),
+            "source": "sharepoints.letw.org",
+            "issued_at": sid.get("issuedAt"),
+        })
+
+    a.documents = kept
+    await db.commit()
+    return {"ok": True, "student_id_number": a.student_id_number,
+            "certificates": live, "documents": len(kept),
+            "classroom_status": (reg.get("synchronization") or {}).get("classroomStatus")}
+
+
+@router.post("/student/credentials")
+async def refresh_my_credentials(db: AsyncSession = Depends(get_db),
+                                 user: User = Depends(get_current_active_user)):
+    """Let a student pull their own ID and certificates on demand."""
+    a = (await db.execute(
+        select(TheologyApplication)
+        .where(TheologyApplication.email == user.email.lower(),
+               TheologyApplication.status.in_(["accepted", "enrolled"]))
+        .order_by(desc(TheologyApplication.accepted_at))
+    )).scalars().first()
+    if not a:
+        raise HTTPException(404, "No active theology enrolment for this account.")
+    r = await _fetch_credentials(db, a)
+    await db.refresh(a)
+    return {**r, "documents_list": list(a.documents or []),
+            "student_id_number": a.student_id_number}
+
+
+@router.post("/admin/applications/{app_id}/refresh-credentials")
+async def admin_refresh_credentials(app_id: str, db: AsyncSession = Depends(get_db),
+                                    _: User = Depends(get_admin_user)):
+    """Pull a student's current ID and certificates from sharepoints."""
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found.")
+    r = await _fetch_credentials(db, a)
+    if not r.get("ok"):
+        raise HTTPException(404 if r.get("not_found") else 502, r.get("reason") or "Could not read the credentials.")
+    return r
+
+
 # ── Student dashboard ────────────────────────────────────────────────────────
 
 @router.post("/student/classroom")
@@ -1664,6 +1786,15 @@ async def my_student_record(db: AsyncSession = Depends(get_db), user: User = Dep
         apps = res2.scalars().all()
     out = []
     for a in apps:
+        # A student with no ID yet is the case where a push may simply never
+        # have arrived, so ask sharepoints directly rather than showing them
+        # "being processed" indefinitely. Best-effort and bounded to that case.
+        if a.status in ("accepted", "enrolled") and not a.student_id_number:
+            try:
+                await _fetch_credentials(db, a)
+                await db.refresh(a)
+            except Exception as e:
+                print(f"[theology] credential top-up failed: {type(e).__name__}: {e}", flush=True)
         p = await _get_program(db, a.program_id)
         out.append(_app_out(a, p))
     return {"records": out, "classroom_url": "https://live.letw.org/login"}

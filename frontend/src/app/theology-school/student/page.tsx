@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-    GraduationCap, Loader2, ExternalLink, IdCard, BookOpen, CheckCircle, Clock, ShieldAlert, FileText,
+    GraduationCap, Loader2, ExternalLink, IdCard, BookOpen, CheckCircle, Clock, ShieldAlert, FileText, RefreshCw,
 } from 'lucide-react'
 import { theologyApi, type TheologyApplication } from '@/lib/api'
 
@@ -18,6 +18,16 @@ export default function StudentDashboard() {
     const [classroom, setClassroom] = useState('https://live.letw.org/login')
     const [err, setErr] = useState<string | null>(null)
     const [entering, setEntering] = useState(false)
+    const [refreshing, setRefreshing] = useState(false)
+
+    // Ask sharepoints directly for the current ID and certificates. It is the
+    // authority on both, and on which of them have been revoked.
+    const refreshCredentials = async () => {
+        setRefreshing(true)
+        try { await theologyApi.refreshCredentials(); await load() }
+        catch { /* the card keeps showing whatever we already had */ }
+        finally { setRefreshing(false) }
+    }
 
     // Ask the server for the classroom address and nudge the seat on the way
     // out. A failure here must never stand between a student and their class,
@@ -147,6 +157,10 @@ export default function StudentDashboard() {
                                 </Card>
 
                                 <Card icon={FileText} title="My documents" tone="#eef2ff" ic="#4f46e5">
+                                    <button onClick={refreshCredentials} disabled={refreshing}
+                                        className="float-right -mt-6 inline-flex items-center gap-1 text-[11px] font-bold text-[#4f46e5] hover:underline disabled:opacity-50">
+                                        {refreshing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Check for new
+                                    </button>
                                     {(r.documents?.length ?? 0) > 0 ? (
                                         <ul className="space-y-1.5">
                                             {r.documents!.map((d, i) => (
