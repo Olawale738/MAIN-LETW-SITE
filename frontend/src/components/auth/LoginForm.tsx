@@ -42,6 +42,7 @@ export default function LoginForm() {
         try {
             const user = await authApi.getCurrentUser()
             localStorage.setItem('userName', user.name)
+            localStorage.setItem('userEmail', user.email)
             if (user.role === 'admin') finalRedirect = '/admin'
         } catch (error) {
             console.error('Failed to fetch user details', error)

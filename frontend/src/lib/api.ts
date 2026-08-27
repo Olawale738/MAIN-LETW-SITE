@@ -156,6 +156,7 @@ function handleAuthFailure(): void {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userName');
+    localStorage.removeItem('userEmail');
     // Send them to sign in, remembering where they were going. Without this a
     // visitor opening a signed-in page lands on a generic dashboard afterwards
     // and concludes the page they wanted does not exist.

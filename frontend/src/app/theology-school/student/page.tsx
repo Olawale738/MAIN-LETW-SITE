@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-    GraduationCap, Loader2, ExternalLink, IdCard, BookOpen, CheckCircle, Clock, ShieldAlert, FileText, RefreshCw,
+    GraduationCap, Loader2, ExternalLink, IdCard, BookOpen, CheckCircle, Clock, ShieldAlert, FileText, RefreshCw, AlertCircle,
 } from 'lucide-react'
 import { theologyApi, type TheologyApplication } from '@/lib/api'
 
@@ -19,6 +19,8 @@ export default function StudentDashboard() {
     const [err, setErr] = useState<string | null>(null)
     const [entering, setEntering] = useState(false)
     const [refreshing, setRefreshing] = useState(false)
+    const [slow, setSlow] = useState(false)
+    const [signedInAs, setSignedInAs] = useState('')
 
     // Ask sharepoints directly for the current ID and certificates. It is the
     // authority on both, and on which of them have been revoked.
@@ -54,6 +56,11 @@ export default function StudentDashboard() {
         }
     }, [])
     useEffect(() => { load() }, [load])
+    // Only mention the wait once it is actually a wait.
+    useEffect(() => { const t = setTimeout(() => setSlow(true), 4000); return () => clearTimeout(t) }, [])
+    useEffect(() => {
+        try { setSignedInAs(localStorage.getItem('userEmail') || '') } catch { /* not critical */ }
+    }, [])
 
     if (err === 'auth') return (
         <main className="min-h-screen flex items-center justify-center p-6 text-center">
@@ -63,17 +70,53 @@ export default function StudentDashboard() {
             </div>
         </main>
     )
-    if (err) return <main className="min-h-screen flex items-center justify-center p-6 text-center text-gray-500">{err}</main>
-    if (!records) return <main className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#140152]" /></main>
+    if (err) return (
+        <Panel>
+            <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+            <p className="font-bold text-[#140152]">We couldn&apos;t open your portal</p>
+            <p className="text-gray-600 text-sm mt-1">{err}</p>
+            <button onClick={() => { setErr(null); setRecords(null); load() }}
+                className="inline-flex items-center gap-2 mt-4 bg-[#140152] text-white font-bold px-5 py-2.5 rounded-lg text-sm">
+                <RefreshCw className="w-4 h-4" /> Try again
+            </button>
+            <p className="text-[11px] text-gray-400 mt-3">
+                If this keeps happening, contact the school office with your admission number.
+            </p>
+        </Panel>
+    )
+
+    // The API retries for ~25s to ride out a sleeping server, so this state can
+    // last a while. A bare spinner reads as a broken page; say what is going on.
+    if (!records) return (
+        <Panel>
+            <Loader2 className="w-8 h-8 animate-spin text-[#140152] mx-auto" />
+            <p className="text-gray-600 text-sm mt-4">Opening your portal…</p>
+            {slow && (
+                <p className="text-[11px] text-gray-400 mt-2">
+                    The server may be waking up — this can take up to a minute the first time each day.
+                </p>
+            )}
+        </Panel>
+    )
 
     if (records.length === 0) return (
-        <main className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-            <div className="max-w-md text-center bg-white border border-dashed border-gray-300 rounded-2xl p-10">
-                <GraduationCap className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-600">No student record found for your account yet.</p>
-                <Link href="/theology-school/apply" className="inline-block mt-4 bg-[#140152] text-white font-bold px-5 py-2.5 rounded-lg text-sm">Apply to the Theology School</Link>
+        <Panel>
+            <GraduationCap className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+            <p className="font-bold text-[#140152]">Nothing here under this account yet</p>
+            <p className="text-gray-600 text-sm mt-2">
+                Your studies appear here once you accept your offer of admission. If you have already
+                applied, open the offer link that was issued to you — accepting it creates your record.
+            </p>
+            <p className="text-[11px] text-gray-500 mt-3">
+                Signed in as <strong className="text-[#140152]">{signedInAs || 'this account'}</strong>.
+                If you applied with a different email, sign in with that one instead.
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center mt-4">
+                <Link href="/auth/login?redirect=/theology-school/student" className="border border-gray-300 text-[#140152] font-bold px-4 py-2.5 rounded-lg text-sm">Use a different email</Link>
+                <Link href="/contact" className="border border-gray-300 text-[#140152] font-bold px-4 py-2.5 rounded-lg text-sm">Ask the school office</Link>
+                <Link href="/theology-school/apply" className="bg-[#140152] text-white font-bold px-4 py-2.5 rounded-lg text-sm">Apply</Link>
             </div>
-        </main>
+        </Panel>
     )
 
     return (
@@ -215,5 +258,15 @@ function Card({ icon: Icon, title, tone, ic, children }: { icon: React.ElementTy
             </div>
             {children}
         </div>
+    )
+}
+
+function Panel({ children }: { children: React.ReactNode }) {
+    return (
+        <main className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+            <div className="max-w-md w-full text-center bg-white border border-gray-100 rounded-2xl shadow-sm p-8">
+                {children}
+            </div>
+        </main>
     )
 }
