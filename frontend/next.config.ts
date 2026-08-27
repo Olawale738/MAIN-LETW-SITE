@@ -56,6 +56,21 @@ const nextConfig: NextConfig = {
         : []),
     ],
   },
+
+  async redirects() {
+    return [
+      // A short address the school office can say out loud, and that fits on a
+      // printed letter: letw.org/portal.
+      { source: '/portal', destination: '/theology-school/student', permanent: false },
+
+      // /theology-school was an earlier, thinner version of the school page and
+      // is not linked anywhere; /education/theology-school is the real one.
+      // Redirecting rather than deleting keeps any link already handed out
+      // working, and leaves exactly one page to maintain. Only the bare path —
+      // /theology-school/apply, /student, /offer and /setup all live on.
+      { source: '/theology-school', destination: '/education/theology-school', permanent: false },
+    ]
+  },
 };
 
 // Wrap with Sentry only when SENTRY_AUTH_TOKEN is set during build (for source

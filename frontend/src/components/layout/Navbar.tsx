@@ -37,7 +37,7 @@ const DEFAULT_EDUCATION: NavLink[] = [
   { name: 'University', href: '/education/university' },
   { name: 'Theology School', href: '/education/theology-school' },
   { name: 'Apply — Theology School', href: '/theology-school/apply' },
-  { name: 'Student Portal', href: '/education/theology-school/portal' },
+  { name: 'Student Portal', href: '/portal' },
 ]
 
 // Connect entries (Small Groups / Family / Grow / Tour / Voice / Downloads)
@@ -108,9 +108,17 @@ export default function Navbar() {
           // any essential theology links the saved menu doesn't already carry —
           // an admin's own entry for the same href always wins.
           const saved = c.education
-          const essential = DEFAULT_EDUCATION.filter(d =>
-            (d.href === '/theology-school/apply' || d.href === '/education/theology-school/portal') &&
-            !saved.some(x => x.href === d.href))
+          // The portal has been linked by two hrefs over time and /portal now
+          // redirects to the other, so treat them as the same destination —
+          // otherwise a menu saved earlier gains a second, duplicate entry.
+          const SAME_AS: Record<string, string[]> = {
+            '/portal': ['/portal', '/education/theology-school/portal', '/theology-school/student'],
+            '/theology-school/apply': ['/theology-school/apply'],
+          }
+          const essential = DEFAULT_EDUCATION.filter(d => {
+            const aliases = SAME_AS[d.href]
+            return aliases && !saved.some(x => aliases.includes(x.href))
+          })
           setEducationLinks([...saved, ...essential])
         }
         if (c.cta_label) setCtaLabel(c.cta_label)
