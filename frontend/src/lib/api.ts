@@ -156,8 +156,13 @@ function handleAuthFailure(): void {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userName');
-    // Redirect to login
-    window.location.href = '/auth/login';
+    // Send them to sign in, remembering where they were going. Without this a
+    // visitor opening a signed-in page lands on a generic dashboard afterwards
+    // and concludes the page they wanted does not exist.
+    if (typeof window === 'undefined') return;
+    const here = window.location.pathname + window.location.search;
+    if (here.startsWith('/auth/')) { window.location.href = '/auth/login'; return; }
+    window.location.href = `/auth/login?redirect=${encodeURIComponent(here)}`;
 }
 
 // ============= API Client =============
@@ -4733,6 +4738,7 @@ export const theologyApi = {
         fd.append('file', file)
         return fetchApi<{ ok: boolean; photo_url: string }>(`/theology/admin/applications/${appId}/photo`, { method: 'POST', body: fd })
     },
+    classroom: () => fetchApi<{ classroom_url: string; login_email: string; admission_number: string | null; course_code: string | null; program_name: string | null; seat_status: string; seat_ready: boolean; note: string }>('/theology/student/classroom', { method: 'POST' }),
     setupDetails: (token: string) => fetchApi<TheologySetup>(`/theology/setup/${token}`),
     completeSetup: (token: string, password: string) =>
         fetchApi<{ ok: boolean; email: string; portal_url: string; access_token: string; refresh_token: string }>(

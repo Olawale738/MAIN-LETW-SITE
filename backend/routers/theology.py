@@ -1606,6 +1606,47 @@ async def admin_resend_admission_email(app_id: str, db: AsyncSession = Depends(g
 
 # ── Student dashboard ────────────────────────────────────────────────────────
 
+@router.post("/student/classroom")
+async def student_classroom(db: AsyncSession = Depends(get_db),
+                            user: User = Depends(get_current_active_user)):
+    """Everything the student needs to get into their classroom, and one more
+    attempt at the seat if it is not there yet.
+
+    The classroom never blocks entry from here: live.letw.org authenticates
+    against this account through /lms/auth/verify, so a student can sign in and
+    be recognised even while their seat is still being created.
+    """
+    a = (await db.execute(
+        select(TheologyApplication)
+        .where(TheologyApplication.email == user.email.lower(),
+               TheologyApplication.status.in_(["accepted", "enrolled"]))
+        .order_by(desc(TheologyApplication.accepted_at))
+    )).scalars().first()
+    if not a:
+        raise HTTPException(404, "No active theology enrolment for this account.")
+
+    program = await _get_program(db, a.program_id)
+    if a.lms_status != "enrolled":
+        # Best-effort nudge — pushes the seat if a path is configured, otherwise
+        # simply leaves it queued for the classroom to pull.
+        await _enrol_in_lms(db, a, program)
+        await db.refresh(a)
+
+    base, _key, _path = await _lms_settings(db)
+    return {
+        "classroom_url": f"{(base or 'https://live.letw.org').rstrip('/')}/login",
+        "login_email": a.email.lower(),
+        "admission_number": a.offer_number or a.admission_number,
+        "course_code": (program.lms_course_code or program.program_code) if program else None,
+        "program_name": program.name if program else None,
+        "seat_status": a.lms_status or "awaiting_classroom",
+        "seat_ready": a.lms_status == "enrolled",
+        "note": ("Your seat is confirmed." if a.lms_status == "enrolled"
+                 else "Your seat is still being created. You can sign in now — "
+                      "the classroom will recognise your letw.org account."),
+    }
+
+
 @router.get("/student/me")
 async def my_student_record(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_active_user)):
     res = await db.execute(

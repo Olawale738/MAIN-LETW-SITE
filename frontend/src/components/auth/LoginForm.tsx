@@ -8,7 +8,10 @@ import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 export default function LoginForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const redirectPath = searchParams.get('redirect') || '/dashboard'
+    // Two names are in use across the app ('redirect' and 'next'); honour both.
+    // Only same-site relative paths — a full URL here would be an open redirect.
+    const requested = searchParams.get('redirect') || searchParams.get('next') || ''
+    const redirectPath = /^\/(?!\/)/.test(requested) ? requested : '/dashboard'
 
     const [formData, setFormData] = useState({ email: '', password: '' })
     const [loading, setLoading] = useState(false)

@@ -17,6 +17,22 @@ export default function StudentDashboard() {
     const [records, setRecords] = useState<TheologyApplication[] | null>(null)
     const [classroom, setClassroom] = useState('https://live.letw.org/login')
     const [err, setErr] = useState<string | null>(null)
+    const [entering, setEntering] = useState(false)
+
+    // Ask the server for the classroom address and nudge the seat on the way
+    // out. A failure here must never stand between a student and their class,
+    // so we fall back to the plain classroom URL.
+    const enterClassroom = async (email: string) => {
+        setEntering(true)
+        let url = classroom
+        try {
+            const r = await theologyApi.classroom()
+            url = r.classroom_url || classroom
+        } catch { /* fall through to the default */ }
+        finally { setEntering(false) }
+        try { await navigator.clipboard.writeText(email) } catch { /* not critical */ }
+        window.open(url, '_blank', 'noopener')
+    }
 
     const load = useCallback(async () => {
         try {
@@ -33,7 +49,7 @@ export default function StudentDashboard() {
         <main className="min-h-screen flex items-center justify-center p-6 text-center">
             <div>
                 <p className="text-gray-600 mb-3">Please sign in with the email you used to apply.</p>
-                <Link href="/auth/login?next=/theology-school/student" className="inline-block bg-[#140152] text-white font-bold px-5 py-2.5 rounded-lg">Sign in</Link>
+                <Link href="/auth/login?redirect=/theology-school/student" className="inline-block bg-[#140152] text-white font-bold px-5 py-2.5 rounded-lg">Sign in</Link>
             </div>
         </main>
     )
@@ -71,15 +87,21 @@ export default function StudentDashboard() {
 
                             <div className="p-5 grid sm:grid-cols-2 gap-3">
                                 <Card icon={BookOpen} title="Classroom" tone="#eff6ff" ic="#2563eb">
-                                    {r.lms_status === 'enrolled' ? (
-                                        <>
-                                            <p className="text-xs text-gray-600 mb-2">You&apos;re enrolled. Sign in with <strong>{r.email}</strong>.</p>
-                                            <a href={classroom} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-[#140152] text-white font-bold px-3 py-2 rounded-lg text-xs">
-                                                Open classroom <ExternalLink className="w-3.5 h-3.5" />
-                                            </a>
-                                        </>
-                                    ) : (
-                                        <p className="text-xs text-gray-500 inline-flex items-start gap-1.5"><Clock className="w-3.5 h-3.5 mt-0.5 shrink-0" /> Your course access is being set up. You&apos;ll be emailed as soon as it&apos;s ready.</p>
+                                    <p className="text-xs text-gray-600 mb-2">
+                                        Sign in with <strong>{r.email}</strong> and your letw.org password — the classroom
+                                        checks your account here, so there is nothing separate to set up.
+                                    </p>
+                                    <button onClick={() => enterClassroom(r.email)} disabled={entering}
+                                        className="inline-flex items-center gap-1.5 bg-[#140152] text-white font-bold px-3 py-2 rounded-lg text-xs disabled:opacity-50">
+                                        {entering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
+                                        Enter classroom
+                                    </button>
+                                    {r.lms_status !== 'enrolled' && (
+                                        <p className="text-[11px] text-amber-700 mt-2 inline-flex items-start gap-1.5">
+                                            <Clock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                            Your seat is still being created. You can go in now — we&apos;ll ask the
+                                            classroom to set it up as you do.
+                                        </p>
                                     )}
                                 </Card>
 
