@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
     GraduationCap, Loader2, Plus, Save, Trash2, CheckCircle, AlertCircle,
-    RefreshCw, ShieldAlert, IdCard, X, UploadCloud, Send, FileText, Undo2, ImagePlus,
+    RefreshCw, ShieldAlert, IdCard, X, UploadCloud, Send, FileText, Undo2, ImagePlus, Mail,
 } from 'lucide-react'
 import Link from 'next/link'
 import RegistrarPanel from '@/components/admin/RegistrarPanel'
@@ -227,6 +227,9 @@ export default function TheologyAdmissionsPage() {
                                             {a.student_id_number ? <> · ID {a.student_id_number}</> : null}
                                         </p>
                                         {a.lms_error && <p className="text-[11px] text-amber-700 mt-1">{a.lms_error}</p>}
+                                        {a.status !== 'pending' && !a.admission_email_sent_at && (
+                                            <p className="text-[11px] text-amber-700 mt-1 font-bold">Admission letter has never been emailed.</p>
+                                        )}
                                         {a.status !== 'pending' && (
                                             a.bridge_status === 'accepted'
                                                 ? <p className="text-[11px] text-emerald-700 mt-1">SharePoints issued {a.offer_number || 'the offer'}.</p>
@@ -253,6 +256,13 @@ export default function TheologyAdmissionsPage() {
                                             <button onClick={() => { if (confirm(`Report ${a.full_name}'s tuition payment as refunded?\n\nSharePoints will treat the admission as no longer paid for.`)) act(a.id, () => theologyApi.reportRefund(a.id, 'REFUND'), 'Refund reported to SharePoints.') }} disabled={busyId === a.id}
                                                 className="inline-flex items-center gap-1 border border-gray-300 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-gray-50">
                                                 <Undo2 className="w-3 h-3" /> Report refund
+                                            </button>
+                                        )}
+                                        {a.status !== 'pending' && (
+                                            <button onClick={() => act(a.id, () => theologyApi.resendAdmissionEmail(a.id), 'Admission letter emailed again.')} disabled={busyId === a.id}
+                                                title={a.admission_email_sent_at ? `Last sent ${new Date(a.admission_email_sent_at).toLocaleString()}` : 'Never sent'}
+                                                className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border ${a.admission_email_sent_at ? 'border-gray-300 text-[#140152] hover:bg-gray-50' : 'border-amber-400 bg-amber-50 text-amber-800'} disabled:opacity-50`}>
+                                                <Mail className="w-3 h-3" /> {a.admission_email_sent_at ? 'Resend letter' : 'Email letter'}
                                             </button>
                                         )}
                                         <button onClick={() => pickPhoto(a.id)} disabled={busyId === a.id}

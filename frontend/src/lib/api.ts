@@ -4651,8 +4651,15 @@ export interface TheologyApplication {
     lms_error: string | null; student_id_number: string | null; student_id_card_url: string | null
     created_at: string | null
     bridge_status?: string | null; bridge_error?: string | null
+    documents?: TheologyDocument[]
+    admission_email_sent_at?: string | null; student_id_email_sent_at?: string | null
+    letter_url?: string | null
     offer_number?: string | null; offer_url?: string | null
     admission_letter_url?: string | null; acceptance_token?: string | null
+}
+export interface TheologyDocument {
+    kind: string; title: string; url: string
+    number?: string | null; source?: string; issued_at?: string
 }
 export interface TheologyOffer {
     full_name: string; email: string; admission_number: string; program_name: string | null
@@ -4721,6 +4728,7 @@ export const theologyApi = {
         fd.append('file', file)
         return fetchApi<{ ok: boolean; photo_url: string }>(`/theology/admin/applications/${appId}/photo`, { method: 'POST', body: fd })
     },
+    resendAdmissionEmail: (id: string) => fetchApi<{ ok: boolean; email: string; letter_url: string }>(`/theology/admin/applications/${id}/resend-admission-email`, { method: 'POST' }),
     getRegistrar: () => fetchApi<TheologyRegistrar>('/theology/admin/registrar'),
     saveRegistrar: (b: Partial<TheologyRegistrar>) => fetchApi<TheologyRegistrar>('/theology/admin/registrar', { method: 'PUT', body: JSON.stringify(b) }),
     verifyAdmission: (id: string, sig: string) => fetchApi<AdmissionVerification>(`/theology/admission/${id}/verify?sig=${encodeURIComponent(sig)}`),

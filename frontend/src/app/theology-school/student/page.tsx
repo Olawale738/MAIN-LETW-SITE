@@ -114,6 +114,29 @@ export default function StudentDashboard() {
                                     </div>
                                 </Card>
 
+                                <Card icon={FileText} title="My documents" tone="#eef2ff" ic="#4f46e5">
+                                    {(r.documents?.length ?? 0) > 0 ? (
+                                        <ul className="space-y-1.5">
+                                            {r.documents!.map((d, i) => (
+                                                <li key={`${d.kind}-${i}`}>
+                                                    <a href={d.url} target="_blank" rel="noreferrer"
+                                                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#140152] hover:underline">
+                                                        <FileText className="w-3.5 h-3.5 shrink-0" />
+                                                        <span className="min-w-0 break-words">{d.title}</span>
+                                                        <ExternalLink className="w-3 h-3 shrink-0 opacity-60" />
+                                                    </a>
+                                                    {d.number && <span className="block text-[11px] text-gray-400 pl-5 font-mono">{d.number}</span>}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-xs text-gray-500 inline-flex items-start gap-1.5">
+                                            <Clock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                            Certificates and your ID card appear here as the school office issues them.
+                                        </p>
+                                    )}
+                                </Card>
+
                                 <Card icon={ShieldAlert} title="Account security" tone="#fdf2f8" ic="#db2777">
                                     <p className="text-xs text-gray-600">Never share your password. If someone else has used your account, start a protected recovery — it signs you out everywhere, forces a new password, and secures your classroom access at the same time.</p>
                                     <a href="https://sharepoints.letw.org/theology/recovery" target="_blank" rel="noreferrer"

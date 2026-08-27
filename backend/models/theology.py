@@ -9,11 +9,12 @@ for student-ID processing → issued ID flows back here.
 
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy import String, Text, DateTime, Boolean, Integer, Numeric
 from sqlalchemy.orm import Mapped, mapped_column
 
+from sqlalchemy.dialects.postgresql import JSONB
 from database import Base
 
 
@@ -88,6 +89,13 @@ class TheologyApplication(Base):
     student_id_number: Mapped[Optional[str]] = mapped_column(String(60), nullable=True, index=True)
     student_id_issued_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     student_id_card_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Anything sharepoints issues for this student — ID card, certificates,
+    # transcripts. A list of {kind, title, number, url, issued_at, source} so a
+    # new document type never needs a migration.
+    documents: Mapped[Optional[Any]] = mapped_column(JSONB, nullable=True, default=list)
+    # Whether the candidate was actually told. Emails fail quietly otherwise.
+    admission_email_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    student_id_email_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # ── sharepoints enrollment bridge (system of record) ──────────────────────
     offer_number: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)

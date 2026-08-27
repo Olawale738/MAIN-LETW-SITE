@@ -103,6 +103,10 @@ def _app_out(a: TheologyApplication, program: Optional[TheologyProgram] = None) 
         "offer_url": a.offer_url,
         "admission_letter_url": a.admission_letter_url,
         "acceptance_token": a.acceptance_token,
+        "documents": list(a.documents or []),
+        "admission_email_sent_at": a.admission_email_sent_at.isoformat() if a.admission_email_sent_at else None,
+        "student_id_email_sent_at": a.student_id_email_sent_at.isoformat() if a.student_id_email_sent_at else None,
+        "letter_url": f"{_public_base()}/theology-school/offer/{a.acceptance_token}/letter" if a.acceptance_token else None,
     }
 
 
@@ -163,41 +167,109 @@ async def apply(body: ApplyIn, db: AsyncSession = Depends(get_db)):
 
 # ── Payment confirmation → automatic admission ───────────────────────────────
 
-async def _issue_admission(db: AsyncSession, a: TheologyApplication, program: TheologyProgram) -> None:
-    """Mint the admission number + acceptance token and email the offer."""
+def _ensure_offer_identity(a: TheologyApplication) -> None:
+    """Every admitted applicant needs an admission number and an acceptance
+    token, whichever system issued the offer.
+
+    The token is what addresses the letter on letw.org. Without it the printable
+    letter has no URL, the student portal has nothing to link to, and the office
+    cannot reprint — which is exactly what happened when sharepoints accepted an
+    application and we assumed it would do the telling.
+    """
     if not a.admission_number:
         a.admission_number = _make_admission_number(a.id)
     if not a.acceptance_token:
         a.acceptance_token = secrets.token_urlsafe(32)
-    a.admission_issued_at = datetime.utcnow()
-    a.status = "admitted"
-    await db.commit()
-    await db.refresh(a)
+    if not a.admission_issued_at:
+        a.admission_issued_at = datetime.utcnow()
 
-    offer_url = f"{_public_base()}/theology-school/offer/{a.acceptance_token}"
+
+def _add_document(a: TheologyApplication, kind: str, title: str, url: str,
+                  number: Optional[str] = None, issued_at: Optional[str] = None,
+                  source: str = "sharepoints.letw.org") -> bool:
+    """Record a document issued for this student. Returns True if it is new.
+
+    Same kind and same URL is the same document, so a retried webhook does not
+    stack duplicates on the student's portal.
+    """
+    docs = list(a.documents or [])
+    for d in docs:
+        if d.get("kind") == kind and d.get("url") == url:
+            return False
+    docs.append({
+        "kind": kind, "title": title, "url": url,
+        "number": number, "source": source,
+        "issued_at": issued_at or (datetime.utcnow().isoformat() + "Z"),
+    })
+    a.documents = docs
+    return True
+
+
+def _letter_urls(a: TheologyApplication) -> dict:
+    base = _public_base()
+    return {
+        "offer_url": a.offer_url or f"{base}/theology-school/offer/{a.acceptance_token}",
+        "letter_url": f"{base}/theology-school/offer/{a.acceptance_token}/letter",
+        "official_letter_url": a.admission_letter_url or "",
+    }
+
+
+async def _send_admission_email(db: AsyncSession, a: TheologyApplication,
+                                program: Optional[TheologyProgram]) -> bool:
+    """Tell the candidate they are in, and give them the letter.
+
+    letw.org always sends this, even when sharepoints issued the offer and says
+    it emailed too. A duplicate email is a far smaller failure than a candidate
+    who is admitted and never finds out.
+    """
+    u = _letter_urls(a)
+    extra = (f'<p style="margin:0 0 18px"><a href="{u["official_letter_url"]}" '
+             f'style="color:#140152">Official copy from the school office</a></p>'
+             if u["official_letter_url"] else "")
+    pname = program.name if program else "your programme"
+    months = f" ({program.duration_months} months)" if program and program.duration_months else ""
     try:
         from services.email_service import send_email
-        await send_email(
-            a.email, f"Congratulations — you have been offered admission ({a.admission_number})",
+        ok = await send_email(
+            a.email,
+            f"Your admission letter — {a.admission_number}",
             f'<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1f2937">'
             f'<div style="background:#140152;color:#fff;padding:22px;border-radius:14px 14px 0 0">'
             f'<h2 style="margin:0;color:#f5bb00">Offer of Admission</h2></div>'
             f'<div style="border:1px solid #eee;border-top:none;padding:22px;border-radius:0 0 14px 14px">'
             f'<p>Dear {a.full_name},</p>'
-            f'<p>We are delighted to offer you admission into <strong>{program.name}</strong> '
-            f'at the LETW Theology School.</p>'
-            f'<p><strong>Admission number:</strong> {a.admission_number}<br>'
-            f'<strong>Programme:</strong> {program.name} ({program.duration_months} months)</p>'
-            f'<p>Please confirm your place by accepting the offer below. Your student portal and '
-            f'course access are created the moment you accept.</p>'
-            f'<p style="margin:24px 0"><a href="{offer_url}" '
-            f'style="background:#140152;color:#fff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:999px">'
-            f'View &amp; accept your offer</a></p>'
-            f'<p style="font-size:12px;color:#6b7280">If the button does not work, copy this link:<br>{offer_url}</p>'
-            f'<p style="font-size:12px;color:#6b7280">Light Encounter Tabernacle Worldwide</p></div></div>'
+            f'<p>We are delighted to offer you admission into <strong>{pname}</strong>{months} '
+            f'at the LETW School of Theology.</p>'
+            f'<p><strong>Admission number:</strong> {a.admission_number}</p>'
+            f'<p style="margin:24px 0">'
+            f'<a href="{u["letter_url"]}" style="background:#140152;color:#fff;text-decoration:none;'
+            f'font-weight:bold;padding:12px 22px;border-radius:999px">View &amp; print your admission letter</a></p>'
+            f'{extra}'
+            f'<p>When you are ready, accept your place — your student portal, classroom access and '
+            f'student ID all follow from that.</p>'
+            f'<p style="margin:20px 0"><a href="{u["offer_url"]}" style="color:#140152;font-weight:bold">'
+            f'Accept your offer</a></p>'
+            f'<p style="font-size:12px;color:#6b7280">If the buttons do not work, copy this link:<br>'
+            f'{u["letter_url"]}</p>'
+            f'<p style="font-size:12px;color:#6b7280">Light Encounter Tabernacle Worldwide · School of Theology</p>'
+            f'</div></div>'
         )
+        if ok:
+            a.admission_email_sent_at = datetime.utcnow()
+            await db.commit()
+        return bool(ok)
     except Exception as e:
-        print(f"[theology] admission email failed: {type(e).__name__}: {e}", flush=True)
+        print(f"[theology] admission email failed for {a.email}: {type(e).__name__}: {e}", flush=True)
+        return False
+
+
+async def _issue_admission(db: AsyncSession, a: TheologyApplication, program: TheologyProgram) -> None:
+    """Mint the admission number + acceptance token and email the offer."""
+    _ensure_offer_identity(a)
+    a.status = "admitted"
+    await db.commit()
+    await db.refresh(a)
+    await _send_admission_email(db, a, program)
 
 
 SHAREPOINTS_THEOLOGY_INTAKE = "https://sharepoints.letw.org/api/integrations/theology/enrollments"
@@ -436,16 +508,20 @@ async def confirm_payment(app_id: str, body: ConfirmPaymentIn, db: AsyncSession 
     if a.bridge_status == "accepted" and a.offer_url:
         a.status = "admitted"
         a.admission_number = a.offer_number or a.admission_number
-        a.admission_issued_at = datetime.utcnow()
+        # Even when sharepoints issued the offer, we still need our own token —
+        # it is what addresses the printable letter and the portal link.
+        _ensure_offer_identity(a)
         await db.commit()
+        await db.refresh(a)
+        sent = await _send_admission_email(db, a, program)
         return {"status": a.status, "admission_number": a.admission_number,
                 "offer_url": a.offer_url, "admission_letter_url": a.admission_letter_url,
-                "source": "sharepoints"}
+                **_letter_urls(a), "email_sent": sent, "source": "sharepoints"}
     # Fallback: issue locally so the applicant is never stuck.
     await _issue_admission(db, a, program)
     return {"status": a.status, "admission_number": a.admission_number,
-            "offer_url": f"{_public_base()}/theology-school/offer/{a.acceptance_token}",
-            "source": "letw.org"}
+            **_letter_urls(a),
+            "email_sent": bool(a.admission_email_sent_at), "source": "letw.org"}
 
 
 # ── Admission letter: signature, QR, verification, signatory ─────────────────
@@ -986,15 +1062,55 @@ async def receive_student_id(
     a.student_id_number = number
     # The verification page is the card as far as letw.org is concerned — it is
     # the link the student and the office open to prove the ID is genuine.
-    a.student_id_card_url = pick("verificationUrl", "cardUrl", "card_url") or a.student_id_card_url
+    card = pick("cardUrl", "card_url", "idCardUrl", "id_card_url")
+    verify = pick("verificationUrl", "verification_url")
+    a.student_id_card_url = card or verify or a.student_id_card_url
     a.student_id_issued_at = datetime.utcnow()
     if not a.offer_number and offer_no:
         a.offer_number = offer_no
     if a.status == "accepted":
         a.status = "enrolled"
+    if card:
+        _add_document(a, "student_id_card", "Student ID card", card, number)
+    if verify:
+        _add_document(a, "student_id_verification", "Verify this student ID", verify, number)
     await db.commit()
+    await _notify_document(db, a, "Your student ID has been issued",
+                           f"Your student ID number is <strong>{number}</strong>.",
+                           card or verify)
     return {"ok": True, "application_id": a.id, "admission_number": a.admission_number,
-            "student_id_number": a.student_id_number}
+            "student_id_number": a.student_id_number,
+            "documents": len(a.documents or [])}
+
+
+async def _notify_document(db: AsyncSession, a: TheologyApplication, subject: str,
+                           lead: str, url: Optional[str]) -> bool:
+    """Tell the student a document is ready, and link straight to it."""
+    portal = f"{_public_base()}/theology-school/student"
+    button = (f'<p style="margin:24px 0"><a href="{url}" style="background:#140152;color:#fff;'
+              f'text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:999px">'
+              f'Open it</a></p>') if url else ""
+    try:
+        from services.email_service import send_email
+        ok = await send_email(
+            a.email, f"{subject} — {a.admission_number}",
+            f'<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1f2937">'
+            f'<div style="background:#140152;color:#fff;padding:22px;border-radius:14px 14px 0 0">'
+            f'<h2 style="margin:0;color:#f5bb00">{subject}</h2></div>'
+            f'<div style="border:1px solid #eee;border-top:none;padding:22px;border-radius:0 0 14px 14px">'
+            f'<p>Dear {a.full_name},</p><p>{lead}</p>{button}'
+            f'<p>Everything issued to you is kept in your student portal:</p>'
+            f'<p><a href="{portal}" style="color:#140152;font-weight:bold">Open your student portal</a></p>'
+            f'<p style="font-size:12px;color:#6b7280">Light Encounter Tabernacle Worldwide · School of Theology</p>'
+            f'</div></div>'
+        )
+        if ok and "student ID" in subject:
+            a.student_id_email_sent_at = datetime.utcnow()
+            await db.commit()
+        return bool(ok)
+    except Exception as e:
+        print(f"[theology] document email failed for {a.email}: {type(e).__name__}: {e}", flush=True)
+        return False
 
 
 async def notify_payment_lifecycle(db: AsyncSession, reference: str, event_type: str,
@@ -1069,6 +1185,89 @@ async def admin_report_refund(app_id: str, event_type: str = "REFUND",
     if not r.get("ok"):
         raise HTTPException(502, r.get("reason") or f"sharepoints responded {r.get('status')}.")
     return r
+
+
+@router.post("/integrations/documents")
+async def receive_document(
+    body: dict,
+    x_api_key: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Receive a document sharepoints has issued for one of our students.
+
+    Deliberately open about what a document is — ID card, certificate,
+    transcript, statement of result. sharepoints owns issuance, so a new
+    document type should reach the student's portal without letw.org needing a
+    schema change or a deploy.
+    """
+    from routers.integrations import _effective_key
+    expected = await _effective_key(db)
+    if not expected:
+        raise HTTPException(503, "Partner integration is not configured yet.")
+    if not x_api_key or not hmac.compare_digest(x_api_key.strip(), expected):
+        raise HTTPException(401, "Invalid or missing X-API-Key.")
+
+    def pick(*keys: str) -> str:
+        for k in keys:
+            v = body.get(k)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+        return ""
+
+    app_id = pick("applicationId", "application_id")
+    ref = pick("admissionNumber", "admission_number", "offerNumber", "offer_number")
+    a = None
+    if app_id:
+        a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a and ref:
+        a = (await db.execute(select(TheologyApplication).where(
+            TheologyApplication.admission_number == ref))).scalar_one_or_none()
+        if not a:
+            a = (await db.execute(select(TheologyApplication).where(
+                TheologyApplication.offer_number == ref))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "No student matches that application or admission number.")
+
+    url = pick("url", "documentUrl", "document_url", "fileUrl", "file_url")
+    if not url:
+        raise HTTPException(422, "A document url is required.")
+    kind = (pick("kind", "type", "documentType", "document_type") or "document").lower()[:60]
+    title = pick("title", "name") or kind.replace("_", " ").title()
+    number = pick("number", "documentNumber", "document_number", "certificateNumber", "certificate_number") or None
+    issued = pick("issuedAt", "issued_at") or None
+
+    is_new = _add_document(a, kind, title, url, number, issued)
+    # An ID card arriving this way should still populate the field the portal
+    # and the letter already read.
+    if kind in ("student_id_card", "id_card", "studentid") and not a.student_id_card_url:
+        a.student_id_card_url = url
+    if number and kind.startswith("student_id") and not a.student_id_number:
+        a.student_id_number = number
+    await db.commit()
+
+    if is_new:
+        await _notify_document(db, a, f"Your {title.lower()} is ready",
+                               f"The school office has issued your {title.lower()}.", url)
+    return {"ok": True, "application_id": a.id, "kind": kind,
+            "duplicate": not is_new, "documents": len(a.documents or [])}
+
+
+@router.post("/admin/applications/{app_id}/resend-admission-email")
+async def admin_resend_admission_email(app_id: str, db: AsyncSession = Depends(get_db),
+                                       _: User = Depends(get_admin_user)):
+    """Send the admission letter email again — for a candidate who never got it."""
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found.")
+    if a.status == "pending":
+        raise HTTPException(400, "This applicant has not been admitted yet.")
+    _ensure_offer_identity(a)
+    await db.commit()
+    program = await _get_program(db, a.program_id)
+    sent = await _send_admission_email(db, a, program)
+    if not sent:
+        raise HTTPException(502, "The email could not be sent. Check the mail provider settings.")
+    return {"ok": True, "email": a.email, **_letter_urls(a)}
 
 
 # ── Student dashboard ────────────────────────────────────────────────────────

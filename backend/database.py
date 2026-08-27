@@ -220,6 +220,10 @@ async def init_db():
                 ("integration_settings", "deputy_registrar_signature_url", "TEXT"),
                 ("integration_settings", "deputy_registrar_user_id",       "VARCHAR(40)"),
                 ("integration_settings", "active_signatory",               "VARCHAR(20)"),
+                # Documents sharepoints issues back (ID card, certificates)
+                ("theology_applications", "documents",                "JSONB DEFAULT '[]'::jsonb"),
+                ("theology_applications", "admission_email_sent_at",  "TIMESTAMP"),
+                ("theology_applications", "student_id_email_sent_at", "TIMESTAMP"),
                 ("theology_programs",     "program_code",         "VARCHAR(80)"),
                 ("theology_applications", "offer_number",         "VARCHAR(80)"),
                 ("theology_applications", "offer_url",            "TEXT"),
