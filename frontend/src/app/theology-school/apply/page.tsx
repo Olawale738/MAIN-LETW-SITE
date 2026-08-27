@@ -4,9 +4,9 @@
  * Pick a programme → submit details → pay the exact fee → the admission letter
  * is issued automatically and the offer link is emailed.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { GraduationCap, Loader2, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react'
+import { GraduationCap, Loader2, CheckCircle, AlertCircle, ArrowRight, Upload } from 'lucide-react'
 import { theologyApi, type TheologyProgram } from '@/lib/api'
 
 export default function ApplyPage() {
@@ -19,6 +19,9 @@ export default function ApplyPage() {
     })
     const [submitting, setSubmitting] = useState(false)
     const [created, setCreated] = useState<{ application_id: string; amount_due: number; currency: string; program_name: string } | null>(null)
+    const [photo, setPhoto] = useState('')
+    const [photoBusy, setPhotoBusy] = useState(false)
+    const photoInput = useRef<HTMLInputElement>(null)
     const [reference, setReference] = useState('')
     const [confirming, setConfirming] = useState(false)
     const [providers, setProviders] = useState<Array<{ id: string; name: string; currency: string }>>([])
@@ -69,6 +72,16 @@ export default function ApplyPage() {
             setDone({ admission_number: r.admission_number })
         } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
         finally { setConfirming(false) }
+    }
+
+    const uploadPhoto = async (file: File) => {
+        if (!created) return
+        setPhotoBusy(true)
+        try {
+            const r = await theologyApi.uploadPhoto(created.application_id, file)
+            setPhoto(r.photo_url)
+        } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+        finally { setPhotoBusy(false) }
     }
 
     const pay = async (providerId: string) => {
@@ -132,6 +145,29 @@ export default function ApplyPage() {
                                 Make payment <ArrowRight className="w-4 h-4" />
                             </Link>
                         )}
+                        <div className="border-t border-gray-100 pt-4 mb-4">
+                            <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Your photograph</label>
+                            <p className="text-xs text-gray-500 mb-2">A clear head-and-shoulders picture. It prints on your admission letter and becomes your student ID photo.</p>
+                            <div className="flex items-center gap-3">
+                                <div className="w-[68px] h-[84px] shrink-0 border border-dashed border-gray-300 rounded bg-gray-50 flex items-center justify-center overflow-hidden">
+                                    {photo
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        ? <img src={photo} alt="Your photograph" className="w-full h-full object-cover" />
+                                        : <span className="text-[10px] text-gray-400 text-center px-1 leading-tight">No photo yet</span>}
+                                </div>
+                                <div>
+                                    <button type="button" onClick={() => photoInput.current?.click()} disabled={photoBusy}
+                                        className="inline-flex items-center gap-2 border border-gray-300 text-[#140152] font-bold px-4 py-2 rounded-lg text-sm disabled:opacity-50">
+                                        {photoBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                        {photo ? 'Change photograph' : 'Upload photograph'}
+                                    </button>
+                                    <p className="text-[11px] text-gray-400 mt-1">JPG or PNG, up to 6MB. You can add this later too.</p>
+                                </div>
+                            </div>
+                            <input ref={photoInput} type="file" accept="image/*" className="hidden"
+                                onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = '' }} />
+                        </div>
+
                         <div className="border-t border-gray-100 pt-4">
                             <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Payment reference</label>
                             <p className="text-xs text-gray-500 mb-2">Already paid, or paid another way? Paste the reference from your receipt to confirm and receive your admission letter instantly.</p>

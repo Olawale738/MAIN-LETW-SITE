@@ -168,8 +168,11 @@ async function fetchApi<T>(
 ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
 
+    // FormData must set its own multipart boundary — forcing a JSON content
+    // type on it produces a body the server cannot parse.
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
     const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(options.headers as Record<string, string>),
     };
 
@@ -4708,6 +4711,16 @@ export const theologyApi = {
     bridgeStatus: () => fetchApi<TheologyBridgeStatus>('/theology/admin/bridge-status'),
     publishProgram: (id: string) => fetchApi<{ ok: boolean; code?: string; reason?: string }>(`/theology/admin/programs/${id}/publish`, { method: 'POST' }),
     publishAllPrograms: () => fetchApi<{ published: number; total: number; results: { name: string; ok: boolean; code?: string; reason?: string }[] }>('/theology/admin/programs/publish-all', { method: 'POST' }),
+    uploadPhoto: async (appId: string, file: File) => {
+        const fd = new FormData()
+        fd.append('file', file)
+        return fetchApi<{ ok: boolean; photo_url: string }>(`/theology/applications/${appId}/photo`, { method: 'POST', body: fd })
+    },
+    adminUploadPhoto: async (appId: string, file: File) => {
+        const fd = new FormData()
+        fd.append('file', file)
+        return fetchApi<{ ok: boolean; photo_url: string }>(`/theology/admin/applications/${appId}/photo`, { method: 'POST', body: fd })
+    },
     getRegistrar: () => fetchApi<TheologyRegistrar>('/theology/admin/registrar'),
     saveRegistrar: (b: Partial<TheologyRegistrar>) => fetchApi<TheologyRegistrar>('/theology/admin/registrar', { method: 'PUT', body: JSON.stringify(b) }),
     verifyAdmission: (id: string, sig: string) => fetchApi<AdmissionVerification>(`/theology/admission/${id}/verify?sig=${encodeURIComponent(sig)}`),

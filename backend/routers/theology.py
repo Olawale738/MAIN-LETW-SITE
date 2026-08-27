@@ -29,7 +29,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, UploadFile
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -611,6 +611,94 @@ async def set_registrar(body: RegistrarIn, db: AsyncSession = Depends(get_db), _
         row.active_signatory = choice
     await db.commit()
     return await get_registrar(db, _)
+
+
+# ── Applicant photograph ─────────────────────────────────────────────────────
+
+MAX_PHOTO_BYTES = 6 * 1024 * 1024
+
+
+async def _store_photo(a: TheologyApplication, request: Request, file: UploadFile, db: AsyncSession) -> dict:
+    """Store a photograph against an application and return its hosted URL.
+
+    Hosted rather than inline because sharepoints validates the field as a URL
+    and would reject a data URI — and the same picture goes on the student ID.
+    """
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(400, "That file is empty.")
+    if len(contents) > MAX_PHOTO_BYTES:
+        raise HTTPException(413, "Please use a photograph under 6MB.")
+    if not (file.content_type or "").startswith("image/"):
+        raise HTTPException(400, "Please upload an image.")
+
+    mime = file.content_type or "image/jpeg"
+    name = file.filename or "photo"
+    try:
+        from PIL import Image as _Image
+        import io as _io
+        img = _Image.open(_io.BytesIO(contents))
+        img = img.convert("RGB")
+        # Big enough to print cleanly in the letter's 25x31mm frame without
+        # carrying a phone camera's full resolution into the database.
+        img.thumbnail((900, 900))
+        buf = _io.BytesIO()
+        img.save(buf, format="WEBP", quality=85, method=6)
+        contents = buf.getvalue()
+        mime = "image/webp"
+        name = (name.rsplit(".", 1)[0] if "." in name else name) + ".webp"
+    except Exception:
+        pass  # Pillow missing or an odd format — store what was sent.
+
+    from models.cms import CMSImage
+    image = CMSImage(filename=name, mime_type=mime, data=contents, size=len(contents))
+    db.add(image)
+    await db.commit()
+    await db.refresh(image)
+
+    scheme = request.headers.get("x-forwarded-proto") or request.url.scheme
+    host = request.headers.get("x-forwarded-host") or request.url.netloc
+    a.photo_url = f"{scheme}://{host}/api/cms/images/{image.id}"
+    await db.commit()
+    return {"ok": True, "photo_url": a.photo_url}
+
+
+@router.post("/applications/{app_id}/photo")
+async def upload_applicant_photo(
+    app_id: str,
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """The applicant attaching their own photograph.
+
+    Deliberately public — they supply this before they have an account. It is
+    bounded by having to name an existing application that is still open.
+    """
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found.")
+    if a.status in ("enrolled", "declined"):
+        raise HTTPException(400, "This application can no longer be edited. Contact the school office.")
+    return await _store_photo(a, request, file, db)
+
+
+@router.post("/admin/applications/{app_id}/photo")
+async def admin_upload_photo(
+    app_id: str,
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_user),
+):
+    """The school office attaching a photograph on the applicant's behalf — for
+    a paper application, or one that arrived without a usable picture. Not
+    subject to the applicant-side guard: the office may correct a photo at any
+    stage, including for a student already enrolled."""
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found.")
+    return await _store_photo(a, request, file, db)
 
 
 # ── The offer: view / accept / decline ───────────────────────────────────────

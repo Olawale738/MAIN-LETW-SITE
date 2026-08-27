@@ -4,10 +4,10 @@
  * (name, fee, duration, LMS course code) and manage applications through
  * payment → admission → acceptance → enrolment → student ID.
  */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
     GraduationCap, Loader2, Plus, Save, Trash2, CheckCircle, AlertCircle,
-    RefreshCw, ShieldAlert, IdCard, X, UploadCloud, Send, FileText, Undo2,
+    RefreshCw, ShieldAlert, IdCard, X, UploadCloud, Send, FileText, Undo2, ImagePlus,
 } from 'lucide-react'
 import Link from 'next/link'
 import RegistrarPanel from '@/components/admin/RegistrarPanel'
@@ -29,6 +29,8 @@ export default function TheologyAdmissionsPage() {
     const [busyId, setBusyId] = useState('')
     const [bridge, setBridge] = useState<TheologyBridgeStatus | null>(null)
     const [publishing, setPublishing] = useState(false)
+    const [photoFor, setPhotoFor] = useState('')
+    const photoInput = useRef<HTMLInputElement>(null)
 
     const load = useCallback(async () => {
         setLoading(true)
@@ -57,6 +59,13 @@ export default function TheologyAdmissionsPage() {
         if (!confirm(`Delete "${p.name}"?`)) return
         try { await theologyApi.deleteProgram(p.id); setMsg({ kind: 'ok', text: 'Deleted.' }); load() }
         catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+    }
+
+    const pickPhoto = (id: string) => { setPhotoFor(id); photoInput.current?.click() }
+    const sendPhoto = async (file: File) => {
+        if (!photoFor) return
+        await act(photoFor, () => theologyApi.adminUploadPhoto(photoFor, file), 'Photograph saved — it prints on the admission letter.')
+        setPhotoFor('')
     }
 
     const publishAll = async () => {
@@ -246,6 +255,10 @@ export default function TheologyAdmissionsPage() {
                                                 <Undo2 className="w-3 h-3" /> Report refund
                                             </button>
                                         )}
+                                        <button onClick={() => pickPhoto(a.id)} disabled={busyId === a.id}
+                                            className="inline-flex items-center gap-1 border border-gray-300 text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                                            <ImagePlus className="w-3 h-3" /> {a.photo_url ? 'Replace photo' : 'Add photo'}
+                                        </button>
                                         {a.acceptance_token && a.admission_number && (
                                             <a href={`/theology-school/offer/${a.acceptance_token}/letter`} target="_blank" rel="noreferrer"
                                                 className="inline-flex items-center gap-1 border border-gray-300 text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-gray-50">
@@ -285,6 +298,9 @@ export default function TheologyAdmissionsPage() {
                     )}
                 </div>
             )}
+
+            <input ref={photoInput} type="file" accept="image/*" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) sendPhoto(f); e.target.value = '' }} />
 
             {/* Programme editor */}
             {editing && (
