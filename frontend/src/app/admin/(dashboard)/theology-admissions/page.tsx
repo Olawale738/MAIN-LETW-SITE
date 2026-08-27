@@ -114,7 +114,8 @@ export default function TheologyAdmissionsPage() {
             {bridge && (() => {
                 const unpublished = bridge.programs.filter(p => !p.published)
                 const stuck = bridge.stuck.length
-                const healthy = bridge.secret_set && unpublished.length === 0 && stuck === 0
+                const mailDead = bridge.email && !bridge.email.live
+                const healthy = bridge.secret_set && unpublished.length === 0 && stuck === 0 && !mailDead
                 return (
                     <div className={`mb-4 rounded-xl border p-4 ${healthy ? 'border-emerald-200 bg-emerald-50' : 'border-amber-300 bg-amber-50'}`}>
                         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -124,6 +125,9 @@ export default function TheologyAdmissionsPage() {
                                     SharePoints admissions {healthy ? 'are flowing' : 'need attention'}
                                 </p>
                                 <ul className="mt-1.5 space-y-0.5 text-xs text-gray-700">
+                                    {mailDead && (
+                                        <li className="font-bold text-red-700">· No email is being sent — {bridge.email!.reason} Candidates will not receive their admission letter.</li>
+                                    )}
                                     {!bridge.secret_set && (
                                         <li>· No shared secret yet — set one in <Link href="/admin/integrations" className="font-bold underline">Integrations</Link>.</li>
                                     )}

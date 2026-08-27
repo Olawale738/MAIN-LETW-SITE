@@ -167,6 +167,26 @@ async def apply(body: ApplyIn, db: AsyncSession = Depends(get_db)):
 
 # ── Payment confirmation → automatic admission ───────────────────────────────
 
+def _email_delivery() -> dict:
+    """Whether mail actually leaves this server.
+
+    send_email() returns True in development mode after only printing to the
+    console, so a caller that trusts its return value records a delivery that
+    never happened. Anything that reports "emailed" to an administrator has to
+    check this first.
+    """
+    from config import settings as _s
+    if not getattr(_s, "EMAIL_ENABLED", False):
+        return {"live": False, "provider": None,
+                "reason": "EMAIL_ENABLED is off — mail is written to the server log, not sent."}
+    if (getattr(_s, "RESEND_API_KEY", "") or "").strip():
+        return {"live": True, "provider": "resend", "reason": None}
+    if (getattr(_s, "SMTP_HOST", "") or "").strip():
+        return {"live": True, "provider": "smtp", "reason": None}
+    return {"live": False, "provider": None,
+            "reason": "EMAIL_ENABLED is on but neither RESEND_API_KEY nor SMTP_HOST is set."}
+
+
 def _ensure_offer_identity(a: TheologyApplication) -> None:
     """Every admitted applicant needs an admission number and an acceptance
     token, whichever system issued the offer.
@@ -254,10 +274,10 @@ async def _send_admission_email(db: AsyncSession, a: TheologyApplication,
             f'<p style="font-size:12px;color:#6b7280">Light Encounter Tabernacle Worldwide · School of Theology</p>'
             f'</div></div>'
         )
-        if ok:
+        if ok and _email_delivery()["live"]:
             a.admission_email_sent_at = datetime.utcnow()
             await db.commit()
-        return bool(ok)
+        return bool(ok) and _email_delivery()["live"]
     except Exception as e:
         print(f"[theology] admission email failed for {a.email}: {type(e).__name__}: {e}", flush=True)
         return False
@@ -1104,10 +1124,10 @@ async def _notify_document(db: AsyncSession, a: TheologyApplication, subject: st
             f'<p style="font-size:12px;color:#6b7280">Light Encounter Tabernacle Worldwide · School of Theology</p>'
             f'</div></div>'
         )
-        if ok and "student ID" in subject:
+        if ok and _email_delivery()["live"] and "student ID" in subject:
             a.student_id_email_sent_at = datetime.utcnow()
             await db.commit()
-        return bool(ok)
+        return bool(ok) and _email_delivery()["live"]
     except Exception as e:
         print(f"[theology] document email failed for {a.email}: {type(e).__name__}: {e}", flush=True)
         return False
@@ -1266,7 +1286,8 @@ async def admin_resend_admission_email(app_id: str, db: AsyncSession = Depends(g
     program = await _get_program(db, a.program_id)
     sent = await _send_admission_email(db, a, program)
     if not sent:
-        raise HTTPException(502, "The email could not be sent. Check the mail provider settings.")
+        d = _email_delivery()
+        raise HTTPException(502, d["reason"] or "The email could not be sent. Check the mail provider settings.")
     return {"ok": True, "email": a.email, **_letter_urls(a)}
 
 
@@ -1727,6 +1748,7 @@ async def admin_bridge_status(db: AsyncSession = Depends(get_db), _: User = Depe
         counts[a.bridge_status or "not_sent"] = counts.get(a.bridge_status or "not_sent", 0) + 1
     return {
         "secret_set": bool(key),
+        "email": _email_delivery(),
         "intake_url": await _intake_url(db),
         "programs": [{
             "id": p.id, "name": p.name, "code": p.program_code or "",

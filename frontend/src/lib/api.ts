@@ -4738,6 +4738,7 @@ export const theologyApi = {
 
 export interface TheologyBridgeStatus {
     secret_set: boolean
+    email?: { live: boolean; provider: string | null; reason: string | null }
     intake_url: string
     programs: { id: string; name: string; code: string; derived_code: string; published: boolean; fee_set: boolean; is_open: boolean }[]
     applications: Record<string, number>
