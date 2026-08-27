@@ -4657,6 +4657,10 @@ export interface TheologyApplication {
     offer_number?: string | null; offer_url?: string | null
     admission_letter_url?: string | null; acceptance_token?: string | null
 }
+export interface TheologySetup {
+    full_name: string; email: string; admission_number: string
+    program_name: string | null; portal_url: string
+}
 export interface TheologyDocument {
     kind: string; title: string; url: string
     number?: string | null; source?: string; issued_at?: string
@@ -4700,7 +4704,7 @@ export const theologyApi = {
         fetchApi<{ checkout_url: string; reference: string; amount: number; currency: string; already_paid?: boolean }>(
             `/theology/applications/${appId}/checkout`, { method: 'POST', body: JSON.stringify({ provider_id }) }),
     offer: (token: string) => fetchApi<TheologyOffer>(`/theology/offer/${token}`),
-    accept: (token: string) => fetchApi<{ status: string; login_email: string; portal_url: string; temporary_password_sent: boolean }>(
+    accept: (token: string) => fetchApi<{ status: string; login_email: string; portal_url: string; temporary_password_sent: boolean; setup_url?: string | null; letter?: { generated: boolean; sent: boolean; reason?: string | null } }>(
         `/theology/offer/${token}/accept`, { method: 'POST' }),
     decline: (token: string) => fetchApi<{ status: string }>(`/theology/offer/${token}/decline`, { method: 'POST' }),
     myRecords: () => fetchApi<{ records: TheologyApplication[]; classroom_url: string }>('/theology/student/me'),
@@ -4728,6 +4732,11 @@ export const theologyApi = {
         fd.append('file', file)
         return fetchApi<{ ok: boolean; photo_url: string }>(`/theology/admin/applications/${appId}/photo`, { method: 'POST', body: fd })
     },
+    setupDetails: (token: string) => fetchApi<TheologySetup>(`/theology/setup/${token}`),
+    completeSetup: (token: string, password: string) =>
+        fetchApi<{ ok: boolean; email: string; portal_url: string; access_token: string; refresh_token: string }>(
+            `/theology/setup/${token}`, { method: 'POST', body: JSON.stringify({ password }) }),
+    setupLink: (id: string) => fetchApi<{ ok: boolean; setup_url: string; email: string; expires_in_days: number }>(`/theology/admin/applications/${id}/setup-link`, { method: 'POST' }),
     sendLetter: (id: string) => fetchApi<{ ok: boolean; email: string; letter_url: string }>(`/theology/admin/applications/${id}/send-letter`, { method: 'POST' }),
     resendAdmissionEmail: (id: string) => fetchApi<{ ok: boolean; email: string; letter_url: string }>(`/theology/admin/applications/${id}/resend-admission-email`, { method: 'POST' }),
     getRegistrar: () => fetchApi<TheologyRegistrar>('/theology/admin/registrar'),

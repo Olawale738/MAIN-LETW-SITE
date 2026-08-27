@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
     GraduationCap, Loader2, Plus, Save, Trash2, CheckCircle, AlertCircle,
-    RefreshCw, ShieldAlert, IdCard, X, UploadCloud, Send, FileText, Undo2, ImagePlus, Mail,
+    RefreshCw, ShieldAlert, IdCard, X, UploadCloud, Send, FileText, Undo2, ImagePlus, Mail, KeyRound,
 } from 'lucide-react'
 import Link from 'next/link'
 import RegistrarPanel from '@/components/admin/RegistrarPanel'
@@ -271,6 +271,20 @@ export default function TheologyAdmissionsPage() {
                                                 title={a.admission_email_sent_at ? `Last sent ${new Date(a.admission_email_sent_at).toLocaleString()}` : 'Never sent'}
                                                 className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border ${a.admission_email_sent_at ? 'border-gray-300 text-[#140152] hover:bg-gray-50' : 'border-amber-400 bg-amber-50 text-amber-800'} disabled:opacity-50`}>
                                                 <Mail className="w-3 h-3" /> {a.admission_email_sent_at ? 'Resend letter' : 'Email letter'}
+                                            </button>
+                                        )}
+                                        {(a.status === 'accepted' || a.status === 'enrolled') && (
+                                            <button onClick={async () => {
+                                                setBusyId(a.id)
+                                                try {
+                                                    const r = await theologyApi.setupLink(a.id)
+                                                    await navigator.clipboard.writeText(r.setup_url).catch(() => {})
+                                                    setMsg({ kind: 'ok', text: `Sign-in link copied — send it to ${r.email}. It lasts ${r.expires_in_days} days and works once.` })
+                                                } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+                                                finally { setBusyId('') }
+                                            }} disabled={busyId === a.id}
+                                                className="inline-flex items-center gap-1 border border-gray-300 text-[#140152] text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                                                <KeyRound className="w-3 h-3" /> Sign-in link
                                             </button>
                                         )}
                                         <button onClick={() => pickPhoto(a.id)} disabled={busyId === a.id}

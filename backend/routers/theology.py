@@ -848,6 +848,103 @@ async def admin_send_letter(app_id: str, db: AsyncSession = Depends(get_db),
     return {"ok": True, "email": a.email, **_letter_urls(a)}
 
 
+# ── First sign-in: the candidate chooses their own password ──────────────────
+
+SETUP_TOKEN_DAYS = 14
+
+
+def _mint_setup_token(a: TheologyApplication) -> str:
+    from datetime import timedelta
+    a.setup_token = secrets.token_urlsafe(32)
+    a.setup_token_expires_at = datetime.utcnow() + timedelta(days=SETUP_TOKEN_DAYS)
+    return a.setup_token
+
+
+def _setup_url(a: TheologyApplication) -> str:
+    return f"{_public_base()}/theology-school/setup/{a.setup_token}"
+
+
+async def _by_setup_token(db: AsyncSession, token: str) -> TheologyApplication:
+    t = (token or "").strip()
+    a = (await db.execute(select(TheologyApplication).where(
+        TheologyApplication.setup_token == t))).scalar_one_or_none() if t else None
+    if not a:
+        raise HTTPException(404, "This link is not valid. Ask the school office for a new one.")
+    if a.setup_token_expires_at and a.setup_token_expires_at < datetime.utcnow():
+        raise HTTPException(410, "This link has expired. Ask the school office for a new one.")
+    return a
+
+
+@router.get("/setup/{token}")
+async def setup_details(token: str, db: AsyncSession = Depends(get_db)):
+    """What to show on the choose-a-password form."""
+    a = await _by_setup_token(db, token)
+    program = await _get_program(db, a.program_id)
+    return {
+        "full_name": a.full_name,
+        "email": a.email.lower(),
+        "admission_number": a.offer_number or a.admission_number,
+        "program_name": program.name if program else None,
+        "portal_url": f"{_public_base()}/theology-school/student",
+    }
+
+
+class SetupIn(BaseModel):
+    password: str
+
+
+@router.post("/setup/{token}")
+async def complete_setup(token: str, body: SetupIn, db: AsyncSession = Depends(get_db)):
+    """Set the student's password and sign them straight in.
+
+    This is how a candidate reaches their portal without depending on an email
+    ever arriving — they hold the link from the moment they accept.
+    """
+    from models.user import UserRole, UserStatus
+    from utils.security import hash_password, create_tokens
+
+    a = await _by_setup_token(db, token)
+    pw = (body.password or "").strip()
+    if len(pw) < 8:
+        raise HTTPException(400, "Choose a password of at least 8 characters.")
+
+    email = a.email.lower()
+    u = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
+    if not u:
+        u = User(id=str(uuid.uuid4()), name=a.full_name, email=email,
+                 password_hash=hash_password(pw), role=UserRole.USER, status=UserStatus.ACTIVE)
+        db.add(u)
+    else:
+        u.password_hash = hash_password(pw)
+        u.status = UserStatus.ACTIVE
+    a.student_user_id = u.id
+    a.lms_username = email
+    # Single use — the link cannot be replayed to take the account later.
+    a.setup_token = None
+    a.setup_token_expires_at = None
+    await db.commit()
+
+    return {"ok": True, "email": email,
+            "portal_url": f"{_public_base()}/theology-school/student",
+            **create_tokens(u.id, email)}
+
+
+@router.post("/admin/applications/{app_id}/setup-link")
+async def admin_setup_link(app_id: str, db: AsyncSession = Depends(get_db),
+                           _: User = Depends(get_admin_user)):
+    """Mint a fresh sign-in link for a candidate to hand over directly — for
+    anyone who missed the moment, or whose email never arrived."""
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found.")
+    if a.status not in ("accepted", "enrolled"):
+        raise HTTPException(400, "This candidate has not accepted their offer yet.")
+    _mint_setup_token(a)
+    await db.commit()
+    return {"ok": True, "setup_url": _setup_url(a), "email": a.email,
+            "expires_in_days": SETUP_TOKEN_DAYS}
+
+
 # ── Applicant photograph ─────────────────────────────────────────────────────
 
 MAX_PHOTO_BYTES = 6 * 1024 * 1024
@@ -1033,10 +1130,15 @@ async def accept_offer(token: str, db: AsyncSession = Depends(get_db)):
     # The signed letter goes out now, on acceptance — not as a link to fetch.
     letter = await _deliver_letter(db, a, program)
 
+    # And their own way into the portal, in this response, so reaching it never
+    # depends on an email arriving.
+    _mint_setup_token(a)
+    await db.commit()
+
     password = await _provision_student(db, a)
     await db.refresh(a)
     return {"status": a.status, "student_created": bool(a.student_user_id),
-            "letter": letter,
+            "letter": letter, "setup_url": _setup_url(a) if a.setup_token else None,
             "login_email": a.email, "temporary_password_sent": bool(password),
             "student_id_number": a.student_id_number,
             "registry_synced": bool(reg),

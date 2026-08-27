@@ -14,7 +14,7 @@ export default function OfferPage() {
     const [offer, setOffer] = useState<TheologyOffer | null>(null)
     const [err, setErr] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
-    const [accepted, setAccepted] = useState<{ login_email: string; portal_url: string } | null>(null)
+    const [accepted, setAccepted] = useState<{ login_email: string; portal_url: string; setup_url?: string | null } | null>(null)
 
     const load = useCallback(async () => {
         try { setOffer(await theologyApi.offer(token)) }
@@ -26,7 +26,7 @@ export default function OfferPage() {
         setBusy(true)
         try {
             const r = await theologyApi.accept(token)
-            setAccepted({ login_email: r.login_email, portal_url: r.portal_url })
+            setAccepted({ login_email: r.login_email, portal_url: r.portal_url, setup_url: r.setup_url })
         } catch (e) { setErr((e as Error).message) }
         finally { setBusy(false) }
     }
@@ -53,10 +53,12 @@ export default function OfferPage() {
                         <p className="text-gray-600 mt-1"><strong>Programme:</strong> {offer.program_name}</p>
                         <p className="text-gray-600 mt-1"><strong>Sign-in email:</strong> {accepted?.login_email || offer.email}</p>
                     </div>
-                    <p className="text-xs text-gray-500 mt-4">We have emailed your sign-in details. Use the same email and password for your student portal and your classroom on live.letw.org.</p>
+                    <p className="text-xs text-gray-500 mt-4">Choose your password using the button below — you do not need to wait for an email. Use the same email and password for your student portal and your classroom on live.letw.org.</p>
                     <div className="mt-5 flex flex-wrap gap-2 justify-center">
                         <Link href={`/theology-school/offer/${token}/letter`} className="border border-gray-300 text-[#140152] font-bold px-5 py-2.5 rounded-full text-sm inline-flex items-center gap-2"><FileText className="w-4 h-4" /> Admission letter</Link>
-                        <Link href="/theology-school/student" className="bg-[#140152] text-white font-bold px-5 py-2.5 rounded-full text-sm">Open student dashboard</Link>
+                        {accepted?.setup_url
+                            ? <a href={accepted.setup_url} className="bg-[#140152] text-white font-bold px-5 py-2.5 rounded-full text-sm">Set your password &amp; open your portal</a>
+                            : <Link href="/theology-school/student" className="bg-[#140152] text-white font-bold px-5 py-2.5 rounded-full text-sm">Open student dashboard</Link>}
                         <a href="https://live.letw.org/login" target="_blank" rel="noreferrer" className="bg-[#f5bb00] text-[#140152] font-bold px-5 py-2.5 rounded-full text-sm">Go to classroom</a>
                     </div>
                 </div>

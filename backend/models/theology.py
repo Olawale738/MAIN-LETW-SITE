@@ -94,6 +94,12 @@ class TheologyApplication(Base):
     # new document type never needs a migration.
     documents: Mapped[Optional[Any]] = mapped_column(JSONB, nullable=True, default=list)
     # Whether the candidate was actually told. Emails fail quietly otherwise.
+    # A separate, short-lived credential for choosing a first password.
+    # Deliberately NOT the acceptance token: that one appears in the admission
+    # letter URL, which a candidate may reasonably share, and sharing a letter
+    # must never hand over the account.
+    setup_token: Mapped[Optional[str]] = mapped_column(String(80), nullable=True, index=True)
+    setup_token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     admission_email_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     student_id_email_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
