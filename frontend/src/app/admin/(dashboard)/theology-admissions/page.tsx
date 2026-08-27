@@ -10,6 +10,7 @@ import {
     RefreshCw, ShieldAlert, IdCard, X, UploadCloud, Send, FileText, Undo2,
 } from 'lucide-react'
 import Link from 'next/link'
+import RegistrarPanel from '@/components/admin/RegistrarPanel'
 import { theologyApi, type TheologyProgram, type TheologyApplication, type TheologyBridgeStatus } from '@/lib/api'
 
 const BLANK: Partial<TheologyProgram> = {
@@ -18,7 +19,7 @@ const BLANK: Partial<TheologyProgram> = {
 }
 
 export default function TheologyAdmissionsPage() {
-    const [tab, setTab] = useState<'programs' | 'applications'>('programs')
+    const [tab, setTab] = useState<'programs' | 'applications' | 'signatories'>('programs')
     const [programs, setPrograms] = useState<TheologyProgram[]>([])
     const [apps, setApps] = useState<TheologyApplication[]>([])
     const [loading, setLoading] = useState(true)
@@ -139,9 +140,10 @@ export default function TheologyAdmissionsPage() {
             <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm mb-5">
                 <button onClick={() => setTab('programs')} className={`px-4 py-1.5 rounded-lg text-xs font-bold ${tab === 'programs' ? 'bg-[#140152] text-white' : 'text-gray-600'}`}>Programmes ({programs.length})</button>
                 <button onClick={() => setTab('applications')} className={`px-4 py-1.5 rounded-lg text-xs font-bold ${tab === 'applications' ? 'bg-[#140152] text-white' : 'text-gray-600'}`}>Applications ({apps.length})</button>
+                <button onClick={() => setTab('signatories')} className={`px-4 py-1.5 rounded-lg text-xs font-bold ${tab === 'signatories' ? 'bg-[#140152] text-white' : 'text-gray-600'}`}>Signatories</button>
             </div>
 
-            {loading ? <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-[#140152]" /></div> : tab === 'programs' ? (
+            {tab === 'signatories' ? <RegistrarPanel /> : loading ? <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-[#140152]" /></div> : tab === 'programs' ? (
                 <>
                     <div className="flex flex-wrap gap-2 mb-4">
                         <button onClick={() => setEditing({ ...BLANK })} className="inline-flex items-center gap-2 bg-[#140152] text-white font-bold px-4 py-2.5 rounded-lg text-sm">

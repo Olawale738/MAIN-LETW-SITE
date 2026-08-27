@@ -33,4 +33,16 @@ class IntegrationSettings(Base):
     lms_enrol_path: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     # sharepoints student-ID intake
     student_webhook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    # Who signs the admission letter. The Registrar is the office holder; a
+    # deputy may be named to sign in their absence, and whichever is marked
+    # active is the name and signature that prints.
+    registrar_name: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    registrar_title: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    registrar_signature_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    deputy_registrar_name: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    deputy_registrar_title: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    deputy_registrar_signature_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    deputy_registrar_user_id: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    # "registrar" (default) or "deputy" — who is signing right now.
+    active_signatory: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

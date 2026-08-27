@@ -36,13 +36,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from models.theology import TheologyProgram, TheologyApplication
-from models.user import User
+from models.user import User, UserRole
 from utils.dependencies import get_admin_user, get_current_active_user
 
 router = APIRouter(prefix="/api/theology", tags=["Theology School"])
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+BACKEND_API_BASE = "https://letw-backend.onrender.com/api"
+
 
 def _public_base() -> str:
     from config import settings
@@ -349,6 +352,47 @@ async def _bridge_to_sharepoints(db: AsyncSession, a: TheologyApplication, progr
     await db.commit()
 
 
+async def _post_event(db: AsyncSession, event: str, payload: dict, timeout: int = 20) -> dict:
+    """POST one lifecycle event to sharepoints.
+
+    All five events share a base, a secret and a header, and every one of them
+    is best-effort: sharepoints being briefly unreachable must never block a
+    student's progress on letw.org. Failures are recorded, not raised.
+    """
+    from routers.integrations import _effective_key
+    key = await _effective_key(db)
+    if not key:
+        return {"ok": False, "reason": "Shared secret not set (Admin -> Integrations)."}
+    base = (await _intake_url(db)).rstrip("/").rsplit("/", 1)[0]
+    url = f"{base}/{event}"
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=timeout) as cli:
+            r = await cli.post(url, json=payload, headers={"X-API-Key": key})
+        if 200 <= r.status_code < 300:
+            data = r.json() or {}
+            return {"ok": True, "status": r.status_code,
+                    "data": data.get("data") if isinstance(data.get("data"), dict) else data}
+        print(f"[theology] {event} -> {r.status_code}: {r.text[:300]}", flush=True)
+        return {"ok": False, "status": r.status_code, "reason": f"sharepoints responded {r.status_code}: {r.text[:300]}"}
+    except Exception as e:
+        print(f"[theology] {event} push failed: {type(e).__name__}: {e}", flush=True)
+        return {"ok": False, "reason": f"{type(e).__name__}: {e}"}
+
+
+def _journey(a: TheologyApplication, fallback: str = "admission_number") -> dict:
+    """How sharepoints addresses one of our students on its classroom endpoints.
+
+    It prefers its own journey id — handed to us when the offer was accepted.
+    The fallback differs by endpoint and both schemas are strict, so sending
+    the wrong one is a 422: classroom-status resolves an `admission_number`,
+    classroom-progress only accepts a `liveEnrollmentId`.
+    """
+    if a.bridge_enrollment_id:
+        return {"enrollmentJourneyId": a.bridge_enrollment_id}
+    return {fallback: a.admission_number or ""}
+
+
 class ConfirmPaymentIn(BaseModel):
     reference: str
 
@@ -404,6 +448,171 @@ async def confirm_payment(app_id: str, body: ConfirmPaymentIn, db: AsyncSession 
             "source": "letw.org"}
 
 
+# ── Admission letter: signature, QR, verification, signatory ─────────────────
+
+def _admission_signature(a: TheologyApplication) -> str:
+    """HMAC-SHA256 over the letter's immutable facts, keyed with the server
+    secret. Anyone can re-verify (the server recomputes); nobody can forge one
+    without the key. Editing the name, the admission number or the issue date
+    invalidates every QR code already printed."""
+    import hashlib as _hashlib
+    from config import settings as _settings
+    issued = a.admission_issued_at.isoformat() if a.admission_issued_at else ""
+    payload = f"letw-admission|{a.id}|{a.full_name}|{a.admission_number or ''}|{issued}"
+    return hmac.new(_settings.JWT_SECRET.encode(), payload.encode(), _hashlib.sha256).hexdigest()
+
+
+def _admission_short_sig(sig: str) -> str:
+    """First 16 hex chars (64 bits). Keeps the QR near 33x33 modules so the
+    printed chip stays scannable — the same trade-off proven on the marriage
+    certificate, where a longer URL pushed modules below what phone cameras
+    could resolve in print."""
+    return sig[:16]
+
+
+def _admission_fingerprint(sig: str) -> str:
+    """Human-checkable short form printed under the seal: 3F2A-9B41-C8D0."""
+    t = sig[:12].upper()
+    return f"{t[0:4]}-{t[4:8]}-{t[8:12]}"
+
+
+def _admission_verify_url(a: TheologyApplication) -> str:
+    return f"{_public_base()}/verify/admission/{a.id}?sig={_admission_short_sig(_admission_signature(a))}"
+
+
+async def _signatory(db: AsyncSession) -> dict:
+    """Who signs the letter: the Registrar, or the deputy when one is named and
+    made active. Falls back to the office title so a letter is never unsigned."""
+    from routers.integrations import _settings_row
+    row = await _settings_row(db)
+    if not row:
+        return {"name": "", "title": "Registrar", "signature_url": "", "role": "registrar"}
+    use_deputy = (row.active_signatory or "").strip().lower() == "deputy" and bool(row.deputy_registrar_name)
+    if use_deputy:
+        return {
+            "name": row.deputy_registrar_name or "",
+            "title": row.deputy_registrar_title or "Deputy Registrar",
+            "signature_url": row.deputy_registrar_signature_url or "",
+            "role": "deputy",
+        }
+    return {
+        "name": row.registrar_name or "",
+        "title": row.registrar_title or "Registrar",
+        "signature_url": row.registrar_signature_url or "",
+        "role": "registrar",
+    }
+
+
+@router.get("/admission/{app_id}/qr.svg")
+async def admission_qr(app_id: str, db: AsyncSession = Depends(get_db)):
+    """QR chip for the printed admission letter. Encodes the verification URL so
+    any phone camera lands on letw.org's check page. Deterministic pixel-based
+    SVG so it renders identically on screen, in print preview and in a PDF."""
+    from fastapi.responses import Response
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a or not a.admission_number:
+        raise HTTPException(404, "No admission letter has been issued.")
+    try:
+        import qrcode
+        from routers.marriage_prep import _qr_to_svg
+        qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, border=0)
+        qr.add_data(_admission_verify_url(a))
+        qr.make(fit=True)
+        svg = _qr_to_svg(qr.get_matrix(), box_size=8, border=2)
+    except ImportError:
+        raise HTTPException(503, "QR generation is unavailable on this server.")
+    return Response(content=svg, media_type="image/svg+xml", headers={
+        "Cache-Control": "public, max-age=86400",
+        "Access-Control-Allow-Origin": "*",
+    })
+
+
+@router.get("/admission/{app_id}/verify")
+async def verify_admission(app_id: str, sig: str = "", db: AsyncSession = Depends(get_db)):
+    """Public check behind the QR code. Recomputes the HMAC server-side and
+    compares — a letter that has been altered, or was never issued here, fails."""
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a or not a.admission_number:
+        return {"valid": False, "reason": "No admission letter matches this code."}
+    expected = _admission_short_sig(_admission_signature(a))
+    if not sig or not hmac.compare_digest(sig.strip().lower(), expected):
+        return {"valid": False, "reason": "This letter could not be verified. It may have been altered."}
+    program = await _get_program(db, a.program_id)
+    who = await _signatory(db)
+    return {
+        "valid": True,
+        "full_name": a.full_name,
+        "admission_number": a.offer_number or a.admission_number,
+        "program_name": program.name if program else None,
+        "level": program.level if program else None,
+        "issued_at": a.admission_issued_at.isoformat() if a.admission_issued_at else None,
+        "status": a.status,
+        "photo_url": a.photo_url,
+        "signed_by": f"{who['name']}, {who['title']}".strip(", "),
+        "fingerprint": _admission_fingerprint(_admission_signature(a)),
+    }
+
+
+class RegistrarIn(BaseModel):
+    registrar_name: Optional[str] = None
+    registrar_title: Optional[str] = None
+    registrar_signature_url: Optional[str] = None
+    deputy_registrar_name: Optional[str] = None
+    deputy_registrar_title: Optional[str] = None
+    deputy_registrar_signature_url: Optional[str] = None
+    deputy_registrar_user_id: Optional[str] = None
+    active_signatory: Optional[str] = None
+
+
+@router.get("/admin/registrar")
+async def get_registrar(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    from routers.integrations import _settings_row
+    row = await _settings_row(db)
+    eligible = (await db.execute(
+        select(User).where(User.role.in_([UserRole.ADMIN, UserRole.DEPUTY_ADMIN_1,
+                                          UserRole.DEPUTY_ADMIN_2, UserRole.DEPUTY_ADMIN_3]))
+    )).scalars().all()
+    return {
+        "registrar_name": (row.registrar_name if row else "") or "",
+        "registrar_title": (row.registrar_title if row else "") or "Registrar",
+        "registrar_signature_url": (row.registrar_signature_url if row else "") or "",
+        "deputy_registrar_name": (row.deputy_registrar_name if row else "") or "",
+        "deputy_registrar_title": (row.deputy_registrar_title if row else "") or "Deputy Registrar",
+        "deputy_registrar_signature_url": (row.deputy_registrar_signature_url if row else "") or "",
+        "deputy_registrar_user_id": (row.deputy_registrar_user_id if row else "") or "",
+        "active_signatory": (row.active_signatory if row else "") or "registrar",
+        "eligible_deputies": [{"id": u.id, "name": u.name, "email": u.email,
+                               "role": u.role.value if hasattr(u.role, "value") else str(u.role)}
+                              for u in eligible],
+    }
+
+
+@router.put("/admin/registrar")
+async def set_registrar(body: RegistrarIn, db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Set who signs admission letters. The signature image is stored as an
+    uploaded data-URL, the same way the church seal is."""
+    from models.integration import IntegrationSettings
+    row = (await db.execute(select(IntegrationSettings).where(IntegrationSettings.id == "default"))).scalar_one_or_none()
+    if not row:
+        row = IntegrationSettings(id="default")
+        db.add(row)
+    for field in ("registrar_name", "registrar_title", "registrar_signature_url",
+                  "deputy_registrar_name", "deputy_registrar_title",
+                  "deputy_registrar_signature_url", "deputy_registrar_user_id"):
+        v = getattr(body, field)
+        if v is not None:
+            setattr(row, field, v.strip() or None)
+    if body.active_signatory is not None:
+        choice = body.active_signatory.strip().lower()
+        if choice not in ("registrar", "deputy"):
+            raise HTTPException(400, "active_signatory must be 'registrar' or 'deputy'.")
+        if choice == "deputy" and not (row.deputy_registrar_name or "").strip():
+            raise HTTPException(400, "Name a deputy registrar before making them the signatory.")
+        row.active_signatory = choice
+    await db.commit()
+    return await get_registrar(db, _)
+
+
 # ── The offer: view / accept / decline ───────────────────────────────────────
 
 async def _by_token(db: AsyncSession, token: str) -> TheologyApplication:
@@ -431,6 +640,11 @@ async def view_offer(token: str, db: AsyncSession = Depends(get_db)):
         "offer_url": a.offer_url,
         "admission_letter_url": a.admission_letter_url,
         "letter_url": f"{_public_base()}/theology-school/offer/{token}/letter",
+        "photo_url": a.photo_url,
+        "qr_svg_url": f"{BACKEND_API_BASE}/theology/admission/{a.id}/qr.svg",
+        "verify_url": _admission_verify_url(a),
+        "fingerprint": _admission_fingerprint(_admission_signature(a)),
+        "signatory": await _signatory(db),
         "tuition_amount": float(program.tuition_amount or 0) if program else None,
         "currency": (program.currency if program else None) or "NGN",
     }
@@ -461,10 +675,44 @@ async def accept_offer(token: str, db: AsyncSession = Depends(get_db)):
     a.accepted_at = datetime.utcnow()
     await db.commit()
 
+    # Acceptance is what mints the student ID, and that transaction belongs to
+    # sharepoints — tell it first, then take whatever identity it returns.
+    program = await _get_program(db, a.program_id)
+    payload = {
+        "issuer": "letw.org",
+        "event_id": f"accepted:{a.id}",
+        "application_id": a.id,
+        "admission_number": a.admission_number or "",
+        "full_name": a.full_name,
+        "email": a.email.lower(),
+        "phone": a.phone or None,
+        "photo_url": a.photo_url if (a.photo_url or "").startswith("http") else None,
+        "program_code": _derive_code(program) if program else None,
+        "course_code": (program.lms_course_code or _derive_code(program)) if program else "GENERAL",
+        "duration_months": program.duration_months if program else None,
+        "accepted_at": a.accepted_at.isoformat() + "Z",
+        "enrolment_status": "pending",
+    }
+    if a.student_id_number:
+        payload["student_id_number"] = a.student_id_number
+    ev = await _post_event(db, "student-registry", payload)
+    reg = ev.get("data") if ev.get("ok") else None
+    if isinstance(reg, dict):
+        # sharepoints hands back the identity it just minted, plus the journey
+        # id that addresses this student on its later endpoints.
+        a.bridge_enrollment_id = reg.get("enrollmentJourneyId") or a.bridge_enrollment_id
+        if reg.get("studentIdNumber"):
+            a.student_id_number = reg.get("studentIdNumber")
+            if not a.student_id_issued_at:
+                a.student_id_issued_at = datetime.utcnow()
+        await db.commit()
+
     password = await _provision_student(db, a)
     await db.refresh(a)
     return {"status": a.status, "student_created": bool(a.student_user_id),
             "login_email": a.email, "temporary_password_sent": bool(password),
+            "student_id_number": a.student_id_number,
+            "registry_synced": bool(reg),
             "portal_url": f"{_public_base()}/theology-school/student"}
 
 
@@ -1003,12 +1251,100 @@ async def lms_confirm_enrolment(
         a.lms_status = "failed"
         a.lms_error = (body.note or "The classroom reported an enrolment failure.")[:1000]
     await db.commit()
+
+    # Forward to sharepoints so the academic record moves with the seat. A
+    # confirmed seat also makes it push the student ID back to us.
+    await _post_event(db, "classroom-status", {
+        **_journey(a),
+        "status": "PROVISIONED" if body.enrolled else "FAILED",
+        **({"lms_user_id": body.lms_user_id} if body.lms_user_id else {}),
+        **({"loginEmail": a.email.lower()} if body.enrolled else {}),
+        **({} if body.enrolled else {"error": (body.note or "The classroom reported an enrolment failure.")[:1000]}),
+    })
     return {"ok": True, "admission_number": ref, "enrolment_status": a.lms_status}
 
 
 class LmsAuthIn(BaseModel):
     email: EmailStr
     password: str
+
+
+class LmsCourseProgressIn(BaseModel):
+    course_code: str
+    course_title: str
+    status: str = "IN_PROGRESS"
+    progress_percent: float = 0
+    attendance_percent: Optional[float] = None
+    assessment_score: Optional[float] = None
+    grade: Optional[str] = None
+    completed_at: Optional[str] = None
+
+
+class LmsProgressIn(BaseModel):
+    event_id: str
+    occurred_at: Optional[str] = None
+    academic_standing: Optional[str] = None
+    courses: List[LmsCourseProgressIn]
+
+
+@router.post("/lms/enrolments/{admission_number}/progress")
+async def lms_report_progress(
+    admission_number: str,
+    body: LmsProgressIn,
+    x_api_key: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """The classroom reports grades and attendance; we forward them to
+    sharepoints, which keeps the academic record and issues the transcript.
+
+    `event_id` makes retries safe — sharepoints de-duplicates on it."""
+    await _require_lms(db, x_api_key)
+    ref = (admission_number or "").strip()
+    a = (await db.execute(select(TheologyApplication).where(
+        TheologyApplication.admission_number == ref))).scalar_one_or_none()
+    if not a:
+        a = (await db.execute(select(TheologyApplication).where(
+            TheologyApplication.offer_number == ref))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "No student matches that admission number.")
+    if not body.courses:
+        raise HTTPException(400, "Report at least one course.")
+
+    allowed = {"NOT_STARTED", "IN_PROGRESS", "COMPLETED", "PASSED", "FAILED", "WITHDRAWN"}
+    courses = []
+    for c in body.courses:
+        st = (c.status or "IN_PROGRESS").upper()
+        if st not in allowed:
+            raise HTTPException(400, f"status must be one of {', '.join(sorted(allowed))}.")
+        entry = {
+            "courseCode": c.course_code.strip(),
+            "courseTitle": c.course_title.strip(),
+            "status": st,
+            "progressPercent": max(0.0, min(100.0, float(c.progress_percent or 0))),
+            # sharepoints versions course rows; letw.org does not, so every
+            # report is revision 1 and is de-duplicated on eventId instead.
+            "revision": 1,
+        }
+        if c.attendance_percent is not None:
+            entry["attendancePercent"] = max(0.0, min(100.0, float(c.attendance_percent)))
+        if c.assessment_score is not None:
+            entry["assessmentScore"] = float(c.assessment_score)
+        if c.grade:
+            entry["grade"] = c.grade.strip()[:30]
+        if c.completed_at:
+            entry["completedAt"] = c.completed_at
+        courses.append(entry)
+
+    r = await _post_event(db, "classroom-progress", {
+        **_journey(a, "liveEnrollmentId"),
+        "eventId": body.event_id.strip(),
+        "occurredAt": (body.occurred_at or (datetime.utcnow().isoformat() + "Z")),
+        **({"academicStanding": body.academic_standing} if body.academic_standing else {}),
+        "courses": courses,
+    })
+    if not r.get("ok"):
+        raise HTTPException(502, r.get("reason") or "sharepoints did not accept the progress report.")
+    return {"ok": True, "admission_number": ref, "courses": len(courses)}
 
 
 @router.post("/lms/auth/verify")

@@ -4658,6 +4658,24 @@ export interface TheologyOffer {
     offer_number?: string | null; offer_url?: string | null
     admission_letter_url?: string | null; letter_url?: string | null
     tuition_amount?: number | null; currency?: string | null
+    photo_url?: string | null; qr_svg_url?: string | null
+    verify_url?: string | null; fingerprint?: string | null
+    signatory?: { name: string; title: string; signature_url: string; role: string } | null
+}
+
+export interface TheologyRegistrar {
+    registrar_name: string; registrar_title: string; registrar_signature_url: string
+    deputy_registrar_name: string; deputy_registrar_title: string
+    deputy_registrar_signature_url: string; deputy_registrar_user_id: string
+    active_signatory: string
+    eligible_deputies: { id: string; name: string; email: string; role: string }[]
+}
+
+export interface AdmissionVerification {
+    valid: boolean; reason?: string
+    full_name?: string; admission_number?: string; program_name?: string | null
+    level?: string | null; issued_at?: string | null; status?: string
+    photo_url?: string | null; signed_by?: string; fingerprint?: string
 }
 export const theologyApi = {
     programs: () => fetchApi<TheologyProgram[]>('/theology/programs'),
@@ -4690,6 +4708,9 @@ export const theologyApi = {
     bridgeStatus: () => fetchApi<TheologyBridgeStatus>('/theology/admin/bridge-status'),
     publishProgram: (id: string) => fetchApi<{ ok: boolean; code?: string; reason?: string }>(`/theology/admin/programs/${id}/publish`, { method: 'POST' }),
     publishAllPrograms: () => fetchApi<{ published: number; total: number; results: { name: string; ok: boolean; code?: string; reason?: string }[] }>('/theology/admin/programs/publish-all', { method: 'POST' }),
+    getRegistrar: () => fetchApi<TheologyRegistrar>('/theology/admin/registrar'),
+    saveRegistrar: (b: Partial<TheologyRegistrar>) => fetchApi<TheologyRegistrar>('/theology/admin/registrar', { method: 'PUT', body: JSON.stringify(b) }),
+    verifyAdmission: (id: string, sig: string) => fetchApi<AdmissionVerification>(`/theology/admission/${id}/verify?sig=${encodeURIComponent(sig)}`),
     reportRefund: (id: string, event_type = 'REFUND') => fetchApi<{ ok: boolean; status?: number; event?: string }>(`/theology/admin/applications/${id}/report-refund?event_type=${encodeURIComponent(event_type)}`, { method: 'POST' }),
     resendToSharepoints: (id: string) => fetchApi<{ bridge_status: string; bridge_error?: string | null; offer_number?: string | null; offer_url?: string | null; admission_letter_url?: string | null; status: string }>(`/theology/admin/applications/${id}/resend-to-sharepoints`, { method: 'POST' }),
 }
