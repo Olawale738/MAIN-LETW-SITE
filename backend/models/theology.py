@@ -94,6 +94,10 @@ class TheologyApplication(Base):
     # store the state it sends rather than inferring "issued means valid".
     student_id_status: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     student_id_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    # When the ID's current state was decided *at sharepoints* — not when we
+    # heard about it. Arrival order is not authority: a delayed ACTIVE must not
+    # undo a revocation that was decided later but arrived first.
+    student_id_lifecycle_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     sharepoints_candidate_id: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
     # Idempotency receipts, keyed by the caller's Idempotency-Key: the same key
     # with the same body replays the original receipt, a different body is a

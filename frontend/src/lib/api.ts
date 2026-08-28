@@ -4780,10 +4780,10 @@ export const integrationsApi = {
     getSettings: () => fetchApi<{
         configured: boolean; key_preview: string; lookup_url: string; marriage_seal_url: string
         student_webhook_url: string; lms_base_url: string; lms_enrol_path: string
-        lms_key_set: boolean; lms_key_alt_set?: boolean; theology_intake_default: string; handshake_url: string
+        lms_key_set: boolean; lms_key_alt_set?: boolean; signing_secret_set?: boolean; theology_intake_default: string; handshake_url: string
     } & IntegrationTargets>('/integrations/admin/settings'),
     testSharepoints: () => fetchApi<SharepointsTest>('/integrations/admin/test-sharepoints'),
-    saveTheologyAndLms: (b: { student_webhook_url?: string; lms_base_url?: string; lms_api_key?: string; lms_api_key_alt?: string; lms_enrol_path?: string }) =>
+    saveTheologyAndLms: (b: { student_webhook_url?: string; lms_base_url?: string; lms_api_key?: string; lms_api_key_alt?: string; integration_signing_secret?: string; lms_enrol_path?: string }) =>
         fetchApi<{ ok: boolean }>('/integrations/admin/settings', { method: 'PUT', body: JSON.stringify(b) }),
     setKey: (sharepoints_api_key: string) =>
         fetchApi<{ ok: boolean }>('/integrations/admin/settings', { method: 'PUT', body: JSON.stringify({ sharepoints_api_key }) }),

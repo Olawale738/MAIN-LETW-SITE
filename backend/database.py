@@ -210,6 +210,7 @@ async def init_db():
                 ("integration_settings", "lms_base_url",        "VARCHAR(300)"),
                 ("integration_settings", "lms_api_key",         "VARCHAR(300)"),
                 ("integration_settings", "lms_api_key_alt",     "VARCHAR(300)"),
+                ("integration_settings", "integration_signing_secret", "VARCHAR(300)"),
                 ("integration_settings", "lms_enrol_path",      "VARCHAR(300)"),
                 ("integration_settings", "student_webhook_url", "VARCHAR(500)"),
                 # Registrar / deputy registrar who sign the admission letter
@@ -225,6 +226,7 @@ async def init_db():
                 ("theology_applications", "documents",                "JSONB DEFAULT '[]'::jsonb"),
                 ("theology_applications", "student_id_status",         "VARCHAR(40)"),
                 ("theology_applications", "student_id_expires_at",     "TIMESTAMP"),
+                ("theology_applications", "student_id_lifecycle_at",   "TIMESTAMP"),
                 ("theology_applications", "sharepoints_candidate_id",  "VARCHAR(80)"),
                 ("theology_applications", "credential_receipts",       "JSONB DEFAULT '{}'::jsonb"),
                 ("theology_applications", "initial_password",        "VARCHAR(64)"),

@@ -508,8 +508,12 @@ async def _publish_program(db: AsyncSession, program: TheologyProgram) -> dict:
     url = _programs_url(await _intake_url(db))
     try:
         import httpx
+        import json as _json
+        raw = _json.dumps(payload, separators=(",", ":")).encode()
+        headers = await _signed_headers(db, "POST", url, raw, key)
+        headers["Content-Type"] = "application/json"
         async with httpx.AsyncClient(timeout=25) as cli:
-            r = await cli.post(url, json=payload, headers={"X-API-Key": key})
+            r = await cli.post(url, content=raw, headers=headers)
         if 200 <= r.status_code < 300:
             body = r.json() or {}
             data = body.get("data") if isinstance(body.get("data"), dict) else body
@@ -583,6 +587,36 @@ async def _bridge_to_sharepoints(db: AsyncSession, a: TheologyApplication, progr
     await db.commit()
 
 
+async def _signing_secret(db: AsyncSession) -> str:
+    """The HMAC secret for the sharepoints boundary, if one has been agreed.
+
+    Absent, we fall back to plain API-key auth — which is what sharepoints
+    accepts today. Signing turns on the moment both sides hold the same value,
+    with no code change on either side.
+    """
+    from config import settings as cfg
+    try:
+        from routers.integrations import _settings_row
+        row = await _settings_row(db)
+        if row and (getattr(row, "integration_signing_secret", None) or "").strip():
+            return row.integration_signing_secret.strip()
+    except Exception:
+        pass
+    return (getattr(cfg, "LETW_INTEGRATION_SIGNING_SECRET", "") or "").strip()
+
+
+async def _signed_headers(db: AsyncSession, method: str, url: str, raw: bytes,
+                          key: str, idempotency: Optional[str] = None) -> dict:
+    headers = {"X-API-Key": key}
+    if idempotency:
+        headers["Idempotency-Key"] = idempotency
+    secret = await _signing_secret(db)
+    if secret:
+        from utils.integration_signing import sign_headers
+        headers.update(sign_headers(secret, method, url, raw, idempotency=idempotency))
+    return headers
+
+
 async def _post_event(db: AsyncSession, event: str, payload: dict, timeout: int = 20,
                       idempotency_key: Optional[str] = None) -> dict:
     """POST one lifecycle event to sharepoints.
@@ -598,12 +632,14 @@ async def _post_event(db: AsyncSession, event: str, payload: dict, timeout: int 
     base = (await _intake_url(db)).rstrip("/").rsplit("/", 1)[0]
     url = f"{base}/{event}"
     try:
-        import httpx
+        import httpx, json as _json
+        # Serialise once and send those exact bytes: the signature covers the
+        # body hash, so letting the client re-encode would invalidate it.
+        raw = _json.dumps(payload, separators=(",", ":")).encode()
+        headers = await _signed_headers(db, "POST", url, raw, key, idempotency_key)
+        headers["Content-Type"] = "application/json"
         async with httpx.AsyncClient(timeout=timeout) as cli:
-            headers = {"X-API-Key": key}
-            if idempotency_key:
-                headers["Idempotency-Key"] = idempotency_key
-            r = await cli.post(url, json=payload, headers=headers)
+            r = await cli.post(url, content=raw, headers=headers)
         if 200 <= r.status_code < 300:
             data = r.json() or {}
             return {"ok": True, "status": r.status_code,
@@ -1375,6 +1411,19 @@ async def _enrol_in_lms(db: AsyncSession, a: TheologyApplication, program: Optio
 
 # ── Credentials returned by sharepoints ──────────────────────────────────────
 
+def _parse(raw: bytes) -> dict:
+    """Parse the body we already hashed, rather than letting the framework
+    parse it separately — the signature covers these exact bytes."""
+    import json as _json
+    try:
+        body = _json.loads(raw or b"{}")
+    except Exception:
+        raise HTTPException(400, "Invalid JSON.")
+    if not isinstance(body, dict):
+        raise HTTPException(400, "The request body must be a JSON object.")
+    return body
+
+
 def _pick(body: dict, *keys: str) -> str:
     """First non-empty string among these keys. sharepoints sends camelCase;
     earlier drafts of these receivers spoke snake_case. Accept either so a
@@ -1395,13 +1444,73 @@ def _iso(value: str) -> Optional[datetime]:
         return None
 
 
-async def _require_partner(db: AsyncSession, x_api_key: str) -> None:
+RESTRICTED = {"REVOKED", "SUSPENDED", "EXPIRED", "REPLACED", "DELETED", "WITHDRAWN"}
+
+
+def _decided_at(*candidates: str) -> Optional[datetime]:
+    """When sharepoints decided this state, from the payload's own timestamps.
+
+    Deliberately never the arrival time. Two events can overtake each other in
+    flight, and the one that arrives second is not therefore the newer fact.
+    """
+    for c in candidates:
+        t = _iso(c) if c else None
+        if t:
+            return t
+    return None
+
+
+def _ordering_verdict(current_status: Optional[str], current_at: Optional[datetime],
+                      incoming_status: str, incoming_at: Optional[datetime]) -> str:
+    """Whether to apply an incoming credential state.
+
+    "apply"     — it is newer, or we hold nothing.
+    "stale"     — it predates what we hold; ignore it.
+    "reconcile" — order cannot be established and it would relax a restricted
+                  state. Restricted stays restricted until the protected
+                  registry says otherwise; a lost revocation is a real harm,
+                  a delayed reinstatement is an inconvenience.
+    """
+    cur = (current_status or "").upper()
+    inc = (incoming_status or "").upper()
+    if not cur:
+        return "apply"
+    if incoming_at and current_at:
+        if incoming_at < current_at:
+            return "stale"
+        return "apply"
+    # No usable ordering. Only the direction that loosens protection is unsafe.
+    if cur in RESTRICTED and inc not in RESTRICTED:
+        return "reconcile"
+    return "apply"
+
+
+async def _require_partner(db: AsyncSession, x_api_key: str,
+                           request: Optional[Request] = None,
+                           raw: bytes = b"") -> dict:
+    """Authenticate an inbound call from sharepoints.
+
+    The API key always has to hold. On top of it, a request that carries
+    signature headers must verify — a malformed signature is rejected rather
+    than falling back to key-only auth, since otherwise stripping a signature
+    would weaken the check rather than fail it.
+    """
     from routers.integrations import _effective_key
     expected = await _effective_key(db)
     if not expected:
         raise HTTPException(503, "Partner integration is not configured yet.")
     if not x_api_key or not hmac.compare_digest(x_api_key.strip(), expected):
         raise HTTPException(401, "Invalid or missing X-API-Key.")
+
+    if request is None:
+        return {"signed": False}
+    from utils.integration_signing import verify, SignatureError
+    try:
+        result = verify(await _signing_secret(db), request.method,
+                        str(request.url), raw, request.headers)
+    except SignatureError as e:
+        raise HTTPException(401, str(e))
+    return result or {"signed": False}
 
 
 async def _match_student(db: AsyncSession, body: dict) -> TheologyApplication:
@@ -1483,7 +1592,7 @@ def _hash_body(body: dict) -> str:
 
 @router.post("/integrations/certificate", status_code=201)
 async def receive_certificate(
-    body: dict,
+    request: Request,
     response: Response,
     x_api_key: str = Header(default=""),
     idempotency_key: str = Header(default="", alias="Idempotency-Key"),
@@ -1496,7 +1605,9 @@ async def receive_certificate(
     its history is kept, because a student's record should say what happened,
     not quietly lose it.
     """
-    await _require_partner(db, x_api_key)
+    raw = await request.body()
+    await _require_partner(db, x_api_key, request, raw)
+    body = _parse(raw)
     a = await _match_student(db, body)
 
     payload_hash = _hash_body(body)
@@ -1516,6 +1627,29 @@ async def receive_certificate(
     lifecycle = (_pick(body, "lifecycleEvent") or _pick(cert, "status") or "ISSUED").upper()
     status = (_pick(cert, "status") or lifecycle).upper()
     withdrawn = bool(_pick(cert, "revokedAt")) or lifecycle in ("REVOKED", "DELETED", "REPLACED")
+
+    decided = _decided_at(_pick(cert, "revokedAt"), _pick(body, "occurredAt"),
+                          _pick(cert, "issuedAt"))
+    held = next((d for d in list(a.documents or [])
+                 if d.get("kind") == "certificate" and
+                 (d.get("sharepoints_id") == cert_id or (number and d.get("number") == number))), None)
+    if held:
+        verdict = _ordering_verdict(held.get("status"), _iso(held.get("lifecycle_at") or ""),
+                                    status, decided)
+        if verdict in ("stale", "reconcile"):
+            if verdict == "reconcile":
+                await _fetch_credentials(db, a)
+                await db.refresh(a)
+            receipt = _receipt(a, idempotency_key, "CERTIFICATE", number, held.get("status") or status)
+            receipt["applied"] = False
+            receipt["reason"] = ("A later state for this certificate is already recorded."
+                                 if verdict == "stale" else
+                                 "Lifecycle order could not be established; reconciled against the "
+                                 "SharePoints credential registry instead.")
+            _remember(a, idempotency_key, payload_hash, receipt)
+            await db.commit()
+            response.status_code = 200
+            return receipt
 
     docs = [d for d in list(a.documents or [])
             if not (d.get("kind") == "certificate" and
@@ -1539,6 +1673,7 @@ async def receive_certificate(
             "seal_number": _pick(cert, "sealNumber") or None,
             "replacement_of": _pick(cert, "replacementOfId") or None,
             "replaced_by": _pick(cert, "replacedById") or None,
+            "lifecycle_at": (decided.isoformat() + "Z") if decided else None,
             "source": "sharepoints.letw.org",
         })
     else:
@@ -1547,6 +1682,7 @@ async def receive_certificate(
             h["status"] = status
             h["withdrawn"] = True
             h["revoked_at"] = _pick(cert, "revokedAt") or (datetime.utcnow().isoformat() + "Z")
+            h["lifecycle_at"] = (decided.isoformat() + "Z") if decided else h.get("lifecycle_at")
             docs.append(h)
 
     a.documents = docs
@@ -1565,7 +1701,7 @@ async def receive_certificate(
 
 @router.post("/integrations/student-id", status_code=201)
 async def receive_student_id(
-    body: dict,
+    request: Request,
     response: Response,
     x_api_key: str = Header(default=""),
     idempotency_key: str = Header(default="", alias="Idempotency-Key"),
@@ -1578,7 +1714,9 @@ async def receive_student_id(
     revocation, and only `status` says which. Storing it verbatim is what stops
     a revoked card still showing as valid in the portal.
     """
-    await _require_partner(db, x_api_key)
+    raw = await request.body()
+    await _require_partner(db, x_api_key, request, raw)
+    body = _parse(raw)
     a = await _match_student(db, body)
 
     payload_hash = _hash_body(body)
@@ -1595,6 +1733,36 @@ async def receive_student_id(
     verify = _pick(body, "verificationUrl", "verification_url")
     card = _pick(body, "cardUrl", "card_url", "idCardUrl")
 
+    decided = _decided_at(_pick(body, "revokedAt"), _pick(body, "occurredAt"),
+                          _pick(body, "issuedAt"))
+    verdict = _ordering_verdict(a.student_id_status, a.student_id_lifecycle_at, status, decided)
+    if verdict == "stale":
+        # Older than what we hold. Acknowledge it — it was delivered — without
+        # letting it rewrite a newer decision.
+        receipt = _receipt(a, idempotency_key, "STUDENT_ID", a.student_id_number or number,
+                           a.student_id_status or status)
+        receipt["applied"] = False
+        receipt["reason"] = "A later state for this credential is already recorded."
+        _remember(a, idempotency_key, payload_hash, receipt)
+        await db.commit()
+        response.status_code = 200
+        return receipt
+    if verdict == "reconcile":
+        # Cannot order these events, and this one would lift a restriction.
+        # Ask the registry that owns the credential instead of guessing.
+        await _fetch_credentials(db, a)
+        await db.refresh(a)
+        receipt = _receipt(a, idempotency_key, "STUDENT_ID", a.student_id_number or number,
+                           a.student_id_status or status)
+        receipt["applied"] = False
+        receipt["reason"] = ("Lifecycle order could not be established; reconciled against the "
+                             "SharePoints credential registry instead.")
+        _remember(a, idempotency_key, payload_hash, receipt)
+        await db.commit()
+        response.status_code = 200
+        return receipt
+
+    a.student_id_lifecycle_at = decided or a.student_id_lifecycle_at
     a.student_id_number = number
     a.student_id_status = status
     a.student_id_card_url = card or verify or a.student_id_card_url
@@ -1840,8 +2008,10 @@ async def _fetch_credentials(db: AsyncSession, a: TheologyApplication) -> dict:
     url = f"{base}/credentials"
     try:
         import httpx
+        full = f"{url}?admission_number={ref}"
+        headers = await _signed_headers(db, "GET", full, b"", key)
         async with httpx.AsyncClient(timeout=20) as cli:
-            r = await cli.get(url, params={"admission_number": ref}, headers={"X-API-Key": key})
+            r = await cli.get(url, params={"admission_number": ref}, headers=headers)
     except Exception as e:
         print(f"[theology] credential pull failed for {ref}: {type(e).__name__}: {e}", flush=True)
         return {"ok": False, "reason": f"{type(e).__name__}: {e}"}

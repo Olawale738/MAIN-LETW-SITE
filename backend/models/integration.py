@@ -35,6 +35,10 @@ class IntegrationSettings(Base):
     # actually sends — it also makes rotation non-breaking: add the new key
     # here, let them cut over, then retire the old one.
     lms_api_key_alt: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    # Separate from the API key on purpose: the key authorises a caller, the
+    # signing secret attests a message. Sharing one value for both would mean a
+    # leaked key also forges signatures.
+    integration_signing_secret: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     lms_enrol_path: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     # sharepoints student-ID intake
     student_webhook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)

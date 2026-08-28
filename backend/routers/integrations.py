@@ -138,6 +138,7 @@ class KeyIn(BaseModel):
     lms_base_url: Optional[str] = None
     lms_api_key: Optional[str] = None
     lms_api_key_alt: Optional[str] = None
+    integration_signing_secret: Optional[str] = None
     lms_enrol_path: Optional[str] = None
 
 
@@ -158,6 +159,7 @@ async def get_settings(db: AsyncSession = Depends(get_db), _: User = Depends(get
         "student_webhook_url": (row.student_webhook_url if row else None) or "",
         "lms_base_url": (row.lms_base_url if row else None) or "",
         "lms_enrol_path": (row.lms_enrol_path if row else None) or "",
+        "signing_secret_set": bool((getattr(row, "integration_signing_secret", None) or "").strip()) if row else False,
         "lms_key_alt_set": bool((row.lms_api_key_alt if row else "") or ""),
         "lms_key_set": bool((getattr(row, "lms_api_key", None) or "").strip()) if row else False,
         "theology_intake_default": "https://sharepoints.letw.org/api/integrations/theology/enrollments",
@@ -198,6 +200,11 @@ async def set_settings(body: KeyIn, db: AsyncSession = Depends(get_db), _: User 
         k = body.lms_api_key.strip()
         if k and "…" not in k:
             row.lms_api_key = k
+    if body.integration_signing_secret is not None:
+        k = body.integration_signing_secret.strip()
+        # Empty clears it, which turns signing back off on both directions.
+        if "…" not in k:
+            row.integration_signing_secret = k or None
     if body.lms_api_key_alt is not None:
         k = body.lms_api_key_alt.strip()
         # An empty value clears the second key — that is how a rotation ends.
