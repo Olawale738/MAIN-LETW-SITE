@@ -1015,8 +1015,10 @@ async def complete_setup(token: str, body: SetupIn, db: AsyncSession = Depends(g
 
     a = await _by_setup_token(db, token)
     pw = (body.password or "").strip()
-    if len(pw) < 8:
-        raise HTTPException(400, "Choose a password of at least 8 characters.")
+    from utils.login_guard import password_problem
+    problem = password_problem(pw, email=a.email, name=a.full_name)
+    if problem:
+        raise HTTPException(400, problem)
 
     email = a.email.lower()
     u = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
@@ -2597,12 +2599,29 @@ async def lms_verify_student(
     await _require_lms(db, x_api_key)
     from utils.security import verify_password
     from models.user import UserStatus
+    from utils.login_guard import (locked_for, lock_message, note_failure,
+                                   note_success, verify_throttled)
+
+    # This endpoint answers "is this the right password" to anyone holding the
+    # integration key. The per-account lockout below protects one account; this
+    # protects the rest, so a leaked key cannot sweep many accounts at speed.
+    if verify_throttled():
+        raise HTTPException(429, "Too many sign-in checks. Try again shortly.")
 
     email = (body.email or "").strip().lower()
     u = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
     generic = {"authenticated": False, "reason": "Invalid email or password."}
-    if not u or not u.password_hash or not verify_password(body.password, u.password_hash):
+    if not u or not u.password_hash:
         return generic
+    held = locked_for(u)
+    if held:
+        return {"authenticated": False, "reason": lock_message(held)}
+    if not verify_password(body.password, u.password_hash):
+        locked = note_failure(u)
+        await db.commit()
+        return {"authenticated": False, "reason": lock_message(locked) if locked else generic["reason"]}
+    note_success(u)
+    await db.commit()
     if u.status != UserStatus.ACTIVE:
         return {"authenticated": False, "reason": "This account is not active."}
 

@@ -178,8 +178,20 @@ class AuthService:
         if not user.password_hash:
             return False, "Please complete email verification and set your password.", None
         
+        from utils.login_guard import locked_for, lock_message, note_failure, note_success
+        held = locked_for(user)
+        if held:
+            # Report the lock, never whether the password was right — the lock
+            # must not become an oracle of its own.
+            return False, lock_message(held), None
+
         if not verify_password(password, user.password_hash):
-            return False, "Invalid email or password.", None
+            locked = note_failure(user)
+            await self.db.commit()
+            return False, (lock_message(locked) if locked else "Invalid email or password."), None
+
+        note_success(user)
+        await self.db.commit()
         
         # Generate JWT tokens
         tokens = create_tokens(user.id, user.email)

@@ -6,7 +6,7 @@ import uuid
 import enum
 from datetime import datetime
 from typing import List, Optional, TYPE_CHECKING
-from sqlalchemy import String, DateTime, Enum as SQLEnum, JSON, Text
+from sqlalchemy import String, DateTime, Enum as SQLEnum, JSON, Text, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -75,6 +75,14 @@ class User(Base):
         String(255),
         nullable=True  # Null until user sets password after email verification
     )
+
+    # Brute-force state, kept on the account rather than in memory so a restart
+    # cannot clear a lock an attacker is simply waiting out.
+    failed_login_attempts: Mapped[int] = mapped_column(
+        Integer, default=0, nullable=False, server_default="0"
+    )
+    locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_failed_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     role: Mapped[UserRole] = mapped_column(
         SQLEnum(UserRole, native_enum=False),

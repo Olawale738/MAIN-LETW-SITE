@@ -30,7 +30,7 @@ export default function StudentSetupPage() {
     useEffect(() => { if (token) load() }, [token, load])
 
     const submit = async () => {
-        if (password.length < 8) { setErr('Choose a password of at least 8 characters.'); return }
+        if (password.length < 10) { setErr('Use at least 10 characters. A short phrase is easier to remember and harder to guess.'); return }
         if (password !== confirm) { setErr('Both passwords must match.'); return }
         setBusy(true); setErr(null)
         try {
@@ -99,7 +99,7 @@ export default function StudentSetupPage() {
                     {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">At least 8 characters.</p>
+            <p className="text-[11px] text-gray-400 mt-1">At least 10 characters. Three unrelated words make a strong, memorable password.</p>
 
             <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1 mt-3">Confirm password</label>
             <input type={show ? 'text' : 'password'} value={confirm} autoComplete="new-password"
