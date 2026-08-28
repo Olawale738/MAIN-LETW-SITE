@@ -144,6 +144,18 @@ export default function TheologyAdmissionsPage() {
                                     {healthy && <li>· Every programme is registered and every paid application has been handed over.</li>}
                                 </ul>
                             </div>
+                            <button onClick={async () => {
+                                setPublishing(true)
+                                try {
+                                    const r = await theologyApi.pullClassroom()
+                                    setMsg({ kind: 'ok', text: `Read ${r.rows_read} from the classroom — ${r.newly_enrolled} newly enrolled, ${r.already_enrolled} already, ${r.unmatched} unmatched.` })
+                                    load()
+                                } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+                                finally { setPublishing(false) }
+                            }} disabled={publishing}
+                                className="inline-flex items-center gap-2 border border-gray-300 text-[#140152] font-bold px-4 py-2 rounded-lg text-xs disabled:opacity-50 shrink-0 mr-2">
+                                <RefreshCw className="w-3.5 h-3.5" /> Fetch enrolments from classroom
+                            </button>
                             <button onClick={publishAll} disabled={publishing || !bridge.secret_set}
                                 className="inline-flex items-center gap-2 bg-[#140152] text-white font-bold px-4 py-2 rounded-lg text-xs disabled:opacity-50 shrink-0">
                                 {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}

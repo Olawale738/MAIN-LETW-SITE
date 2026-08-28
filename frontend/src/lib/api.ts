@@ -4726,6 +4726,7 @@ export const theologyApi = {
     retryProvisioning: (id: string) => fetchApi<TheologyApplication>(`/theology/admin/applications/${id}/retry-provisioning`, { method: 'POST' }),
     resetAccess: (id: string) => fetchApi<{ ok: boolean; email: string }>(`/theology/admin/applications/${id}/reset-access`, { method: 'POST' }),
     // sharepoints hand-over
+    pullClassroom: () => fetchApi<{ ok: boolean; source: string; rows_read: number; newly_enrolled: number; already_enrolled: number; unmatched: number; details: { enrolled: { admission_number: string; name: string }[]; unmatched: { email: string | null; admission_number: string | null }[] } }>('/theology/admin/pull-classroom', { method: 'POST' }),
     confirmSeat: (id: string) => fetchApi<{ ok: boolean; admission_number: string; enrolment_status: string; relayed_to_sharepoints: boolean; relay_reason?: string | null }>(`/theology/admin/applications/${id}/confirm-seat`, { method: 'POST', body: JSON.stringify({}) }),
     testClassroom: () => fetchApi<{ base_url: string; key_set: boolean; verdict: string; summary: string; checks: { label: string; url: string; status: number | null; body?: string; error?: string }[] }>('/theology/admin/test-classroom'),
     bridgeStatus: () => fetchApi<TheologyBridgeStatus>('/theology/admin/bridge-status'),
@@ -4781,10 +4782,10 @@ export const integrationsApi = {
     getSettings: () => fetchApi<{
         configured: boolean; key_preview: string; lookup_url: string; marriage_seal_url: string
         student_webhook_url: string; lms_base_url: string; lms_enrol_path: string
-        lms_key_set: boolean; lms_key_alt_set?: boolean; signing_secret_set?: boolean; theology_intake_default: string; handshake_url: string
+        lms_students_path?: string; lms_key_set: boolean; lms_key_alt_set?: boolean; signing_secret_set?: boolean; theology_intake_default: string; handshake_url: string
     } & IntegrationTargets>('/integrations/admin/settings'),
     testSharepoints: () => fetchApi<SharepointsTest>('/integrations/admin/test-sharepoints'),
-    saveTheologyAndLms: (b: { student_webhook_url?: string; lms_base_url?: string; lms_api_key?: string; lms_api_key_alt?: string; integration_signing_secret?: string; lms_enrol_path?: string }) =>
+    saveTheologyAndLms: (b: { student_webhook_url?: string; lms_base_url?: string; lms_api_key?: string; lms_api_key_alt?: string; integration_signing_secret?: string; lms_students_path?: string; lms_enrol_path?: string }) =>
         fetchApi<{ ok: boolean }>('/integrations/admin/settings', { method: 'PUT', body: JSON.stringify(b) }),
     setKey: (sharepoints_api_key: string) =>
         fetchApi<{ ok: boolean }>('/integrations/admin/settings', { method: 'PUT', body: JSON.stringify({ sharepoints_api_key }) }),

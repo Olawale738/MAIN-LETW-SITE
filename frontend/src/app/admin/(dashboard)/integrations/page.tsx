@@ -26,6 +26,7 @@ export default function AdminIntegrationsPage() {
     const [signSecret, setSignSecret] = useState('')
     const [signSecretSet, setSignSecretSet] = useState(false)
     const [lmsPath, setLmsPath] = useState('')
+    const [lmsStudentsPath, setLmsStudentsPath] = useState('')
     const [savingLinks, setSavingLinks] = useState(false)
     const [testingLms, setTestingLms] = useState(false)
     const [lmsTest, setLmsTest] = useState<{ base_url: string; key_set: boolean; verdict: string; summary: string; checks: { label: string; status: number | null; error?: string }[] } | null>(null)
@@ -44,7 +45,7 @@ export default function AdminIntegrationsPage() {
         setBapWebhookUrl(s.baptism_webhook_url || ''); setBapOfficeEmail(s.baptism_office_email || '')
         setSealUrl(s.marriage_seal_url || '')
         setStudentUrl(s.student_webhook_url || ''); setLmsBase(s.lms_base_url || '')
-        setLmsPath(s.lms_enrol_path || ''); setLmsKeySet(!!s.lms_key_set); setLmsKeyAltSet(!!s.lms_key_alt_set); setSignSecretSet(!!s.signing_secret_set)
+        setLmsPath(s.lms_enrol_path || ''); setLmsStudentsPath(s.lms_students_path || ''); setLmsKeySet(!!s.lms_key_set); setLmsKeyAltSet(!!s.lms_key_alt_set); setSignSecretSet(!!s.signing_secret_set)
         setIntakeDefault(s.theology_intake_default || '')
     }).catch(() => setStatus(null)).finally(() => setLoading(false))
     useEffect(() => { refresh() }, [])
@@ -77,6 +78,7 @@ export default function AdminIntegrationsPage() {
                 student_webhook_url: studentUrl.trim(),
                 lms_base_url: lmsBase.trim(),
                 lms_enrol_path: lmsPath.trim(),
+                lms_students_path: lmsStudentsPath.trim(),
                 ...(lmsKey.trim() ? { lms_api_key: lmsKey.trim() } : {}),
                 ...(lmsKeyAlt.trim() ? { lms_api_key_alt: lmsKeyAlt.trim() } : {}),
                 ...(signSecret.trim() ? { integration_signing_secret: signSecret.trim() } : {}),
@@ -289,6 +291,16 @@ export default function AdminIntegrationsPage() {
 
                                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1 mt-3">Classroom base URL (optional)</label>
                                 <input value={lmsBase} onChange={e => setLmsBase(e.target.value)} placeholder="https://live.letw.org" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1 mt-3">Enrolled-students list path</label>
+                                <input value={lmsStudentsPath} onChange={e => setLmsStudentsPath(e.target.value)}
+                                    placeholder="e.g. /api/v1/enrollments"
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
+                                <p className="text-[11px] text-gray-400 mt-1">
+                                    Where the classroom lists the students its own admin has enrolled. letw.org reads
+                                    this and marks those students enrolled here, then tells SharePoints. Leave blank to
+                                    try the usual paths automatically.
+                                </p>
+
                                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1 mt-3">Push enrolment path (optional)</label>
                                 <input value={lmsPath} onChange={e => setLmsPath(e.target.value)} placeholder="leave blank — the classroom pulls from us" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
                             </div>

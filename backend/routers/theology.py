@@ -2798,6 +2798,160 @@ async def admin_confirm_seat(app_id: str, body: ConfirmSeatIn,
             "relay_reason": None if relay.get("ok") else relay.get("reason")}
 
 
+# ── Reading enrolments back from the classroom ───────────────────────────────
+
+CLASSROOM_STUDENT_PATHS = [
+    "/api/v1/enrollments", "/api/v1/enrolments", "/api/v1/students",
+    "/api/v1/courses/enrollments", "/api/v1/admin/enrollments",
+]
+
+
+def _rows_from(body) -> list:
+    """The list of students inside whatever envelope the classroom uses.
+
+    Their API wraps responses as {"success":…,"data":…}; other systems use
+    {"students":…} or a bare array. Rather than pin one shape and break on the
+    next deploy, look for the first list of objects we can find.
+    """
+    if isinstance(body, list):
+        return [r for r in body if isinstance(r, dict)]
+    if not isinstance(body, dict):
+        return []
+    for key in ("data", "students", "enrollments", "enrolments", "results", "items", "records"):
+        v = body.get(key)
+        if isinstance(v, list):
+            return [r for r in v if isinstance(r, dict)]
+        if isinstance(v, dict):
+            inner = _rows_from(v)
+            if inner:
+                return inner
+    return []
+
+
+def _row_identity(row: dict) -> tuple:
+    """Email and admission number out of a classroom row, whatever it calls them."""
+    def g(*keys):
+        for k in keys:
+            v = row.get(k)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+            if isinstance(v, dict):
+                inner = g_dict(v, *keys)
+                if inner:
+                    return inner
+        return ""
+
+    def g_dict(d, *keys):
+        for k in keys:
+            v = d.get(k)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+        return ""
+
+    email = g("email", "student_email", "user_email", "login_email", "username")
+    if not email:
+        for nest in ("student", "user", "learner", "member"):
+            n = row.get(nest)
+            if isinstance(n, dict):
+                email = g_dict(n, "email", "student_email", "username") or email
+                if email:
+                    break
+    adm = g("admission_number", "admissionNumber", "reference", "external_id",
+            "externalId", "student_reference")
+    return (email.lower(), adm.upper())
+
+
+async def _pull_classroom_enrolments(db: AsyncSession) -> dict:
+    """Read the students the classroom's admin has enrolled, and reconcile.
+
+    Enrolment happens in the classroom — this does not create it. It reads what
+    is already true there and stops our students showing as waiting, then tells
+    sharepoints, which is otherwise never informed that teaching has begun.
+    """
+    base, key, _push = await _lms_settings(db)
+    base = (base or "https://live.letw.org").rstrip("/")
+    from routers.integrations import _settings_row
+    row = await _settings_row(db)
+    configured = (getattr(row, "lms_students_path", None) or "").strip() if row else ""
+    if not key:
+        return {"ok": False, "reason": "No classroom key saved (Admin -> Integrations)."}
+
+    # A configured path is authoritative; otherwise try the conventional ones so
+    # this works the moment the classroom exposes any of them.
+    paths = [configured] if configured else CLASSROOM_STUDENT_PATHS
+    attempts, rows, used = [], [], None
+    import httpx
+    for path in paths:
+        url = path if path.startswith("http") else f"{base}/{path.lstrip('/')}"
+        try:
+            async with httpx.AsyncClient(timeout=25, follow_redirects=True) as cli:
+                r = await cli.get(url, headers={
+                    "X-API-Key": key, "Authorization": f"Bearer {key}",
+                    "Accept": "application/json",
+                })
+            attempts.append({"url": url, "status": r.status_code})
+            if 200 <= r.status_code < 300:
+                try:
+                    found = _rows_from(r.json())
+                except Exception:
+                    attempts[-1]["note"] = "Response was not JSON."
+                    continue
+                if found:
+                    rows, used = found, url
+                    break
+                attempts[-1]["note"] = "No student rows in the response."
+        except Exception as e:
+            attempts.append({"url": url, "status": None, "error": f"{type(e).__name__}: {e}"})
+
+    if used is None:
+        return {"ok": False, "reason": "The classroom did not return a list of enrolled students.",
+                "attempts": attempts}
+
+    ours = (await db.execute(
+        select(TheologyApplication).where(TheologyApplication.status.in_(["accepted", "enrolled"]))
+    )).scalars().all()
+    by_email = {(a.email or "").lower(): a for a in ours}
+    by_adm = {(a.admission_number or "").upper(): a for a in ours if a.admission_number}
+
+    matched, already, unmatched = [], [], []
+    for r in rows:
+        email, adm = _row_identity(r)
+        a = by_adm.get(adm) or by_email.get(email)
+        if not a:
+            unmatched.append({"email": email or None, "admission_number": adm or None})
+            continue
+        if a.lms_status == "enrolled":
+            already.append(a.admission_number)
+            continue
+        a.lms_status = "enrolled"
+        a.lms_enrolled_at = datetime.utcnow()
+        a.lms_error = None
+        if a.status == "accepted":
+            a.status = "enrolled"
+        await db.commit()
+        relay = await _post_event(db, "classroom-status", {
+            **_journey(a), "status": "PROVISIONED", "loginEmail": a.email.lower(),
+        }, idempotency_key=f"seat:{a.id}")
+        matched.append({"admission_number": a.admission_number, "name": a.full_name,
+                        "relayed": bool(relay.get("ok"))})
+
+    return {"ok": True, "source": used, "rows_read": len(rows),
+            "newly_enrolled": len(matched), "already_enrolled": len(already),
+            "unmatched": len(unmatched),
+            "details": {"enrolled": matched, "unmatched": unmatched[:20]},
+            "attempts": attempts}
+
+
+@router.post("/admin/pull-classroom")
+async def admin_pull_classroom(db: AsyncSession = Depends(get_db),
+                               _: User = Depends(get_admin_user)):
+    """Fetch the classroom's enrolled students and reconcile ours against them."""
+    r = await _pull_classroom_enrolments(db)
+    if not r.get("ok"):
+        raise HTTPException(502, r.get("reason") or "Could not read the classroom's enrolments.")
+    return r
+
+
 @router.get("/admin/bridge-status")
 async def admin_bridge_status(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     """Everything an admin needs to see why admissions are or aren't flowing."""

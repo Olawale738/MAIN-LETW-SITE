@@ -40,6 +40,10 @@ class IntegrationSettings(Base):
     # leaked key also forges signatures.
     integration_signing_secret: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     lms_enrol_path: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    # Where the classroom lists the students its admin has enrolled. letw.org
+    # reads this and reconciles; the classroom stays the place enrolment
+    # actually happens.
+    lms_students_path: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     # sharepoints student-ID intake
     student_webhook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     # Who signs the admission letter. The Registrar is the office holder; a

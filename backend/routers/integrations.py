@@ -140,6 +140,7 @@ class KeyIn(BaseModel):
     lms_api_key_alt: Optional[str] = None
     integration_signing_secret: Optional[str] = None
     lms_enrol_path: Optional[str] = None
+    lms_students_path: Optional[str] = None
 
 
 @router.get("/admin/settings")
@@ -158,6 +159,7 @@ async def get_settings(db: AsyncSession = Depends(get_db), _: User = Depends(get
         "marriage_seal_url": (row.marriage_seal_url if row else None) or "",
         "student_webhook_url": (row.student_webhook_url if row else None) or "",
         "lms_base_url": (row.lms_base_url if row else None) or "",
+        "lms_students_path": (getattr(row, "lms_students_path", None) or "") if row else "",
         "lms_enrol_path": (row.lms_enrol_path if row else None) or "",
         "signing_secret_set": bool((getattr(row, "integration_signing_secret", None) or "").strip()) if row else False,
         "lms_key_alt_set": bool((row.lms_api_key_alt if row else "") or ""),
@@ -196,6 +198,8 @@ async def set_settings(body: KeyIn, db: AsyncSession = Depends(get_db), _: User 
         row.lms_base_url = body.lms_base_url.strip() or None
     if body.lms_enrol_path is not None:
         row.lms_enrol_path = body.lms_enrol_path.strip() or None
+    if body.lms_students_path is not None:
+        row.lms_students_path = body.lms_students_path.strip() or None
     if body.lms_api_key is not None:
         k = body.lms_api_key.strip()
         if k and "…" not in k:
