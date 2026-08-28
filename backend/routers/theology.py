@@ -170,7 +170,36 @@ async def apply(body: ApplyIn, db: AsyncSession = Depends(get_db)):
     program = await _get_program(db, body.program_id)
     if not program or not program.is_open:
         raise HTTPException(404, "That programme is not open for applications.")
-    a = TheologyApplication(**body.model_dump(), status="pending")
+
+    # One live application per person per programme. Without this a second
+    # submission — a double-click, a back button, a return from a payment
+    # redirect, or someone simply reapplying because nothing seemed to happen —
+    # mints a second admission number for the same student. Downstream that is
+    # two admissions and potentially two official student IDs for one person,
+    # which nobody can tell apart afterwards.
+    LIVE = ("pending", "paid", "admitted", "accepted", "enrolled")
+    existing = (await db.execute(
+        select(TheologyApplication)
+        .where(TheologyApplication.email == body.email.lower(),
+               TheologyApplication.program_id == body.program_id,
+               TheologyApplication.status.in_(LIVE))
+        .order_by(desc(TheologyApplication.created_at))
+    )).scalars().first()
+    if existing:
+        # Their existing application, picked up where they left it — not an
+        # error. Someone reapplying is usually someone who lost the thread.
+        return {"application_id": existing.id, "status": existing.status,
+                "amount_due": float(program.tuition_amount or 0),
+                "currency": program.currency, "program_name": program.name,
+                "resumed": True,
+                **({"offer_url": f"{_public_base()}/theology-school/offer/{existing.acceptance_token}"}
+                   if existing.acceptance_token else {}),
+                "message": ("You have already applied for this programme — this is your existing "
+                            "application, not a new one.")}
+
+    data = body.model_dump()
+    data["email"] = (data.get("email") or "").lower()
+    a = TheologyApplication(**data, status="pending")
     db.add(a)
     await db.commit()
     await db.refresh(a)
@@ -2952,6 +2981,33 @@ async def admin_pull_classroom(db: AsyncSession = Depends(get_db),
     return r
 
 
+def _duplicate_groups(apps: list) -> list:
+    """People with more than one live application for the same programme."""
+    LIVE = ("pending", "paid", "admitted", "accepted", "enrolled")
+    seen: dict = {}
+    for a in apps:
+        if a.status not in LIVE:
+            continue
+        seen.setdefault(((a.email or "").lower(), a.program_id), []).append(a)
+    out = []
+    for (email, _pid), group in seen.items():
+        if len(group) < 2:
+            continue
+        out.append({
+            "email": email,
+            "name": group[0].full_name,
+            "count": len(group),
+            "applications": [{
+                "id": x.id,
+                "admission_number": x.admission_number,
+                "status": x.status,
+                "paid": bool(x.paid_at),
+                "created_at": x.created_at.isoformat() if x.created_at else None,
+            } for x in sorted(group, key=lambda x: x.created_at or datetime.min)],
+        })
+    return out
+
+
 @router.get("/admin/bridge-status")
 async def admin_bridge_status(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     """Everything an admin needs to see why admissions are or aren't flowing."""
@@ -2975,6 +3031,11 @@ async def admin_bridge_status(db: AsyncSession = Depends(get_db), _: User = Depe
             "is_open": bool(p.is_open),
         } for p in programs],
         "applications": counts,
+        # Anyone holding more than one live application for the same programme.
+        # These predate the guard above and need a person to decide which is
+        # real — merging admissions automatically would be worse than leaving
+        # them visible.
+        "duplicates": _duplicate_groups(apps),
         "stuck": [{
             "id": a.id, "name": a.full_name, "status": a.status,
             "bridge_status": a.bridge_status, "bridge_error": a.bridge_error,

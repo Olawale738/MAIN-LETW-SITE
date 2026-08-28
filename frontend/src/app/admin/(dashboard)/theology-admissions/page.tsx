@@ -116,7 +116,8 @@ export default function TheologyAdmissionsPage() {
                 const stuck = bridge.stuck.length
                 const mailDead = bridge.email && !bridge.email.live
                 const noSignatory = bridge.signatory && !bridge.signatory.name?.trim()
-                const healthy = bridge.secret_set && unpublished.length === 0 && stuck === 0 && !mailDead && !noSignatory
+                const dupes = bridge.duplicates ?? []
+                const healthy = bridge.secret_set && unpublished.length === 0 && stuck === 0 && !mailDead && !noSignatory && dupes.length === 0
                 return (
                     <div className={`mb-4 rounded-xl border p-4 ${healthy ? 'border-emerald-200 bg-emerald-50' : 'border-amber-300 bg-amber-50'}`}>
                         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -126,6 +127,12 @@ export default function TheologyAdmissionsPage() {
                                     SharePoints admissions {healthy ? 'are flowing' : 'need attention'}
                                 </p>
                                 <ul className="mt-1.5 space-y-0.5 text-xs text-gray-700">
+                                    {dupes.length > 0 && (
+                                        <li className="font-bold text-red-700">
+                                            · {dupes.length} {dupes.length === 1 ? 'person has' : 'people have'} more than one live application for the same programme
+                                            ({dupes.map(d => d.name).join(', ')}). Decide which is real before admitting — two admissions for one person cannot be told apart afterwards.
+                                        </li>
+                                    )}
                                     {noSignatory && (
                                         <li className="font-bold text-red-700">· No Registrar has been set, so admission letters are not being generated or sent. Set one under <button onClick={() => setTab('signatories')} className="underline">Signatories</button>.</li>
                                     )}
