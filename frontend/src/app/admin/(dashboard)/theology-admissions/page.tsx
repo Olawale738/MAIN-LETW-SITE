@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
     GraduationCap, Loader2, Plus, Save, Trash2, CheckCircle, AlertCircle,
-    RefreshCw, ShieldAlert, IdCard, X, UploadCloud, Send, FileText, Undo2, ImagePlus, Mail, KeyRound,
+    RefreshCw, ShieldAlert, IdCard, X, UploadCloud, Send, FileText, Undo2, ImagePlus, Mail, KeyRound, BookOpen,
 } from 'lucide-react'
 import Link from 'next/link'
 import RegistrarPanel from '@/components/admin/RegistrarPanel'
@@ -281,6 +281,14 @@ export default function TheologyAdmissionsPage() {
                                                 title={a.admission_email_sent_at ? `Last sent ${new Date(a.admission_email_sent_at).toLocaleString()}` : 'Never sent'}
                                                 className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border ${a.admission_email_sent_at ? 'border-gray-300 text-[#140152] hover:bg-gray-50' : 'border-amber-400 bg-amber-50 text-amber-800'} disabled:opacity-50`}>
                                                 <Mail className="w-3 h-3" /> {a.admission_email_sent_at ? 'Resend letter' : 'Email letter'}
+                                            </button>
+                                        )}
+                                        {(a.status === 'accepted' || a.status === 'enrolled') && a.lms_status !== 'enrolled' && (
+                                            <button onClick={() => { if (confirm(`Confirm that ${a.full_name} now has a seat in the classroom?
+
+Do this after creating their account in live.letw.org. It stops them waiting and tells SharePoints.`)) act(a.id, () => theologyApi.confirmSeat(a.id), 'Seat confirmed — SharePoints notified.') }} disabled={busyId === a.id}
+                                                className="inline-flex items-center gap-1 bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50">
+                                                <BookOpen className="w-3 h-3" /> Seat created
                                             </button>
                                         )}
                                         {(a.status === 'accepted' || a.status === 'enrolled') && !a.initial_password && (

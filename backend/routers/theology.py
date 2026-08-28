@@ -2754,6 +2754,50 @@ async def admin_backfill_registry(db: AsyncSession = Depends(get_db),
             "skipped": len(skipped), "details": {"sent": sent, "failed": failed, "skipped": skipped}}
 
 
+class ConfirmSeatIn(BaseModel):
+    lms_user_id: Optional[str] = None
+    course_code: Optional[str] = None
+    note: Optional[str] = None
+
+
+@router.post("/admin/applications/{app_id}/confirm-seat")
+async def admin_confirm_seat(app_id: str, body: ConfirmSeatIn,
+                             db: AsyncSession = Depends(get_db),
+                             _: User = Depends(get_admin_user)):
+    """Record a classroom seat that was created by hand.
+
+    live.letw.org's API is a read-only course catalogue — it publishes no way to
+    create an enrolment — so a seat made in its own admin screens is invisible
+    to us until someone says so. This is that: the office confirms the seat
+    exists, the student stops waiting, and sharepoints is told, exactly as if
+    the classroom had reported it itself.
+    """
+    a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
+    if not a:
+        raise HTTPException(404, "Application not found.")
+    if a.status not in ("accepted", "enrolled"):
+        raise HTTPException(400, "This candidate has not accepted their offer yet.")
+
+    a.lms_status = "enrolled"
+    a.lms_enrolled_at = datetime.utcnow()
+    a.lms_error = None
+    if a.status == "accepted":
+        a.status = "enrolled"
+    await db.commit()
+
+    relay = await _post_event(db, "classroom-status", {
+        **_journey(a),
+        "status": "PROVISIONED",
+        **({"lms_user_id": body.lms_user_id} if body.lms_user_id else {}),
+        "loginEmail": a.email.lower(),
+    }, idempotency_key=f"seat:{a.id}")
+
+    return {"ok": True, "admission_number": a.admission_number,
+            "enrolment_status": a.lms_status,
+            "relayed_to_sharepoints": bool(relay.get("ok")),
+            "relay_reason": None if relay.get("ok") else relay.get("reason")}
+
+
 @router.get("/admin/bridge-status")
 async def admin_bridge_status(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     """Everything an admin needs to see why admissions are or aren't flowing."""
