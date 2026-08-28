@@ -4726,6 +4726,8 @@ export const theologyApi = {
     retryProvisioning: (id: string) => fetchApi<TheologyApplication>(`/theology/admin/applications/${id}/retry-provisioning`, { method: 'POST' }),
     resetAccess: (id: string) => fetchApi<{ ok: boolean; email: string }>(`/theology/admin/applications/${id}/reset-access`, { method: 'POST' }),
     // sharepoints hand-over
+    classroomCourses: () => fetchApi<{ ok: boolean; count: number; note?: string; courses: { slug: string; title: string; id: string; status: string | null }[] }>('/theology/admin/classroom-courses'),
+    mapCourse: (pid: string, lms_course_code: string) => fetchApi<{ ok: boolean; name: string; lms_course_code: string | null; course_code_sent_to_sharepoints: string }>(`/theology/admin/programs/${pid}/course`, { method: 'PUT', body: JSON.stringify({ lms_course_code }) }),
     pullClassroom: () => fetchApi<{ ok: boolean; source: string; rows_read: number; newly_enrolled: number; already_enrolled: number; unmatched: number; details: { enrolled: { admission_number: string; name: string }[]; unmatched: { email: string | null; admission_number: string | null }[] } }>('/theology/admin/pull-classroom', { method: 'POST' }),
     confirmSeat: (id: string) => fetchApi<{ ok: boolean; admission_number: string; enrolment_status: string; relayed_to_sharepoints: boolean; relay_reason?: string | null }>(`/theology/admin/applications/${id}/confirm-seat`, { method: 'POST', body: JSON.stringify({}) }),
     testClassroom: () => fetchApi<{ base_url: string; key_set: boolean; verdict: string; summary: string; checks: { label: string; url: string; status: number | null; body?: string; error?: string }[] }>('/theology/admin/test-classroom'),

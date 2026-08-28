@@ -224,6 +224,25 @@ export default function TheologyAdmissionsPage() {
                                     </p>
                                     <div className="flex flex-wrap gap-2 mt-3">
                                         <button onClick={() => setEditing(p)} className="text-xs font-bold text-[#140152] underline">Edit</button>
+                                        <button onClick={async () => {
+                                            setBusyId(p.id)
+                                            try {
+                                                const r = await theologyApi.classroomCourses()
+                                                if (!r.count) { setMsg({ kind: 'err', text: r.note || 'The classroom has no published courses yet.' }); return }
+                                                const list = r.courses.map((c, i) => `${i + 1}. ${c.title || c.slug} (${c.slug})`).join('\n')
+                                                const pick = prompt(`Which classroom course is "${p.name}"?\n\n${list}\n\nEnter a number, or paste a course code:`)
+                                                if (!pick) return
+                                                const n = parseInt(pick, 10)
+                                                const code = (!isNaN(n) && r.courses[n - 1]) ? r.courses[n - 1].slug : pick.trim()
+                                                const m = await theologyApi.mapCourse(p.id, code)
+                                                setMsg({ kind: 'ok', text: `${m.name} is now mapped to ${m.lms_course_code}.` })
+                                                load()
+                                            } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
+                                            finally { setBusyId('') }
+                                        }} disabled={busyId === p.id}
+                                            className="text-xs font-bold text-[#140152] underline disabled:opacity-50">
+                                            Map to classroom course
+                                        </button>
                                         <button onClick={() => act(p.id, async () => {
                                             const r = await theologyApi.publishProgram(p.id)
                                             if (!r.ok) throw new Error(r.reason || 'SharePoints rejected the programme.')

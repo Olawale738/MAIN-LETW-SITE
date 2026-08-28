@@ -2971,6 +2971,92 @@ async def _pull_classroom_enrolments(db: AsyncSession) -> dict:
             "attempts": attempts}
 
 
+async def _fetch_classroom_courses(db: AsyncSession, limit_pages: int = 10) -> dict:
+    """Read the classroom's published course catalogue.
+
+    Paginated: their response carries meta.last_page, so follow it rather than
+    assuming one page holds everything. Bounded so a runaway page count cannot
+    hang the request.
+    """
+    base, key, _ = await _lms_settings(db)
+    base = (base or "https://live.letw.org").rstrip("/")
+    if not key:
+        return {"ok": False, "reason": "No classroom key saved (Admin -> Integrations)."}
+
+    courses, page, last = [], 1, 1
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=25) as cli:
+            while page <= last and page <= limit_pages:
+                r = await cli.get(f"{base}/api/v1/courses",
+                                  params={"page": page, "per_page": 50},
+                                  headers={"X-API-Key": key, "Accept": "application/json"})
+                if r.status_code == 401:
+                    return {"ok": False, "reason": "The classroom rejected our key.", "status": 401}
+                if not (200 <= r.status_code < 300):
+                    return {"ok": False, "reason": f"The classroom responded {r.status_code}.",
+                            "status": r.status_code}
+                body = r.json() or {}
+                courses.extend(_rows_from(body))
+                meta = body.get("meta") if isinstance(body.get("meta"), dict) else {}
+                try:
+                    last = int(meta.get("last_page") or 1)
+                except Exception:
+                    last = 1
+                page += 1
+    except Exception as e:
+        return {"ok": False, "reason": f"{type(e).__name__}: {e}"}
+
+    def one(c: dict) -> dict:
+        def g(*keys):
+            for k in keys:
+                v = c.get(k)
+                if isinstance(v, (str, int)) and str(v).strip():
+                    return str(v).strip()
+            return ""
+        return {"slug": g("slug", "code", "course_code"),
+                "title": g("title", "name", "course_title"),
+                "id": g("id", "course_id"),
+                "status": g("status", "state") or None}
+
+    return {"ok": True, "count": len(courses), "courses": [one(c) for c in courses if isinstance(c, dict)]}
+
+
+@router.get("/admin/classroom-courses")
+async def admin_classroom_courses(db: AsyncSession = Depends(get_db),
+                                  _: User = Depends(get_admin_user)):
+    """The classroom's published courses, for mapping a programme to one."""
+    r = await _fetch_classroom_courses(db)
+    if not r.get("ok"):
+        raise HTTPException(502, r.get("reason") or "Could not read the classroom's courses.")
+    if not r["count"]:
+        r["note"] = ("The classroom has no published courses yet. Publish the theology course there, "
+                     "then map it to a programme here.")
+    return r
+
+
+class MapCourseIn(BaseModel):
+    lms_course_code: str
+
+
+@router.put("/admin/programs/{pid}/course")
+async def admin_map_course(pid: str, body: MapCourseIn, db: AsyncSession = Depends(get_db),
+                           _: User = Depends(get_admin_user)):
+    """Point a programme at a classroom course.
+
+    This is the code that travels with every accepted student, so it has to
+    match what the classroom actually publishes — a guessed code is a student
+    the classroom cannot place.
+    """
+    program = await _get_program(db, pid)
+    if not program:
+        raise HTTPException(404, "Programme not found.")
+    program.lms_course_code = (body.lms_course_code or "").strip() or None
+    await db.commit()
+    return {"ok": True, "name": program.name, "lms_course_code": program.lms_course_code,
+            "course_code_sent_to_sharepoints": _course_code(program)}
+
+
 @router.post("/admin/pull-classroom")
 async def admin_pull_classroom(db: AsyncSession = Depends(get_db),
                                _: User = Depends(get_admin_user)):
