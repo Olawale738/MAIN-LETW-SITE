@@ -13,19 +13,24 @@ export const runtime = 'nodejs'
 const BACKEND = (process.env.NEXT_PUBLIC_API_URL || 'https://letw-backend.onrender.com/api').replace(/\/$/, '')
 
 export async function POST(request: Request) {
+    // Raw text, never re-serialised: any change to the bytes would invalidate a
+    // content hash or HMAC computed over them.
     const body = await request.text()
-    const key = request.headers.get('x-api-key') ?? ''
+
+    const FORWARD = [
+        'x-api-key', 'idempotency-key', 'x-correlation-id',
+        'x-letw-signature', 'x-letw-signature-version', 'x-letw-timestamp',
+        'x-letw-nonce', 'x-letw-content-sha256', 'x-letw-source',
+    ]
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    for (const h of FORWARD) {
+        const v = request.headers.get(h)
+        if (v) headers[h] = v
+    }
     try {
         const upstream = await fetch(`${BACKEND}/theology/integrations/student-id`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': key,
-                // Passed through so the backend can de-duplicate retries.
-                ...(request.headers.get('idempotency-key')
-                    ? { 'Idempotency-Key': request.headers.get('idempotency-key') as string }
-                    : {}),
-            },
+            headers,
             body,
             signal: AbortSignal.timeout(20_000),
         })
@@ -35,7 +40,7 @@ export async function POST(request: Request) {
         })
     } catch (e) {
         return Response.json(
-            { error: `Could not reach the letw.org API: ${(e as Error).message}` },
+            { received: false, stored: false, error: `Could not reach the letw.org API: ${(e as Error).message}` },
             { status: 502 },
         )
     }

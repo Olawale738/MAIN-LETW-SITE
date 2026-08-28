@@ -89,6 +89,16 @@ class TheologyApplication(Base):
     student_id_number: Mapped[Optional[str]] = mapped_column(String(60), nullable=True, index=True)
     student_id_issued_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     student_id_card_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # SharePoints owns the Student ID and its lifecycle. Its status is
+    # authoritative — an ID can be suspended or revoked long after issue, so we
+    # store the state it sends rather than inferring "issued means valid".
+    student_id_status: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    student_id_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    sharepoints_candidate_id: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    # Idempotency receipts, keyed by the caller's Idempotency-Key: the same key
+    # with the same body replays the original receipt, a different body is a
+    # conflict. Kept here so a receipt cannot outlive the record it describes.
+    credential_receipts: Mapped[Optional[Any]] = mapped_column(JSONB, nullable=True, default=dict)
     # Anything sharepoints issues for this student — ID card, certificates,
     # transcripts. A list of {kind, title, number, url, issued_at, source} so a
     # new document type never needs a migration.

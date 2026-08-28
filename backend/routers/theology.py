@@ -29,7 +29,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, Response, UploadFile
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -127,6 +127,9 @@ def _app_out(a: TheologyApplication, program: Optional[TheologyProgram] = None) 
         "offer_url": a.offer_url,
         "admission_letter_url": a.admission_letter_url,
         "acceptance_token": a.acceptance_token,
+        "student_id_status": a.student_id_status,
+        "student_id_expires_at": a.student_id_expires_at.isoformat() if a.student_id_expires_at else None,
+        "sharepoints_candidate_id": a.sharepoints_candidate_id,
         "initial_password": a.initial_password,
         "first_login_at": a.first_login_at.isoformat() if a.first_login_at else None,
         "documents": list(a.documents or []),
@@ -447,6 +450,18 @@ def _derive_code(program: TheologyProgram) -> str:
     return "LETW-PROGRAM"
 
 
+def _course_code(program: TheologyProgram) -> str:
+    """The course code SharePoints holds for this programme.
+
+    It must be identical in the programme we publish and in every accepted
+    student we send, or the registry rejects the student for a course it has
+    never heard of. Deriving it in one place is what keeps the two in step.
+    """
+    if (program.lms_course_code or "").strip():
+        return program.lms_course_code.strip()[:50]
+    return (_derive_code(program) + "-101")[:50]
+
+
 async def _publish_program(db: AsyncSession, program: TheologyProgram) -> dict:
     """Register/refresh the programme in sharepoints. Nothing can be enrolled
     against a programme sharepoints has never heard of, so this runs before the
@@ -479,7 +494,7 @@ async def _publish_program(db: AsyncSession, program: TheologyProgram) -> dict:
         "active": bool(program.is_open),
         "courses": [{
             "externalCourseId": f"{program.id}-core",
-            "courseCode": (code + "-101")[:50],
+            "courseCode": _course_code(program),
             "courseTitle": (program.name or code)[:180],
             "sequence": 1,
             "required": True,
@@ -568,7 +583,8 @@ async def _bridge_to_sharepoints(db: AsyncSession, a: TheologyApplication, progr
     await db.commit()
 
 
-async def _post_event(db: AsyncSession, event: str, payload: dict, timeout: int = 20) -> dict:
+async def _post_event(db: AsyncSession, event: str, payload: dict, timeout: int = 20,
+                      idempotency_key: Optional[str] = None) -> dict:
     """POST one lifecycle event to sharepoints.
 
     All five events share a base, a secret and a header, and every one of them
@@ -584,7 +600,10 @@ async def _post_event(db: AsyncSession, event: str, payload: dict, timeout: int 
     try:
         import httpx
         async with httpx.AsyncClient(timeout=timeout) as cli:
-            r = await cli.post(url, json=payload, headers={"X-API-Key": key})
+            headers = {"X-API-Key": key}
+            if idempotency_key:
+                headers["Idempotency-Key"] = idempotency_key
+            r = await cli.post(url, json=payload, headers=headers)
         if 200 <= r.status_code < 300:
             data = r.json() or {}
             return {"ok": True, "status": r.status_code,
@@ -1165,14 +1184,16 @@ async def accept_offer(token: str, db: AsyncSession = Depends(get_db)):
         "phone": a.phone or None,
         "photo_url": a.photo_url if (a.photo_url or "").startswith("http") else None,
         "program_code": _derive_code(program) if program else None,
-        "course_code": (program.lms_course_code or _derive_code(program)) if program else "GENERAL",
+        "course_code": _course_code(program) if program else "GENERAL",
         "duration_months": program.duration_months if program else None,
         "accepted_at": a.accepted_at.isoformat() + "Z",
         "enrolment_status": "pending",
     }
-    if a.student_id_number:
-        payload["student_id_number"] = a.student_id_number
-    ev = await _post_event(db, "student-registry", payload)
+    # Deliberately not sending student_id_number: SharePoints issues the
+    # official Student ID, and letw.org offering one invites the two systems to
+    # disagree about which is authoritative.
+    ev = await _post_event(db, "student-registry", payload,
+                           idempotency_key=payload["event_id"])
     reg = ev.get("data") if ev.get("ok") else None
     if isinstance(reg, dict):
         # sharepoints hands back the identity it just minted, plus the journey
@@ -1352,68 +1373,263 @@ async def _enrol_in_lms(db: AsyncSession, a: TheologyApplication, program: Optio
     await db.commit()
 
 
-# ── Server-to-server: sharepoints posts the issued student ID back ───────────
+# ── Credentials returned by sharepoints ──────────────────────────────────────
 
-@router.post("/integrations/student-id")
-async def receive_student_id(
-    body: dict,
-    x_api_key: str = Header(default=""),
-    db: AsyncSession = Depends(get_db),
-):
+def _pick(body: dict, *keys: str) -> str:
+    """First non-empty string among these keys. sharepoints sends camelCase;
+    earlier drafts of these receivers spoke snake_case. Accept either so a
+    redeploy on one side never breaks the other."""
+    for k in keys:
+        v = body.get(k)
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+    return ""
+
+
+def _iso(value: str) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).replace(tzinfo=None)
+    except Exception:
+        return None
+
+
+async def _require_partner(db: AsyncSession, x_api_key: str) -> None:
     from routers.integrations import _effective_key
     expected = await _effective_key(db)
     if not expected:
         raise HTTPException(503, "Partner integration is not configured yet.")
     if not x_api_key or not hmac.compare_digest(x_api_key.strip(), expected):
         raise HTTPException(401, "Invalid or missing X-API-Key.")
-    def pick(*keys: str) -> str:
-        """sharepoints speaks camelCase; earlier drafts of this endpoint spoke
-        snake_case. Accept either so a redeploy on one side never breaks it."""
-        for k in keys:
-            v = body.get(k)
-            if isinstance(v, str) and v.strip():
-                return v.strip()
-        return ""
 
-    app_id = pick("applicationId", "application_id")
-    offer_no = pick("offerNumber", "offer_number", "admission_number")
+
+async def _match_student(db: AsyncSession, body: dict) -> TheologyApplication:
+    """Find the student a returned credential belongs to.
+
+    Matched on admission number and cross-checked against the application id —
+    never on a name or a caller-supplied email, which would let a mismatched
+    payload attach someone else's credential to the wrong person.
+    """
+    adm = _pick(body, "admissionNumber", "admission_number", "offerNumber", "offer_number")
+    app_id = _pick(body, "applicationId", "application_id")
+
     a = None
-    if app_id:
-        a = (await db.execute(select(TheologyApplication).where(TheologyApplication.id == app_id))).scalar_one_or_none()
-    if not a and offer_no:
+    if adm:
         a = (await db.execute(select(TheologyApplication).where(
-            TheologyApplication.admission_number == offer_no))).scalar_one_or_none()
+            TheologyApplication.admission_number == adm))).scalar_one_or_none()
         if not a:
             a = (await db.execute(select(TheologyApplication).where(
-                TheologyApplication.offer_number == offer_no))).scalar_one_or_none()
+                TheologyApplication.offer_number == adm))).scalar_one_or_none()
+    if not a and app_id:
+        a = (await db.execute(select(TheologyApplication).where(
+            TheologyApplication.id == app_id))).scalar_one_or_none()
     if not a:
-        raise HTTPException(404, "No student matches that application or offer number.")
+        raise HTTPException(404, "No student matches that admission number.")
+    # Both identifiers present and disagreeing means the payload is not about
+    # the student we found. Holding it is safer than attaching it to either.
+    if adm and app_id and a.id != app_id and (a.admission_number or "") != adm:
+        raise HTTPException(409, "The admission number and application id refer to different students.")
+    return a
 
-    number = pick("studentIdNumber", "student_id_number")
+
+def _receipt(a: TheologyApplication, key: str, kind: str, number: str, status: str) -> dict:
+    return {
+        "received": True,
+        "stored": True,
+        "receiptId": f"letw-{kind.lower()}-{uuid.uuid4().hex[:16]}",
+        "idempotencyKey": key or None,
+        "admissionNumber": a.offer_number or a.admission_number,
+        "credentialType": kind,
+        "credentialNumber": number or None,
+        "status": status or None,
+        "storedAt": datetime.utcnow().isoformat() + "Z",
+    }
+
+
+def _replay(a: TheologyApplication, key: str, payload_hash: str) -> Optional[dict]:
+    """A prior receipt for this key, if the body is unchanged.
+
+    Same key and same body replays the original receipt; same key with
+    different content is a conflict, not a silent overwrite.
+    """
+    if not key:
+        return None
+    stored = (a.credential_receipts or {}).get(key)
+    if not isinstance(stored, dict):
+        return None
+    if stored.get("payload_hash") != payload_hash:
+        raise HTTPException(409, "That Idempotency-Key was already used with a different body.")
+    return stored.get("receipt")
+
+
+def _remember(a: TheologyApplication, key: str, payload_hash: str, receipt: dict) -> None:
+    if not key:
+        return
+    book = dict(a.credential_receipts or {})
+    book[key] = {"payload_hash": payload_hash, "receipt": receipt}
+    # Keep the book bounded; these are an operational aid, not an archive.
+    if len(book) > 50:
+        for k in list(book)[:-50]:
+            book.pop(k, None)
+    a.credential_receipts = book
+
+
+def _hash_body(body: dict) -> str:
+    import hashlib as _h
+    import json as _j
+    return _h.sha256(_j.dumps(body, sort_keys=True, default=str).encode()).hexdigest()
+
+
+@router.post("/integrations/certificate", status_code=201)
+async def receive_certificate(
+    body: dict,
+    response: Response,
+    x_api_key: str = Header(default=""),
+    idempotency_key: str = Header(default="", alias="Idempotency-Key"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Receive a certificate sharepoints has issued, and every later change to it.
+
+    Certificates are revoked, restored and replaced, so the lifecycle state is
+    the point — not the arrival. A revoked certificate stops being shown while
+    its history is kept, because a student's record should say what happened,
+    not quietly lose it.
+    """
+    await _require_partner(db, x_api_key)
+    a = await _match_student(db, body)
+
+    payload_hash = _hash_body(body)
+    prior = _replay(a, idempotency_key, payload_hash)
+    if prior:
+        response.status_code = 200
+        return prior
+
+    cert = body.get("certificate") if isinstance(body.get("certificate"), dict) else {}
+    if not cert:
+        raise HTTPException(422, "A certificate object is required.")
+    cert_id = _pick(cert, "sharepointsCertificateId", "id")
+    number = _pick(cert, "certificateNumber", "number")
+    if not cert_id and not number:
+        raise HTTPException(422, "The certificate needs an id or a number.")
+
+    lifecycle = (_pick(body, "lifecycleEvent") or _pick(cert, "status") or "ISSUED").upper()
+    status = (_pick(cert, "status") or lifecycle).upper()
+    withdrawn = bool(_pick(cert, "revokedAt")) or lifecycle in ("REVOKED", "DELETED", "REPLACED")
+
+    docs = [d for d in list(a.documents or [])
+            if not (d.get("kind") == "certificate" and
+                    (d.get("sharepoints_id") == cert_id or (number and d.get("number") == number)))]
+    history = [d for d in list(a.documents or [])
+               if d.get("kind") == "certificate" and
+               (d.get("sharepoints_id") == cert_id or (number and d.get("number") == number))]
+
+    if not withdrawn:
+        docs.append({
+            "kind": "certificate",
+            "title": _pick(cert, "title") or "Certificate",
+            # pdfAccess is an access policy marker, not a link — the
+            # verification page is the only URL we may hand to a student.
+            "url": _pick(cert, "verificationUrl"),
+            "number": number or None,
+            "sharepoints_id": cert_id or None,
+            "status": status,
+            "issued_at": _pick(cert, "issuedAt") or None,
+            "expires_at": _pick(cert, "expiresAt") or None,
+            "seal_number": _pick(cert, "sealNumber") or None,
+            "replacement_of": _pick(cert, "replacementOfId") or None,
+            "replaced_by": _pick(cert, "replacedById") or None,
+            "source": "sharepoints.letw.org",
+        })
+    else:
+        # Keep the record, stop presenting it as a live credential.
+        for h in history:
+            h["status"] = status
+            h["withdrawn"] = True
+            h["revoked_at"] = _pick(cert, "revokedAt") or (datetime.utcnow().isoformat() + "Z")
+            docs.append(h)
+
+    a.documents = docs
+    receipt = _receipt(a, idempotency_key, "CERTIFICATE", number, status)
+    _remember(a, idempotency_key, payload_hash, receipt)
+    await db.commit()
+
+    if not withdrawn:
+        await _notify_document(db, a, "Your certificate is ready",
+                               f"The school office has issued your {(_pick(cert, 'title') or 'certificate').lower()}.",
+                               _pick(cert, "verificationUrl"))
+    return receipt
+
+
+# ── Server-to-server: sharepoints posts the issued student ID back ───────────
+
+@router.post("/integrations/student-id", status_code=201)
+async def receive_student_id(
+    body: dict,
+    response: Response,
+    x_api_key: str = Header(default=""),
+    idempotency_key: str = Header(default="", alias="Idempotency-Key"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Receive the official Student ID sharepoints has issued.
+
+    sharepoints owns this credential and its lifecycle, so the status it sends
+    is authoritative: the same event name is used for issue, suspension and
+    revocation, and only `status` says which. Storing it verbatim is what stops
+    a revoked card still showing as valid in the portal.
+    """
+    await _require_partner(db, x_api_key)
+    a = await _match_student(db, body)
+
+    payload_hash = _hash_body(body)
+    prior = _replay(a, idempotency_key, payload_hash)
+    if prior:
+        response.status_code = 200
+        return prior
+
+    number = _pick(body, "studentIdNumber", "student_id_number")
     if not number:
         raise HTTPException(422, "studentIdNumber is required.")
+
+    status = (_pick(body, "status") or "ACTIVE").upper()
+    verify = _pick(body, "verificationUrl", "verification_url")
+    card = _pick(body, "cardUrl", "card_url", "idCardUrl")
+
     a.student_id_number = number
-    # The verification page is the card as far as letw.org is concerned — it is
-    # the link the student and the office open to prove the ID is genuine.
-    card = pick("cardUrl", "card_url", "idCardUrl", "id_card_url")
-    verify = pick("verificationUrl", "verification_url")
+    a.student_id_status = status
     a.student_id_card_url = card or verify or a.student_id_card_url
-    a.student_id_issued_at = datetime.utcnow()
-    if not a.offer_number and offer_no:
-        a.offer_number = offer_no
+    a.sharepoints_candidate_id = _pick(body, "sharepointsCandidateId") or a.sharepoints_candidate_id
+    a.student_id_issued_at = _iso(_pick(body, "issuedAt")) or a.student_id_issued_at or datetime.utcnow()
+    # Persist the expiry sharepoints supplies — never recompute it from the
+    # programme's current duration, which drifts as programmes are edited.
+    a.student_id_expires_at = _iso(_pick(body, "expiresAt")) or a.student_id_expires_at
     if a.status == "accepted":
         a.status = "enrolled"
-    if card:
-        _add_document(a, "student_id_card", "Student ID card", card, number)
-    if verify:
-        _add_document(a, "student_id_verification", "Verify this student ID", verify, number)
+
+    live = status in ("ACTIVE", "ISSUED", "VALID")
+    docs = [d for d in list(a.documents or []) if not d.get("kind", "").startswith("student_id")]
+    if live and (verify or card):
+        docs.append({
+            "kind": "student_id_card",
+            "title": "Student ID card",
+            "url": card or verify,
+            "number": number,
+            "status": status,
+            "issued_at": _pick(body, "issuedAt") or None,
+            "expires_at": _pick(body, "expiresAt") or None,
+            "source": "sharepoints.letw.org",
+        })
+    a.documents = docs
+
+    receipt = _receipt(a, idempotency_key, "STUDENT_ID", number, status)
+    _remember(a, idempotency_key, payload_hash, receipt)
     await db.commit()
-    await _notify_document(db, a, "Your student ID has been issued",
-                           f"Your student ID number is <strong>{number}</strong>.",
-                           card or verify)
-    return {"ok": True, "application_id": a.id, "admission_number": a.admission_number,
-            "student_id_number": a.student_id_number,
-            "documents": len(a.documents or [])}
+
+    if live:
+        await _notify_document(db, a, "Your student ID has been issued",
+                               f"Your student ID number is <strong>{number}</strong>.",
+                               verify or card)
+    return receipt
 
 
 async def _notify_document(db: AsyncSession, a: TheologyApplication, subject: str,
@@ -2303,6 +2519,69 @@ async def test_classroom(db: AsyncSession = Depends(get_db), _: User = Depends(g
         out["verdict"] = "unexpected"
         out["summary"] = f"The classroom API answered {api['status']}."
     return out
+
+
+@router.post("/admin/backfill-registry")
+async def admin_backfill_registry(db: AsyncSession = Depends(get_db),
+                                  _: User = Depends(get_admin_user)):
+    """Send every already-accepted student to sharepoints.
+
+    Students who accepted before the acceptance event existed are sitting in a
+    real but unannounced state. This resends their recorded acceptance using
+    their original identifiers and timestamps, so sharepoints records the
+    student it should already have had — no second admission, no repeat
+    payment, no new admission number. Safe to run repeatedly: the event id is
+    derived from the application, so a resend is a replay, not a duplicate.
+    """
+    rows = (await db.execute(
+        select(TheologyApplication)
+        .where(TheologyApplication.status.in_(["accepted", "enrolled"]))
+        .order_by(TheologyApplication.accepted_at)
+    )).scalars().all()
+
+    sent, skipped, failed = [], [], []
+    for a in rows:
+        if not a.accepted_at or not a.admission_number:
+            skipped.append({"id": a.id, "name": a.full_name,
+                            "reason": "No recorded acceptance or admission number."})
+            continue
+        program = await _get_program(db, a.program_id)
+        payload = {
+            "issuer": "letw.org",
+            "event_id": f"accepted:{a.id}",
+            "application_id": a.id,
+            "admission_number": a.admission_number,
+            "full_name": a.full_name,
+            "email": a.email.lower(),
+            "phone": a.phone or None,
+            "photo_url": a.photo_url if (a.photo_url or "").startswith("http") else None,
+            "program_code": _derive_code(program) if program else None,
+            "course_code": _course_code(program) if program else "GENERAL",
+            "duration_months": program.duration_months if program else None,
+            # Their real recorded acceptance, not a fresh timestamp.
+            "accepted_at": a.accepted_at.isoformat() + "Z",
+            "enrolment_status": "enrolled" if a.lms_status == "enrolled" else "pending",
+        }
+        r = await _post_event(db, "student-registry", payload,
+                              idempotency_key=payload["event_id"])
+        if r.get("ok"):
+            data = r.get("data") or {}
+            a.bridge_enrollment_id = data.get("enrollmentJourneyId") or a.bridge_enrollment_id
+            a.sharepoints_candidate_id = data.get("candidateId") or a.sharepoints_candidate_id
+            if data.get("studentIdNumber"):
+                a.student_id_number = data["studentIdNumber"]
+                a.student_id_issued_at = a.student_id_issued_at or datetime.utcnow()
+            await db.commit()
+            sent.append({"admission_number": a.admission_number, "name": a.full_name,
+                         "duplicate": bool(data.get("duplicate")),
+                         "student_id_number": data.get("studentIdNumber"),
+                         "identity_return": (data.get("identityReturn") or {}).get("status")})
+        else:
+            failed.append({"admission_number": a.admission_number, "name": a.full_name,
+                           "reason": r.get("reason")})
+
+    return {"considered": len(rows), "sent": len(sent), "failed": len(failed),
+            "skipped": len(skipped), "details": {"sent": sent, "failed": failed, "skipped": skipped}}
 
 
 @router.get("/admin/bridge-status")
