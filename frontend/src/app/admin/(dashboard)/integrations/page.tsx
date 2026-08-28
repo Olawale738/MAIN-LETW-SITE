@@ -6,7 +6,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Loader2, Link2, CheckCircle, AlertCircle, Copy, RefreshCw, Save, Eye, Image as ImageIcon } from 'lucide-react'
-import { integrationsApi, type SharepointsTest } from '@/lib/api'
+import { integrationsApi, theologyApi, type SharepointsTest } from '@/lib/api'
 
 export default function AdminIntegrationsPage() {
     const [status, setStatus] = useState<{ configured: boolean; key_preview: string; lookup_url: string } | null>(null)
@@ -23,6 +23,8 @@ export default function AdminIntegrationsPage() {
     const [lmsKeySet, setLmsKeySet] = useState(false)
     const [lmsPath, setLmsPath] = useState('')
     const [savingLinks, setSavingLinks] = useState(false)
+    const [testingLms, setTestingLms] = useState(false)
+    const [lmsTest, setLmsTest] = useState<{ base_url: string; key_set: boolean; verdict: string; summary: string; checks: { label: string; status: number | null; error?: string }[] } | null>(null)
     const [testing, setTesting] = useState(false)
     const [test, setTest] = useState<SharepointsTest | null>(null)
     const [intakeDefault, setIntakeDefault] = useState('')
@@ -260,6 +262,27 @@ export default function AdminIntegrationsPage() {
                                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1 mt-3">Push enrolment path (optional)</label>
                                 <input value={lmsPath} onChange={e => setLmsPath(e.target.value)} placeholder="leave blank — the classroom pulls from us" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
                             </div>
+                            <button onClick={async () => {
+                                setTestingLms(true); setLmsTest(null)
+                                try { setLmsTest(await theologyApi.testClassroom()) }
+                                catch (e) { setLmsTest({ verdict: 'error', summary: (e as Error).message, base_url: '', key_set: false, checks: [] }) }
+                                finally { setTestingLms(false) }
+                            }} disabled={testingLms}
+                                className="inline-flex items-center gap-2 border border-gray-300 text-[#140152] font-bold px-4 py-2.5 rounded-lg text-sm disabled:opacity-50 mr-2">
+                                {testingLms ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Test classroom
+                            </button>
+                            {lmsTest && (
+                                <div className={`mt-3 mb-3 rounded-xl border p-3 text-xs ${lmsTest.verdict === 'ok' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-300 text-amber-900'}`}>
+                                    <p className="font-bold">{lmsTest.summary}</p>
+                                    {lmsTest.checks?.length > 0 && (
+                                        <ul className="mt-2 space-y-0.5 font-mono text-[11px] opacity-80">
+                                            {lmsTest.checks.map(c => (
+                                                <li key={c.label}>{c.label}: {c.status ?? c.error}</li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            )}
                             <button onClick={saveLinks} disabled={savingLinks} className="inline-flex items-center gap-2 bg-[#140152] hover:bg-[#1d0175] text-white font-bold px-4 py-2.5 rounded-lg text-sm disabled:opacity-50">
                                 {savingLinks ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save school and classroom
                             </button>

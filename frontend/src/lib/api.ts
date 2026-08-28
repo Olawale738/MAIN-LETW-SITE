@@ -4726,6 +4726,7 @@ export const theologyApi = {
     retryProvisioning: (id: string) => fetchApi<TheologyApplication>(`/theology/admin/applications/${id}/retry-provisioning`, { method: 'POST' }),
     resetAccess: (id: string) => fetchApi<{ ok: boolean; email: string }>(`/theology/admin/applications/${id}/reset-access`, { method: 'POST' }),
     // sharepoints hand-over
+    testClassroom: () => fetchApi<{ base_url: string; key_set: boolean; verdict: string; summary: string; checks: { label: string; url: string; status: number | null; body?: string; error?: string }[] }>('/theology/admin/test-classroom'),
     bridgeStatus: () => fetchApi<TheologyBridgeStatus>('/theology/admin/bridge-status'),
     publishProgram: (id: string) => fetchApi<{ ok: boolean; code?: string; reason?: string }>(`/theology/admin/programs/${id}/publish`, { method: 'POST' }),
     publishAllPrograms: () => fetchApi<{ published: number; total: number; results: { name: string; ok: boolean; code?: string; reason?: string }[] }>('/theology/admin/programs/publish-all', { method: 'POST' }),

@@ -2224,6 +2224,60 @@ async def admin_resend_bridge(app_id: str, db: AsyncSession = Depends(get_db), _
             "admission_letter_url": a.admission_letter_url, "status": a.status}
 
 
+@router.get("/admin/test-classroom")
+async def test_classroom(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Check whether live.letw.org is answering, and say plainly whose problem it is.
+
+    "The classroom is not working" is otherwise unanswerable from the office —
+    a missing key here and a crash there look identical from the outside.
+    """
+    base, key, path = await _lms_settings(db)
+    base = (base or "https://live.letw.org").rstrip("/")
+    out = {"base_url": base, "key_set": bool(key), "push_path": path or None, "checks": []}
+
+    async def probe(label: str, url: str, headers: dict) -> dict:
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=20, follow_redirects=False) as cli:
+                r = await cli.get(url, headers=headers)
+            body = (r.text or "")[:200]
+            return {"label": label, "url": url, "status": r.status_code, "body": body}
+        except Exception as e:
+            return {"label": label, "url": url, "status": None, "error": f"{type(e).__name__}: {e}"}
+
+    out["checks"].append(await probe("site", f"{base}/login", {}))
+    out["checks"].append(await probe("api", f"{base}/api/v1/courses",
+                                     {"X-API-Key": key, "Accept": "application/json"} if key
+                                     else {"Accept": "application/json"}))
+
+    site = out["checks"][0]
+    api = out["checks"][1]
+    if site.get("status") is None:
+        out["verdict"] = "unreachable"
+        out["summary"] = "live.letw.org did not answer at all. Check the site is up."
+    elif api.get("status") is None:
+        out["verdict"] = "api_unreachable"
+        out["summary"] = "The site is up but its API did not answer."
+    elif api.get("status") == 401:
+        out["verdict"] = "key_rejected"
+        out["summary"] = ("The classroom API is working but rejected our key. "
+                          "Check the key matches the one live.letw.org expects.")
+    elif 200 <= api["status"] < 300:
+        out["verdict"] = "ok"
+        out["summary"] = "The classroom API answered normally."
+    elif api["status"] >= 500:
+        out["verdict"] = "their_server_error"
+        out["summary"] = ("The classroom site is up, but its API returns a server error before it checks "
+                          "any credentials — the same response with a key, a wrong key and no key at all. "
+                          "That is a fault in live.letw.org, and no key will fix it. Send this to their "
+                          "developer. Nothing on letw.org is blocked by it: the classroom pulls its roster "
+                          "from us, so enrolment still works once they call our API.")
+    else:
+        out["verdict"] = "unexpected"
+        out["summary"] = f"The classroom API answered {api['status']}."
+    return out
+
+
 @router.get("/admin/bridge-status")
 async def admin_bridge_status(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     """Everything an admin needs to see why admissions are or aren't flowing."""
