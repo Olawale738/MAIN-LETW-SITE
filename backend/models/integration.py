@@ -30,6 +30,11 @@ class IntegrationSettings(Base):
     # admin-configurable rather than hard-coded.
     lms_base_url: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     lms_api_key: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    # A second key the classroom may present. Their team issues more than one,
+    # and accepting either removes the guesswork about which one their system
+    # actually sends — it also makes rotation non-breaking: add the new key
+    # here, let them cut over, then retire the old one.
+    lms_api_key_alt: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     lms_enrol_path: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     # sharepoints student-ID intake
     student_webhook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)

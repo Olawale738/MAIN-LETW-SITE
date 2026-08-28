@@ -209,6 +209,7 @@ async def init_db():
                 ("integration_settings", "marriage_seal_url",       "TEXT"),
                 ("integration_settings", "lms_base_url",        "VARCHAR(300)"),
                 ("integration_settings", "lms_api_key",         "VARCHAR(300)"),
+                ("integration_settings", "lms_api_key_alt",     "VARCHAR(300)"),
                 ("integration_settings", "lms_enrol_path",      "VARCHAR(300)"),
                 ("integration_settings", "student_webhook_url", "VARCHAR(500)"),
                 # Registrar / deputy registrar who sign the admission letter

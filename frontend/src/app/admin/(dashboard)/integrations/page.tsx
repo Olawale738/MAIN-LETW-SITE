@@ -21,6 +21,8 @@ export default function AdminIntegrationsPage() {
     const [lmsBase, setLmsBase] = useState('')
     const [lmsKey, setLmsKey] = useState('')
     const [lmsKeySet, setLmsKeySet] = useState(false)
+    const [lmsKeyAlt, setLmsKeyAlt] = useState('')
+    const [lmsKeyAltSet, setLmsKeyAltSet] = useState(false)
     const [lmsPath, setLmsPath] = useState('')
     const [savingLinks, setSavingLinks] = useState(false)
     const [testingLms, setTestingLms] = useState(false)
@@ -40,7 +42,7 @@ export default function AdminIntegrationsPage() {
         setBapWebhookUrl(s.baptism_webhook_url || ''); setBapOfficeEmail(s.baptism_office_email || '')
         setSealUrl(s.marriage_seal_url || '')
         setStudentUrl(s.student_webhook_url || ''); setLmsBase(s.lms_base_url || '')
-        setLmsPath(s.lms_enrol_path || ''); setLmsKeySet(!!s.lms_key_set)
+        setLmsPath(s.lms_enrol_path || ''); setLmsKeySet(!!s.lms_key_set); setLmsKeyAltSet(!!s.lms_key_alt_set)
         setIntakeDefault(s.theology_intake_default || '')
     }).catch(() => setStatus(null)).finally(() => setLoading(false))
     useEffect(() => { refresh() }, [])
@@ -74,8 +76,9 @@ export default function AdminIntegrationsPage() {
                 lms_base_url: lmsBase.trim(),
                 lms_enrol_path: lmsPath.trim(),
                 ...(lmsKey.trim() ? { lms_api_key: lmsKey.trim() } : {}),
+                ...(lmsKeyAlt.trim() ? { lms_api_key_alt: lmsKeyAlt.trim() } : {}),
             })
-            setLmsKey('')
+            setLmsKey(''); setLmsKeyAlt('')
             setMsg({ kind: 'ok', text: 'Saved.' }); refresh()
         } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
         finally { setSavingLinks(false) }
@@ -257,6 +260,17 @@ export default function AdminIntegrationsPage() {
                                 </label>
                                 <input value={lmsKey} onChange={e => setLmsKey(e.target.value)} type="password" placeholder={lmsKeySet ? 'leave blank to keep the saved key' : 'paste the classroom key'} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
                                 <p className="text-[11px] text-gray-400 mt-1">The classroom uses this to pull admitted students and to sign students in.</p>
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1 mt-3">
+                                    Second accepted key {lmsKeyAltSet && <span className="text-emerald-600 normal-case tracking-normal">saved</span>}
+                                </label>
+                                <input value={lmsKeyAlt} onChange={e => setLmsKeyAlt(e.target.value)} type="password"
+                                    placeholder={lmsKeyAltSet ? 'leave blank to keep the saved key' : 'optional — a second key the classroom may send'}
+                                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
+                                <p className="text-[11px] text-gray-400 mt-1">
+                                    Both keys are accepted on anything the classroom sends us, so it does not matter which
+                                    of the two their system uses. It also lets you rotate without downtime: add the new key
+                                    here, let them switch over, then clear this field.
+                                </p>
                                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1 mt-3">Classroom base URL (optional)</label>
                                 <input value={lmsBase} onChange={e => setLmsBase(e.target.value)} placeholder="https://live.letw.org" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono" />
                                 <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1 mt-3">Push enrolment path (optional)</label>

@@ -1953,23 +1953,50 @@ async def admin_reset_access(app_id: str, db: AsyncSession = Depends(get_db), _:
 # All three are machine-to-machine and require the shared LMS key in X-API-Key
 # (Admin → Integrations → LMS), so no LMS endpoint contract is needed here.
 
-async def _lms_key(db: AsyncSession) -> str:
+async def _lms_keys(db: AsyncSession) -> list[str]:
+    """Every key the classroom is allowed to present.
+
+    Their team has issued more than one, and which of them their system actually
+    sends is not something we can know from here. Accepting any of them removes
+    a whole class of "is it the key?" debugging — and makes rotation
+    non-breaking, since the old and new key can both be live during a cutover.
+    """
     from config import settings as cfg
+    keys: list[str] = []
     try:
         from models.integration import IntegrationSettings
         row = (await db.execute(select(IntegrationSettings).where(IntegrationSettings.id == "default"))).scalar_one_or_none()
-        if row and (getattr(row, "lms_api_key", None) or "").strip():
-            return row.lms_api_key.strip()
+        if row:
+            for f in ("lms_api_key", "lms_api_key_alt"):
+                v = (getattr(row, f, None) or "").strip()
+                if v:
+                    keys.append(v)
     except Exception:
         pass
-    return (getattr(cfg, "LMS_API_KEY", "") or "").strip()
+    env = (getattr(cfg, "LMS_API_KEY", "") or "").strip()
+    if env and env not in keys:
+        keys.append(env)
+    return keys
+
+
+async def _lms_key(db: AsyncSession) -> str:
+    """The key we present when calling the classroom — always the primary."""
+    keys = await _lms_keys(db)
+    return keys[0] if keys else ""
 
 
 async def _require_lms(db: AsyncSession, x_api_key: str) -> None:
-    expected = await _lms_key(db)
+    expected = await _lms_keys(db)
     if not expected:
         raise HTTPException(503, "LMS integration key is not configured yet (Admin → Integrations).")
-    if not x_api_key or not hmac.compare_digest(x_api_key.strip(), expected):
+    got = (x_api_key or "").strip()
+    # Compare against every accepted key, and never short-circuit on the first
+    # match, so timing does not reveal which key was presented.
+    ok = False
+    for k in expected:
+        if hmac.compare_digest(got, k):
+            ok = True
+    if not got or not ok:
         raise HTTPException(401, "Invalid or missing X-API-Key.")
 
 

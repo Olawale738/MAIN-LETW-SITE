@@ -137,6 +137,7 @@ class KeyIn(BaseModel):
     # Classroom (live.letw.org)
     lms_base_url: Optional[str] = None
     lms_api_key: Optional[str] = None
+    lms_api_key_alt: Optional[str] = None
     lms_enrol_path: Optional[str] = None
 
 
@@ -157,6 +158,7 @@ async def get_settings(db: AsyncSession = Depends(get_db), _: User = Depends(get
         "student_webhook_url": (row.student_webhook_url if row else None) or "",
         "lms_base_url": (row.lms_base_url if row else None) or "",
         "lms_enrol_path": (row.lms_enrol_path if row else None) or "",
+        "lms_key_alt_set": bool((row.lms_api_key_alt if row else "") or ""),
         "lms_key_set": bool((getattr(row, "lms_api_key", None) or "").strip()) if row else False,
         "theology_intake_default": "https://sharepoints.letw.org/api/integrations/theology/enrollments",
         "handshake_url": "https://sharepoints.letw.org/api/letw/handshake",
@@ -196,6 +198,11 @@ async def set_settings(body: KeyIn, db: AsyncSession = Depends(get_db), _: User 
         k = body.lms_api_key.strip()
         if k and "…" not in k:
             row.lms_api_key = k
+    if body.lms_api_key_alt is not None:
+        k = body.lms_api_key_alt.strip()
+        # An empty value clears the second key — that is how a rotation ends.
+        if "…" not in k:
+            row.lms_api_key_alt = k or None
     await db.commit()
     return {"ok": True}
 
