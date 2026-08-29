@@ -2876,6 +2876,26 @@ def _rows_from(body) -> list:
     return []
 
 
+def _row_course(row: dict) -> str:
+    """The course code on a classroom enrolment row, however it is spelled."""
+    def g(d, *keys):
+        for k in keys:
+            v = d.get(k)
+            if isinstance(v, (str, int)) and str(v).strip():
+                return str(v).strip()
+        return ""
+    direct = g(row, "course_code", "courseCode", "course_slug", "slug", "course")
+    if direct:
+        return direct
+    for nest in ("course", "courses"):
+        c = row.get(nest)
+        if isinstance(c, dict):
+            found = g(c, "slug", "code", "course_code", "title")
+            if found:
+                return found
+    return ""
+
+
 def _row_identity(row: dict) -> tuple:
     """Email and admission number out of a classroom row, whatever it calls them."""
     def g(*keys):
@@ -2962,12 +2982,31 @@ async def _pull_classroom_enrolments(db: AsyncSession) -> dict:
     by_adm = {(a.admission_number or "").upper(): a for a in ours if a.admission_number}
 
     matched, already, unmatched = [], [], []
+    mismatched, unverified = [], []
     for r in rows:
         email, adm = _row_identity(r)
         a = by_adm.get(adm) or by_email.get(email)
         if not a:
             unmatched.append({"email": email or None, "admission_number": adm or None})
             continue
+
+        # Matching a person is not the same as matching their studies. A student
+        # may hold a classroom seat on something unrelated to their theology
+        # programme, and marking that as their theology enrolment would put a
+        # tick against a course they are not taking.
+        program = await _get_program(db, a.program_id)
+        expected = ((program.lms_course_code or "") if program else "").strip()
+        actual = _row_course(r)
+        if expected and actual and actual.lower() != expected.lower():
+            mismatched.append({"admission_number": a.admission_number, "name": a.full_name,
+                               "expected_course": expected, "classroom_course": actual})
+            continue
+        if not expected:
+            # Nothing to check against. Accept, but say so — an unverified
+            # match is not the same as a confirmed one.
+            unverified.append({"admission_number": a.admission_number, "name": a.full_name,
+                               "classroom_course": actual or None})
+
         if a.lms_status == "enrolled":
             already.append(a.admission_number)
             continue
@@ -2985,8 +3024,10 @@ async def _pull_classroom_enrolments(db: AsyncSession) -> dict:
 
     return {"ok": True, "source": used, "rows_read": len(rows),
             "newly_enrolled": len(matched), "already_enrolled": len(already),
-            "unmatched": len(unmatched),
-            "details": {"enrolled": matched, "unmatched": unmatched[:20]},
+            "unmatched": len(unmatched), "wrong_course": len(mismatched),
+            "unverified_course": len(unverified),
+            "details": {"enrolled": matched, "unmatched": unmatched[:20],
+                        "wrong_course": mismatched[:20], "unverified_course": unverified[:20]},
             "attempts": attempts}
 
 
@@ -3111,6 +3152,45 @@ def _duplicate_groups(apps: list) -> list:
             } for x in sorted(group, key=lambda x: x.created_at or datetime.min)],
         })
     return out
+
+
+@router.get("/admin/course-trace")
+async def admin_course_trace(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """The codes that tie a programme to the same course in all three systems.
+
+    A programme carries three identifiers and they are not interchangeable: our
+    own id, the code SharePoints admits against, and the classroom's course
+    slug. When they disagree a student can be admitted here, registered there
+    and seated against something else entirely — and every system will look
+    correct on its own.
+    """
+    programs = (await db.execute(select(TheologyProgram))).scalars().all()
+    classroom = await _fetch_classroom_courses(db)
+    published = {(c.get("slug") or "").lower(): c for c in (classroom.get("courses") or [])}
+
+    out = []
+    for p in programs:
+        mapped = (p.lms_course_code or "").strip()
+        row = {
+            "programme": p.name,
+            "letw_id": p.id,
+            "sharepoints_code": p.program_code or None,
+            "course_code_sent": _course_code(p),
+            "classroom_course": mapped or None,
+            "classroom_published": bool(mapped and mapped.lower() in published),
+        }
+        if not mapped:
+            row["issue"] = "Not mapped to a classroom course — enrolments cannot be verified against it."
+        elif not classroom.get("ok"):
+            row["issue"] = f"Could not read the classroom catalogue: {classroom.get('reason')}"
+        elif not row["classroom_published"]:
+            row["issue"] = (f"The classroom does not publish '{mapped}'. It may be a draft, or the code "
+                            f"may be wrong — a course must be published to appear in their catalogue.")
+        out.append(row)
+
+    return {"classroom_reachable": bool(classroom.get("ok")),
+            "classroom_courses": classroom.get("count", 0),
+            "programmes": out}
 
 
 @router.get("/admin/bridge-status")

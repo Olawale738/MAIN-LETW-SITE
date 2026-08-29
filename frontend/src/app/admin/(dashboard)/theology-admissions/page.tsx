@@ -155,7 +155,11 @@ export default function TheologyAdmissionsPage() {
                                 setPublishing(true)
                                 try {
                                     const r = await theologyApi.pullClassroom()
-                                    setMsg({ kind: 'ok', text: `Read ${r.rows_read} from the classroom — ${r.newly_enrolled} newly enrolled, ${r.already_enrolled} already, ${r.unmatched} unmatched.` })
+                                    const bits = [`${r.newly_enrolled} newly enrolled`, `${r.already_enrolled} already`]
+                                    if (r.wrong_course) bits.push(`${r.wrong_course} on a different course`)
+                                    if (r.unverified_course) bits.push(`${r.unverified_course} unverified (programme not mapped)`)
+                                    if (r.unmatched) bits.push(`${r.unmatched} not our students`)
+                                    setMsg({ kind: r.wrong_course ? 'err' : 'ok', text: `Read ${r.rows_read} from the classroom — ${bits.join(', ')}.` })
                                     load()
                                 } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
                                 finally { setPublishing(false) }
