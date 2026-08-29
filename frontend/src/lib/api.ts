@@ -4726,6 +4726,8 @@ export const theologyApi = {
     retryProvisioning: (id: string) => fetchApi<TheologyApplication>(`/theology/admin/applications/${id}/retry-provisioning`, { method: 'POST' }),
     resetAccess: (id: string) => fetchApi<{ ok: boolean; email: string }>(`/theology/admin/applications/${id}/reset-access`, { method: 'POST' }),
     // sharepoints hand-over
+    readiness: () => fetchApi<TheologyReadinessReport>('/theology/admin/readiness'),
+    autoSetup: () => fetchApi<{ ok: boolean; reason?: string; actions: { step: string; ok: boolean; detail?: string | null; programme?: string; student?: string }[]; readiness: TheologyReadinessReport }>('/theology/admin/auto-setup', { method: 'POST' }),
     courseTrace: () => fetchApi<{ classroom_reachable: boolean; classroom_courses: number; programmes: { programme: string; letw_id: string; sharepoints_code: string | null; course_code_sent: string; classroom_course: string | null; classroom_published: boolean; issue?: string }[] }>('/theology/admin/course-trace'),
     classroomCourses: () => fetchApi<{ ok: boolean; count: number; note?: string; courses: { slug: string; title: string; id: string; status: string | null }[] }>('/theology/admin/classroom-courses'),
     mapCourse: (pid: string, lms_course_code: string) => fetchApi<{ ok: boolean; name: string; lms_course_code: string | null; course_code_sent_to_sharepoints: string }>(`/theology/admin/programs/${pid}/course`, { method: 'PUT', body: JSON.stringify({ lms_course_code }) }),
@@ -4763,6 +4765,14 @@ export const theologyApi = {
     resendToSharepoints: (id: string) => fetchApi<{ bridge_status: string; bridge_error?: string | null; offer_number?: string | null; offer_url?: string | null; admission_letter_url?: string | null; status: string }>(`/theology/admin/applications/${id}/resend-to-sharepoints`, { method: 'POST' }),
 }
 
+export interface TheologyReadinessStep {
+    key: string; title: string; done: boolean; detail: string
+    owner: string; fixable: boolean; blocking: boolean
+}
+export interface TheologyReadinessReport {
+    ready: boolean; next: TheologyReadinessStep | null
+    blocking_count: number; fixable_now: string[]; steps: TheologyReadinessStep[]
+}
 export interface TheologyBridgeStatus {
     secret_set: boolean
     email?: { live: boolean; provider: string | null; reason: string | null }

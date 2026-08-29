@@ -3193,6 +3193,178 @@ async def admin_course_trace(db: AsyncSession = Depends(get_db), _: User = Depen
             "programmes": out}
 
 
+# ── One place that says what is done and what is next ────────────────────────
+
+async def _readiness(db: AsyncSession) -> dict:
+    """The school's setup as an ordered list of plain statements.
+
+    Every check here was previously a separate button an administrator had to
+    know to press, in an order nobody wrote down. This is that order, made
+    explicit, with each step saying who it is waiting on — because "not done"
+    and "not ours to do" need different responses from the person reading it.
+    """
+    from routers.integrations import _effective_key, _settings_row
+    secret = await _effective_key(db)
+    row = await _settings_row(db)
+    who = await _signatory(db)
+    mail = _email_delivery()
+    programs = (await db.execute(select(TheologyProgram))).scalars().all()
+    apps = (await db.execute(select(TheologyApplication))).scalars().all()
+
+    open_progs = [p for p in programs if p.is_open]
+    unpriced = [p for p in open_progs if float(p.tuition_amount or 0) <= 0]
+    unregistered = [p for p in programs if not p.program_code]
+    unmapped = [p for p in programs if not (p.lms_course_code or "").strip()]
+    live_apps = [a for a in apps if a.status != "pending"]
+    unsent = [a for a in live_apps if not a.admission_email_sent_at]
+    unbridged = [a for a in live_apps if a.bridge_status != "accepted"]
+    waiting = [a for a in apps if a.status in ("accepted", "enrolled") and a.lms_status != "enrolled"]
+    dupes = _duplicate_groups(apps)
+
+    def step(key, title, done, detail, owner="you", fixable=False, blocking=False):
+        return {"key": key, "title": title, "done": bool(done), "detail": detail,
+                "owner": owner, "fixable": bool(fixable), "blocking": bool(blocking and not done)}
+
+    steps = [
+        step("secret", "Connect to the school office",
+             bool(secret),
+             "Connected." if secret else
+             "Set a shared secret under Integrations. Nothing reaches the school office without it.",
+             blocking=True),
+
+        step("fee", "Set the tuition fee",
+             not unpriced,
+             "Set." if not unpriced else
+             f"{', '.join(p.name for p in unpriced)} is open at no fee. Admissions are refused until the "
+             f"fee matches what applicants pay, so nobody can complete.",
+             blocking=True),
+
+        step("registrar", "Name who signs admission letters",
+             bool((who.get("name") or "").strip()),
+             f"{who.get('name')} signs as {who.get('title')}." if (who.get("name") or "").strip() else
+             "No Registrar named. Letters are not generated at all — an unsigned letter would be worse "
+             "than a late one.",
+             blocking=True),
+
+        step("email", "Turn on email",
+             mail["live"],
+             f"Sending via {mail['provider']}." if mail["live"] else
+             f"{mail['reason']} Candidates are admitted but never told."),
+
+        step("register", "Register programmes with the school office",
+             not unregistered,
+             "All registered." if not unregistered else
+             f"{len(unregistered)} not registered. The office cannot admit against a programme it has "
+             f"never been told about.",
+             fixable=True, blocking=True),
+
+        step("classroom_key", "Connect to the classroom",
+             bool((getattr(row, "lms_api_key", None) or "").strip() if row else False),
+             "Connected." if (getattr(row, "lms_api_key", None) if row else None) else
+             "Save the classroom key under Integrations."),
+
+        step("course_map", "Match each programme to its classroom course",
+             not unmapped,
+             "Matched." if not unmapped else
+             f"{len(unmapped)} not matched. Until then we cannot tell a theology enrolment from any "
+             f"other course the classroom teaches.",
+             owner="classroom"),
+
+        step("duplicates", "Resolve duplicate applications",
+             not dupes,
+             "None." if not dupes else
+             f"{len(dupes)} {'person has' if len(dupes) == 1 else 'people have'} two live applications "
+             f"for the same programme. Two admissions for one person cannot be told apart later.",
+             blocking=True),
+
+        step("handover", "Hand admitted students to the school office",
+             not unbridged,
+             "All handed over." if not unbridged else
+             f"{len(unbridged)} paid but not recorded there, so no student ID can be issued.",
+             fixable=True),
+
+        step("letters", "Send admission letters",
+             not unsent,
+             "All sent." if not unsent else
+             f"{len(unsent)} admitted without being emailed their letter.",
+             fixable=bool(mail["live"])),
+
+        step("seats", "Get students into the classroom",
+             not waiting,
+             "All seated." if not waiting else
+             f"{len(waiting)} waiting for a classroom seat.",
+             owner="classroom", fixable=True),
+    ]
+
+    blocking = [x for x in steps if x["blocking"]]
+    nxt = next((x for x in steps if not x["done"]), None)
+    return {
+        "ready": not blocking,
+        "next": nxt,
+        "blocking_count": len(blocking),
+        "fixable_now": [x["key"] for x in steps if not x["done"] and x["fixable"]],
+        "steps": steps,
+    }
+
+
+@router.get("/admin/readiness")
+async def admin_readiness(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    return await _readiness(db)
+
+
+@router.post("/admin/auto-setup")
+async def admin_auto_setup(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
+    """Do every step that can be done without a decision, in the right order.
+
+    Deliberately limited to the safe ones. Anything needing judgement — a fee,
+    a signatory, which of two duplicate applications is real — is left alone
+    and reported, because guessing at those is worse than leaving them.
+    """
+    did = []
+
+    before = await _readiness(db)
+    if not next(x for x in before["steps"] if x["key"] == "secret")["done"]:
+        return {"ok": False, "reason": "Set the shared secret first — nothing can be sent without it.",
+                "readiness": before}
+
+    # 1. Programmes the office has never been told about.
+    for program in (await db.execute(select(TheologyProgram))).scalars().all():
+        if not program.program_code:
+            r = await _publish_program(db, program)
+            did.append({"step": "register", "programme": program.name,
+                        "ok": bool(r.get("ok")), "detail": r.get("reason")})
+
+    # 2. Students admitted but never handed over.
+    apps = (await db.execute(select(TheologyApplication))).scalars().all()
+    for a in apps:
+        if a.status != "pending" and a.bridge_status != "accepted":
+            program = await _get_program(db, a.program_id)
+            if program:
+                await _bridge_to_sharepoints(db, a, program)
+                await db.refresh(a)
+                did.append({"step": "handover", "student": a.full_name,
+                            "ok": a.bridge_status == "accepted", "detail": a.bridge_error})
+
+    # 3. Letters that were never sent — only if email actually leaves the server.
+    if _email_delivery()["live"]:
+        for a in apps:
+            if a.status != "pending" and not a.admission_email_sent_at:
+                _ensure_offer_identity(a)
+                await db.commit()
+                program = await _get_program(db, a.program_id)
+                r = await _deliver_letter(db, a, program)
+                did.append({"step": "letters", "student": a.full_name,
+                            "ok": bool(r.get("sent")), "detail": r.get("reason")})
+
+    # 4. Seats the classroom has created since we last looked.
+    pull = await _pull_classroom_enrolments(db)
+    if pull.get("ok"):
+        did.append({"step": "seats", "ok": True,
+                    "detail": f"{pull.get('newly_enrolled', 0)} newly seated of {pull.get('rows_read', 0)} read."})
+
+    return {"ok": True, "actions": did, "readiness": await _readiness(db)}
+
+
 @router.get("/admin/bridge-status")
 async def admin_bridge_status(db: AsyncSession = Depends(get_db), _: User = Depends(get_admin_user)):
     """Everything an admin needs to see why admissions are or aren't flowing."""

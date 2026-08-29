@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import RegistrarPanel from '@/components/admin/RegistrarPanel'
+import TheologyReadiness from '@/components/admin/TheologyReadiness'
 import { theologyApi, type TheologyProgram, type TheologyApplication, type TheologyBridgeStatus } from '@/lib/api'
 
 const BLANK: Partial<TheologyProgram> = {
@@ -111,71 +112,7 @@ export default function TheologyAdmissionsPage() {
                 </div>
             )}
 
-            {bridge && (() => {
-                const unpublished = bridge.programs.filter(p => !p.published)
-                const stuck = bridge.stuck.length
-                const mailDead = bridge.email && !bridge.email.live
-                const noSignatory = bridge.signatory && !bridge.signatory.name?.trim()
-                const dupes = bridge.duplicates ?? []
-                const healthy = bridge.secret_set && unpublished.length === 0 && stuck === 0 && !mailDead && !noSignatory && dupes.length === 0
-                return (
-                    <div className={`mb-4 rounded-xl border p-4 ${healthy ? 'border-emerald-200 bg-emerald-50' : 'border-amber-300 bg-amber-50'}`}>
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className="min-w-0">
-                                <p className={`font-bold text-sm flex items-center gap-2 ${healthy ? 'text-emerald-900' : 'text-amber-900'}`}>
-                                    {healthy ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                                    SharePoints admissions {healthy ? 'are flowing' : 'need attention'}
-                                </p>
-                                <ul className="mt-1.5 space-y-0.5 text-xs text-gray-700">
-                                    {dupes.length > 0 && (
-                                        <li className="font-bold text-red-700">
-                                            · {dupes.length} {dupes.length === 1 ? 'person has' : 'people have'} more than one live application for the same programme
-                                            ({dupes.map(d => d.name).join(', ')}). Decide which is real before admitting — two admissions for one person cannot be told apart afterwards.
-                                        </li>
-                                    )}
-                                    {noSignatory && (
-                                        <li className="font-bold text-red-700">· No Registrar has been set, so admission letters are not being generated or sent. Set one under <button onClick={() => setTab('signatories')} className="underline">Signatories</button>.</li>
-                                    )}
-                                    {mailDead && (
-                                        <li className="font-bold text-red-700">· No email is being sent — {bridge.email!.reason} Candidates will not receive their admission letter.</li>
-                                    )}
-                                    {!bridge.secret_set && (
-                                        <li>· No shared secret yet — set one in <Link href="/admin/integrations" className="font-bold underline">Integrations</Link>.</li>
-                                    )}
-                                    {unpublished.length > 0 && (
-                                        <li>· {unpublished.length} programme{unpublished.length === 1 ? ' is' : 's are'} not registered with SharePoints yet, so it cannot issue their admission letters.</li>
-                                    )}
-                                    {stuck > 0 && (
-                                        <li>· {stuck} paid application{stuck === 1 ? '' : 's'} never reached SharePoints — open the Applications tab to resend.</li>
-                                    )}
-                                    {healthy && <li>· Every programme is registered and every paid application has been handed over.</li>}
-                                </ul>
-                            </div>
-                            <button onClick={async () => {
-                                setPublishing(true)
-                                try {
-                                    const r = await theologyApi.pullClassroom()
-                                    const bits = [`${r.newly_enrolled} newly enrolled`, `${r.already_enrolled} already`]
-                                    if (r.wrong_course) bits.push(`${r.wrong_course} on a different course`)
-                                    if (r.unverified_course) bits.push(`${r.unverified_course} unverified (programme not mapped)`)
-                                    if (r.unmatched) bits.push(`${r.unmatched} not our students`)
-                                    setMsg({ kind: r.wrong_course ? 'err' : 'ok', text: `Read ${r.rows_read} from the classroom — ${bits.join(', ')}.` })
-                                    load()
-                                } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }) }
-                                finally { setPublishing(false) }
-                            }} disabled={publishing}
-                                className="inline-flex items-center gap-2 border border-gray-300 text-[#140152] font-bold px-4 py-2 rounded-lg text-xs disabled:opacity-50 shrink-0 mr-2">
-                                <RefreshCw className="w-3.5 h-3.5" /> Fetch enrolments from classroom
-                            </button>
-                            <button onClick={publishAll} disabled={publishing || !bridge.secret_set}
-                                className="inline-flex items-center gap-2 bg-[#140152] text-white font-bold px-4 py-2 rounded-lg text-xs disabled:opacity-50 shrink-0">
-                                {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
-                                Register programmes with SharePoints
-                            </button>
-                        </div>
-                    </div>
-                )
-            })()}
+            <TheologyReadiness onChanged={load} />
 
             <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm mb-5">
                 <button onClick={() => setTab('programs')} className={`px-4 py-1.5 rounded-lg text-xs font-bold ${tab === 'programs' ? 'bg-[#140152] text-white' : 'text-gray-600'}`}>Programmes ({programs.length})</button>
